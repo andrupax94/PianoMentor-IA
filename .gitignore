@@ -1,0 +1,63 @@
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.pyre/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.nx/
+.turbo/
+
+# Local data and user uploads
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/midi/*
+data/uploads/*
+data/sessions/*
+!data/midi/.gitkeep
+!data/uploads/.gitkeep
+!data/sessions/.gitkeep
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Build and generated artifacts
+build/
+dist/
+*.egg-info/
+.work/
+
+# Skill package/build artifacts
+*.skill

@@ -16,6 +16,21 @@ Antes de implementar una funcionalidad, la IA debe leer este documento y respeta
 
 ---
 
+## Estado actual de configuración
+
+La configuración local confirmada para el MVP es:
+
+- **Proveedor LLM inicial:** Groq mediante API compatible con OpenAI.
+- **Modelo inicial validado:** `openai/gpt-oss-20b`.
+- **Observabilidad:** LangSmith habilitado para tracing de alto nivel en el proyecto `PianoMentor`.
+- **Persistencia:** SQLite local.
+- **Archivos MIDI:** filesystem local durante el MVP.
+- **Repositorio:** `andrupax94/PianoMentor-IA` detectado y acceso de GitHub validado; el checkout local todavía no se ha publicado mediante `push`.
+
+Las credenciales se mantienen exclusivamente en `.env`, que está excluido por `.gitignore`. Nunca incluir claves, tokens ni valores de secretos en este README, en commits o en mensajes de diagnóstico.
+
+---
+
 ## 1. Visión del producto
 
 PianoMentor AI convierte una pieza MIDI en una sesión de práctica adaptativa.
@@ -415,8 +430,10 @@ Tecnologías sugeridas:
 - FastAPI.
 - Pydantic.
 - SQLite durante el MVP.
+- Groq como proveedor LLM inicial, detrás de una interfaz desacoplada.
 - `mido`, `pretty_midi` o `miditoolkit`.
 - LangGraph.
+- LangSmith para tracing y evaluación de alto nivel, sin registrar cada evento MIDI.
 - Cliente de LLM compatible con salida estructurada.
 
 Responsabilidades:
@@ -635,6 +652,10 @@ La interfaz debe mostrar:
 - No dar al modelo acceso directo al puerto MIDI.
 - Usar una lista blanca de acciones permitidas.
 - Registrar errores y acciones del agente sin guardar datos innecesarios.
+- Mantener las credenciales en `.env` local y excluirlo mediante `.gitignore`.
+- Rotar inmediatamente cualquier credencial que aparezca en logs, terminales, commits o conversaciones.
+- No enviar claves ni contenido sensible del `.env` a LangSmith.
+- Registrar en LangSmith solo trazas de decisiones y ejecuciones de alto nivel; no registrar cada evento `note_on` o `note_off`.
 
 ---
 
@@ -786,17 +807,24 @@ Después de modificar código:
 
 ## 18. Decisiones pendientes
 
-Estas decisiones pueden resolverse durante el desarrollo, pero deben documentarse cuando se elijan:
+Estas decisiones siguen abiertas y deben documentarse cuando se elijan:
 
 - React o Next.js.
 - Tone.js o motor propio con Web Audio API.
 - Evaluación en cliente o backend.
 - Web MIDI desde el inicio o después del MVP.
 - LangGraph desde la semana 4 o máquina de estados propia.
-- Proveedor de LLM.
-- Persistencia de sesiones.
 - Algoritmo para separar manos.
-- Política de almacenamiento de MIDI.
+- Migración futura de SQLite a PostgreSQL.
+- Migración futura del filesystem local a S3/Cloudflare R2.
+
+Decisiones ya tomadas para el MVP:
+
+- **Proveedor LLM:** Groq, manteniendo un `MockProvider` y reglas deterministas como fallback.
+- **Observabilidad:** LangSmith opcional y limitado a tracing de alto nivel.
+- **Persistencia inicial:** SQLite local.
+- **Almacenamiento inicial de MIDI:** filesystem local.
+- **GitHub Actions:** se usará mediante el repositorio de GitHub; no requiere un token personal dentro de los workflows, ya que Actions proporciona `GITHUB_TOKEN`.
 
 ## Resumen final
 
