@@ -1,8 +1,14 @@
-# PianoMentor AI
+﻿# 🎹 PianoMentor AI
 
-> Profesor de piano virtual con IA que analiza la interpretación del estudiante, reproduce MIDI, genera ejercicios y puede tomar temporalmente el control del piano para demostrar o acompañar una sección.
+> **Profesor de piano virtual con IA** que analiza la interpretación del estudiante, reproduce MIDI, genera ejercicios y puede tomar temporalmente el control del piano para demostrar o acompañar una sección.
 
-## Propósito de este documento
+![Estado](https://img.shields.io/badge/estado-MVP%20en%20desarrollo-orange)
+![Backend](https://img.shields.io/badge/backend-Python%20%7C%20FastAPI-009688)
+![IA](https://img.shields.io/badge/IA-LLM%20%2B%20LangGraph-6f42c1)
+
+**PianoMentor AI** convierte una pieza MIDI en una sesión de práctica adaptativa: observa al estudiante, evalúa su interpretación y propone una intervención pedagógica concreta.
+
+## 📚 Propósito de este documento
 
 Este README funciona como **contexto de producto, arquitectura y desarrollo** para cualquier persona o agente de IA que vaya a crear, modificar o revisar PianoMentor AI.
 
@@ -16,7 +22,44 @@ Antes de implementar una funcionalidad, la IA debe leer este documento y respeta
 
 ---
 
-## Estado actual de configuración
+## 🎯 Objetivos del proyecto
+
+### Objetivo general
+
+> **Desarrollar en un plazo de seis semanas una aplicación web de mentoría para el aprendizaje de piano basada en inteligencia artificial, capaz de cargar, analizar y reproducir piezas MIDI, evaluar la interpretación del estudiante mediante métricas de precisión y timing, y proporcionar intervenciones pedagógicas personalizadas como pistas, demostraciones y acompañamiento, procesando correctamente al menos el 80 % de un corpus validado de 15 piezas MIDI de piano de dominio público o con licencia compatible.**
+
+El porcentaje se medirá sobre un **corpus de validación definido para el MVP**. Una pieza se considerará procesada correctamente cuando pueda cargarse, analizarse, reproducirse y utilizarse dentro del flujo de práctica sin errores críticos.
+
+### Objetivos específicos
+
+1. 🧱 Diseñar una arquitectura modular y reproducible con Python, FastAPI, Docker y Docker Compose.
+2. 🎼 Implementar la carga, validación, normalización, reproducción y análisis de archivos MIDI.
+3. 🎹 Crear un piano virtual web con una interfaz visual inspirada en paneles retro de teclados electrónicos.
+4. 🎧 Capturar la interpretación del estudiante mediante el teclado del ordenador y dejar preparada la integración con dispositivos MIDI físicos.
+5. 📊 Evaluar notas correctas, omitidas, adicionales, precisión, timing, errores repetidos y secciones débiles.
+6. 🧠 Implementar una máquina de estados pedagógica que represente la observación, evaluación, decisión e intervención del agente.
+7. 🤖 Integrar LangGraph y un proveedor LLM para generar recomendaciones y feedback pedagógico estructurado.
+8. 🛡️ Validar toda acción del agente antes de ejecutarla y garantizar que la IA nunca controle directamente el motor MIDI.
+9. 🔁 Permitir demostraciones y acompañamientos limitados, pausables y con devolución automática del control al estudiante.
+10. ✅ Crear pruebas automatizadas, documentación y una demo reproducible de extremo a extremo.
+
+El detalle de ejecución, entregables y prioridades por semana se encuentra en [PLAN.md](PLAN.md).
+
+---
+
+## 🧭 Navegación rápida
+
+- [Objetivos del proyecto](#-objetivos-del-proyecto)
+- [Visión del producto](#1-️-visión-del-producto)
+- [Alcance del MVP](#2-📦-alcance-del-mvp)
+- [Arquitectura técnica](#7-️-arquitectura-técnica)
+- [Roadmap](#14-️-roadmap)
+- [Plan de trabajo de seis semanas](PLAN.md)
+- [Criterios de aceptación](#15-️-criterios-de-aceptación-del-mvp)
+
+---
+
+## ⚙️ Estado actual de configuración
 
 La configuración local confirmada para el MVP es:
 
@@ -31,7 +74,7 @@ Las credenciales se mantienen exclusivamente en `.env`, que está excluido por `
 
 ---
 
-## 1. Visión del producto
+## 1. 👁️ Visión del producto
 
 PianoMentor AI convierte una pieza MIDI en una sesión de práctica adaptativa.
 
@@ -72,7 +115,7 @@ El estudiante repite la transición con feedback.
 
 ---
 
-## 2. Alcance del MVP
+## 2. 📦 Alcance del MVP
 
 El MVP de seis semanas debe ser pequeño, funcional y demostrable.
 
@@ -88,7 +131,7 @@ El MVP de seis semanas debe ser pequeño, funcional y demostrable.
 - Entrada por teclado del ordenador.
 - Comparación entre notas esperadas y notas tocadas.
 - Métricas de precisión y timing.
-- Tres acciones del agente:
+- Acciones iniciales del agente:
   - `wait`
   - `demonstrate`
   - `accompany`
@@ -122,7 +165,7 @@ No implementar inicialmente:
 
 ---
 
-## 3. Principios de diseño
+## 3. 🧩 Principios de diseño
 
 ### 3.1 Arquitectura híbrida
 
@@ -194,7 +237,7 @@ Toda intervención de la IA debe:
 
 ---
 
-## 4. Modos del agente
+## 4. 🤖 Modos del agente
 
 ### `OBSERVING`
 
@@ -266,7 +309,7 @@ La IA no toma el control completo. Puede:
 
 ---
 
-## 5. Máquina de estados
+## 5. 🔄 Máquina de estados
 
 La primera implementación puede usar una máquina de estados sencilla. Después puede migrarse a LangGraph.
 
@@ -307,7 +350,7 @@ El LLM puede sustituir o complementar `DECIDE_ACTION`, pero no debe ser la únic
 
 ---
 
-## 6. LangGraph
+## 6. 🕸️ LangGraph
 
 LangGraph es apropiado para la **orquestación del comportamiento pedagógico**, no para el procesamiento de MIDI de baja latencia.
 
@@ -376,7 +419,7 @@ Cada herramienta debe tener validación, timeout y un resultado estructurado.
 
 ---
 
-## 7. Arquitectura técnica
+## 7. 🏗️ Arquitectura técnica
 
 ```text
 ┌─────────────────────────────┐
@@ -448,7 +491,7 @@ Responsabilidades:
 
 ---
 
-## 8. Modelo de datos
+## 8. 🗃️ Modelo de datos
 
 ### Pieza
 
@@ -509,7 +552,7 @@ Responsabilidades:
 
 ---
 
-## 9. Contrato de acciones
+## 9. 🔐 Contrato de acciones
 
 Todas las acciones del agente deben ajustarse a un esquema similar a este:
 
@@ -570,7 +613,7 @@ Antes de ejecutar una acción:
 
 ---
 
-## 10. API conceptual
+## 10. 🌐 API conceptual
 
 ### `POST /pieces`
 
@@ -608,7 +651,7 @@ Para una implementación en tiempo real, la evaluación de notas puede vivir en 
 
 ---
 
-## 11. Reglas de interacción
+## 11. 🎮 Reglas de interacción
 
 ### Cuando la IA demuestra
 
@@ -642,7 +685,7 @@ La interfaz debe mostrar:
 
 ---
 
-## 12. Privacidad y seguridad
+## 12. 🔒 Privacidad y seguridad
 
 - No subir audio si el MVP solo necesita MIDI.
 - Tratar los archivos MIDI del usuario como datos privados.
@@ -659,7 +702,7 @@ La interfaz debe mostrar:
 
 ---
 
-## 13. Copyright y fuentes musicales
+## 13. 📜 Copyright y fuentes musicales
 
 Para la demo:
 
@@ -674,7 +717,7 @@ Que una composición sea de dominio público no significa automáticamente que c
 
 ---
 
-## 14. Roadmap
+## 14. 🗺️ Roadmap
 
 ### Fase 1 — Núcleo musical
 
@@ -713,54 +756,11 @@ Que una composición sea de dominio público no significa automáticamente que c
 
 ---
 
-## 15. Plan de implementación de seis semanas
-
-### Semana 1
-
-- Crear frontend y backend.
-- Cargar MIDI.
-- Leer notas y tracks.
-- Reproducir una pieza.
-
-### Semana 2
-
-- Crear piano virtual.
-- Añadir falling notes.
-- Añadir pausa, velocidad y loops.
-- Definir los modelos de datos.
-
-### Semana 3
-
-- Capturar teclado del ordenador.
-- Comparar notas.
-- Calcular precisión y timing.
-- Mostrar errores.
-
-### Semana 4
-
-- Implementar estados del agente.
-- Implementar `wait`, `demonstrate` y `accompany`.
-- Validar acciones.
-- Integrar un primer flujo de LangGraph.
-
-### Semana 5
-
-- Añadir demostración de mano izquierda.
-- Añadir devolución de control.
-- Añadir acompañamiento.
-- Añadir feedback explicado por LLM.
-
-### Semana 6
-
-- Pulir UX.
-- Añadir MIDI físico si es viable.
-- Preparar pieza de demo.
-- Escribir tests y documentación.
-- Grabar una sesión completa.
+> El plan operativo de seis semanas, con objetivos y entregables por semana, está documentado en [PLAN.md](PLAN.md).
 
 ---
 
-## 16. Criterios de aceptación del MVP
+## 15. ✅ Criterios de aceptación del MVP
 
 El MVP se considera terminado cuando:
 
@@ -779,7 +779,7 @@ El MVP se considera terminado cuando:
 
 ---
 
-## 17. Checklist para una IA que modifique el proyecto
+## 16. 🧪 Checklist para una IA que modifique el proyecto
 
 Antes de modificar código:
 
@@ -805,7 +805,7 @@ Después de modificar código:
 
 ---
 
-## 18. Decisiones pendientes
+## 17. 📝 Decisiones pendientes
 
 Estas decisiones siguen abiertas y deben documentarse cuando se elijan:
 
@@ -842,3 +842,4 @@ Interacción y visualización = frontend
 La característica que debe guiar el proyecto es:
 
 > **El agente observa al estudiante, decide una intervención concreta y puede tocar temporalmente para enseñar, pero siempre devuelve el control al usuario.**
+
