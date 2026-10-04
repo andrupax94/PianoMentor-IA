@@ -1,4 +1,4 @@
-# 🗓️ Plan de trabajo — PianoMentor AI
+﻿# 🗓️ Plan de trabajo — PianoMentor AI
 
 > Plan operativo del MVP de PianoMentor AI. El objetivo general y la arquitectura del proyecto se mantienen en [`README.md`](README.md).
 
@@ -47,7 +47,7 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 - Implementar la reproducción de piezas y secciones.
 - Añadir control de tempo, pausa, detención y repetición.
 - Crear la primera versión del piano virtual.
-- Diseñar la estética visual inspirada en paneles retro de teclados electrónicos.
+- Diseñar una interfaz web inicial sencilla, clara y funcional.
 
 **Entregables**
 
@@ -189,3 +189,4 @@ La prioridad de la demo es:
 ```text
 MIDI → reproducción → práctica → evaluación → intervención de IA → devolución del control
 ```
+

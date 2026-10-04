@@ -34,7 +34,7 @@ El porcentaje se medirá sobre un **corpus de validación definido para el MVP**
 
 1. 🧱 Diseñar una arquitectura modular y reproducible con Python, FastAPI, Docker y Docker Compose.
 2. 🎼 Implementar la carga, validación, normalización, reproducción y análisis de archivos MIDI.
-3. 🎹 Crear un piano virtual web con una interfaz visual inspirada en paneles retro de teclados electrónicos.
+3. 🎹 Crear un piano virtual web con una interfaz sencilla, clara y orientada a validar el flujo de práctica.
 4. 🎧 Capturar la interpretación del estudiante mediante el teclado del ordenador y dejar preparada la integración con dispositivos MIDI físicos.
 5. 📊 Evaluar notas correctas, omitidas, adicionales, precisión, timing, errores repetidos y secciones débiles.
 6. 🧠 Implementar una máquina de estados pedagógica que represente la observación, evaluación, decisión e intervención del agente.
