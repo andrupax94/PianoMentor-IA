@@ -1,0 +1,5 @@
+organizacion en github proyects
+funcionalidades
+investigar blueprints
+Qdrant base de datos vectorial
+LangGraf

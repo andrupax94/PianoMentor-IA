@@ -39,25 +39,25 @@ Backlog inicial
 
 Este es el backlog inicial, ordenado por prioridad:
 
-| ID | Prioridad | Tarea | Resultado esperado | Fase |
-|---|---|---|---|---|
-| B-001 | P0 | Crear y validar la estructura monorepo | Backend, frontend, datos, contratos y Docker preparados | Semana 1 |
-| B-002 | P0 | Levantar FastAPI con `/health` | Backend ejecutable localmente y en contenedor | Semana 1 |
-| B-003 | P0 | Cargar y validar archivos MIDI | `POST /api/v1/pieces` acepta MIDI válido y rechaza entradas inválidas | Semana 1 |
-| B-004 | P0 | Normalizar notas, tempo, tracks y compases | Modelo interno estable para el motor musical | Semana 2 |
-| B-005 | P0 | Crear reproducción y control de secciones | Play, pausa, detención, tempo y repetición | Semana 2 |
-| B-006 | P0 | Crear piano virtual web | Notas esperadas visibles en Next.js | Semana 2 |
-| B-007 | P0 | Capturar teclado del ordenador | Eventos del estudiante llegan a la sesión | Semana 3 |
-| B-008 | P0 | Implementar evaluación determinista | Precisión, omisiones, extras y timing | Semana 3 |
-| B-009 | P1 | Implementar máquina de estados | Estados pedagógicos explícitos y testeables | Semana 4 |
-| B-010 | P1 | Validar acciones del agente | Lista blanca, límites, timeout y resultado estructurado | Semana 4 |
-| B-011 | P1 | Implementar demostración y devolución de control | Intervención limitada, pausible y reversible | Semana 5 |
-| B-012 | P1 | Añadir acompañamiento básico | La IA reproduce una parte mientras el usuario toca otra | Semana 5 |
-| B-013 | P1 | Integrar LangGraph y proveedor LLM | Decisiones de alto nivel con fallback determinista | Semana 5 |
-| B-014 | P1 | Desplegar frontend en Vercel | URL pública de la aplicación web | Semana 6 |
-| B-015 | P1 | Desplegar backend en Hugging Face Spaces | API pública y WebSocket de demostración | Semana 6 |
-| B-016 | P1 | Ejecutar prueba end-to-end pública | Flujo completo desde Vercel hasta el backend | Semana 6 |
-| B-017 | P2 | Añadir Web MIDI, memoria y progreso | Funcionalidades posteriores al núcleo MVP | Después del MVP |
+| ID    | Prioridad | Tarea                                              | Resultado esperado                                                        | Fase             |
+| ----- | --------- | -------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
+| B-001 | P0        | Crear y validar la estructura monorepo             | Backend, frontend, datos, contratos y Docker preparados                   | Semana 1         |
+| B-002 | P0        | Levantar FastAPI con`/health`                    | Backend ejecutable localmente y en contenedor                             | Semana 1         |
+| B-003 | P0        | Cargar y validar archivos MIDI                     | `POST /api/v1/pieces` acepta MIDI válido y rechaza entradas inválidas | Semana 1         |
+| B-004 | P0        | Normalizar notas, tempo, tracks y compases         | Modelo interno estable para el motor musical                              | Semana 2         |
+| B-005 | P0        | Crear reproducción y control de secciones         | Play, pausa, detención, tempo y repetición                              | Semana 2         |
+| B-006 | P0        | Crear piano virtual web                            | Notas esperadas visibles en Next.js                                       | Semana 2         |
+| B-007 | P0        | Capturar teclado del ordenador                     | Eventos del estudiante llegan a la sesión                                | Semana 3         |
+| B-008 | P0        | Implementar evaluación determinista               | Precisión, omisiones, extras y timing                                    | Semana 3         |
+| B-009 | P1        | Implementar máquina de estados                    | Estados pedagógicos explícitos y testeables                             | Semana 4         |
+| B-010 | P1        | Validar acciones del agente                        | Lista blanca, límites, timeout y resultado estructurado                  | Semana 4         |
+| B-011 | P1        | Implementar demostración y devolución de control | Intervención limitada, pausible y reversible                             | Semana 5         |
+| B-012 | P1        | Añadir acompañamiento básico                    | La IA reproduce una parte mientras el usuario toca otra                   | Semana 5         |
+| B-013 | P1        | Integrar LangGraph y proveedor LLM                 | Decisiones de alto nivel con fallback determinista                        | Semana 5         |
+| B-014 | P1        | Desplegar frontend en Vercel                       | URL pública de la aplicación web                                        | Semana 6         |
+| B-015 | P1        | Desplegar backend en Hugging Face Spaces           | API pública y WebSocket de demostración                                 | Semana 6         |
+| B-016 | P1        | Ejecutar prueba end-to-end pública                | Flujo completo desde Vercel hasta el backend                              | Semana 6         |
+| B-017 | P2        | Añadir Web MIDI, memoria y progreso               | Funcionalidades posteriores al núcleo MVP                                | Después del MVP |
 
 Las prioridades significan: **P0**, imprescindible para el flujo principal; **P1**, necesario para la demo completa o el primer despliegue; **P2**, posterior y aplazable.
 
