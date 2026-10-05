@@ -575,7 +575,42 @@ WS   /api/v1/ws/sessions/{session_id}
 
 El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
 
-## 8. Evolución recomendada
+## 8. Destino de despliegue inicial
+
+La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:
+
+| Componente | Plataforma inicial | Responsabilidad | Requisitos principales |
+|---|---|---|---|
+| Frontend Next.js | [Vercel](https://vercel.com/) | Servir la interfaz web y sus rutas de Next.js. | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y configuración de CORS en el backend. |
+| Backend FastAPI | [Hugging Face Spaces](https://huggingface.co/spaces) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Space con SDK Docker, `Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
+| Persistencia MVP | SQLite local o volumen persistente del Space | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente; documentar el volumen o limitarlo a demos. |
+| Archivos MIDI MVP | Filesystem del backend | Recibir y procesar archivos cargados. | Limitar tamaño, validar extensión/contenido y tratar los archivos como privados. |
+
+### Flujo entre despliegues
+
+```text
+Navegador
+   ↓
+Vercel / Next.js
+   ├── HTTPS → Hugging Face Space / FastAPI
+   └── WSS  → Hugging Face Space / WebSocket de sesión
+```
+
+La URL pública de Vercel debe configurarse en `CORS_ORIGINS` del backend. El frontend no debe depender de `localhost` en producción; las URLs públicas deben entrar mediante variables de entorno de Vercel.
+
+### Condiciones antes de producción
+
+- [ ] Confirmar que el Space elegido permite ejecutar el contenedor y exponer FastAPI correctamente.
+- [ ] Configurar secretos en Vercel y Hugging Face, nunca en el repositorio.
+- [ ] Usar HTTPS y WSS en las URLs públicas.
+- [ ] Verificar si el plan y la configuración del Space mantienen WebSocket y archivos durante la sesión.
+- [ ] Sustituir SQLite/filesystem por PostgreSQL y almacenamiento de objetos si se requiere persistencia real.
+- [ ] Añadir límites de tamaño, timeout y limpieza de archivos MIDI cargados.
+- [ ] Ejecutar una prueba end-to-end desde la URL pública de Vercel.
+
+Este destino es adecuado para el **primer despliegue demostrable**, no constituye todavía una arquitectura de alta disponibilidad. La decisión de migrar a otra plataforma debe conservar los contratos de la API y la separación de capas descritos en este documento.
+
+## 9. Evolución recomendada
 
 ### Etapa 1 — MVP simple
 
@@ -617,7 +652,7 @@ El frontend debe consumir estos contratos a través de `api-client.ts` y `websoc
 - Incorporar autenticación, historial, planes de práctica y progreso.
 - Mantener los contratos de dominio y API compatibles o versionados.
 
-## 9. Decisión actual
+## 10. Decisión actual
 
 La estructura que debe implementarse primero es la de **MVP simple**. La estructura completa funciona como destino arquitectónico, no como requisito para crear todos los archivos desde el primer día.
 

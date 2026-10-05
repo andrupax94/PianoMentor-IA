@@ -23,7 +23,47 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 
 El alcance exacto del MVP y lo que queda fuera está definido en [README.md](README.md).
 
-## 2. Reglas de ejecución
+## 2. Backlog inicial
+
+El **backlog** es la lista ordenada de tareas, mejoras y decisiones pendientes del producto. No es lo mismo que la checklist de aceptación: el backlog contiene trabajo que todavía puede cambiar de prioridad, mientras que la checklist responde si el MVP terminado cumple o no sus condiciones mínimas.
+
+La relación entre ambos es:
+
+```text
+Backlog inicial
+  → tareas priorizadas
+  → entregables por semana
+  → implementación y pruebas
+  → checklist de aceptación del MVP
+```
+
+Este es el backlog inicial, ordenado por prioridad:
+
+| ID | Prioridad | Tarea | Resultado esperado | Fase |
+|---|---|---|---|---|
+| B-001 | P0 | Crear y validar la estructura monorepo | Backend, frontend, datos, contratos y Docker preparados | Semana 1 |
+| B-002 | P0 | Levantar FastAPI con `/health` | Backend ejecutable localmente y en contenedor | Semana 1 |
+| B-003 | P0 | Cargar y validar archivos MIDI | `POST /api/v1/pieces` acepta MIDI válido y rechaza entradas inválidas | Semana 1 |
+| B-004 | P0 | Normalizar notas, tempo, tracks y compases | Modelo interno estable para el motor musical | Semana 2 |
+| B-005 | P0 | Crear reproducción y control de secciones | Play, pausa, detención, tempo y repetición | Semana 2 |
+| B-006 | P0 | Crear piano virtual web | Notas esperadas visibles en Next.js | Semana 2 |
+| B-007 | P0 | Capturar teclado del ordenador | Eventos del estudiante llegan a la sesión | Semana 3 |
+| B-008 | P0 | Implementar evaluación determinista | Precisión, omisiones, extras y timing | Semana 3 |
+| B-009 | P1 | Implementar máquina de estados | Estados pedagógicos explícitos y testeables | Semana 4 |
+| B-010 | P1 | Validar acciones del agente | Lista blanca, límites, timeout y resultado estructurado | Semana 4 |
+| B-011 | P1 | Implementar demostración y devolución de control | Intervención limitada, pausible y reversible | Semana 5 |
+| B-012 | P1 | Añadir acompañamiento básico | La IA reproduce una parte mientras el usuario toca otra | Semana 5 |
+| B-013 | P1 | Integrar LangGraph y proveedor LLM | Decisiones de alto nivel con fallback determinista | Semana 5 |
+| B-014 | P1 | Desplegar frontend en Vercel | URL pública de la aplicación web | Semana 6 |
+| B-015 | P1 | Desplegar backend en Hugging Face Spaces | API pública y WebSocket de demostración | Semana 6 |
+| B-016 | P1 | Ejecutar prueba end-to-end pública | Flujo completo desde Vercel hasta el backend | Semana 6 |
+| B-017 | P2 | Añadir Web MIDI, memoria y progreso | Funcionalidades posteriores al núcleo MVP | Después del MVP |
+
+Las prioridades significan: **P0**, imprescindible para el flujo principal; **P1**, necesario para la demo completa o el primer despliegue; **P2**, posterior y aplazable.
+
+El backlog puede crecer o reordenarse. Cuando una tarea se complete, debe reflejarse en el historial de Git y, si afecta a la aceptación del MVP, también en la sección correspondiente de este documento.
+
+## 3. Reglas de ejecución
 
 - Priorizar el núcleo MIDI y la evaluación antes de ampliar funcionalidades.
 - Implementar primero reglas deterministas; el LLM no debe ser un requisito para que funcione el flujo.
@@ -32,7 +72,7 @@ El alcance exacto del MVP y lo que queda fuera está definido en [README.md](REA
 - Mantener Docker reproducible desde el inicio.
 - Posponer Web MIDI, memoria, planes persistentes y gráficos avanzados si amenazan el núcleo.
 
-## 3. Plan por semanas
+## 4. Plan por semanas
 
 ### Semana 1 — Arquitectura, entorno y carga de MIDI
 
@@ -154,7 +194,7 @@ El alcance exacto del MVP y lo que queda fuera está definido en [README.md](REA
 - Documentación de instalación.
 - Demostración completa del flujo definido al inicio de este documento.
 
-## 4. Puerta de aceptación del MVP
+## 5. Puerta de aceptación del MVP
 
 Antes de cerrar el MVP, comprobar:
 
@@ -175,7 +215,7 @@ Antes de cerrar el MVP, comprobar:
 - [ ] El proyecto incluye pruebas y documentación de instalación.
 - [ ] El flujo funciona con el LLM deshabilitado mediante reglas deterministas.
 
-## 5. Orden de prioridad
+## 6. Orden de prioridad
 
 Si existe conflicto entre funcionalidades, aplicar este orden:
 
@@ -191,7 +231,7 @@ Si existe conflicto entre funcionalidades, aplicar este orden:
 9. Web MIDI, memoria y progreso
 ```
 
-## 6. Definition of Done por cambio
+## 7. Definition of Done por cambio
 
 Un cambio se considera terminado cuando:
 
@@ -204,7 +244,7 @@ Un cambio se considera terminado cuando:
 - [ ] Se verificó el arranque local o Docker afectado.
 - [ ] Se actualizó la documentación especializada, no todos los documentos indiscriminadamente.
 
-## 7. Documentos relacionados
+## 8. Documentos relacionados
 
 - [README.md](README.md): producto, alcance y decisiones generales.
 - [ARCHITECTURE.md](ARCHITECTURE.md): estructura y contratos técnicos.
