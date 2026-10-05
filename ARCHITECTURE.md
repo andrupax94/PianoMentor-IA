@@ -1,0 +1,633 @@
+# Arquitectura de PianoMentor AI
+
+## 1. Propósito
+
+Este documento define la estructura de carpetas y archivos recomendada para PianoMentor AI en dos niveles:
+
+1. **Estructura simple del MVP:** mínima, funcional y orientada a validar el flujo principal.
+2. **Estructura completa escalable:** separación estricta entre dominio musical, casos de uso, API, infraestructura, agente y frontend.
+
+La aplicación se desarrollará como un **monorepo** con:
+
+- **Backend:** Python, FastAPI, Pydantic y SQLite durante el MVP.
+- **Frontend:** Next.js y TypeScript.
+- **Comunicación:** HTTP para operaciones normales y WebSocket para sesiones en tiempo real.
+- **MIDI:** procesamiento determinista, separado del LLM y de la interfaz.
+- **Agente:** reglas deterministas primero; LangGraph y LLM posteriormente.
+- **Ejecución:** Docker y Docker Compose desde el inicio.
+
+> La interfaz inicial será web. La antigua idea de una consola retro queda descartada como interfaz principal.
+
+## 2. Principios arquitectónicos
+
+1. **El motor musical determinista controla MIDI, reproducción, timing y evaluación.**
+2. **FastAPI expone casos de uso, pero no contiene la lógica musical principal.**
+3. **Next.js muestra el estado y captura la interacción del usuario.**
+4. **El agente propone acciones estructuradas; nunca envía MIDI directamente.**
+5. **Toda acción del agente se valida antes de ejecutarse.**
+6. **El control del piano debe ser visible, limitado, pausible, detenible y reversible.**
+7. **El sistema debe funcionar sin LLM mediante reglas deterministas.**
+8. **El dominio musical debe poder probarse sin levantar FastAPI, Next.js ni Docker.**
+9. **La primera versión debe priorizar el flujo vertical:** cargar MIDI → mostrar pieza → practicar → evaluar.
+
+## 3. Flujo principal del MVP
+
+```text
+Usuario
+  ↓
+Next.js: cargar archivo MIDI
+  ↓ HTTP
+FastAPI: validar y registrar la pieza
+  ↓
+Dominio MIDI: normalizar notas, tempo, tracks y duración
+  ↓ HTTP/WebSocket
+Next.js: mostrar pieza y piano virtual
+  ↓
+Crear sesión de práctica
+  ↓ WebSocket
+Capturar teclado del ordenador y actualizar estado
+  ↓
+Evaluador determinista: notas, omisiones, extras y timing
+  ↓
+Estado pedagógico y acciones validadas
+```
+
+## 4. Estructura simple del MVP
+
+Esta estructura es la recomendada para comenzar. Evita crear demasiadas abstracciones antes de validar la funcionalidad, pero mantiene separadas las responsabilidades principales.
+
+### 4.1 Árbol del MVP
+
+```text
+piano-mentor-ai/
+├── README.md
+├── PLAN.md
+├── GLOSARIO.md
+├── ARCHITECTURE.md
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── src/
+│   │   └── piano_mentor/
+│   │       ├── __init__.py
+│   │       ├── main.py
+│   │       ├── config.py
+│   │       ├── api.py
+│   │       ├── schemas.py
+│   │       ├── database.py
+│   │       ├── midi.py
+│   │       ├── evaluation.py
+│   │       ├── practice.py
+│   │       └── agent.py
+│   └── tests/
+│       ├── test_health.py
+│       ├── test_midi.py
+│       ├── test_evaluation.py
+│       └── test_agent.py
+│
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── next.config.ts
+│   ├── tsconfig.json
+│   └── src/
+│       ├── app/
+│       │   ├── layout.tsx
+│       │   ├── page.tsx
+│       │   ├── globals.css
+│       │   └── practice/
+│       │       └── [sessionId]/
+│       │           └── page.tsx
+│       ├── components/
+│       │   ├── MidiUploader.tsx
+│       │   ├── PianoKeyboard.tsx
+│       │   ├── PracticeSession.tsx
+│       │   └── SessionStatus.tsx
+│       └── lib/
+│           ├── api-client.ts
+│           └── websocket-client.ts
+│
+├── data/
+│   ├── midi/.gitkeep
+│   ├── uploads/.gitkeep
+│   └── sessions/.gitkeep
+│
+└── shared/
+    └── schemas/
+        └── action.schema.json
+```
+
+### 4.2 Tabla de archivos y carpetas del MVP
+
+| Archivo o carpeta | Descripción |
+|---|---|
+| `/README.md` | Contexto del producto, objetivos, alcance y reglas principales. |
+| `/PLAN.md` | Plan operativo del MVP y entregables por fase o semana. |
+| `/GLOSARIO.md` | Definiciones de términos musicales, técnicos y pedagógicos. |
+| `/ARCHITECTURE.md` | Este documento; describe la evolución arquitectónica del proyecto. |
+| `/.env.example` | Plantilla de variables de entorno sin secretos. |
+| `/.gitignore` | Archivos y carpetas que no deben versionarse. |
+| `/docker-compose.yml` | Orquestación local del backend y frontend. |
+| `/backend/` | Aplicación Python/FastAPI y lógica inicial del producto. |
+| `/backend/Dockerfile` | Imagen reproducible para ejecutar el backend. |
+| `/backend/pyproject.toml` | Dependencias, configuración de herramientas y metadatos Python. |
+| `/backend/src/piano_mentor/` | Paquete principal del backend. |
+| `/backend/src/piano_mentor/__init__.py` | Marca el paquete Python y puede contener la versión del proyecto. |
+| `/backend/src/piano_mentor/main.py` | Punto de entrada de FastAPI y creación de la aplicación. |
+| `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
+| `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
+| `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite. |
+| `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
+| `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
+| `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |
+| `/backend/src/piano_mentor/agent.py` | Reglas deterministas y acciones iniciales del agente. |
+| `/backend/tests/` | Pruebas automáticas del backend. |
+| `/backend/tests/test_health.py` | Comprueba que la API arranca y responde correctamente. |
+| `/backend/tests/test_midi.py` | Pruebas de MIDI válido, inválido y normalización básica. |
+| `/backend/tests/test_evaluation.py` | Pruebas de notas correctas, omitidas, adicionales y timing. |
+| `/backend/tests/test_agent.py` | Pruebas de reglas, validación y devolución del control. |
+| `/frontend/` | Aplicación web Next.js/TypeScript. |
+| `/frontend/Dockerfile` | Imagen reproducible para ejecutar el frontend. |
+| `/frontend/package.json` | Dependencias y scripts del frontend. |
+| `/frontend/next.config.ts` | Configuración de Next.js. |
+| `/frontend/tsconfig.json` | Configuración del compilador TypeScript. |
+| `/frontend/src/app/layout.tsx` | Layout global de la aplicación web. |
+| `/frontend/src/app/page.tsx` | Página inicial: carga de MIDI y acceso al flujo de práctica. |
+| `/frontend/src/app/globals.css` | Estilos globales de la aplicación. |
+| `/frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. |
+| `/frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI. |
+| `/frontend/src/components/PianoKeyboard.tsx` | Piano virtual básico y resaltado de notas. |
+| `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica. |
+| `/frontend/src/components/SessionStatus.tsx` | Estado actual, tempo, compás y control del piano. |
+| `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI. |
+| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket para actualizaciones en tiempo real. |
+| `/data/midi/` | MIDI de prueba o archivos preparados para demostraciones. |
+| `/data/uploads/` | Archivos MIDI cargados localmente durante el desarrollo. |
+| `/data/sessions/` | Datos temporales o exportaciones de sesiones. |
+| `/shared/schemas/action.schema.json` | Esquema compartido para validar acciones del agente. |
+
+### 4.3 Responsabilidades de los módulos simples
+
+| Módulo | Responsabilidad | No debe hacer |
+|---|---|---|
+| `midi.py` | Leer y normalizar MIDI. | Decidir acciones pedagógicas o responder HTTP directamente. |
+| `evaluation.py` | Comparar interpretación y calcular métricas. | Renderizar UI o llamar al LLM. |
+| `practice.py` | Gestionar sesiones y estado de práctica. | Implementar componentes web. |
+| `agent.py` | Seleccionar y validar acciones estructuradas. | Enviar eventos MIDI directamente desde un LLM. |
+| `api.py` | Traducir HTTP/WebSocket a casos de uso. | Contener algoritmos musicales complejos. |
+| `PianoKeyboard.tsx` | Mostrar el teclado virtual y su estado visual. | Parsear MIDI o calcular timing. |
+
+## 5. Estructura completa escalable
+
+Cuando el MVP esté validado, se recomienda evolucionar a una separación por capas y módulos de dominio. La estructura completa permite añadir LangGraph, un proveedor LLM, persistencia más avanzada, MIDI físico y funcionalidades de progreso sin mezclar responsabilidades.
+
+### 5.1 Árbol completo
+
+```text
+piano-mentor-ai/
+├── README.md
+├── PLAN.md
+├── GLOSARIO.md
+├── ARCHITECTURE.md
+├── LICENSE
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── Makefile
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── alembic.ini
+│   ├── migrations/
+│   │   ├── env.py
+│   │   └── versions/
+│   │
+│   ├── src/
+│   │   └── piano_mentor/
+│   │       ├── __init__.py
+│   │       ├── main.py
+│   │       │
+│   │       ├── api/
+│   │       │   ├── __init__.py
+│   │       │   ├── deps.py
+│   │       │   ├── router.py
+│   │       │   └── v1/
+│   │       │       ├── __init__.py
+│   │       │       ├── pieces.py
+│   │       │       ├── sessions.py
+│   │       │       ├── events.py
+│   │       │       ├── actions.py
+│   │       │       └── websocket.py
+│   │       │
+│   │       ├── application/
+│   │       │   ├── __init__.py
+│   │       │   ├── pieces/
+│   │       │   │   ├── commands.py
+│   │       │   │   ├── queries.py
+│   │       │   │   └── services.py
+│   │       │   ├── practice/
+│   │       │   │   ├── commands.py
+│   │       │   │   ├── queries.py
+│   │       │   │   └── services.py
+│   │       │   └── agent/
+│   │       │       └── services.py
+│   │       │
+│   │       ├── domain/
+│   │       │   ├── __init__.py
+│   │       │   ├── midi/
+│   │       │   │   ├── entities.py
+│   │       │   │   ├── value_objects.py
+│   │       │   │   ├── services.py
+│   │       │   │   └── exceptions.py
+│   │       │   ├── performance/
+│   │       │   │   ├── entities.py
+│   │       │   │   ├── evaluator.py
+│   │       │   │   ├── metrics.py
+│   │       │   │   └── timing.py
+│   │       │   ├── practice/
+│   │       │   │   ├── entities.py
+│   │       │   │   ├── states.py
+│   │       │   │   └── events.py
+│   │       │   └── agent/
+│   │       │       ├── entities.py
+│   │       │       ├── actions.py
+│   │       │       ├── policies.py
+│   │       │       ├── state_machine.py
+│   │       │       └── validators.py
+│   │       │
+│   │       ├── infrastructure/
+│   │       │   ├── config/
+│   │       │   │   ├── settings.py
+│   │       │   │   └── logging.py
+│   │       │   ├── database/
+│   │       │   │   ├── connection.py
+│   │       │   │   ├── models.py
+│   │       │   │   └── repositories.py
+│   │       │   ├── midi/
+│   │       │   │   ├── mido_reader.py
+│   │       │   │   ├── midi_player.py
+│   │       │   │   └── filesystem.py
+│   │       │   ├── agent/
+│   │       │   │   ├── deterministic_provider.py
+│   │       │   │   ├── groq_provider.py
+│   │       │   │   └── langgraph_graph.py
+│   │       │   └── observability/
+│   │       │       └── langsmith.py
+│   │       │
+│   │       └── schemas/
+│   │           ├── pieces.py
+│   │           ├── sessions.py
+│   │           ├── events.py
+│   │           ├── evaluations.py
+│   │           └── actions.py
+│   │
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── domain/
+│   │   │   │   ├── test_midi.py
+│   │   │   │   ├── test_evaluator.py
+│   │   │   │   ├── test_timing.py
+│   │   │   │   └── test_agent_actions.py
+│   │   │   └── application/
+│   │   │       └── test_practice_services.py
+│   │   ├── integration/
+│   │   │   ├── test_piece_upload.py
+│   │   │   ├── test_sessions.py
+│   │   │   └── test_agent_flow.py
+│   │   └── fixtures/
+│   │       ├── midi/
+│   │       └── performances/
+│   │
+│   └── scripts/
+│       ├── seed_demo_data.py
+│       └── validate_midi_corpus.py
+│
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── next.config.ts
+│   ├── tsconfig.json
+│   ├── eslint.config.mjs
+│   ├── public/
+│   │   ├── icons/
+│   │   └── audio/
+│   └── src/
+│       ├── app/
+│       │   ├── layout.tsx
+│       │   ├── page.tsx
+│       │   ├── globals.css
+│       │   ├── pieces/
+│       │   │   ├── page.tsx
+│       │   │   └── [pieceId]/
+│       │   │       └── page.tsx
+│       │   └── practice/
+│       │       └── [sessionId]/
+│       │           └── page.tsx
+│       ├── components/
+│       │   ├── piano/
+│       │   │   ├── PianoKeyboard.tsx
+│       │   │   ├── PianoKey.tsx
+│       │   │   └── NoteHighlight.tsx
+│       │   ├── pieces/
+│       │   │   ├── MidiUploader.tsx
+│       │   │   └── PieceSummary.tsx
+│       │   ├── practice/
+│       │   │   ├── PracticeSession.tsx
+│       │   │   ├── ExpectedNotes.tsx
+│       │   │   ├── PerformanceScore.tsx
+│       │   │   └── SessionControls.tsx
+│       │   └── agent/
+│       │       ├── AgentStatus.tsx
+│       │       ├── CurrentAction.tsx
+│       │       └── ControlIndicator.tsx
+│       ├── features/
+│       │   ├── pieces/
+│       │   │   ├── api.ts
+│       │   │   ├── hooks.ts
+│       │   │   └── types.ts
+│       │   ├── practice/
+│       │   │   ├── api.ts
+│       │   │   ├── hooks.ts
+│       │   │   ├── websocket.ts
+│       │   │   └── types.ts
+│       │   └── agent/
+│       │       ├── api.ts
+│       │       └── types.ts
+│       ├── lib/
+│       │   ├── api-client.ts
+│       │   ├── websocket-client.ts
+│       │   ├── keyboard-mapping.ts
+│       │   └── validation.ts
+│       ├── hooks/
+│       │   ├── useComputerKeyboard.ts
+│       │   ├── usePracticeSession.ts
+│       │   └── usePlayback.ts
+│       ├── store/
+│       │   └── practice-store.ts
+│       └── types/
+│           ├── midi.ts
+│           ├── practice.ts
+│           └── agent.ts
+│
+├── shared/
+│   ├── README.md
+│   └── schemas/
+│       ├── action.schema.json
+│       ├── piece.schema.json
+│       └── session.schema.json
+│
+├── data/
+│   ├── midi/.gitkeep
+│   ├── uploads/.gitkeep
+│   └── sessions/.gitkeep
+│
+├── scripts/
+│   ├── seed_demo_data.py
+│   ├── validate_midi_corpus.py
+│   └── export_openapi.py
+│
+└── docs/
+    ├── architecture.md
+    ├── api.md
+    ├── decisions/
+    │   ├── 0001-monorepo.md
+    │   ├── 0002-deterministic-music-engine.md
+    │   └── 0003-web-first-interface.md
+    └── demos/
+        └── first-mvp-flow.md
+```
+
+### 5.2 Tabla de archivos y carpetas de la estructura completa
+
+| Archivo o carpeta | Descripción |
+|---|---|
+| `/LICENSE` | Licencia del código, si el proyecto adopta una licencia explícita. |
+| `/Makefile` | Comandos abreviados para instalar, probar, levantar Docker y ejecutar tareas comunes. |
+| `/backend/migrations/` | Migraciones de base de datos gestionadas por Alembic. |
+| `/backend/migrations/env.py` | Configuración del entorno de Alembic. |
+| `/backend/migrations/versions/` | Versiones incrementales del esquema de base de datos. |
+| `/backend/src/piano_mentor/api/` | Capa HTTP y WebSocket. No contiene reglas musicales complejas. |
+| `/backend/src/piano_mentor/api/deps.py` | Dependencias de FastAPI, como sesiones de base de datos y servicios. |
+| `/backend/src/piano_mentor/api/router.py` | Registro central de routers y versionado de la API. |
+| `/backend/src/piano_mentor/api/v1/pieces.py` | Endpoints para cargar y consultar piezas MIDI. |
+| `/backend/src/piano_mentor/api/v1/sessions.py` | Endpoints para crear y consultar sesiones de práctica. |
+| `/backend/src/piano_mentor/api/v1/events.py` | Endpoint para recibir eventos del teclado o MIDI. |
+| `/backend/src/piano_mentor/api/v1/actions.py` | Endpoint para solicitar o ejecutar acciones validadas. |
+| `/backend/src/piano_mentor/api/v1/websocket.py` | Canal de tiempo real para el estado de una sesión. |
+| `/backend/src/piano_mentor/application/` | Casos de uso que coordinan dominio e infraestructura. |
+| `/backend/src/piano_mentor/application/pieces/commands.py` | Operaciones que modifican piezas, como cargar un MIDI. |
+| `/backend/src/piano_mentor/application/pieces/queries.py` | Consultas de piezas y sus metadatos. |
+| `/backend/src/piano_mentor/application/pieces/services.py` | Servicios de aplicación relacionados con piezas. |
+| `/backend/src/piano_mentor/application/practice/commands.py` | Operaciones que modifican sesiones de práctica. |
+| `/backend/src/piano_mentor/application/practice/queries.py` | Consultas del estado y el historial de práctica. |
+| `/backend/src/piano_mentor/application/practice/services.py` | Coordinación de creación, evaluación y actualización de sesiones. |
+| `/backend/src/piano_mentor/application/agent/services.py` | Coordinación de decisiones y ejecución de acciones validadas. |
+| `/backend/src/piano_mentor/domain/` | Núcleo del negocio musical y pedagógico, independiente de frameworks. |
+| `/backend/src/piano_mentor/domain/midi/` | Entidades y reglas para piezas, tracks, eventos y notas normalizadas. |
+| `/backend/src/piano_mentor/domain/midi/entities.py` | Entidades como pieza MIDI, track y nota. |
+| `/backend/src/piano_mentor/domain/midi/value_objects.py` | Valores inmutables como pitch, tempo, compás y rango de medidas. |
+| `/backend/src/piano_mentor/domain/midi/services.py` | Servicios deterministas de normalización y análisis MIDI. |
+| `/backend/src/piano_mentor/domain/midi/exceptions.py` | Errores específicos de validación y procesamiento MIDI. |
+| `/backend/src/piano_mentor/domain/performance/` | Reglas para evaluar la interpretación del estudiante. |
+| `/backend/src/piano_mentor/domain/performance/entities.py` | Entidades de eventos recibidos, intentos y evaluaciones. |
+| `/backend/src/piano_mentor/domain/performance/evaluator.py` | Comparación entre notas esperadas y notas recibidas. |
+| `/backend/src/piano_mentor/domain/performance/metrics.py` | Cálculo de precisión, notas correctas, omitidas y adicionales. |
+| `/backend/src/piano_mentor/domain/performance/timing.py` | Cálculo determinista de errores temporales y puntuación de timing. |
+| `/backend/src/piano_mentor/domain/practice/` | Entidades y transiciones de las sesiones de práctica. |
+| `/backend/src/piano_mentor/domain/practice/entities.py` | Entidades de sesión, intento, sección y control del piano. |
+| `/backend/src/piano_mentor/domain/practice/states.py` | Estados explícitos de una sesión de práctica. |
+| `/backend/src/piano_mentor/domain/practice/events.py` | Eventos de dominio, como nota recibida, pausa o control devuelto. |
+| `/backend/src/piano_mentor/domain/agent/` | Estado, políticas y acciones del agente pedagógico. |
+| `/backend/src/piano_mentor/domain/agent/entities.py` | Entidades del estado pedagógico y decisiones del agente. |
+| `/backend/src/piano_mentor/domain/agent/actions.py` | Modelos de acciones estructuradas permitidas. |
+| `/backend/src/piano_mentor/domain/agent/policies.py` | Reglas deterministas para elegir una intervención. |
+| `/backend/src/piano_mentor/domain/agent/state_machine.py` | Máquina de estados observable y testeable. |
+| `/backend/src/piano_mentor/domain/agent/validators.py` | Lista blanca y límites de acciones, tempo, compases y repeticiones. |
+| `/backend/src/piano_mentor/infrastructure/` | Implementaciones concretas de almacenamiento, MIDI, LLM y observabilidad. |
+| `/backend/src/piano_mentor/infrastructure/config/settings.py` | Configuración de la aplicación desde variables de entorno. |
+| `/backend/src/piano_mentor/infrastructure/config/logging.py` | Configuración de logs y niveles de observabilidad. |
+| `/backend/src/piano_mentor/infrastructure/database/connection.py` | Conexión y ciclo de vida de SQLite o PostgreSQL. |
+| `/backend/src/piano_mentor/infrastructure/database/models.py` | Modelos ORM de persistencia. |
+| `/backend/src/piano_mentor/infrastructure/database/repositories.py` | Implementaciones de repositorios del dominio. |
+| `/backend/src/piano_mentor/infrastructure/midi/mido_reader.py` | Adaptador de Mido para leer archivos MIDI. |
+| `/backend/src/piano_mentor/infrastructure/midi/midi_player.py` | Adaptador de reproducción y control de eventos MIDI. |
+| `/backend/src/piano_mentor/infrastructure/midi/filesystem.py` | Guardado y lectura segura de archivos MIDI locales. |
+| `/backend/src/piano_mentor/infrastructure/agent/deterministic_provider.py` | Proveedor de decisiones sin LLM para el fallback del sistema. |
+| `/backend/src/piano_mentor/infrastructure/agent/groq_provider.py` | Cliente desacoplado para el proveedor LLM Groq. |
+| `/backend/src/piano_mentor/infrastructure/agent/langgraph_graph.py` | Grafo de orquestación de alto nivel con LangGraph. |
+| `/backend/src/piano_mentor/infrastructure/observability/langsmith.py` | Trazas de decisiones de alto nivel, sin registrar cada evento MIDI. |
+| `/backend/src/piano_mentor/schemas/` | DTOs y contratos externos del backend. |
+| `/backend/src/piano_mentor/schemas/pieces.py` | Esquemas de entrada y salida para piezas. |
+| `/backend/src/piano_mentor/schemas/sessions.py` | Esquemas de sesiones y estados. |
+| `/backend/src/piano_mentor/schemas/events.py` | Esquemas de eventos de teclado y MIDI. |
+| `/backend/src/piano_mentor/schemas/evaluations.py` | Esquemas de puntuaciones y resultados de evaluación. |
+| `/backend/src/piano_mentor/schemas/actions.py` | Esquemas de acciones del agente para la API. |
+| `/backend/tests/unit/` | Tests de unidades aisladas y rápidos. |
+| `/backend/tests/unit/domain/` | Tests del dominio sin infraestructura ni red. |
+| `/backend/tests/unit/application/` | Tests de casos de uso con dependencias simuladas. |
+| `/backend/tests/integration/` | Tests de API, base de datos, flujo MIDI y agente. |
+| `/backend/tests/fixtures/midi/` | Archivos MIDI de prueba y corpus reducido. |
+| `/backend/tests/fixtures/performances/` | Interpretaciones correctas e incorrectas para evaluación. |
+| `/backend/scripts/seed_demo_data.py` | Carga piezas y datos mínimos para una demostración local. |
+| `/backend/scripts/validate_midi_corpus.py` | Comprueba el corpus de piezas del MVP. |
+| `/frontend/public/` | Recursos estáticos servidos directamente por Next.js. |
+| `/frontend/public/icons/` | Iconos de la interfaz. |
+| `/frontend/public/audio/` | Audio auxiliar permitido por el diseño, si fuese necesario. |
+| `/frontend/src/app/pieces/` | Rutas para listar y consultar piezas. |
+| `/frontend/src/app/pieces/page.tsx` | Página de listado o selección de piezas. |
+| `/frontend/src/app/pieces/[pieceId]/page.tsx` | Página de detalle de una pieza. |
+| `/frontend/src/components/piano/` | Componentes visuales del piano virtual. |
+| `/frontend/src/components/piano/PianoKeyboard.tsx` | Teclado completo y distribución de teclas. |
+| `/frontend/src/components/piano/PianoKey.tsx` | Tecla individual y sus estados visuales. |
+| `/frontend/src/components/piano/NoteHighlight.tsx` | Resaltado de notas esperadas o recibidas. |
+| `/frontend/src/components/pieces/` | Componentes de carga y resumen de piezas. |
+| `/frontend/src/components/pieces/MidiUploader.tsx` | Carga y validación inicial del archivo desde el navegador. |
+| `/frontend/src/components/pieces/PieceSummary.tsx` | Metadatos, duración, tempo y tracks de una pieza. |
+| `/frontend/src/components/practice/` | Componentes de la sesión de práctica. |
+| `/frontend/src/components/practice/PracticeSession.tsx` | Composición principal de la experiencia de práctica. |
+| `/frontend/src/components/practice/ExpectedNotes.tsx` | Representación de las notas que deben tocarse. |
+| `/frontend/src/components/practice/PerformanceScore.tsx` | Puntuaciones y resultados de la interpretación. |
+| `/frontend/src/components/practice/SessionControls.tsx` | Reproducción, pausa, detención y repetición. |
+| `/frontend/src/components/agent/` | Componentes que hacen visible el agente pedagógico. |
+| `/frontend/src/components/agent/AgentStatus.tsx` | Estado actual del agente. |
+| `/frontend/src/components/agent/CurrentAction.tsx` | Acción activa y motivo. |
+| `/frontend/src/components/agent/ControlIndicator.tsx` | Indicador de quién controla el piano. |
+| `/frontend/src/features/pieces/` | Lógica de datos y tipos de la funcionalidad de piezas. |
+| `/frontend/src/features/practice/` | Lógica de datos, hooks y WebSocket de práctica. |
+| `/frontend/src/features/agent/` | Lógica y tipos de las acciones del agente. |
+| `/frontend/src/lib/api-client.ts` | Cliente HTTP común y configuración de API. |
+| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket común. |
+| `/frontend/src/lib/keyboard-mapping.ts` | Mapeo del teclado del ordenador a notas musicales. |
+| `/frontend/src/lib/validation.ts` | Validaciones de entrada en el cliente. |
+| `/frontend/src/hooks/useComputerKeyboard.ts` | Hook para capturar el teclado del ordenador. |
+| `/frontend/src/hooks/usePracticeSession.ts` | Hook para consultar y actualizar una sesión. |
+| `/frontend/src/hooks/usePlayback.ts` | Hook para controlar el estado visual de reproducción. |
+| `/frontend/src/store/practice-store.ts` | Estado global de la sesión si la complejidad lo requiere. |
+| `/frontend/src/types/` | Tipos compartidos dentro del frontend. |
+| `/frontend/src/types/midi.ts` | Tipos de piezas, notas, tracks y tempo. |
+| `/frontend/src/types/practice.ts` | Tipos de sesiones, eventos y evaluación. |
+| `/frontend/src/types/agent.ts` | Tipos de estados y acciones del agente. |
+| `/shared/README.md` | Explicación de los contratos compartidos entre frontend y backend. |
+| `/shared/schemas/piece.schema.json` | Contrato JSON de una pieza normalizada. |
+| `/shared/schemas/session.schema.json` | Contrato JSON de una sesión y su estado. |
+| `/shared/schemas/action.schema.json` | Contrato JSON de las acciones permitidas del agente. |
+| `/scripts/seed_demo_data.py` | Preparación de datos de demo desde la raíz del monorepo. |
+| `/scripts/validate_midi_corpus.py` | Validación del corpus completo de piezas MIDI. |
+| `/scripts/export_openapi.py` | Exportación del contrato OpenAPI para documentación o clientes. |
+| `/docs/architecture.md` | Documentación técnica más detallada cuando este archivo crezca. |
+| `/docs/api.md` | Referencia de endpoints, payloads y códigos de respuesta. |
+| `/docs/decisions/0001-monorepo.md` | Justificación de usar un monorepo. |
+| `/docs/decisions/0002-deterministic-music-engine.md` | Justificación de separar el motor musical del LLM. |
+| `/docs/decisions/0003-web-first-interface.md` | Decisión de comenzar con una interfaz web y no con consola retro. |
+| `/docs/demos/first-mvp-flow.md` | Guion reproducible de la primera demostración de extremo a extremo. |
+
+## 6. Límites entre capas
+
+### 6.1 Dependencias permitidas
+
+```text
+API
+  → Application
+      → Domain
+      → Infrastructure
+
+Frontend
+  → API pública mediante HTTP/WebSocket
+
+Infrastructure
+  → Librerías externas, base de datos, filesystem, Mido, Groq, LangGraph
+```
+
+La capa `domain` debe mantenerse independiente de FastAPI, Next.js, Mido, SQLAlchemy, LangGraph y proveedores LLM.
+
+### 6.2 Dependencias que se deben evitar
+
+- `domain` importando módulos de `api`.
+- Componentes React ejecutando SQL o leyendo archivos del backend.
+- FastAPI calculando timing nota por nota directamente en los endpoints.
+- El LLM enviando `note_on` o `note_off`.
+- LangGraph controlando el reloj de reproducción.
+- El frontend duplicando las reglas oficiales de evaluación.
+- La interfaz llamando directamente a Mido.
+
+## 7. Contratos principales de API
+
+La API debe versionarse desde el comienzo:
+
+```text
+POST /api/v1/pieces
+GET  /api/v1/pieces/{piece_id}
+POST /api/v1/sessions
+GET  /api/v1/sessions/{session_id}
+POST /api/v1/sessions/{session_id}/events
+GET  /api/v1/sessions/{session_id}/state
+POST /api/v1/sessions/{session_id}/actions
+POST /api/v1/sessions/{session_id}/agent-step
+WS   /api/v1/ws/sessions/{session_id}
+```
+
+El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
+
+## 8. Evolución recomendada
+
+### Etapa 1 — MVP simple
+
+- Crear backend y frontend independientes dentro del monorepo.
+- Implementar carga y validación de MIDI.
+- Mostrar metadatos en Next.js.
+- Crear piano virtual básico.
+- Crear sesión de práctica.
+- Capturar teclado del ordenador.
+- Implementar evaluación determinista básica.
+- Ejecutar todo con Docker Compose.
+
+### Etapa 2 — Separación del dominio
+
+- Extraer MIDI, evaluación, práctica y agente a `domain/`.
+- Convertir `api.py` en routers versionados.
+- Introducir servicios de aplicación y repositorios.
+- Añadir tests unitarios e integración.
+
+### Etapa 3 — Agente validado
+
+- Implementar máquina de estados explícita.
+- Añadir acciones `wait`, `give_hint`, `slow_down`, `demonstrate`, `accompany` y `return_control`.
+- Garantizar timeout, pausa, detención y devolución automática del control.
+- Añadir proveedor determinista como fallback permanente.
+
+### Etapa 4 — LangGraph y LLM
+
+- Integrar LangGraph solo para orquestación de alto nivel.
+- Añadir Groq detrás de una interfaz de proveedor.
+- Validar toda salida estructurada antes de ejecutar acciones.
+- Registrar únicamente trazas de decisiones de alto nivel.
+
+### Etapa 5 — Producción y expansión
+
+- Migrar SQLite a PostgreSQL cuando sea necesario.
+- Separar almacenamiento de archivos si el volumen lo exige.
+- Añadir Web MIDI como capacidad opcional.
+- Incorporar autenticación, historial, planes de práctica y progreso.
+- Mantener los contratos de dominio y API compatibles o versionados.
+
+## 9. Decisión actual
+
+La estructura que debe implementarse primero es la de **MVP simple**. La estructura completa funciona como destino arquitectónico, no como requisito para crear todos los archivos desde el primer día.
+
+La primera implementación debe evitar tanto:
+
+- un único archivo monolítico con toda la lógica; como
+- una sobrearquitectura con docenas de módulos vacíos.
+
+La regla práctica será:
+
+> Crear una separación cuando exista una responsabilidad real que probar, sustituir o evolucionar.
+
+El proyecto comienza con una web simple, pero desde el inicio conserva los límites necesarios para que el motor musical, la evaluación, el agente y la interfaz puedan crecer de forma independiente.

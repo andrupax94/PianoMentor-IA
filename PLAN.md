@@ -1,53 +1,67 @@
-﻿# 🗓️ Plan de trabajo — PianoMentor AI
+# Plan de trabajo — PianoMentor AI
 
-> Plan operativo del MVP de PianoMentor AI. El objetivo general y la arquitectura del proyecto se mantienen en [`README.md`](README.md).
+> Este documento es la fuente de verdad para el **cronograma, entregables, prioridades y criterios de aceptación** del MVP.
 
-## 🎯 Resultado esperado
+Para el contexto del producto, consultar el [README](README.md). Para la estructura técnica, consultar [ARCHITECTURE.md](ARCHITECTURE.md). Para términos especializados, consultar [GLOSARIO.md](GLOSARIO.md).
 
-Al finalizar las seis semanas debe existir una aplicación web funcional capaz de cargar una pieza MIDI, reproducir una sección, recibir la interpretación del estudiante, evaluar notas y timing, detectar una debilidad y ejecutar una intervención pedagógica de IA validada, con devolución del control al estudiante.
+## 1. Resultado esperado
+
+Al finalizar las seis semanas debe existir una aplicación web funcional capaz de:
+
+```text
+cargar MIDI
+  → seleccionar una sección
+  → reproducirla
+  → recibir la interpretación del estudiante
+  → evaluar notas y timing
+  → detectar una debilidad
+  → ejecutar una intervención validada
+  → devolver el control al estudiante
+```
 
 El objetivo de validación es procesar correctamente al menos el **80 % de un corpus de 15 piezas MIDI de piano** de dominio público o con licencia compatible.
 
-## 📌 Principios de ejecución
+El alcance exacto del MVP y lo que queda fuera está definido en [README.md](README.md).
+
+## 2. Reglas de ejecución
 
 - Priorizar el núcleo MIDI y la evaluación antes de ampliar funcionalidades.
-- Mantener separadas la interfaz, la API, el dominio musical y el agente pedagógico.
-- El código determinista controla MIDI, reproducción, timing y evaluación.
-- El LLM propone acciones estructuradas; nunca envía eventos MIDI directamente.
-- Toda intervención debe ser visible, limitada, pausable, detenible y reversible.
-- Docker debe permitir reproducir el entorno desde el inicio.
-- Cada cambio en parsing, timing, evaluación, validación o estados debe acompañarse de pruebas.
+- Implementar primero reglas deterministas; el LLM no debe ser un requisito para que funcione el flujo.
+- Mantener separadas interfaz, API, dominio musical, infraestructura y agente según [ARCHITECTURE.md](ARCHITECTURE.md).
+- Acompañar cualquier cambio en parsing, timing, evaluación, validación o estados con tests.
+- Mantener Docker reproducible desde el inicio.
+- Posponer Web MIDI, memoria, planes persistentes y gráficos avanzados si amenazan el núcleo.
 
-## 📅 Plan semanal
+## 3. Plan por semanas
 
 ### Semana 1 — Arquitectura, entorno y carga de MIDI
 
 **Objetivos**
 
-- Crear la estructura modular del proyecto.
+- Crear la estructura inicial del monorepo.
 - Configurar Python, FastAPI, SQLite y almacenamiento local.
 - Preparar `Dockerfile`, `docker-compose.yml` y `.env.example`.
-- Implementar la carga y validación inicial de archivos `.mid` y `.midi`.
-- Definir los modelos de piezas, notas, sesiones y eventos.
+- Implementar la carga y validación inicial de `.mid` y `.midi`.
+- Definir los modelos iniciales de piezas, notas, sesiones y eventos.
 
 **Entregables**
 
-- Estructura inicial del repositorio.
 - Backend ejecutable.
-- Endpoint `POST /pieces`.
-- Primeros tests de carga y validación de MIDI.
+- Frontend Next.js inicial.
+- Endpoint `POST /api/v1/pieces`.
+- Primeros tests de carga y validación MIDI.
 - Arranque reproducible mediante Docker.
 
 ### Semana 2 — Normalización, reproducción y piano virtual
 
 **Objetivos**
 
-- Extraer tracks, notas, tempo y duración.
-- Normalizar los eventos MIDI.
-- Implementar la reproducción de piezas y secciones.
-- Añadir control de tempo, pausa, detención y repetición.
-- Crear la primera versión del piano virtual.
-- Diseñar una interfaz web inicial sencilla, clara y funcional.
+- Extraer tracks, notas, tempo, compases y duración.
+- Normalizar eventos MIDI.
+- Implementar reproducción de piezas y secciones.
+- Añadir tempo, pausa, detención y repetición.
+- Crear el piano virtual inicial.
+- Mostrar las notas esperadas en la interfaz web.
 
 **Entregables**
 
@@ -55,7 +69,6 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 - Reproducción de una pieza de prueba.
 - Selección de rangos de compases.
 - Piano virtual básico.
-- Visualización de notas esperadas.
 - Tests de normalización y reproducción.
 
 ### Semana 3 — Captura y evaluación del estudiante
@@ -81,12 +94,12 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 
 **Objetivos**
 
-- Implementar la máquina de estados.
+- Implementar la máquina de estados explícita.
 - Crear el estado estructurado del estudiante.
 - Implementar `wait`, `give_hint`, `slow_down`, `demonstrate` y `return_control`.
 - Añadir reglas deterministas de decisión.
 - Crear el contrato de acciones y su validador.
-- Mostrar el estado del agente en la interfaz.
+- Mostrar estado del agente y control del piano en la interfaz.
 
 **Entregables**
 
@@ -101,10 +114,10 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 
 **Objetivos**
 
-- Implementar la demostración de una mano.
+- Implementar la demostración de una mano o sección.
 - Implementar la devolución automática del control.
 - Añadir acompañamiento básico.
-- Integrar LangGraph si el flujo determinista ya es estable.
+- Integrar LangGraph solo si el flujo determinista es estable.
 - Conectar el proveedor LLM mediante una interfaz desacoplada.
 - Generar feedback pedagógico estructurado.
 - Registrar decisiones de alto nivel.
@@ -116,7 +129,7 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 - Integración inicial de LangGraph.
 - Integración del LLM con salida estructurada.
 - Validación de todas las acciones generadas.
-- Pruebas de devolución del control y recuperación ante errores.
+- Tests de devolución del control y recuperación ante errores.
 
 ### Semana 6 — Integración final, pruebas y demostración
 
@@ -139,23 +152,11 @@ El objetivo de validación es procesar correctamente al menos el **80 % de un co
 - Informe de resultados.
 - Tests automatizados.
 - Documentación de instalación.
-- Demostración completa:
+- Demostración completa del flujo definido al inicio de este documento.
 
-```text
-cargar MIDI
-  → seleccionar sección
-  → reproducir
-  → tocar con el teclado
-  → evaluar interpretación
-  → detectar debilidad
-  → recibir demostración de la IA
-  → recuperar el control
-  → repetir la sección
-```
+## 4. Puerta de aceptación del MVP
 
-## ✅ Puerta de aceptación del MVP
-
-Antes de cerrar la semana 6, comprobar que:
+Antes de cerrar el MVP, comprobar:
 
 - [ ] El usuario puede cargar una pieza MIDI.
 - [ ] El sistema procesa correctamente al menos el 80 % del corpus de validación.
@@ -172,21 +173,39 @@ Antes de cerrar la semana 6, comprobar que:
 - [ ] Las acciones del agente son validadas.
 - [ ] El flujo funciona mediante Docker.
 - [ ] El proyecto incluye pruebas y documentación de instalación.
+- [ ] El flujo funciona con el LLM deshabilitado mediante reglas deterministas.
 
-## ⚠️ Gestión del alcance
+## 5. Orden de prioridad
 
-Si una funcionalidad opcional amenaza el núcleo del MVP, se pospone. Entre las funcionalidades candidatas a posponer están:
-
-- Web MIDI API para teclados físicos.
-- Memoria entre sesiones.
-- Plan de práctica persistente.
-- Diferenciación automática de manos.
-- Ajuste automático de tempo.
-- Gráficos avanzados de progreso.
-
-La prioridad de la demo es:
+Si existe conflicto entre funcionalidades, aplicar este orden:
 
 ```text
-MIDI → reproducción → práctica → evaluación → intervención de IA → devolución del control
+1. MIDI válido y normalizado
+2. Reproducción y control de secciones
+3. Piano virtual y entrada del teclado
+4. Evaluación de notas y timing
+5. Máquina de estados determinista
+6. Acciones validadas y devolución del control
+7. API y WebSocket estables
+8. LangGraph y LLM
+9. Web MIDI, memoria y progreso
 ```
 
+## 6. Definition of Done por cambio
+
+Un cambio se considera terminado cuando:
+
+- [ ] Pertenece a un módulo identificado en [ARCHITECTURE.md](ARCHITECTURE.md).
+- [ ] No mezcla UI con reproducción o evaluación.
+- [ ] Mantiene las acciones del agente estructuradas y validadas.
+- [ ] Incluye o actualiza tests cuando afecta lógica relevante.
+- [ ] Mantiene visible y reversible el control del piano.
+- [ ] Funciona con el LLM deshabilitado cuando corresponda.
+- [ ] Se verificó el arranque local o Docker afectado.
+- [ ] Se actualizó la documentación especializada, no todos los documentos indiscriminadamente.
+
+## 7. Documentos relacionados
+
+- [README.md](README.md): producto, alcance y decisiones generales.
+- [ARCHITECTURE.md](ARCHITECTURE.md): estructura y contratos técnicos.
+- [GLOSARIO.md](GLOSARIO.md): definiciones de términos.

@@ -1,4 +1,4 @@
-﻿# 📘 Glosario de PianoMentor AI
+# 📘 Glosario de PianoMentor AI
 
 > Guía de referencia para comprender los conceptos, lenguajes, frameworks, formatos y herramientas utilizados en PianoMentor AI.
 
@@ -703,63 +703,11 @@ Registro de dónde procede un archivo o dato. Es importante para documentar las 
 
 ---
 
-# 12. 🗺️ Términos por fase del proyecto
-
-## Fase 1 — Núcleo musical
-
-Términos prioritarios: MIDI, track, canal, nota, pitch, velocity, tick, PPQ, tempo, compás, normalización, reproducción y motor determinista.
-
-**Resultado esperado:** una pieza MIDI se carga, se interpreta internamente y se reproduce.
-
-## Fase 2 — Evaluación
-
-Términos prioritarios: evento esperado, evento recibido, timing, tolerancia, nota omitida, nota adicional, precisión, score y fixture.
-
-**Resultado esperado:** el sistema puede comparar una interpretación con la pieza esperada.
-
-## Fase 3 — Agente básico
-
-Términos prioritarios: estado, transición, máquina de estados, acción, lista blanca, validación, timeout, fallback y devolución del control.
-
-**Resultado esperado:** el sistema decide intervenciones básicas sin depender todavía de un LLM para funcionar.
-
-## Fase 4 — API y frontend
-
-Términos prioritarios: FastAPI, endpoint, REST, WebSocket, JSON, OpenAPI, React, Next.js, TypeScript, componente y estado del frontend.
-
-**Resultado esperado:** el usuario puede completar una sesión desde el navegador.
-
-## Fase 5 — LangGraph y LLM
-
-Términos prioritarios: LLM, prompt, salida estructurada, JSON Schema, LangGraph, proveedor, tool calling, observabilidad y LangSmith.
-
-**Resultado esperado:** la IA interpreta el estado de la sesión y propone una acción pedagógica validada.
-
-## Fase 6 — Calidad y entrega
-
-Términos prioritarios: Docker, Docker Compose, healthcheck, pytest, test de integración, test end-to-end, CI/CD, Git, GitHub, licencia y documentación.
-
-**Resultado esperado:** el proyecto puede ejecutarse, probarse y explicarse de forma reproducible.
-
----
-
-# 13. ✅ Ideas clave para recordar
-
-1. **MIDI no es audio:** MIDI describe eventos musicales; MP3 y WAV contienen sonido.
-2. **El código determinista controla el tiempo:** el LLM no debe enviar `note_on` ni controlar el reloj.
-3. **La IA propone, el sistema valida:** ninguna acción del agente se ejecuta directamente.
-4. **El estudiante conserva el control final:** toda demostración debe terminar y devolver el control.
-5. **La evaluación debe ser medible:** precisión, notas omitidas, notas adicionales y timing deben tener reglas claras.
-6. **El MVP necesita un corpus definido:** no se debe prometer compatibilidad universal con todas las canciones MIDI.
-7. **Docker mejora la reproducibilidad:** el mismo entorno debe poder levantarse en otros equipos.
-8. **Las pruebas son parte del producto:** especialmente para parsing, timing, validación y estados.
-9. **La interfaz debe mostrar el estado:** el usuario debe saber si observa, practica, recibe una pista o está viendo una demostración.
-10. **La arquitectura debe permitir sustituciones:** Groq, SQLite, filesystem y el frontend pueden evolucionar sin reescribir el dominio musical.
-
----
-
 ## 📚 Documentos relacionados
 
-- [README del proyecto](README.md)
-- [Plan de trabajo de seis semanas](PLAN.md)
+- [README del proyecto](README.md): contexto, objetivos, alcance y decisiones de producto.
+- [Plan de trabajo](PLAN.md): fases, entregables, prioridades y aceptación del MVP.
+- [Arquitectura](ARCHITECTURE.md): estructura, capas, contratos y evolución técnica.
+
+El orden de implementación no se mantiene en este glosario: la fuente oficial es [PLAN.md](PLAN.md). Las responsabilidades de cada capa no se mantienen aquí: la fuente oficial es [ARCHITECTURE.md](ARCHITECTURE.md).
 
