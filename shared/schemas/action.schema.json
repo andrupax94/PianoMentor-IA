@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PianoMentorAgentAction",
+  "type": "object",
+  "required": ["action"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["wait", "give_hint", "slow_down", "demonstrate", "accompany", "return_control"]
+    },
+    "reason": { "type": "string" }
+  },
+  "additionalProperties": false
+}
