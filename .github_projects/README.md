@@ -32,13 +32,13 @@ El Project existente aparece en la CLI como `@andrupax94 PianoMentor IA` (númer
 Desde la raíz del repositorio:
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 -Repository "andrupax94/PianoMentor-IA" -Preview
+.\.github_projects\scripts\import-github-issues.ps1 -Repository "andrupax94/PianoMentor-IA" -Preview
 ```
 
 ## Crear Issues
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 -Repository "andrupax94/PianoMentor-IA"
+.\.github_projects\scripts\import-github-issues.ps1 -Repository "andrupax94/PianoMentor-IA"
 ```
 
 ## Documentos de Issues y Sub-issues
@@ -48,13 +48,13 @@ Los documentos operativos viven en [`/issues`](../issues/), agrupados en una car
 Por defecto, el importador solo procesa Issues que tienen su documento local. Si falta `issues/B-xxx/B-xxx.md`, la tarea se omite completamente: no ejecuta `issue edit`, `issue create` ni `project item-add` para ella. Para procesar también tareas sin documento —usando el cuerpo genérico del CSV— hay que indicarlo explícitamente con `-IncludeMissingIssueDocs`.
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 -IncludeMissingIssueDocs
+.\.github_projects\scripts\import-github-issues.ps1 -IncludeMissingIssueDocs
 ```
 
 Para reemplazar explícitamente el cuerpo de las Issues que sí tengan documento local:
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 -ForceIssueBodies
+.\.github_projects\scripts\import-github-issues.ps1 -ForceIssueBodies
 ```
 
 `-ForceIssueBodies` no inventa documentos: las Issues sin `issues/B-xxx/B-xxx.md` se conservan sin modificar.
@@ -62,19 +62,19 @@ Para reemplazar explícitamente el cuerpo de las Issues que sí tengan documento
 Para previsualizar las Sub-issues de B-001:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
 ```
 
 Para crearlas, vincularlas al padre y añadirlas al Project #1:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001
 ```
 
 El script es reejecutable: localiza las Issues por el identificador estable `[B-001.1]`, actualiza su cuerpo con el Markdown y no crea duplicados. Para crear o actualizar las Sub-issues sin consumir solicitudes del Project:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -SkipProject
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001 -SkipProject
 ```
 
 La relación de padre/Sub-issue se crea con la opción oficial `gh issue create --parent`. La columna `Sub-issues progress` del Project mostrará el avance automáticamente cuando las Sub-issues estén vinculadas.
@@ -84,13 +84,13 @@ La relación de padre/Sub-issue se crea con la opción oficial `gh issue create 
 El script usa por defecto el repositorio `andrupax94/PianoMentor-IA`, el propietario `andrupax94` y el Project `#1`. Por tanto, puedes ejecutar:
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1
+.\.github_projects\scripts\import-github-issues.ps1
 ```
 
 También puedes especificar el nombre explícitamente:
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 `
+.\.github_projects\scripts\import-github-issues.ps1 `
   -Repository "andrupax94/PianoMentor-IA" `
   -ProjectOwner "andrupax94" `
   -ProjectTitle "PianoMentor IA"
@@ -115,13 +115,13 @@ El sincronizador usa como inicio de planificación el **6 de octubre de 2026** y
 La fecha de inicio no se modifica. Puedes revisar primero los valores:
 
 ```powershell
-.\.github\scripts\sync-github-project.ps1 -Preview
+.\.github_projects\scripts\sync-github-project.ps1 -Preview
 ```
 
 Si el resultado es correcto, aplica los cambios:
 
 ```powershell
-.\.github\scripts\sync-github-project.ps1
+.\.github_projects\scripts\sync-github-project.ps1
 ```
 
 El script intenta usar `P0/P1/P2` si esas opciones existen. Si el campo Priority usa las opciones estándar de GitHub, utiliza este mapeo:
@@ -132,18 +132,18 @@ P1 → High o Medium
 P2 → Medium o Low
 ```
 
-El sincronizador es **local-first**: necesita `.github/project-backup.json` para saber qué tareas ya tienen los valores correctos. Las tareas sin cambios no generan solicitudes a GitHub. Si no existe el respaldo, hay que generarlo cuando la cuota GraphQL esté disponible.
+El sincronizador es **local-first**: necesita `.github_projects/project-backup.json` para saber qué tareas ya tienen los valores correctos. Las tareas sin cambios no generan solicitudes a GitHub. Si no existe el respaldo, hay que generarlo cuando la cuota GraphQL esté disponible.
 
 ## Generar respaldo local del Project
 
 ```powershell
-.\.github\scripts\export-github-project.ps1
+.\.github_projects\scripts\export-github-project.ps1
 ```
 
 Esto genera:
 
 ```text
-.github/project-backup.json
+.github_projects/project-backup.json
 ```
 
 El respaldo incluye la fecha de exportación, el Project, sus campos y todos sus elementos, incluyendo el estado actual de Issues, Pull Requests y Sub-issues cuando GitHub los devuelve. `Start date` no se modifica por ningún script.
@@ -151,7 +151,7 @@ El respaldo incluye la fecha de exportación, el Project, sus campos y todos sus
 Para usar otro archivo de salida:
 
 ```powershell
-.\.github\scripts\export-github-project.ps1 -OutputPath ".github/backups/project-2026-10-06.json"
+.\.github_projects\scripts\export-github-project.ps1 -OutputPath ".github_projects/backups/project-2026-10-06.json"
 ```
 
 ## Relación con la documentación

@@ -150,7 +150,7 @@ $($item.Description)
 ## Criterio inicial
 Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.
 
-> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)
+> Fuente: [backlog inicial](../../blob/main/.github_projects/project-backlog.csv)
 "@
     $issueDocPath = Join-Path (Join-Path (Join-Path $PSScriptRoot '..\..\issues') $item.ID) "$($item.ID).md"
     $issueDocumentExists = Test-Path $issueDocPath

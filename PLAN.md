@@ -37,7 +37,7 @@ Backlog inicial
   → checklist de aceptación del MVP
 ```
 
-El backlog operativo completo está en [.github/project-backlog.csv](.github/project-backlog.csv) y se puede importar como Issues mediante [.github/scripts/import-github-issues.ps1](.github/scripts/import-github-issues.ps1).
+El backlog operativo completo está en [.github_projects/project-backlog.csv](.github_projects/project-backlog.csv) y se puede importar como Issues mediante [.github_projects/scripts/import-github-issues.ps1](.github_projects/scripts/import-github-issues.ps1).
 
 ### Resumen priorizado
 
@@ -413,5 +413,5 @@ Un cambio se considera terminado cuando:
 - [README.md](README.md): producto, alcance y decisiones generales.
 - [ARCHITECTURE.md](ARCHITECTURE.md): estructura y contratos técnicos.
 - [GLOSSARY.md](GLOSSARY.md): definiciones de términos.
-- [.github/project-backlog.csv](.github/project-backlog.csv): backlog importable en GitHub Projects.
-- [.github/README.md](.github/README.md): uso del importador de Issues.
+- [.github_projects/project-backlog.csv](.github_projects/project-backlog.csv): backlog importable en GitHub Projects.
+- [.github_projects/README.md](.github_projects/README.md): uso del importador de Issues.

@@ -9,7 +9,7 @@ description: Automatización de GitHub Projects para PianoMentor AI. Usar al cre
 
 Aplicar este flujo al repositorio `andrupax94/PianoMentor-IA` y al Project `@andrupax94 PianoMentor IA` (actualmente número `1`). Confirmar los valores en los scripts antes de actuar si el repositorio o Project han cambiado.
 
-La fuente estratégica es `PLAN.md`. El backlog operativo es `.github/project-backlog.csv`. La guía detallada es `.github/README.md`.
+La fuente estratégica es `PLAN.md`. El backlog operativo es `.github_projects/project-backlog.csv`. La guía detallada es `.github_projects/README.md`.
 
 ## Prerrequisitos
 
@@ -32,7 +32,7 @@ La cuota GraphQL habitual es de 5.000 puntos por hora por usuario. REST y GraphQ
 ### 1. Previsualizar
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1 -Preview
+.\.github_projects\scripts\import-github-issues.ps1 -Preview
 ```
 
 El preview no crea Issues ni consulta Projects. Sirve para validar el CSV y los títulos generados.
@@ -40,12 +40,12 @@ El preview no crea Issues ni consulta Projects. Sirve para validar el CSV y los 
 ### 2. Importar y sincronizar
 
 ```powershell
-.\.github\scripts\import-github-issues.ps1
+.\.github_projects\scripts\import-github-issues.ps1
 ```
 
 Este script:
 
-1. Lee `.github/project-backlog.csv`.
+1. Lee `.github_projects/project-backlog.csv`.
 2. Busca Issues por el ID estable `[B-xxx]`, no por el título completo; esto evita fallos por tildes y `ñ`.
 3. Reutiliza Issues existentes o crea los que falten.
 4. Añade los Issues al Project y tolera elementos ya presentes.
@@ -58,19 +58,19 @@ Si existe `issues/B-xxx/B-xxx.md`, el importador lo utiliza como cuerpo de la Is
 Cada Issue principal puede tener un documento `issues/B-xxx/B-xxx.md` y documentos hijos `issues/B-xxx/B-xxx.N.md`. Para previsualizar sin autenticación ni llamadas a GitHub:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
 ```
 
 Para crear o reutilizar las Sub-issues, actualizar sus cuerpos, vincularlas al padre y añadirlas al Project:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001
 ```
 
 El script usa `gh issue create --parent`, busca por el identificador estable `[B-001.1]` y es reejecutable. Para evitar llamadas de Project durante la creación:
 
 ```powershell
-.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -SkipProject
+.\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001 -SkipProject
 ```
 
 ### 4. Sincronizar solo campos
@@ -78,8 +78,8 @@ El script usa `gh issue create --parent`, busca por el identificador estable `[B
 Usar cuando los Issues ya existen o cuando una importación quedó interrumpida:
 
 ```powershell
-.\.github\scripts\sync-github-project.ps1 -Preview
-.\.github\scripts\sync-github-project.ps1
+.\.github_projects\scripts\sync-github-project.ps1 -Preview
+.\.github_projects\scripts\sync-github-project.ps1
 ```
 
 Actualiza solamente `Priority` y `Target date`. No modificar desde estos scripts:
@@ -100,7 +100,7 @@ La fecha base predeterminada es `2026-10-06` y las fechas objetivo son el final 
 Para mover el calendario, pasar otra fecha explícita:
 
 ```powershell
-.\.github\scripts\sync-github-project.ps1 -PlanningStartDate '2026-10-13'
+.\.github_projects\scripts\sync-github-project.ps1 -PlanningStartDate '2026-10-13'
 ```
 
 El sincronizador consulta los elementos reales del Project y actualiza todas las filas que compartan un ID. Esto es importante si existen duplicados como `B-006` o `B-007`.
@@ -108,15 +108,15 @@ El sincronizador consulta los elementos reales del Project y actualiza todas las
 ### 5. Exportar respaldo local
 
 ```powershell
-.\.github\scripts\export-github-project.ps1
+.\.github_projects\scripts\export-github-project.ps1
 ```
 
-Genera `.github/project-backup.json`, incluyendo Project, campos y elementos con los valores que GitHub devuelva. Ejecutarlo antes de analizar cambios, crear nuevas Sub-issues o modificar `PLAN.md`.
+Genera `.github_projects/project-backup.json`, incluyendo Project, campos y elementos con los valores que GitHub devuelva. Ejecutarlo antes de analizar cambios, crear nuevas Sub-issues o modificar `PLAN.md`.
 
 Para guardar una instantánea fechada:
 
 ```powershell
-.\.github\scripts\export-github-project.ps1 -OutputPath '.github/backups/project-2026-10-06.json'
+.\.github_projects\scripts\export-github-project.ps1 -OutputPath '.github_projects/backups/project-2026-10-06.json'
 ```
 
 ## Mantenimiento del plan
