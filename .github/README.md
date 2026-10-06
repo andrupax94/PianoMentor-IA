@@ -6,7 +6,7 @@ Este directorio contiene una exportación operativa del backlog de cinco semanas
 
 - `project-backlog.csv`: tareas del backlog con prioridad, semana, área, riesgo, tamaño y dependencias.
 - `scripts/import-github-issues.ps1`: crea o reutiliza Issues, los añade al Project y sincroniza `Priority` y `Target date`.
-- `scripts/sync-github-project.ps1`: rellena `Priority` y `Target date` sin modificar `Status`, `Start date`, Pull Requests ni Sub-issues.
+- `scripts/sync-github-project.ps1`: compara primero con `project-backup.json` y rellena solo `Priority` y `Target date` vacíos o modificados, sin tocar `Status`, `Start date`, Pull Requests ni Sub-issues.
 - `scripts/export-github-project.ps1`: descarga el estado del Project a `project-backup.json` para mantener un respaldo local legible.
 
 ## Requisitos
@@ -92,6 +92,8 @@ P0 → Urgent o High
 P1 → High o Medium
 P2 → Medium o Low
 ```
+
+El sincronizador es **local-first**: necesita `.github/project-backup.json` para saber qué tareas ya tienen los valores correctos. Las tareas sin cambios no generan solicitudes a GitHub. Si no existe el respaldo, hay que generarlo cuando la cuota GraphQL esté disponible.
 
 ## Generar respaldo local del Project
 

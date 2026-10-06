@@ -36,7 +36,8 @@ if (-not [string]::IsNullOrWhiteSpace($outputParent)) { New-Item -ItemType Direc
 $fieldsJson = Invoke-GhText @('project', 'field-list', "$ProjectNumber", '--owner', $ProjectOwner, '--format', 'json')
 $itemsJson = Invoke-GhText @('project', 'item-list', "$ProjectNumber", '--owner', $ProjectOwner, '--format', 'json', '--limit', '1000', '--field', 'Priority', '--field', 'Target date')
 $fields = $fieldsJson | ConvertFrom-Json
-$items = $itemsJson | ConvertFrom-Json
+$parsedItems = $itemsJson | ConvertFrom-Json
+if ($null -ne $parsedItems.items) { $items = @($parsedItems.items) } else { $items = @($parsedItems) }
 
 $backup = [ordered]@{
     schemaVersion = 1
@@ -59,4 +60,4 @@ $json = $backup | ConvertTo-Json -Depth 20
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($OutputPath, $json, $utf8NoBom)
 Write-Output "Respaldo generado: $OutputPath"
-Write-Output "Items exportados: $(@($items).Count)"
+Write-Output "Items exportados: $($items.Count)"

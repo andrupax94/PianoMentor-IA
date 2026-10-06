@@ -177,12 +177,18 @@ if ($ProjectNumber -le 0) {
 }
 elseif (-not $Preview -and -not $SkipFieldSync) {
     $syncScript = Join-Path $PSScriptRoot 'sync-github-project.ps1'
+    $backupPath = Join-Path $PSScriptRoot '..\project-backup.json'
     if (-not (Test-Path $syncScript)) {
         throw "No se encontró el sincronizador de campos: $syncScript"
     }
-    Write-Output 'Actualizando Priority y Target date...'
-    & $syncScript -CsvPath $CsvPath -Repository $Repository -ProjectOwner $ProjectOwner -ProjectTitle $ProjectTitle -ProjectNumber $ProjectNumber -PlanningStartDate $PlanningStartDate
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falló la sincronización de campos del Project."
+    if (Test-Path $backupPath) {
+        Write-Output 'Actualizando Priority y Target date usando el respaldo local...'
+        & $syncScript -CsvPath $CsvPath -BackupPath $backupPath -Repository $Repository -ProjectOwner $ProjectOwner -ProjectTitle $ProjectTitle -ProjectNumber $ProjectNumber -PlanningStartDate $PlanningStartDate
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falló la sincronización local de campos del Project."
+        }
+    }
+    else {
+        Write-Warning "No existe $backupPath. Issues importados; Priority y Target date se sincronizarán después de generar el respaldo local."
     }
 }
