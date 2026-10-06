@@ -1,0 +1,27 @@
+ID,Title,Description,Priority,Week,Area,Risk,Size,Status,DependsOn
+B-001,Crear y validar la estructura monorepo,"Preparar backend, frontend, datos, contratos compartidos y Docker.",P0,Semana 1,Arquitectura,Bajo,M,Backlog,
+B-002,Levantar FastAPI con healthcheck,"Crear la aplicación FastAPI, /health y arranque local mediante Docker.",P0,Semana 1,Backend,Bajo,S,Backlog,B-001
+B-003,Cargar y validar archivos MIDI,"Implementar POST /api/v1/pieces para aceptar MIDI válido y rechazar entradas inválidas.",P0,Semana 1,MIDI,Alto,M,Backlog,B-002
+B-004,Crear el flujo web inicial,"Permitir seleccionar un MIDI desde Next.js, enviarlo al backend y mostrar metadatos básicos.",P0,Semana 1,Frontend,Medio,M,Backlog,B-002;B-003
+B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.",P0,Semana 1,MIDI,Alto,L,Backlog,B-003
+B-006,Implementar reproducción básica,"Reproducir una pieza o sección con play, pausa, detención y tempo inicial.",P0,Semana 1,MIDI,Alto,L,Backlog,B-005
+B-007,Crear piano virtual básico,"Mostrar teclas, notas esperadas y estado de reproducción en Next.js.",P0,Semana 1,Frontend,Medio,M,Backlog,B-004;B-006
+B-008,Calcular compases inicialmente,"Calcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005
+B-009,Preparar soporte básico para polifonía,"Gestionar notas simultáneas y acordes básicos en la representación interna y visual.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005;B-008
+B-010,Definir tratamiento de múltiples tracks,"Documentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.",P0,Semana 2,MIDI,Alto,M,Backlog,B-005;B-008
+B-011,Capturar teclado del ordenador,"Mapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.",P0,Semana 2,Frontend,Medio,M,Backlog,B-007
+B-012,Crear sesión de práctica y WebSocket,"Crear sesiones asociadas a una pieza y transmitir eventos y estado básico en tiempo real.",P0,Semana 2,Backend,Alto,L,Backlog,B-002;B-011
+B-013,Implementar evaluación determinista,"Comparar notas esperadas y recibidas, calcular precisión, omisiones, extras y timing.",P0,Semana 3,Evaluación,Alto,L,Backlog,B-008;B-009;B-010;B-012
+B-014,Mostrar resultados y secciones débiles,"Presentar puntuaciones, errores, compás actual y debilidades en la interfaz.",P0,Semana 3,Frontend,Medio,M,Backlog,B-013
+B-015,Implementar máquina de estados pedagógica,"Crear estados de observación, evaluación, decisión e intervención con fallback determinista.",P1,Semana 4,Agente,Medio,L,Backlog,B-013
+B-016,Validar acciones del agente,"Aplicar lista blanca, límites de tempo, compases, repeticiones, duración y timeout.",P1,Semana 4,Agente,Alto,M,Backlog,B-015
+B-017,Implementar demostración y devolución del control,"Reproducir una sección limitada y devolver automáticamente el control al estudiante.",P1,Semana 4,Agente,Alto,L,Backlog,B-006;B-016
+B-018,Integrar Groq y salida estructurada,"Permitir que el LLM proponga acciones estructuradas sin controlar directamente el motor MIDI.",P1,Semana 4,IA,Alto,L,Backlog,B-016
+B-019,Añadir acompañamiento básico,"Permitir que la IA reproduzca una parte mientras el estudiante toca otra, si el tiempo lo permite.",P1,Semana 4,Agente,Alto,L,Backlog,B-017
+B-020,Integración final y pruebas end-to-end,"Validar el flujo completo local, Docker, errores, secretos, pausa, detención y recuperación.",P0,Semana 5,Calidad,Alto,L,Backlog,B-014;B-017;B-018
+B-021,Desplegar backend en Hugging Face Spaces,"Publicar FastAPI mediante Docker, configurar secretos, healthcheck, almacenamiento y WebSocket.",P1,Semana 5,Deploy,Alto,M,Backlog,B-020
+B-022,Desplegar frontend en Vercel,"Publicar Next.js y configurar NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL y CORS.",P1,Semana 5,Deploy,Medio,M,Backlog,B-020
+B-023,Ejecutar prueba pública end-to-end,"Verificar desde Vercel la carga MIDI, sesión, evaluación y acción del agente en el backend público.",P1,Semana 5,Deploy,Alto,M,Backlog,B-021;B-022
+B-024,Crear vídeo demo,"Grabar y editar un vídeo de 2 a 4 minutos mostrando el flujo principal y las tecnologías.",P1,Semana 5,Video,Medio,M,Backlog,B-023
+B-025,Preparar publicación de LinkedIn,"Redactar la publicación, seleccionar portada, añadir vídeo y enlazar demo o repositorio.",P1,Semana 5,Comunicación,Bajo,S,Backlog,B-024
+B-026,Documentar estado final del MVP,"Actualizar README, PLAN, ARCHITECTURE y documentación de instalación con el estado real.",P1,Semana 5,Documentación,Bajo,M,Backlog,B-023;B-024

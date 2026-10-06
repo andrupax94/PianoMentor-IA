@@ -62,7 +62,7 @@ Esta estructura es la recomendada para comenzar. Evita crear demasiadas abstracc
 piano-mentor-ai/
 ├── README.md
 ├── PLAN.md
-├── GLOSARIO.md
+├── GLOSSARY.md
 ├── ARCHITECTURE.md
 ├── .env.example
 ├── .gitignore
@@ -127,7 +127,7 @@ piano-mentor-ai/
 |---|---|
 | `/README.md` | Contexto del producto, objetivos, alcance y reglas principales. |
 | `/PLAN.md` | Plan operativo del MVP y entregables por fase o semana. |
-| `/GLOSARIO.md` | Definiciones de términos musicales, técnicos y pedagógicos. |
+| `/GLOSSARY.md` | Definiciones de términos musicales, técnicos y pedagógicos. |
 | `/ARCHITECTURE.md` | Este documento; describe la evolución arquitectónica del proyecto. |
 | `/.env.example` | Plantilla de variables de entorno sin secretos. |
 | `/.gitignore` | Archivos y carpetas que no deben versionarse. |
@@ -192,7 +192,7 @@ Cuando el MVP esté validado, se recomienda evolucionar a una separación por ca
 piano-mentor-ai/
 ├── README.md
 ├── PLAN.md
-├── GLOSARIO.md
+├── GLOSSARY.md
 ├── ARCHITECTURE.md
 ├── LICENSE
 ├── .env.example

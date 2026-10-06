@@ -14,7 +14,7 @@ La documentación especializada está separada para evitar duplicaciones:
 
 - [Plan de trabajo](PLAN.md): fases, entregables y criterios de aceptación.
 - [Arquitectura](ARCHITECTURE.md): estructura de carpetas, capas, contratos y evolución técnica.
-- [Glosario](GLOSARIO.md): definiciones musicales, técnicas y del proyecto.
+- [Glosario](GLOSSARY.md): definiciones musicales, técnicas y del proyecto.
 
 Antes de modificar el proyecto, leer este README y el documento especializado relacionado con el cambio.
 
@@ -53,7 +53,7 @@ El control vuelve automáticamente al estudiante.
 
 ## 3. Objetivo del proyecto
 
-Desarrollar en seis semanas una aplicación web de mentoría para piano capaz de cargar, analizar y reproducir piezas MIDI, evaluar la interpretación mediante precisión y timing, y ejecutar intervenciones pedagógicas validadas.
+Desarrollar en cinco semanas una aplicación web de mentoría para piano capaz de cargar, analizar y reproducir piezas MIDI, evaluar la interpretación mediante precisión y timing, y ejecutar intervenciones pedagógicas validadas.
 
 El objetivo de validación del MVP es procesar correctamente al menos el **80 % de un corpus de 15 piezas MIDI de piano** de dominio público o con licencia compatible.
 
@@ -81,7 +81,7 @@ El objetivo de validación del MVP es procesar correctamente al menos el **80 % 
 - Plan de práctica persistente.
 - Memoria entre sesiones.
 - Diferenciación automática de manos.
-- Feedback generado por LLM.
+- Feedback largo generado por LLM.
 - Ajuste automático de tempo.
 - Gráficos avanzados de progreso.
 
@@ -148,6 +148,6 @@ La estructura concreta de archivos y la estrategia de evolución están document
 |---|---|
 | [PLAN.md](PLAN.md) | Cronograma, entregables, puerta de aceptación y prioridades. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura de carpetas, responsabilidades, capas, API y evolución técnica. |
-| [GLOSARIO.md](GLOSARIO.md) | Definiciones de conceptos y tecnologías. |
+| [GLOSSARY.md](GLOSSARY.md) | Definiciones de conceptos y tecnologías. |
 
 > Si una decisión cambia la arquitectura, actualizar [ARCHITECTURE.md](ARCHITECTURE.md). Si cambia el alcance o el objetivo del producto, actualizar este README. Si cambia el orden de trabajo, actualizar [PLAN.md](PLAN.md).
