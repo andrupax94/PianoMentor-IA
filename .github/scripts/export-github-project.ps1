@@ -34,7 +34,7 @@ $outputParent = Split-Path -Parent $OutputPath
 if (-not [string]::IsNullOrWhiteSpace($outputParent)) { New-Item -ItemType Directory -Force -Path $outputParent | Out-Null }
 
 $fieldsJson = Invoke-GhText @('project', 'field-list', "$ProjectNumber", '--owner', $ProjectOwner, '--format', 'json')
-$itemsJson = Invoke-GhText @('project', 'item-list', "$ProjectNumber", '--owner', $ProjectOwner, '--format', 'json', '--limit', '1000', '--field', 'Priority', '--field', 'Target date')
+$itemsJson = Invoke-GhText @('project', 'item-list', "$ProjectNumber", '--owner', $ProjectOwner, '--format', 'json', '--limit', '1000')
 $fields = $fieldsJson | ConvertFrom-Json
 $parsedItems = $itemsJson | ConvertFrom-Json
 if ($null -ne $parsedItems.items) { $items = @($parsedItems.items) } else { $items = @($parsedItems) }

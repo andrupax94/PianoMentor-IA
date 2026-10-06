@@ -51,7 +51,29 @@ Este script:
 4. Añade los Issues al Project y tolera elementos ya presentes.
 5. Ejecuta `sync-github-project.ps1` al finalizar.
 
-### 3. Sincronizar solo campos
+Si existe `issues/B-xxx/B-xxx.md`, el importador lo utiliza como cuerpo de la Issue y añade el enlace al archivo versionado. Si no existe, el flujo por defecto omite completamente esa tarea y no ejecuta operaciones de Issue ni Project para ella. Solo usar `-IncludeMissingIssueDocs` para procesar esas tareas con el cuerpo genérico del CSV. Usar `-ForceIssueBodies` únicamente cuando se haya decidido sobrescribir cuerpos con documento local.
+
+### 3. Crear Sub-issues desde documentos
+
+Cada Issue principal puede tener un documento `issues/B-xxx/B-xxx.md` y documentos hijos `issues/B-xxx/B-xxx.N.md`. Para previsualizar sin autenticación ni llamadas a GitHub:
+
+```powershell
+.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
+```
+
+Para crear o reutilizar las Sub-issues, actualizar sus cuerpos, vincularlas al padre y añadirlas al Project:
+
+```powershell
+.\.github\scripts\create-github-subissues.ps1 -ParentId B-001
+```
+
+El script usa `gh issue create --parent`, busca por el identificador estable `[B-001.1]` y es reejecutable. Para evitar llamadas de Project durante la creación:
+
+```powershell
+.\.github\scripts\create-github-subissues.ps1 -ParentId B-001 -SkipProject
+```
+
+### 4. Sincronizar solo campos
 
 Usar cuando los Issues ya existen o cuando una importación quedó interrumpida:
 
@@ -83,7 +105,7 @@ Para mover el calendario, pasar otra fecha explícita:
 
 El sincronizador consulta los elementos reales del Project y actualiza todas las filas que compartan un ID. Esto es importante si existen duplicados como `B-006` o `B-007`.
 
-### 4. Exportar respaldo local
+### 5. Exportar respaldo local
 
 ```powershell
 .\.github\scripts\export-github-project.ps1

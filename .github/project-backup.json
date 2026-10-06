@@ -1,0 +1,716 @@
+{
+  "schemaVersion": 1,
+  "exportedAtUtc": "2026-10-06T20:13:03.2093334Z",
+  "project": {
+    "owner": "andrupax94",
+    "title": "@andrupax94 PianoMentor IA",
+    "number": 1
+  },
+  "fields": [
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTY",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTc",
+      "name": "Assignees",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOAxy1qM4Bl7PszhkmLTg",
+      "name": "Status",
+      "options": [
+        {
+          "id": "f75ad846",
+          "name": "Backlog"
+        },
+        {
+          "id": "61e4505c",
+          "name": "Ready"
+        },
+        {
+          "id": "47fc9ee4",
+          "name": "In Progress"
+        },
+        {
+          "id": "08572c43",
+          "name": "Blocked"
+        },
+        {
+          "id": "df73e18b",
+          "name": "Review"
+        },
+        {
+          "id": "98236657",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTk",
+      "name": "Labels",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTo",
+      "name": "Linked pull requests",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTs",
+      "name": "Milestone",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLTw",
+      "name": "Repository",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLT4",
+      "name": "Reviewers",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLT8",
+      "name": "Parent issue",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLUA",
+      "name": "Sub-issues progress",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLUE",
+      "name": "Created",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLUI",
+      "name": "Updated",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmLUM",
+      "name": "Closed",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOAxy1qM4Bl7PszhkmMNk",
+      "name": "Priority",
+      "options": [
+        {
+          "id": "79628723",
+          "name": "P0"
+        },
+        {
+          "id": "0a877460",
+          "name": "P1"
+        },
+        {
+          "id": "da944a9c",
+          "name": "P2"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOAxy1qM4Bl7PszhkmMNo",
+      "name": "Size",
+      "options": [
+        {
+          "id": "6c6483d2",
+          "name": "XS"
+        },
+        {
+          "id": "f784b110",
+          "name": "S"
+        },
+        {
+          "id": "7515a9f1",
+          "name": "M"
+        },
+        {
+          "id": "817d0097",
+          "name": "L"
+        },
+        {
+          "id": "db339eb2",
+          "name": "XL"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmMNs",
+      "name": "Estimate",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmMNw",
+      "name": "Start date",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAxy1qM4Bl7PszhkmMN0",
+      "name": "Target date",
+      "type": "ProjectV2Field"
+    }
+  ],
+  "items": [
+    {
+      "content": {
+        "body": "# [B-001] Crear y validar la estructura monorepo\n\n## Resumen\n\nPreparar la base reproducible de PianoMentor AI para que backend, frontend, datos, contratos compartidos y Docker evolucionen de forma modular, sin mezclar responsabilidades.\n\n## Objetivo\n\nDejar una estructura MVP coherente con [`ARCHITECTURE.md`](../../ARCHITECTURE.md), preparada para desarrollar FastAPI, Next.js/TypeScript, procesamiento MIDI y despliegue mediante Docker Compose.\n\n## Sub-issues\n\n- [B-001.1 ÔÇö Crear la estructura base de carpetas](B-001.1.md)\n- [B-001.2 ÔÇö Preparar la configuraci├│n inicial del backend](B-001.2.md)\n- [B-001.3 ÔÇö Preparar la configuraci├│n inicial del frontend](B-001.3.md)\n- [B-001.4 ÔÇö Crear carpetas de datos y esquemas compartidos](B-001.4.md)\n- [B-001.5 ÔÇö Configurar variables de entorno y `.gitignore`](B-001.5.md)\n- [B-001.6 ÔÇö Preparar Docker Compose y contextos de build](B-001.6.md)\n- [B-001.7 ÔÇö A├▒adir documentaci├│n m├¡nima de instalaci├│n y arranque](B-001.7.md)\n- [B-001.8 ÔÇö Validar la estructura completa](B-001.8.md)\n\n## Criterio de aceptaci├│n de la Issue principal\n\n- [ ] Todas las Sub-issues est├ín completadas.\n- [ ] La estructura coincide con `ARCHITECTURE.md`.\n- [ ] Backend y frontend pueden construirse.\n- [ ] Docker Compose puede iniciar los servicios.\n- [ ] El frontend y el backend responden localmente.\n- [ ] Las variables de entorno est├ín documentadas sin secretos.\n- [ ] Los esquemas compartidos son v├ílidos.\n- [ ] La documentaci├│n permite repetir el arranque en otro entorno.\n\n## Fuera de alcance\n\n- Parsing MIDI avanzado, compases y polifon├¡a.\n- Reproducci├│n musical y evaluaci├│n de interpretaciones.\n- WebSocket funcional de pr├íctica.\n- Integraci├│n con el LLM o la m├íquina de estados pedag├│gica.\n- Despliegue p├║blico, v├¡deo demo y publicaci├│n en LinkedIn.\n\n## Evidencia esperada\n\n- Salida correcta de `docker compose config`.\n- Build exitoso de backend y frontend.\n- Capturas o logs de los servicios arrancados.\n- Ejecuci├│n de las validaciones indicadas en las Sub-issues.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-001/B-001.md](../../blob/main/issues/B-001/B-001.md)",
+        "number": 1,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001] Crear y validar la estructura monorepo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/1"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-461U",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Arquitectura"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "In Progress",
+      "target date": "2026-10-12",
+      "title": "[B-001] Crear y validar la estructura monorepo"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nCrear la aplicaci├│n FastAPI, /health y arranque local mediante Docker.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-002 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Backend |\n| Riesgo | Bajo |\n| Tama├▒o | S |\n| Estado inicial | Backlog |\n| Dependencias | B-001 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 2,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002] Levantar FastAPI con healthcheck",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/2"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-469k",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Backend"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-002] Levantar FastAPI con healthcheck"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nImplementar POST /api/v1/pieces para aceptar MIDI v├ílido y rechazar entradas inv├ílidas.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-003 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-002 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 3,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-003] Cargar y validar archivos MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/3"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47CY",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "MIDI"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-003] Cargar y validar archivos MIDI"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPermitir seleccionar un MIDI desde Next.js, enviarlo al backend y mostrar metadatos b├ísicos.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-004 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-002;B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 4,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-004] Crear el flujo web inicial",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/4"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47JE",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Frontend"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-004] Crear el flujo web inicial"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nConvertir ticks a tiempo y producir una representaci├│n interna estable de notas, duraci├│n y velocity.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-005 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 5,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005] Normalizar notas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/5"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47N8",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "MIDI"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-005] Normalizar notas MIDI"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nCalcular compases y rangos de pr├íctica a partir de tempo, resoluci├│n y signatura disponible.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-008 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 8,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-008] Calcular compases inicialmente",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/8"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47gk",
+      "labels": [
+        "P0",
+        "MIDI",
+        "Semana 2"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-19",
+      "title": "[B-008] Calcular compases inicialmente"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nReproducir una pieza o secci├│n con play, pausa, detenci├│n y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 9,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006] Implementar reproducci├│n b├ísica",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/9"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-496I",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "MIDI"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-006] Implementar reproducci├│n b├ísica"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nMostrar teclas, notas esperadas y estado de reproducci├│n en Next.js.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-007 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-004;B-006 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 10,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-007] Crear piano virtual b├ísico",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/10"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-BI",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Frontend"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-12",
+      "title": "[B-007] Crear piano virtual b├ísico"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nGestionar notas simult├íneas y acordes b├ísicos en la representaci├│n interna y visual.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-009 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 11,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-009] Preparar soporte b├ísico para polifon├¡a",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/11"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-Ns",
+      "labels": [
+        "P0",
+        "MIDI",
+        "Semana 2"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-19",
+      "title": "[B-009] Preparar soporte b├ísico para polifon├¡a"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nDocumentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-010 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 12,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-010] Definir tratamiento de m├║ltiples tracks",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/12"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-Us",
+      "labels": [
+        "P0",
+        "MIDI",
+        "Semana 2"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-19",
+      "title": "[B-010] Definir tratamiento de m├║ltiples tracks"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nMapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-011 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-007 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 13,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-011] Capturar teclado del ordenador",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/13"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-c8",
+      "labels": [
+        "P0",
+        "Frontend",
+        "Semana 2"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-19",
+      "title": "[B-011] Capturar teclado del ordenador"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nCrear sesiones asociadas a una pieza y transmitir eventos y estado b├ísico en tiempo real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-012 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | Backend |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-002;B-011 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 14,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-012] Crear sesi├│n de pr├íctica y WebSocket",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/14"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-js",
+      "labels": [
+        "P0",
+        "Backend",
+        "Semana 2"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-19",
+      "title": "[B-012] Crear sesi├│n de pr├íctica y WebSocket"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nComparar notas esperadas y recibidas, calcular precisi├│n, omisiones, extras y timing.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-013 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| ├ürea | Evaluaci├│n |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-008;B-009;B-010;B-012 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 15,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-013] Implementar evaluaci├│n determinista",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/15"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-rU",
+      "labels": [
+        "P0",
+        "Semana 3",
+        "Evaluaci├│n"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-26",
+      "title": "[B-013] Implementar evaluaci├│n determinista"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPresentar puntuaciones, errores, comp├ís actual y debilidades en la interfaz.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-014 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 16,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-014] Mostrar resultados y secciones d├®biles",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/16"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-18",
+      "labels": [
+        "P0",
+        "Frontend",
+        "Semana 3"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-10-26",
+      "title": "[B-014] Mostrar resultados y secciones d├®biles"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nCrear estados de observaci├│n, evaluaci├│n, decisi├│n e intervenci├│n con fallback determinista.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-015 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Medio |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 17,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-015] Implementar m├íquina de estados pedag├│gica",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/17"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-74",
+      "labels": [
+        "P1",
+        "Semana 4",
+        "Agente"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-02",
+      "title": "[B-015] Implementar m├íquina de estados pedag├│gica"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nAplicar lista blanca, l├¡mites de tempo, compases, repeticiones, duraci├│n y timeout.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-016 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-015 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 18,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-016] Validar acciones del agente",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/18"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_D4",
+      "labels": [
+        "P1",
+        "Semana 4",
+        "Agente"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-02",
+      "title": "[B-016] Validar acciones del agente"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nReproducir una secci├│n limitada y devolver autom├íticamente el control al estudiante.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-017 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-006;B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 19,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-017] Implementar demostraci├│n y devoluci├│n del control",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/19"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_NI",
+      "labels": [
+        "P1",
+        "Semana 4",
+        "Agente"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-02",
+      "title": "[B-017] Implementar demostraci├│n y devoluci├│n del control"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPermitir que el LLM proponga acciones estructuradas sin controlar directamente el motor MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-018 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | IA |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 20,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-018] Integrar Groq y salida estructurada",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/20"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_Ug",
+      "labels": [
+        "P1",
+        "Semana 4",
+        "IA"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-02",
+      "title": "[B-018] Integrar Groq y salida estructurada"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPermitir que la IA reproduzca una parte mientras el estudiante toca otra, si el tiempo lo permite.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-019 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-017 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 21,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-019] A├▒adir acompa├▒amiento b├ísico",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/21"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_dY",
+      "labels": [
+        "P1",
+        "Semana 4",
+        "Agente"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-02",
+      "title": "[B-019] A├▒adir acompa├▒amiento b├ísico"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nValidar el flujo completo local, Docker, errores, secretos, pausa, detenci├│n y recuperaci├│n.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-020 |\n| Prioridad | P0 |\n| Semana | Semana 5 |\n| ├ürea | Calidad |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-014;B-017;B-018 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 22,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-020] Integraci├│n final y pruebas end-to-end",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/22"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_l8",
+      "labels": [
+        "P0",
+        "Semana 5",
+        "Calidad"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-020] Integraci├│n final y pruebas end-to-end"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPublicar FastAPI mediante Docker, configurar secretos, healthcheck, almacenamiento y WebSocket.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-021 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 23,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-021] Desplegar backend en Hugging Face Spaces",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/23"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_tI",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Deploy"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-021] Desplegar backend en Hugging Face Spaces"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nPublicar Next.js y configurar NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL y CORS.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-022 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 24,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-022] Desplegar frontend en Vercel",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/24"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_0c",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Deploy"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-022] Desplegar frontend en Vercel"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nVerificar desde Vercel la carga MIDI, sesi├│n, evaluaci├│n y acci├│n del agente en el backend p├║blico.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-023 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-021;B-022 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 25,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-023] Ejecutar prueba p├║blica end-to-end",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/25"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4_64",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Deploy"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-023] Ejecutar prueba p├║blica end-to-end"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nGrabar y editar un v├¡deo de 2 a 4 minutos mostrando el flujo principal y las tecnolog├¡as.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-024 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Video |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 26,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-024] Crear v├¡deo demo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/26"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-5AAg",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Video"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-024] Crear v├¡deo demo"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nRedactar la publicaci├│n, seleccionar portada, a├▒adir v├¡deo y enlazar demo o repositorio.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-025 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Comunicaci├│n |\n| Riesgo | Bajo |\n| Tama├▒o | S |\n| Estado inicial | Backlog |\n| Dependencias | B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 27,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-025] Preparar publicaci├│n de LinkedIn",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/27"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-5AFw",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Comunicaci├│n"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-025] Preparar publicaci├│n de LinkedIn"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nActualizar README, PLAN, ARCHITECTURE y documentaci├│n de instalaci├│n con el estado real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-026 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Documentaci├│n |\n| Riesgo | Bajo |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023;B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 28,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-026] Documentar estado final del MVP",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/28"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-5AMI",
+      "labels": [
+        "P1",
+        "Semana 5",
+        "Documentaci├│n"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-026] Documentar estado final del MVP"
+    }
+  ],
+  "notes": [
+    "Respaldo local generado desde GitHub Projects.",
+    "Linked pull requests y Sub-issues se conservan como vienen de GitHub.",
+    "Start date no se modifica desde los scripts del repositorio."
+  ]
+}

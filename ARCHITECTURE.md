@@ -64,6 +64,10 @@ piano-mentor-ai/
 ├── PLAN.md
 ├── GLOSSARY.md
 ├── ARCHITECTURE.md
+├── issues/
+│   └── B-001/
+│       ├── B-001.md
+│       └── B-001.N.md
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -129,6 +133,10 @@ piano-mentor-ai/
 | `/PLAN.md` | Plan operativo del MVP y entregables por fase o semana. |
 | `/GLOSSARY.md` | Definiciones de términos musicales, técnicos y pedagógicos. |
 | `/ARCHITECTURE.md` | Este documento; describe la evolución arquitectónica del proyecto. |
+| `/issues/` | Documentación operativa agrupada por Issue principal. Cada carpeta contiene el resumen y sus Sub-issues. |
+| `/issues/B-001/` | Documentación agrupada de la Issue B-001 y sus Sub-issues. |
+| `/issues/B-001/B-001.md` | Resumen, alcance, Sub-issues y criterios de aceptación de la Issue principal B-001. |
+| `/issues/B-001/B-001.N.md` | Documento detallado de una Sub-issue de B-001; `N` representa su número secuencial. |
 | `/.env.example` | Plantilla de variables de entorno sin secretos. |
 | `/.gitignore` | Archivos y carpetas que no deben versionarse. |
 | `/docker-compose.yml` | Orquestación local del backend y frontend. |
@@ -194,6 +202,10 @@ piano-mentor-ai/
 ├── PLAN.md
 ├── GLOSSARY.md
 ├── ARCHITECTURE.md
+├── issues/
+│   └── B-001/
+│       ├── B-001.md
+│       └── B-001.N.md
 ├── LICENSE
 ├── .env.example
 ├── .gitignore
@@ -409,6 +421,10 @@ piano-mentor-ai/
 | Archivo o carpeta | Descripción |
 |---|---|
 | `/LICENSE` | Licencia del código, si el proyecto adopta una licencia explícita. |
+| `/issues/` | Documentación operativa versionada agrupada por Issue principal; no sustituye a `PLAN.md`. |
+| `/issues/B-001/` | Carpeta de la Issue B-001, con su resumen y Sub-issues. |
+| `/issues/B-001/B-001.md` | Resumen, alcance y aceptación de la Issue principal B-001. |
+| `/issues/B-001/B-001.N.md` | Descripción, dependencias, validación y criterios de una Sub-issue. |
 | `/Makefile` | Comandos abreviados para instalar, probar, levantar Docker y ejecutar tareas comunes. |
 | `/backend/migrations/` | Migraciones de base de datos gestionadas por Alembic. |
 | `/backend/migrations/env.py` | Configuración del entorno de Alembic. |

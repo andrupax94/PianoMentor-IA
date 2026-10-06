@@ -7,7 +7,9 @@ param(
     [int]$ProjectNumber = 0,
     [datetime]$PlanningStartDate = [datetime]'2026-10-06',
     [switch]$Preview,
-    [switch]$SkipFieldSync
+    [switch]$SkipFieldSync,
+    [switch]$ForceIssueBodies,
+    [switch]$IncludeMissingIssueDocs
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,19 +53,29 @@ function Get-OrCreateIssue {
         [string]$Id,
         [string]$Title,
         [string]$BodyFile,
-        [string[]]$IssueLabels
+        [string[]]$IssueLabels,
+        [object[]]$ExistingIssues,
+        [bool]$IssueDocumentExists,
+        [switch]$ForceBody
     )
 
-    $existingJson = & gh issue list --repo $Repo --state all --limit 1000 --json number,title,url
-    if ($LASTEXITCODE -ne 0) {
-        throw "No se pudieron consultar los Issues existentes del repositorio $Repo."
-    }
-
-    $existingIssues = @($existingJson | Out-String | ConvertFrom-Json)
     $idPattern = '\[' + [regex]::Escape($Id) + '\]'
     $existing = $existingIssues | Where-Object { $_.title -match $idPattern } | Select-Object -First 1
     if ($null -ne $existing) {
-        Write-Output "Reutilizando Issue existente: $Title"
+        if (-not $IssueDocumentExists) {
+            Write-Warning "No existe documento local para $Id; se conserva sin modificar el cuerpo remoto."
+        }
+        elseif ($ForceBody -or [string]::IsNullOrWhiteSpace([string]$existing.body)) {
+            $bodyOutput = & gh issue edit "$($existing.number)" --repo $Repo --body-file $BodyFile 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "No se pudo actualizar el cuerpo del Issue existente $Title.`n$($bodyOutput | Out-String)"
+            }
+            if ($ForceBody) { Write-Output "Issue existente actualizado forzosamente desde Markdown: $Title" }
+            else { Write-Output "Issue existente con cuerpo vacío actualizado desde Markdown: $Title" }
+        }
+        else {
+            Write-Output "Issue existente con cuerpo conservado: $Title"
+        }
         return $existing.url
     }
 
@@ -95,6 +107,15 @@ if ([string]::IsNullOrWhiteSpace($Repository) -or $Repository -notmatch '^[^/]+/
 
 Invoke-Gh @('auth', 'status')
 $items = Import-Csv -LiteralPath $CsvPath
+$existingIssues = @()
+if (-not $Preview) {
+    $existingJson = & gh issue list --repo $Repository --state all --limit 1000 --json number,title,url,body
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudieron consultar los Issues existentes del repositorio $Repository."
+    }
+    $existingIssues = @($existingJson | Out-String | ConvertFrom-Json)
+    Write-Output "Issues existentes consultados una sola vez: $($existingIssues.Count)"
+}
 $labels = @('P0', 'P1', 'P2', 'Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5', 'MIDI', 'Backend', 'Frontend', 'Evaluación', 'Agente', 'IA', 'Deploy', 'Video', 'Comunicación', 'Arquitectura', 'Calidad', 'Documentación')
 
 if (-not $Preview -and $ProjectNumber -le 0 -and -not [string]::IsNullOrWhiteSpace($ProjectTitle)) {
@@ -131,6 +152,20 @@ Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otr
 
 > Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)
 "@
+    $issueDocPath = Join-Path (Join-Path (Join-Path $PSScriptRoot '..\..\issues') $item.ID) "$($item.ID).md"
+    $issueDocumentExists = Test-Path $issueDocPath
+    if (Test-Path $issueDocPath) {
+        $body = Get-Content -LiteralPath $issueDocPath -Raw -Encoding UTF8
+        $body += "`r`n`r`n---`r`n`r`n> Documento local: [issues/$($item.ID)/$($item.ID).md](../../blob/main/issues/$($item.ID)/$($item.ID).md)"
+        Write-Output "$($item.ID): usando documento $issueDocPath"
+    }
+    else {
+        Write-Warning "$($item.ID): no existe $issueDocPath; no se actualizará el cuerpo de esa Issue."
+        if (-not $IncludeMissingIssueDocs) {
+            Write-Output "$($item.ID): omitida por falta de Markdown; no se consultará ni modificará GitHub para esta tarea."
+            continue
+        }
+    }
 
     $labelsForIssue = @($item.Priority, $item.Week, $item.Area)
     if ($Preview) {
@@ -147,7 +182,7 @@ Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otr
     $tempBody = Join-Path ([System.IO.Path]::GetTempPath()) ("piano-mentor-$($item.ID).md")
     try {
         Write-Utf8NoBom -Path $tempBody -Content $body
-        $issueUrl = Get-OrCreateIssue -Repo $Repository -Id $item.ID -Title $title -BodyFile $tempBody -IssueLabels $labelsForIssue | Select-Object -Last 1
+        $issueUrl = Get-OrCreateIssue -Repo $Repository -Id $item.ID -Title $title -BodyFile $tempBody -IssueLabels $labelsForIssue -ExistingIssues $existingIssues -IssueDocumentExists $issueDocumentExists -ForceBody:$ForceIssueBodies | Select-Object -Last 1
         Write-Output "$($item.ID): $issueUrl"
 
         if ($ProjectNumber -gt 0) {
