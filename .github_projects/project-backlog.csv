@@ -1,6 +1,6 @@
 ID,Title,Description,Priority,Week,Area,Risk,Size,Status,DependsOn
 B-001,Crear y validar la estructura monorepo,"Preparar backend, frontend, datos, contratos compartidos y Docker.",P0,Semana 1,Arquitectura,Bajo,M,Backlog,
-B-002,Levantar FastAPI con healthcheck,"Crear la aplicación FastAPI, /health y arranque local mediante Docker.",P0,Semana 1,Backend,Bajo,S,Backlog,B-001
+B-002,Preparar contrato y almacenamiento base de piezas MIDI,"Definir el contrato de piezas, el almacenamiento local y los límites base que necesita la carga MIDI de B-003.",P0,Semana 1,MIDI,Bajo,M,Backlog,B-001
 B-003,Cargar y validar archivos MIDI,"Implementar POST /api/v1/pieces para aceptar MIDI válido y rechazar entradas inválidas.",P0,Semana 1,MIDI,Alto,M,Backlog,B-002
 B-004,Crear el flujo web inicial,"Permitir seleccionar un MIDI desde Next.js, enviarlo al backend y mostrar metadatos básicos.",P0,Semana 1,Frontend,Medio,M,Backlog,B-002;B-003
 B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.",P0,Semana 1,MIDI,Alto,L,Backlog,B-003

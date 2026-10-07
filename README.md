@@ -149,5 +149,7 @@ La estructura concreta de archivos y la estrategia de evolución están document
 | [PLAN.md](PLAN.md) | Cronograma, entregables, puerta de aceptación y prioridades. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura de carpetas, responsabilidades, capas, API y evolución técnica. |
 | [GLOSSARY.md](GLOSSARY.md) | Definiciones de conceptos y tecnologías. |
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Instalación, configuración y arranque local reproducible. |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Diagnóstico y soluciones para problemas frecuentes y futuros. |
 
 > Si una decisión cambia la arquitectura, actualizar [ARCHITECTURE.md](ARCHITECTURE.md). Si cambia el alcance o el objetivo del producto, actualizar este README. Si cambia el orden de trabajo, actualizar [PLAN.md](PLAN.md).

@@ -58,6 +58,8 @@ Esta estructura es la recomendada para comenzar. Evita crear demasiadas abstracc
 
 ### 4.1 Árbol del MVP
 
+El árbol siguiente describe la estructura objetivo del MVP de forma acumulativa. La creación de la estructura base de B-001.1 no exige que todos los módulos funcionales ya existan: los archivos de aplicación se incorporan progresivamente junto con sus Issues. En particular, `database.py` se incorporará con B-002, los componentes y clientes HTTP iniciales con B-004, y el cliente WebSocket y la vista de práctica con B-012. Hasta entonces, las carpetas pueden no contener esos archivos.
+
 ```text
 piano-mentor-ai/
 ├── README.md
@@ -68,6 +70,9 @@ piano-mentor-ai/
 │   └── B-001/
 │       ├── B-001.md
 │       └── B-001.N.md
+├── docs/
+│   ├── GETTING_STARTED.md
+│   └── TROUBLESHOOTING.md
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -137,6 +142,9 @@ piano-mentor-ai/
 | `/issues/B-001/` | Documentación agrupada de la Issue B-001 y sus Sub-issues. |
 | `/issues/B-001/B-001.md` | Resumen, alcance, Sub-issues y criterios de aceptación de la Issue principal B-001. |
 | `/issues/B-001/B-001.N.md` | Documento detallado de una Sub-issue de B-001; `N` representa su número secuencial. |
+| `/docs/` | Documentación operativa para instalar, arrancar y diagnosticar el proyecto. |
+| `/docs/GETTING_STARTED.md` | Guía reproducible de instalación, configuración, arranque, validaciones y detención local. |
+| `/docs/TROUBLESHOOTING.md` | Bitácora viva de problemas frecuentes, diagnóstico, workarounds y soluciones. |
 | `/.env.example` | Plantilla de variables de entorno sin secretos. |
 | `/.gitignore` | Archivos y carpetas que no deben versionarse. |
 | `/docker-compose.yml` | Orquestación local del backend y frontend. |
@@ -149,7 +157,7 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
 | `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
 | `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
-| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite. |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite; se incorporará con B-002. |
 | `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
 | `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
 | `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |
@@ -170,10 +178,10 @@ piano-mentor-ai/
 | `/frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. |
 | `/frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI. |
 | `/frontend/src/components/PianoKeyboard.tsx` | Piano virtual básico y resaltado de notas. |
-| `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica. |
+| `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica; se incorporará con B-012. |
 | `/frontend/src/components/SessionStatus.tsx` | Estado actual, tempo, compás y control del piano. |
-| `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI. |
-| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket para actualizaciones en tiempo real. |
+| `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI; se incorporará con B-004. |
+| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket para actualizaciones en tiempo real; se incorporará con B-012. |
 | `/data/midi/` | MIDI de prueba o archivos preparados para demostraciones. |
 | `/data/uploads/` | Archivos MIDI cargados localmente durante el desarrollo. |
 | `/data/sessions/` | Datos temporales o exportaciones de sesiones. |
