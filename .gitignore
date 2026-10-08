@@ -61,3 +61,4 @@ dist/
 
 # Skill package/build artifacts
 *.skill
+opencode.exe

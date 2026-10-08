@@ -690,3 +690,24 @@ La regla práctica será:
 > Crear una separación cuando exista una responsabilidad real que probar, sustituir o evolucionar.
 
 El proyecto comienza con una web simple, pero desde el inicio conserva los límites necesarios para que el motor musical, la evaluación, el agente y la interfaz puedan crecer de forma independiente.
+
+## 11. Skills del agente
+
+Las skills son instrucciones especializadas que el agente puede cargar para trabajar en áreas específicas del proyecto. Se ubican en:
+
+```text
+.agents/skills/
+├── piano-mentor-ai-development/   Desarrollo y mantenimiento del proyecto
+├── piano-mentor-github-projects/  Automatización de GitHub Projects
+├── opencode/                      Gestión y configuración de OpenCode
+└── report/                        Reporte de issues y bugs
+```
+
+| Skill | Propósito |
+|---|---|
+| `piano-mentor-ai-development` | Desarrollo y mantenimiento de PianoMentor AI: diseño de módulos, parsing/reproducción MIDI, evaluación, consola retro, frontend, LangGraph/LLM. |
+| `piano-mentor-github-projects` | Automatización de GitHub Projects: crear Issues, sincronizar Priority y Target date, exportar respaldo, detectar duplicados, revisar límites de API. |
+| `opencode` | Uso, configuración y troubleshooting de OpenCode: agentes, comandos, skills, herramientas, permisos, MCP, modelos, temas, keybinds, formatters, CLI, TUI, apps. |
+| `report` | Reporte de issues o bugs de OpenCode con diagnósticos estándar y publicación mediante GitHub CLI. |
+
+Las skills se cargan automáticamente cuando el agente detecta que una tarea coincide con su descripción. No modifican el código del proyecto; son instrucciones de contexto para el agente.
