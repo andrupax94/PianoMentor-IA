@@ -36,7 +36,7 @@ backend/
       performance/    comparación, timing y puntuaciones
       practice/       sesiones y ejercicios
       agent/          estados, acciones y reglas
-    infrastructure/  Mido, SQLite, filesystem y proveedores externos
+    infrastructure/  Mido, SQLite + sqlite-vec, filesystem y proveedores externos
 console/              interfaz TUI retro; sin lógica musical duplicada
 frontend/             Next.js, TypeScript, Tone.js y visualización
 shared/               esquemas compartidos cuando sea necesario
@@ -130,7 +130,7 @@ LangGraph puede sustituir la orquestación posterior, pero no debe manejar cada 
 
 ## Backend y Docker
 
-Usar Python, FastAPI, Pydantic, SQLite durante el MVP, Mido y Pytest. Mantener configuración por variables de entorno y proporcionar `.env.example`.
+Usar Python, FastAPI, Pydantic, SQLite + sqlite-vec durante el MVP, Mido y Pytest. Mantener configuración por variables de entorno y proporcionar `.env.example`.
 
 Usar Docker desde el inicio para reproducibilidad. Separar dependencias de producción y desarrollo cuando sea práctico. En imágenes FastAPI:
 

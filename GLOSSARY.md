@@ -289,7 +289,11 @@ Mecanismo de seguridad del navegador que controla qué orígenes pueden llamar a
 
 ## SQLite
 
-Base de datos relacional ligera almacenada en un archivo. Es adecuada para la persistencia local del MVP.
+Base de datos relacional ligera almacenada en un archivo. Es adecuada para la persistencia local del MVP. Se usa junto con la extensión sqlite-vec.
+
+## sqlite-vec
+
+Extensión de SQLite que añade búsqueda vectorial (embeddings) junto a los datos relacionales. En el MVP sirve para similitud de piezas y futuras recomendaciones sin añadir otro servicio.
 
 ## PostgreSQL
 
@@ -635,11 +639,11 @@ Coordina casos de uso, por ejemplo cargar una pieza, evaluar un intento o ejecut
 
 ## Infraestructura
 
-Detalles externos como Mido, SQLite, filesystem, proveedores LLM o LangSmith.
+Detalles externos como Mido, SQLite + sqlite-vec, filesystem, proveedores LLM o LangSmith.
 
 ## Adaptador
 
-Componente que traduce una interfaz del dominio a una tecnología externa. Por ejemplo, un adaptador para Groq o para SQLite.
+Componente que traduce una interfaz del dominio a una tecnología externa. Por ejemplo, un adaptador para Groq o para SQLite + sqlite-vec.
 
 ## Caso de uso
 

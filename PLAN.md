@@ -45,7 +45,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 |---|---|---|---|
 | B-001 | P0 | Crear y validar la estructura monorepo | 1 |
 | B-002 | P0 | Preparar contrato y almacenamiento base de piezas MIDI | 1 |
-| B-003 | P0 | Cargar y validar archivos MIDI | 1 |
+| B-003 | P0 | Cargar y validar archivos MIDI con SQLite + sqlite-vec | 1 |
 | B-004 | P0 | Crear el flujo web inicial | 1 |
 | B-005 | P0 | Normalizar notas MIDI | 1 |
 | B-006 | P0 | Implementar reproducción básica | 1 |

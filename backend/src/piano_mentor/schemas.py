@@ -6,10 +6,25 @@ class HealthResponse(BaseModel):
     service: str
 
 
+class PieceMetadata(BaseModel):
+    """Metadatos iniciales de una pieza MIDI cargada."""
+
+    tracks: int | None = None
+    duration_seconds: float | None = None
+    tempo: float | None = None
+    notes_count: int | None = None
+
+
 class PieceResponse(BaseModel):
+    """Respuesta de la API para una pieza cargada."""
+
     id: str
     filename: str
-    status: str = "stub"
+    stored_filename: str
+    size_bytes: int
+    extension: str
+    status: str = "uploaded"
+    metadata: PieceMetadata = PieceMetadata()
 
 
 class SessionCreate(BaseModel):

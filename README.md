@@ -117,7 +117,7 @@ Decisiones de infraestructura para el MVP:
 
 - **Backend:** Python, FastAPI y Pydantic.
 - **Frontend:** Next.js y TypeScript.
-- **Persistencia:** SQLite local.
+- **Persistencia:** SQLite + sqlite-vec local (metadatos relacionales y búsqueda vectorial).
 - **Archivos MIDI:** filesystem local durante el MVP.
 - **Proveedor LLM inicial:** Groq mediante una API compatible con OpenAI.
 - **Modelo inicial validado:** `openai/gpt-oss-20b`.

@@ -1,7 +1,7 @@
 ID,Title,Description,Priority,Week,Area,Risk,Size,Status,DependsOn
 B-001,Crear y validar la estructura monorepo,"Preparar backend, frontend, datos, contratos compartidos y Docker.",P0,Semana 1,Arquitectura,Bajo,M,Backlog,
 B-002,Preparar contrato y almacenamiento base de piezas MIDI,"Definir el contrato de piezas, el almacenamiento local y los límites base que necesita la carga MIDI de B-003.",P0,Semana 1,MIDI,Bajo,M,Backlog,B-001
-B-003,Cargar y validar archivos MIDI,"Implementar POST /api/v1/pieces para aceptar MIDI válido y rechazar entradas inválidas.",P0,Semana 1,MIDI,Alto,M,Backlog,B-002
+B-003,Cargar y validar archivos MIDI con SQLite + sqlite-vec,"Instalar SQLite + sqlite-vec, implementar POST /api/v1/pieces con persistencia de metadatos y cargar el catalogo del corpus.",P0,Semana 1,MIDI,Alto,L,Backlog,B-002
 B-004,Crear el flujo web inicial,"Permitir seleccionar un MIDI desde Next.js, enviarlo al backend y mostrar metadatos básicos.",P0,Semana 1,Frontend,Medio,M,Backlog,B-002;B-003
 B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.",P0,Semana 1,MIDI,Alto,L,Backlog,B-003
 B-006,Implementar reproducción básica,"Reproducir una pieza o sección con play, pausa, detención y tempo inicial.",P0,Semana 1,MIDI,Alto,L,Backlog,B-005
@@ -25,3 +25,4 @@ B-023,Ejecutar prueba pública end-to-end,"Verificar desde Vercel la carga MIDI,
 B-024,Crear vídeo demo,"Grabar y editar un vídeo de 2 a 4 minutos mostrando el flujo principal y las tecnologías.",P1,Semana 5,Video,Medio,M,Backlog,B-023
 B-025,Preparar publicación de LinkedIn,"Redactar la publicación, seleccionar portada, añadir vídeo y enlazar demo o repositorio.",P1,Semana 5,Comunicación,Bajo,S,Backlog,B-024
 B-026,Documentar estado final del MVP,"Actualizar README, PLAN, ARCHITECTURE y documentación de instalación con el estado real.",P1,Semana 5,Documentación,Bajo,M,Backlog,B-023;B-024
+B-027,Crear corpus de piezas MIDI de licencia compatible,"Seleccionar, preparar y versionar 15 piezas MIDI de piano de dominio público o licencia compatible, hacerlas seleccionables desde el frontend.",P1,Semana 2,MIDI,Medio,M,Backlog,B-003;B-004

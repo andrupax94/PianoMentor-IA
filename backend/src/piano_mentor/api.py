@@ -1,6 +1,9 @@
-from fastapi import APIRouter, File, UploadFile, WebSocket, WebSocketDisconnect
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 
 from .agent import AgentService
+from .config import settings
 from .practice import PracticeService
 from .schemas import (
     ActionRequest,
@@ -11,10 +14,19 @@ from .schemas import (
     SessionCreate,
     SessionResponse,
 )
+from .storage import LocalPieceStorage
+from .validators import (
+    sanitize_filename,
+    validate_content,
+    validate_extension,
+    validate_size,
+    ValidationError,
+)
 
 router = APIRouter(prefix="/api/v1")
 practice_service = PracticeService()
 agent_service = AgentService()
+storage = LocalPieceStorage(Path(settings.midi_storage_path))
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -24,7 +36,23 @@ def health() -> HealthResponse:
 
 @router.post("/pieces", response_model=PieceResponse)
 async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
-    return PieceResponse(id="stub-piece", filename=file.filename or "unknown.mid")
+    try:
+        original_name = sanitize_filename(file.filename or "unknown.mid")
+        extension = validate_extension(original_name)
+        content = await file.read()
+        validate_content(content)
+        validate_size(len(content))
+        piece_id = storage.save(original_name, content)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail={"code": exc.code, "message": exc.message})
+
+    return PieceResponse(
+        id=piece_id,
+        filename=original_name,
+        stored_filename=piece_id,
+        size_bytes=len(content),
+        extension=extension,
+    )
 
 
 @router.post("/sessions", response_model=SessionResponse)

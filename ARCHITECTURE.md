@@ -9,7 +9,7 @@ Este documento define la estructura de carpetas y archivos recomendada para Pian
 
 La aplicación se desarrollará como un **monorepo** con:
 
-- **Backend:** Python, FastAPI, Pydantic y SQLite durante el MVP.
+- **Backend:** Python, FastAPI, Pydantic y SQLite + sqlite-vec durante el MVP.
 - **Frontend:** Next.js y TypeScript.
 - **Comunicación:** HTTP para operaciones normales y WebSocket para sesiones en tiempo real.
 - **MIDI:** procesamiento determinista, separado del LLM y de la interfaz.
@@ -58,7 +58,7 @@ Esta estructura es la recomendada para comenzar. Evita crear demasiadas abstracc
 
 ### 4.1 Árbol del MVP
 
-El árbol siguiente describe la estructura objetivo del MVP de forma acumulativa. La creación de la estructura base de B-001.1 no exige que todos los módulos funcionales ya existan: los archivos de aplicación se incorporan progresivamente junto con sus Issues. En particular, `database.py` se incorporará con B-002, los componentes y clientes HTTP iniciales con B-004, y el cliente WebSocket y la vista de práctica con B-012. Hasta entonces, las carpetas pueden no contener esos archivos.
+El árbol siguiente describe la estructura objetivo del MVP de forma acumulativa. La creación de la estructura base de B-001.1 no exige que todos los módulos funcionales ya existan: los archivos de aplicación se incorporan progresivamente junto con sus Issues. En particular, `database.py` (SQLite + sqlite-vec) se incorporará con B-003, los componentes y clientes HTTP iniciales con B-004, y el cliente WebSocket y la vista de práctica con B-012. Hasta entonces, las carpetas pueden no contener esos archivos.
 
 ```text
 piano-mentor-ai/
@@ -157,7 +157,7 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
 | `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
 | `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
-| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite; se incorporará con B-002. |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite + sqlite-vec (metadatos de piezas y vectores); se incorporará con B-003. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
 | `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
 | `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
 | `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |
@@ -477,7 +477,7 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/infrastructure/` | Implementaciones concretas de almacenamiento, MIDI, LLM y observabilidad. |
 | `/backend/src/piano_mentor/infrastructure/config/settings.py` | Configuración de la aplicación desde variables de entorno. |
 | `/backend/src/piano_mentor/infrastructure/config/logging.py` | Configuración de logs y niveles de observabilidad. |
-| `/backend/src/piano_mentor/infrastructure/database/connection.py` | Conexión y ciclo de vida de SQLite o PostgreSQL. |
+| `/backend/src/piano_mentor/infrastructure/database/connection.py` | Conexión y ciclo de vida de SQLite (+ sqlite-vec) o PostgreSQL (+ pgvector). |
 | `/backend/src/piano_mentor/infrastructure/database/models.py` | Modelos ORM de persistencia. |
 | `/backend/src/piano_mentor/infrastructure/database/repositories.py` | Implementaciones de repositorios del dominio. |
 | `/backend/src/piano_mentor/infrastructure/midi/mido_reader.py` | Adaptador de Mido para leer archivos MIDI. |
@@ -607,7 +607,7 @@ La primera estrategia de despliegue será separar frontend y backend, manteniend
 |---|---|---|---|
 | Frontend Next.js | [Vercel](https://vercel.com/) | Servir la interfaz web y sus rutas de Next.js. | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y configuración de CORS en el backend. |
 | Backend FastAPI | [Hugging Face Spaces](https://huggingface.co/spaces) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Space con SDK Docker, `Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
-| Persistencia MVP | SQLite local o volumen persistente del Space | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente; documentar el volumen o limitarlo a demos. |
+| Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) o volumen persistente del Space | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente; documentar el volumen o limitarlo a demos. |
 | Archivos MIDI MVP | Filesystem del backend | Recibir y procesar archivos cargados. | Limitar tamaño, validar extensión/contenido y tratar los archivos como privados. |
 
 ### Flujo entre despliegues
@@ -628,7 +628,7 @@ La URL pública de Vercel debe configurarse en `CORS_ORIGINS` del backend. El fr
 - [ ] Configurar secretos en Vercel y Hugging Face, nunca en el repositorio.
 - [ ] Usar HTTPS y WSS en las URLs públicas.
 - [ ] Verificar si el plan y la configuración del Space mantienen WebSocket y archivos durante la sesión.
-- [ ] Sustituir SQLite/filesystem por PostgreSQL y almacenamiento de objetos si se requiere persistencia real.
+- [ ] Sustituir SQLite (+ sqlite-vec)/filesystem por PostgreSQL (+ pgvector) y almacenamiento de objetos si se requiere persistencia real.
 - [ ] Añadir límites de tamaño, timeout y limpieza de archivos MIDI cargados.
 - [ ] Ejecutar una prueba end-to-end desde la URL pública de Vercel.
 
@@ -670,7 +670,7 @@ Este destino es adecuado para el **primer despliegue demostrable**, no constituy
 
 ### Etapa 5 — Producción y expansión
 
-- Migrar SQLite a PostgreSQL cuando sea necesario.
+- Migrar SQLite (+ sqlite-vec) a PostgreSQL (+ pgvector) cuando sea necesario.
 - Separar almacenamiento de archivos si el volumen lo exige.
 - Añadir Web MIDI como capacidad opcional.
 - Incorporar autenticación, historial, planes de práctica y progreso.
