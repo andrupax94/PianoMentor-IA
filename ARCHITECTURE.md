@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 14:14 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-09 14:30 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -821,7 +821,6 @@ piano-mentor-ai/
 ├── docs/TROUBLESHOOTING.md
 ├── frontend/
 ├── frontend/assets/
-├── frontend/assets/piano_virtual_88_data.svg
 ├── frontend/assets/piano_virtual_88_pressed.svg
 ├── frontend/Dockerfile
 ├── frontend/next-env.d.ts
@@ -843,6 +842,7 @@ piano-mentor-ai/
 ├── frontend/src/lib/
 ├── frontend/src/lib/.gitkeep
 ├── frontend/tsconfig.json
+├── frontend/tsconfig.tsbuildinfo
 ├── GLOSSARY.md
 ├── issues/
 ├── issues/B-001/
@@ -944,5 +944,7 @@ piano-mentor-ai/
 | `.agents/skills/piano-mentor-ai-development/SKILL.md` | Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. | Cargar al modificar MIDI, evaluación, frontend o agente. |
 | `.agents/skills/piano-mentor-github-projects/SKILL.md` | Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. | Cargar al operar backlog e issues B-xxx. |
 | `.agents/skills/piano-mentor-architecture/SKILL.md` | Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree. | Cargar al documentar archivos o estructura; ejecuta el script. |
+| `desing/main_page.ai` | Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado). | Fuente de diseño de la página inicial; implementar en Next.js según este diseño. |
+| `frontend/assets/piano_virtual_88_pressed.svg` | Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada. | Asset del teclado virtual para el frontend; manipular por id para resaltado y pressed. |
 
 _Para añadir un archivo nuevo: agrega su fila en `architecture/files.csv` y ejecuta `python architecture/generate_architecture.py`._

@@ -85,7 +85,8 @@ def comment_style(path: Path) -> str | None:
         return "hash"
     if suffix in SLASH_SUFFIXES:
         return "slash"
-    if suffix == ".md":
+    if suffix in (".md", ".svg"):
+        # SVG es XML: los comentarios <!-- --> antes del elemento raíz son válidos
         return "html"
     if suffix == ".css":
         return "css"
@@ -121,15 +122,21 @@ def header_key_re(style: str) -> re.Pattern[str]:
 
 def apply_header(path: Path, description: str, context: str, dry_run: bool) -> str:
     """Inserta o reemplaza la cabecera. Devuelve: written | unchanged | skipped:<motivo>."""
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return "skipped:no-legible"
+    if b"\x00" in raw[:8192]:
+        return "skipped:binario"
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return "skipped:binario"
+    # Normalizar saltos de línea para comparar bien (el disco puede tener CRLF)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     style = comment_style(path)
     if style is None:
         return "skipped:sin-sintaxis-de-comentario"
-    try:
-        text = path.read_text(encoding="utf-8-sig")
-    except (OSError, UnicodeDecodeError):
-        return "skipped:no-legible"
-    if "\x00" in text[:8192]:
-        return "skipped:binario"
 
     lines = text.splitlines()
     key_re = header_key_re(style)

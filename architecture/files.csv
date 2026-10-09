@@ -59,3 +59,5 @@ issues/B-003/B-003.md,"Resumen y aceptación de la Issue B-003 (carga MIDI con S
 .agents/skills/piano-mentor-ai-development/SKILL.md,"Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist.","Cargar al modificar MIDI, evaluación, frontend o agente."
 .agents/skills/piano-mentor-github-projects/SKILL.md,"Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar.","Cargar al operar backlog e issues B-xxx."
 .agents/skills/piano-mentor-architecture/SKILL.md,"Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree.","Cargar al documentar archivos o estructura; ejecuta el script."
+desing/main_page.ai,"Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado).","Fuente de diseño de la página inicial; implementar en Next.js según este diseño."
+frontend/assets/piano_virtual_88_pressed.svg,"Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada.","Asset del teclado virtual para el frontend; manipular por id para resaltado y pressed."
