@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-06T20:13:03.2093334Z",
+  "exportedAtUtc": "2026-10-09T20:50:04.8040211Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -163,70 +163,7 @@
   "items": [
     {
       "content": {
-        "body": "# [B-001] Crear y validar la estructura monorepo\n\n## Resumen\n\nPreparar la base reproducible de PianoMentor AI para que backend, frontend, datos, contratos compartidos y Docker evolucionen de forma modular, sin mezclar responsabilidades.\n\n## Objetivo\n\nDejar una estructura MVP coherente con [`ARCHITECTURE.md`](../../ARCHITECTURE.md), preparada para desarrollar FastAPI, Next.js/TypeScript, procesamiento MIDI y despliegue mediante Docker Compose.\n\n## Sub-issues\n\n- [B-001.1 ÔÇö Crear la estructura base de carpetas](B-001.1.md)\n- [B-001.2 ÔÇö Preparar la configuraci├│n inicial del backend](B-001.2.md)\n- [B-001.3 ÔÇö Preparar la configuraci├│n inicial del frontend](B-001.3.md)\n- [B-001.4 ÔÇö Crear carpetas de datos y esquemas compartidos](B-001.4.md)\n- [B-001.5 ÔÇö Configurar variables de entorno y `.gitignore`](B-001.5.md)\n- [B-001.6 ÔÇö Preparar Docker Compose y contextos de build](B-001.6.md)\n- [B-001.7 ÔÇö A├▒adir documentaci├│n m├¡nima de instalaci├│n y arranque](B-001.7.md)\n- [B-001.8 ÔÇö Validar la estructura completa](B-001.8.md)\n\n## Criterio de aceptaci├│n de la Issue principal\n\n- [ ] Todas las Sub-issues est├ín completadas.\n- [ ] La estructura coincide con `ARCHITECTURE.md`.\n- [ ] Backend y frontend pueden construirse.\n- [ ] Docker Compose puede iniciar los servicios.\n- [ ] El frontend y el backend responden localmente.\n- [ ] Las variables de entorno est├ín documentadas sin secretos.\n- [ ] Los esquemas compartidos son v├ílidos.\n- [ ] La documentaci├│n permite repetir el arranque en otro entorno.\n\n## Fuera de alcance\n\n- Parsing MIDI avanzado, compases y polifon├¡a.\n- Reproducci├│n musical y evaluaci├│n de interpretaciones.\n- WebSocket funcional de pr├íctica.\n- Integraci├│n con el LLM o la m├íquina de estados pedag├│gica.\n- Despliegue p├║blico, v├¡deo demo y publicaci├│n en LinkedIn.\n\n## Evidencia esperada\n\n- Salida correcta de `docker compose config`.\n- Build exitoso de backend y frontend.\n- Capturas o logs de los servicios arrancados.\n- Ejecuci├│n de las validaciones indicadas en las Sub-issues.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-001/B-001.md](../../blob/main/issues/B-001/B-001.md)",
-        "number": 1,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-001] Crear y validar la estructura monorepo",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/1"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-461U",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "Arquitectura"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "In Progress",
-      "target date": "2026-10-12",
-      "title": "[B-001] Crear y validar la estructura monorepo"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nCrear la aplicaci├│n FastAPI, /health y arranque local mediante Docker.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-002 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Backend |\n| Riesgo | Bajo |\n| Tama├▒o | S |\n| Estado inicial | Backlog |\n| Dependencias | B-001 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
-        "number": 2,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-002] Levantar FastAPI con healthcheck",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/2"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-469k",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "Backend"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "target date": "2026-10-12",
-      "title": "[B-002] Levantar FastAPI con healthcheck"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nImplementar POST /api/v1/pieces para aceptar MIDI v├ílido y rechazar entradas inv├ílidas.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-003 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-002 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
-        "number": 3,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-003] Cargar y validar archivos MIDI",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/3"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47CY",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "MIDI"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "target date": "2026-10-12",
-      "title": "[B-003] Cargar y validar archivos MIDI"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nPermitir seleccionar un MIDI desde Next.js, enviarlo al backend y mostrar metadatos b├ísicos.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-004 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-002;B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "<!-- description: Resumen y aceptación de la Issue B-004 (flujo web inicial de carga MIDI). -->\n<!-- context: Primer flujo visible Next.js → FastAPI: subir, validar y ver metadatos. -->\n\n# [B-004] Crear el flujo web inicial\n\n## Resumen\n\nConectar la interfaz existente con `POST /api/v1/pieces` (B-003.2) para que el usuario pueda seleccionar un MIDI desde Next.js, enviarlo al backend y ver sus metadatos o un error claro, cerrando el primer flujo completo web → API.\n\n## Objetivo\n\nQue la carga deje de ser una llamada de curl y pase a ser una experiencia real: el usuario elige un archivo, la web lo valida de forma orientativa, lo sube, muestra lo que el backend persistió y explica cualquier fallo sin romper el resto de la página.\n\n## Sub-issues\n\n- [B-004.1 — Crear el cliente HTTP tipado del frontend](B-004.1.md)\n- [B-004.2 — Conectar la pantalla de carga y mostrar los metadatos devueltos](B-004.2.md)\n- [B-004.3 — Manejar errores de carga y verificar el flujo end-to-end](B-004.3.md)\n\n## Alcance\n\n- Crear `frontend/src/lib/api-client.ts` como único punto de llamadas REST hacia FastAPI.\n- Tipar en TypeScript los contratos ya definidos en Pydantic (`PieceResponse`, `PieceMetadata`, errores `code`/`message`); el backend sigue siendo la fuente de verdad del contrato.\n- Conectar el componente existente `MidiUploader.tsx` (hoy placeholder) al cliente HTTP.\n- Validación orientativa en cliente (extensión y tamaño) que no sustituye a la del backend.\n- Estados visibles de la carga: seleccionando, subiendo, listo y error.\n- Mostrar metadatos devueltos: título/filename, tamaño, extensión, pistas, duración y número de notas cuando estén presentes.\n- Manejar los códigos estables del backend (400 `validation_*`, 500 `persistence_error`) y la caída del servicio.\n\n## Fuera de alcance\n\n- Parsing o normalización de notas en el frontend (B-005 lo resuelve en backend).\n- Reproducción y piano virtual (B-006 y B-007).\n- Sesiones de práctica y WebSocket (B-012 creará `websocket-client.ts` y `PracticeSession.tsx`).\n- Selección del catálogo de piezas (B-027.3).\n- Autenticación, paginación o listado histórico de piezas.\n\n## Criterios de aceptación\n\n- [ ] Un MIDI válido seleccionado en la web se sube y la interfaz muestra sus metadatos.\n- [ ] Un MIDI inválido se rechaza mostrando el mensaje del backend, sin excepciones ni pantalla en blanco.\n- [ ] Todas las llamadas REST pasan por `api-client.ts`; ningún componente usa `fetch` directo.\n- [ ] Los tipos del cliente coinciden con `schemas.py` del backend.\n- [ ] La página sigue funcionando si el backend no está arrancado (error controlado).\n- [ ] El healthcheck y los flujos existentes en verde, y `npm run build` compila sin errores.\n\n## Dependencias\n\nDepende de **B-002** (contrato de piezas) y **B-003** (endpoint con persistencia). Es prerequisito de **B-007** (piano virtual), **B-027.3** (catálogo en frontend) y **B-012** (sesión de práctica sobre este cliente).\n\n## Compatibilidad con otras issues\n\n- **B-003 (endpoint):** consumidor puro; el frontend no reimplementa validación ni persistencia.\n- **B-012 (WebSocket):** reutilizará `api-client.ts` y su manejo de errores; B-004 no crea el cliente WebSocket.\n- **B-027.3 (catálogo):** añadirá una lista de piezas seleccionables; B-004 solo deja la carga manual conectada.\n- **Componentes existentes:** `PianoKeyboard.tsx` y `SessionStatus.tsx` quedan intactos; B-004 no llena su lógica.\n\n## Evidencia esperada\n\n- `api-client.ts`, `MidiUploader` conectado, capturas de metadatos y de error, y verificación del flujo con Docker.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-004/B-004.md](../../blob/main/issues/B-004/B-004.md)",
         "number": 4,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-004] Crear el flujo web inicial",
@@ -241,13 +178,112 @@
       ],
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-004] Crear el flujo web inicial"
     },
     {
       "content": {
-        "body": "## Objetivo\nConvertir ticks a tiempo y producir una representaci├│n interna estable de notas, duraci├│n y velocity.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-005 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "# [B-003] Cargar y validar archivos MIDI con SQLite + sqlite-vec\n\n## Resumen\n\nImplementar la carga real de piezas MIDI (`POST /api/v1/pieces`) con persistencia en SQLite + sqlite-vec, sobre la base preparada en B-002 (contrato, almacenamiento local y validadores).\n\n## Objetivo\n\nDejar funcionando el flujo: subir un MIDI válido → validar → guardar bytes en filesystem → persistir metadatos y vectores en SQLite → devolver `PieceResponse`. Además, instalar la extensión sqlite-vec y cargar el catálogo del corpus (B-027.2) en la base de datos.\n\n## Sub-issues\n\n- [B-003.1 — Instalar SQLite + sqlite-vec y esquema base de piezas](B-003.1.md)\n- [B-003.2 — Implementar POST /api/v1/pieces con persistencia de metadatos](B-003.2.md)\n- [B-003.3 — Cargar catalog.json del corpus en SQLite](B-003.3.md)\n\n## Alcance\n\n- Instalar y cargar la extensión sqlite-vec junto a SQLite.\n- Crear `database.py` con conexión reutilizable (usar `DATABASE_URL` de configuración).\n- Esquema base: tabla `pieces` (metadatos) y tabla `piece_vectors` (embeddings, similitud futura).\n- Implementar `POST /api/v1/pieces` con validación, persistencia y respuesta tipada.\n- Cargar `data/midi/catalog.json` en SQLite mediante script o comando.\n- Tests de conexión, esquema, endpoint y carga del catálogo.\n\n## Fuera de alcance\n\n- Parsing MIDI completo y normalización de notas (B-005).\n- Esquema de sesiones y eventos (B-012 reutilizará la conexión de B-003.1).\n- Evaluación de interpretaciones (B-013).\n- Integración con LLM.\n- Migración a PostgreSQL (+ pgvector).\n\n## Criterios de aceptación\n\n- [ ] SQLite + sqlite-vec instalados y cargados en backend y Docker.\n- [ ] Existe conexión reutilizable y esquema base versionado o documentado.\n- [ ] `POST /api/v1/pieces` acepta MIDI válido y rechaza entradas inválidas con errores estables.\n- [ ] Los metadatos de cada carga quedan persistidos y son consultables.\n- [ ] Las 15 piezas de `catalog.json` están cargadas en SQLite.\n- [ ] El healthcheck existente continúa funcionando.\n\n## Dependencias\n\nDepende de **B-002**. Es prerequisito de **B-004**, **B-005** y **B-027.3**. B-003.3 depende además de **B-027.2** (formato de `catalog.json`).\n\n## Compatibilidad con otras issues\n\n- **B-002.2 (filesystem):** sin cambios. Los bytes MIDI siguen guardándose en filesystem vía `MIDI_STORAGE_PATH`; SQLite solo guarda metadatos y vectores. No hay doble escritura de bytes.\n- **B-012 (sesiones):** definirá el esquema de sesiones y eventos reutilizando la conexión de B-003.1; B-003 no crea tablas de sesiones.\n- **B-005 / B-013:** consumidores de lectura (normalización y evaluación leen piezas y metadatos); no definen persistencia propia.\n- **B-027.2 (catálogo):** dueña del formato de `catalog.json`; B-003.3 solo lo carga, no lo redefine.\n\n## Evidencia esperada\n\n- Dependencia sqlite-vec instalada y extensión cargada.\n- `database.py` con conexión y esquema base.\n- Endpoint de carga con persistencia probado.\n- Catálogo del corpus cargado en SQLite.\n- Tests ejecutados y healthcheck en verde.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-003/B-003.md](../../blob/main/issues/B-003/B-003.md)",
+        "number": 3,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-003] Cargar y validar archivos MIDI con SQLite + sqlite-vec",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/3"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47CY",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "MIDI"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-003] Cargar y validar archivos MIDI con SQLite + sqlite-vec"
+    },
+    {
+      "content": {
+        "body": "# [B-027] Crear corpus de piezas MIDI de licencia compatible\n\n## Resumen\n\nSeleccionar, preparar y versionar un corpus de 15 piezas MIDI de piano de dominio público o con licencia compatible, y hacerlas seleccionables desde el frontend para que puedan usarse en demos y validación sin necesidad de carga manual.\n\n## Objetivo\n\nGarantizar que el MVP cuente con un repertorio base seleccionable, con procedencia y licencia documentadas, que permita:\n- Demostrar el flujo completo sin depender de archivos externos del usuario.\n- Validar el procesamiento MIDI sobre un corpus controlado y reproducible.\n- Ofrecer una experiencia inicial con piezas listas para usar.\n\n## Sub-issues\n\n- [B-027.1 — Seleccionar las 15 piezas de dominio público o licencia compatible](B-027.1.md)\n- [B-027.2 — Crear el catálogo de piezas con metadatos y licencias](B-027.2.md)\n- [B-027.3 — Integrar el catálogo en el frontend como piezas seleccionables](B-027.3.md)\n\n## Alcance\n\n- Seleccionar 15 piezas MIDI de piano de dominio público o con licencia compatible.\n- Documentar procedencia y licencia de cada pieza.\n- Crear un catálogo (JSON o similar) con metadatos: título, compositor, licencia, fuente, dificultad estimada.\n- Hacer las piezas seleccionables desde el frontend (lista o galería).\n- Incluir las piezas en `data/midi/` o ubicarlas en una carpeta de corpus.\n- Validar que cada fichero se procesa correctamente con el pipeline del MVP.\n\n## Fuera de alcance\n\n- Edición o creación de las partituras MIDI.\n- Transcripciones propias.\n- Streaming o descarga externa desde el frontend.\n- Búsqueda avanzada o filtros por estilo o época.\n\n## Criterios de aceptación\n\n- [ ] Existen 15 piezas MIDI de dominio público o licencia compatible.\n- [ ] Cada pieza tiene identificador, título, compositor, licencia y fuente documentadas.\n- [ ] El catálogo está versionado y es accesible desde el frontend.\n- [ ] El usuario puede seleccionar una pieza del catálogo sin cargar un archivo manualmente.\n- [ ] Cada pieza del corpus se procesa correctamente con el pipeline del MVP.\n- [ ] El corpus se usa en la demo final.\n\n## Dependencias\n\nDepende de **B-003** (carga de MIDI) y **B-004** (flujo web inicial). Es prerequisito de **B-013** (evaluación) y **B-020** (integración final).\n\n## Evidencia esperada\n\n- Catálogo de piezas versionado.\n- 15 ficheros MIDI con licencia documentada.\n- Tests que validan el corpus.\n- Integración en el frontend.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-027/B-027.md](../../blob/main/issues/B-027/B-027.md)",
+        "number": 42,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-027] Crear corpus de piezas MIDI de licencia compatible",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/42"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dLj8",
+      "labels": [
+        "MIDI",
+        "Semana 2",
+        "P1"
+      ],
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Blocked",
+      "title": "[B-027] Crear corpus de piezas MIDI de licencia compatible"
+    },
+    {
+      "content": {
+        "body": "",
+        "number": 41,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend.",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/41"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_N5KE",
+      "labels": [
+        "P2"
+      ],
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "In Progress",
+      "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend."
+    },
+    {
+      "content": {
+        "body": "# [B-001] Crear y validar la estructura monorepo\n\n## Resumen\n\nPreparar la base reproducible de PianoMentor AI para que backend, frontend, datos, contratos compartidos y Docker evolucionen de forma modular, sin mezclar responsabilidades.\n\n## Objetivo\n\nDejar una estructura MVP coherente con [`ARCHITECTURE.md`](../../ARCHITECTURE.md), preparada para desarrollar FastAPI, Next.js/TypeScript, procesamiento MIDI y despliegue mediante Docker Compose.\n\n## Sub-issues\n\n- [B-001.1 — Crear la estructura base de carpetas](B-001.1.md)\n- [B-001.2 — Preparar la configuración inicial del backend](B-001.2.md)\n- [B-001.3 — Preparar la configuración inicial del frontend](B-001.3.md)\n- [B-001.4 — Crear carpetas de datos y esquemas compartidos](B-001.4.md)\n- [B-001.5 — Configurar variables de entorno y `.gitignore`](B-001.5.md)\n- [B-001.6 — Preparar Docker Compose y contextos de build](B-001.6.md)\n- [B-001.7 — Añadir documentación mínima de instalación y arranque](B-001.7.md)\n- [B-001.8 — Validar la estructura completa](B-001.8.md)\n\n## Criterio de aceptación de la Issue principal\n\n- [ ] Todas las Sub-issues están completadas.\n- [ ] La estructura coincide con `ARCHITECTURE.md`.\n- [ ] Backend y frontend pueden construirse.\n- [ ] Docker Compose puede iniciar los servicios.\n- [ ] El frontend y el backend responden localmente.\n- [ ] Las variables de entorno están documentadas sin secretos.\n- [ ] Los esquemas compartidos son válidos.\n- [ ] La documentación permite repetir el arranque en otro entorno.\n\n## Fuera de alcance\n\n- Parsing MIDI avanzado, compases y polifonía.\n- Reproducción musical y evaluación de interpretaciones.\n- WebSocket funcional de práctica.\n- Integración con el LLM o la máquina de estados pedagógica.\n- Despliegue público, vídeo demo y publicación en LinkedIn.\n\n## Evidencia esperada\n\n- Salida correcta de `docker compose config`.\n- Build exitoso de backend y frontend.\n- Capturas o logs de los servicios arrancados.\n- Ejecución de las validaciones indicadas en las Sub-issues.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-001/B-001.md](../../blob/main/issues/B-001/B-001.md)",
+        "number": 1,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001] Crear y validar la estructura monorepo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/1"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-461U",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Arquitectura"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-001] Crear y validar la estructura monorepo"
+    },
+    {
+      "content": {
+        "body": "# [B-002] Preparar contrato y almacenamiento base de piezas MIDI\n\n## Resumen\n\nPreparar los contratos y límites técnicos que necesita la carga de piezas MIDI, sin duplicar el healthcheck y el arranque FastAPI ya resueltos durante B-001.\n\n## Objetivo\n\nDejar definida una base estable para que B-003 implemente `POST /api/v1/pieces` con validación, almacenamiento local y respuesta de metadatos sin acoplar el endpoint a detalles concretos del filesystem.\n\n## Sub-issues\n\n- [B-002.1 — Definir el contrato de piezas MIDI](B-002.1.md)\n\n- [B-002.2 — Preparar almacenamiento local de piezas MIDI](B-002.2.md)\n\n- [B-002.3 — Definir límites y seguridad de cargas MIDI](B-002.3.md)\n\n- [B-002.4 — Preparar fixtures y pruebas para la carga MIDI](B-002.4.md)\n\n## Alcance\n\n- Definir el modelo de pieza y la respuesta mínima de la API.\n\n- Definir la abstracción inicial de almacenamiento de archivos MIDI.\n\n- Usar `MIDI_STORAGE_PATH` como ubicación configurable.\n\n- Crear la carpeta de almacenamiento si no existe cuando corresponda.\n\n- Definir límites iniciales de extensión y tamaño.\n\n- Evitar sobrescribir archivos mediante nombres o identificadores estables.\n\n- Preparar fixtures y tests de contrato para B-003.\n\n- Mantener el almacenamiento local como implementación del MVP.\n\n## Fuera de alcance\n\n- Parsing MIDI completo.\n\n- Normalización de notas, tempo o compases.\n\n- Reproducción musical.\n\n- Evaluación de interpretaciones.\n\n- Persistencia histórica de sesiones.\n\n- Integración con LLM.\n\n## Criterios de aceptación\n\n- [ ] Existe un contrato tipado para una pieza cargada y sus metadatos iniciales.\n\n- [ ] Existe una interfaz o límite claro entre el caso de uso y el almacenamiento de archivos.\n\n- [ ] La ruta de almacenamiento se obtiene de configuración y no está hardcodeada en el caso de uso.\n\n- [ ] Se definen extensiones aceptadas (`.mid` y `.midi`) y un límite inicial de tamaño.\n\n- [ ] Los nombres de archivos de usuario no permiten traversal ni sobrescritura accidental.\n\n- [ ] Hay tests para el contrato, la configuración y el almacenamiento local.\n\n- [ ] B-003 puede implementar `POST /api/v1/pieces` sobre esta base sin redefinir los contratos.\n\n- [ ] El healthcheck existente continúa funcionando.\n\n## Dependencias\n\nDepende de **B-001**. Es prerequisito de **B-003**.\n\n## Evidencia esperada\n\n- Modelos o esquemas tipados definidos.\n\n- Implementación local de almacenamiento probada.\n\n- Fixture MIDI y tests de contrato.\n\n- Configuración reproducible mediante Docker y ejecución local.",
+        "number": 2,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002] Preparar contrato y almacenamiento base de piezas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/2"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-469k",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Backend"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-002] Preparar contrato y almacenamiento base de piezas MIDI"
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nConvertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-005 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 5,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-005] Normalizar notas MIDI",
@@ -268,7 +304,7 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nCalcular compases y rangos de pr├íctica a partir de tempo, resoluci├│n y signatura disponible.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-008 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nCalcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-008 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 8,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-008] Calcular compases inicialmente",
@@ -289,10 +325,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nReproducir una pieza o secci├│n con play, pausa, detenci├│n y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nReproducir una pieza o sección con play, pausa, detención y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 9,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006] Implementar reproducci├│n b├ísica",
+        "title": "[B-006] Implementar reproducción básica",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/9"
       },
@@ -306,14 +342,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-12",
-      "title": "[B-006] Implementar reproducci├│n b├ísica"
+      "title": "[B-006] Implementar reproducción básica"
     },
     {
       "content": {
-        "body": "## Objetivo\nMostrar teclas, notas esperadas y estado de reproducci├│n en Next.js.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-007 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-004;B-006 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nMostrar teclas, notas esperadas y estado de reproducción en Next.js.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-007 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | Frontend |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-004;B-006 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 10,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-007] Crear piano virtual b├ísico",
+        "title": "[B-007] Crear piano virtual básico",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/10"
       },
@@ -327,14 +363,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-12",
-      "title": "[B-007] Crear piano virtual b├ísico"
+      "title": "[B-007] Crear piano virtual básico"
     },
     {
       "content": {
-        "body": "## Objetivo\nGestionar notas simult├íneas y acordes b├ísicos en la representaci├│n interna y visual.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-009 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nGestionar notas simultáneas y acordes básicos en la representación interna y visual.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-009 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 11,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-009] Preparar soporte b├ísico para polifon├¡a",
+        "title": "[B-009] Preparar soporte básico para polifonía",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/11"
       },
@@ -348,14 +384,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-19",
-      "title": "[B-009] Preparar soporte b├ísico para polifon├¡a"
+      "title": "[B-009] Preparar soporte básico para polifonía"
     },
     {
       "content": {
-        "body": "## Objetivo\nDocumentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-010 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | MIDI |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nDocumentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-010 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-005;B-008 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 12,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-010] Definir tratamiento de m├║ltiples tracks",
+        "title": "[B-010] Definir tratamiento de múltiples tracks",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/12"
       },
@@ -369,11 +405,11 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-19",
-      "title": "[B-010] Definir tratamiento de m├║ltiples tracks"
+      "title": "[B-010] Definir tratamiento de múltiples tracks"
     },
     {
       "content": {
-        "body": "## Objetivo\nMapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-011 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-007 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nMapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-011 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| Área | Frontend |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-007 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 13,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-011] Capturar teclado del ordenador",
@@ -394,10 +430,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nCrear sesiones asociadas a una pieza y transmitir eventos y estado b├ísico en tiempo real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-012 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| ├ürea | Backend |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-002;B-011 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nCrear sesiones asociadas a una pieza y transmitir eventos y estado básico en tiempo real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-012 |\n| Prioridad | P0 |\n| Semana | Semana 2 |\n| Área | Backend |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-002;B-011 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 14,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-012] Crear sesi├│n de pr├íctica y WebSocket",
+        "title": "[B-012] Crear sesión de práctica y WebSocket",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/14"
       },
@@ -411,14 +447,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-19",
-      "title": "[B-012] Crear sesi├│n de pr├íctica y WebSocket"
+      "title": "[B-012] Crear sesión de práctica y WebSocket"
     },
     {
       "content": {
-        "body": "## Objetivo\nComparar notas esperadas y recibidas, calcular precisi├│n, omisiones, extras y timing.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-013 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| ├ürea | Evaluaci├│n |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-008;B-009;B-010;B-012 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nComparar notas esperadas y recibidas, calcular precisión, omisiones, extras y timing.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-013 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| Área | Evaluación |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-008;B-009;B-010;B-012 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 15,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-013] Implementar evaluaci├│n determinista",
+        "title": "[B-013] Implementar evaluación determinista",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/15"
       },
@@ -426,20 +462,20 @@
       "labels": [
         "P0",
         "Semana 3",
-        "Evaluaci├│n"
+        "Evaluación"
       ],
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-26",
-      "title": "[B-013] Implementar evaluaci├│n determinista"
+      "title": "[B-013] Implementar evaluación determinista"
     },
     {
       "content": {
-        "body": "## Objetivo\nPresentar puntuaciones, errores, comp├ís actual y debilidades en la interfaz.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-014 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| ├ürea | Frontend |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nPresentar puntuaciones, errores, compás actual y debilidades en la interfaz.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-014 |\n| Prioridad | P0 |\n| Semana | Semana 3 |\n| Área | Frontend |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 16,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-014] Mostrar resultados y secciones d├®biles",
+        "title": "[B-014] Mostrar resultados y secciones débiles",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/16"
       },
@@ -453,14 +489,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-10-26",
-      "title": "[B-014] Mostrar resultados y secciones d├®biles"
+      "title": "[B-014] Mostrar resultados y secciones débiles"
     },
     {
       "content": {
-        "body": "## Objetivo\nCrear estados de observaci├│n, evaluaci├│n, decisi├│n e intervenci├│n con fallback determinista.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-015 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Medio |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nCrear estados de observación, evaluación, decisión e intervención con fallback determinista.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-015 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| Área | Agente |\n| Riesgo | Medio |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-013 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 17,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-015] Implementar m├íquina de estados pedag├│gica",
+        "title": "[B-015] Implementar máquina de estados pedagógica",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/17"
       },
@@ -474,11 +510,11 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-02",
-      "title": "[B-015] Implementar m├íquina de estados pedag├│gica"
+      "title": "[B-015] Implementar máquina de estados pedagógica"
     },
     {
       "content": {
-        "body": "## Objetivo\nAplicar lista blanca, l├¡mites de tempo, compases, repeticiones, duraci├│n y timeout.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-016 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-015 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nAplicar lista blanca, límites de tempo, compases, repeticiones, duración y timeout.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-016 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| Área | Agente |\n| Riesgo | Alto |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-015 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 18,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-016] Validar acciones del agente",
@@ -499,10 +535,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nReproducir una secci├│n limitada y devolver autom├íticamente el control al estudiante.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-017 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-006;B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nReproducir una sección limitada y devolver automáticamente el control al estudiante.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-017 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| Área | Agente |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-006;B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 19,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-017] Implementar demostraci├│n y devoluci├│n del control",
+        "title": "[B-017] Implementar demostración y devolución del control",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/19"
       },
@@ -516,11 +552,11 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-02",
-      "title": "[B-017] Implementar demostraci├│n y devoluci├│n del control"
+      "title": "[B-017] Implementar demostración y devolución del control"
     },
     {
       "content": {
-        "body": "## Objetivo\nPermitir que el LLM proponga acciones estructuradas sin controlar directamente el motor MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-018 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | IA |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nPermitir que el LLM proponga acciones estructuradas sin controlar directamente el motor MIDI.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-018 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| Área | IA |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-016 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 20,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-018] Integrar Groq y salida estructurada",
@@ -541,10 +577,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nPermitir que la IA reproduzca una parte mientras el estudiante toca otra, si el tiempo lo permite.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-019 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| ├ürea | Agente |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-017 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nPermitir que la IA reproduzca una parte mientras el estudiante toca otra, si el tiempo lo permite.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-019 |\n| Prioridad | P1 |\n| Semana | Semana 4 |\n| Área | Agente |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-017 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 21,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-019] A├▒adir acompa├▒amiento b├ísico",
+        "title": "[B-019] Añadir acompañamiento básico",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/21"
       },
@@ -558,14 +594,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-02",
-      "title": "[B-019] A├▒adir acompa├▒amiento b├ísico"
+      "title": "[B-019] Añadir acompañamiento básico"
     },
     {
       "content": {
-        "body": "## Objetivo\nValidar el flujo completo local, Docker, errores, secretos, pausa, detenci├│n y recuperaci├│n.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-020 |\n| Prioridad | P0 |\n| Semana | Semana 5 |\n| ├ürea | Calidad |\n| Riesgo | Alto |\n| Tama├▒o | L |\n| Estado inicial | Backlog |\n| Dependencias | B-014;B-017;B-018 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nValidar el flujo completo local, Docker, errores, secretos, pausa, detención y recuperación.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-020 |\n| Prioridad | P0 |\n| Semana | Semana 5 |\n| Área | Calidad |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-014;B-017;B-018 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 22,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-020] Integraci├│n final y pruebas end-to-end",
+        "title": "[B-020] Integración final y pruebas end-to-end",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/22"
       },
@@ -579,11 +615,11 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-09",
-      "title": "[B-020] Integraci├│n final y pruebas end-to-end"
+      "title": "[B-020] Integración final y pruebas end-to-end"
     },
     {
       "content": {
-        "body": "## Objetivo\nPublicar FastAPI mediante Docker, configurar secretos, healthcheck, almacenamiento y WebSocket.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-021 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nPublicar FastAPI mediante Docker, configurar secretos, healthcheck, almacenamiento y WebSocket.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-021 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Deploy |\n| Riesgo | Alto |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 23,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-021] Desplegar backend en Hugging Face Spaces",
@@ -604,7 +640,7 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nPublicar Next.js y configurar NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL y CORS.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-022 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nPublicar Next.js y configurar NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL y CORS.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-022 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Deploy |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-020 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 24,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-022] Desplegar frontend en Vercel",
@@ -625,10 +661,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nVerificar desde Vercel la carga MIDI, sesi├│n, evaluaci├│n y acci├│n del agente en el backend p├║blico.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-023 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Deploy |\n| Riesgo | Alto |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-021;B-022 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nVerificar desde Vercel la carga MIDI, sesión, evaluación y acción del agente en el backend público.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-023 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Deploy |\n| Riesgo | Alto |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-021;B-022 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 25,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-023] Ejecutar prueba p├║blica end-to-end",
+        "title": "[B-023] Ejecutar prueba pública end-to-end",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/25"
       },
@@ -642,14 +678,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-09",
-      "title": "[B-023] Ejecutar prueba p├║blica end-to-end"
+      "title": "[B-023] Ejecutar prueba pública end-to-end"
     },
     {
       "content": {
-        "body": "## Objetivo\nGrabar y editar un v├¡deo de 2 a 4 minutos mostrando el flujo principal y las tecnolog├¡as.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-024 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Video |\n| Riesgo | Medio |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nGrabar y editar un vídeo de 2 a 4 minutos mostrando el flujo principal y las tecnologías.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-024 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Video |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 26,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-024] Crear v├¡deo demo",
+        "title": "[B-024] Crear vídeo demo",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/26"
       },
@@ -663,14 +699,14 @@
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-09",
-      "title": "[B-024] Crear v├¡deo demo"
+      "title": "[B-024] Crear vídeo demo"
     },
     {
       "content": {
-        "body": "## Objetivo\nRedactar la publicaci├│n, seleccionar portada, a├▒adir v├¡deo y enlazar demo o repositorio.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-025 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Comunicaci├│n |\n| Riesgo | Bajo |\n| Tama├▒o | S |\n| Estado inicial | Backlog |\n| Dependencias | B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nRedactar la publicación, seleccionar portada, añadir vídeo y enlazar demo o repositorio.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-025 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Comunicación |\n| Riesgo | Bajo |\n| Tamaño | S |\n| Estado inicial | Backlog |\n| Dependencias | B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 27,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-025] Preparar publicaci├│n de LinkedIn",
+        "title": "[B-025] Preparar publicación de LinkedIn",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/27"
       },
@@ -678,17 +714,17 @@
       "labels": [
         "P1",
         "Semana 5",
-        "Comunicaci├│n"
+        "Comunicación"
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-09",
-      "title": "[B-025] Preparar publicaci├│n de LinkedIn"
+      "title": "[B-025] Preparar publicación de LinkedIn"
     },
     {
       "content": {
-        "body": "## Objetivo\nActualizar README, PLAN, ARCHITECTURE y documentaci├│n de instalaci├│n con el estado real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-026 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| ├ürea | Documentaci├│n |\n| Riesgo | Bajo |\n| Tama├▒o | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023;B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "## Objetivo\nActualizar README, PLAN, ARCHITECTURE y documentación de instalación con el estado real.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-026 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Documentación |\n| Riesgo | Bajo |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-023;B-024 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 28,
         "repository": "andrupax94/PianoMentor-IA",
         "title": "[B-026] Documentar estado final del MVP",
@@ -699,13 +735,319 @@
       "labels": [
         "P1",
         "Semana 5",
-        "Documentaci├│n"
+        "Documentación"
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-09",
       "title": "[B-026] Documentar estado final del MVP"
+    },
+    {
+      "content": {
+        "body": "# [B-001.1] Crear la estructura base de carpetas\n\n## Descripción\n\nCrear la estructura inicial del monorepo de acuerdo con `ARCHITECTURE.md`, separando código, pruebas, datos y contratos.\n\n## Carpetas esperadas\n\n```text\nbackend/src/\nbackend/tests/\nfrontend/src/\nfrontend/src/components/\nfrontend/src/lib/\nshared/schemas/\ndata/midi/\ndata/uploads/\ndata/sessions/\n.github/\n```\n\n## Criterios de aceptación\n\n- [x] Existen las carpetas principales `backend`, `frontend`, `shared`, `data` y `.github`.\n- [x] Backend y frontend están separados.\n- [x] Las pruebas están separadas del código de producción.\n- [x] Los datos no se almacenan dentro de `src/`.\n- [x] La estructura coincide con el árbol MVP de `ARCHITECTURE.md`.\n- [x] Las carpetas vacías necesarias se conservan mediante `.gitkeep` o archivos equivalentes.\n- [x] No existen carpetas duplicadas con responsabilidades ambiguas.\n\n## Dependencias\n\nNinguna. Esta Sub-issue debe completarse antes de organizar los módulos posteriores.\n\n## Evidencia\n\nMostrar el árbol relevante del repositorio y explicar cualquier diferencia respecto a `ARCHITECTURE.md`.",
+        "number": 29,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.1] Crear la estructura base de carpetas",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/29"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--ezY",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.1] Crear la estructura base de carpetas"
+    },
+    {
+      "content": {
+        "body": "# [B-001.2] Preparar la configuración inicial del backend\n\n## Descripción\n\nDejar preparado el backend Python/FastAPI para crecer por módulos y poder ejecutarse localmente o dentro de Docker.\n\n## Archivos esperados\n\n```text\nbackend/pyproject.toml\nbackend/Dockerfile\nbackend/src/piano_mentor/__init__.py\nbackend/src/piano_mentor/main.py\nbackend/tests/\n```\n\n## Criterios de aceptación\n\n- [x] El paquete `piano_mentor` puede importarse correctamente.\n- [x] Las dependencias están declaradas en `pyproject.toml`.\n- [x] FastAPI y Uvicorn están configurados.\n- [x] Existe un punto de entrada claro para la aplicación.\n- [x] Existe una carpeta preparada para tests.\n- [x] El backend no depende directamente del frontend.\n- [x] El Dockerfile puede construir una imagen del backend.\n- [x] La sintaxis pasa `python -m compileall backend/src backend/tests`.\n\n## Dependencias\n\nDepende de **B-001.1**.\n\n## Evidencia\n\nEjecutar la compilación Python y documentar el comando de arranque previsto.",
+        "number": 30,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.2] Preparar la configuración inicial del backend",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/30"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--e6w",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.2] Preparar la configuración inicial del backend"
+    },
+    {
+      "content": {
+        "body": "# [B-001.3] Preparar la configuración inicial del frontend\n\n## Descripción\n\nDejar preparado el frontend Next.js con TypeScript y una estructura para componentes reutilizables y clientes HTTP/WebSocket.\n\n## Archivos esperados\n\n```text\nfrontend/package.json\nfrontend/Dockerfile\nfrontend/next.config.ts\nfrontend/tsconfig.json\nfrontend/src/app/layout.tsx\nfrontend/src/app/page.tsx\nfrontend/src/app/globals.css\nfrontend/src/components/\nfrontend/src/lib/\n```\n\n## Criterios de aceptación\n\n- [x] El proyecto utiliza Next.js y TypeScript.\n- [x] `package.json` contiene scripts de desarrollo y build.\n- [x] El frontend puede instalar sus dependencias.\n- [x] La página principal carga correctamente.\n- [x] TypeScript está configurado.\n- [x] Existe una ubicación para componentes reutilizables.\n- [x] Existe una ubicación para clientes HTTP y WebSocket.\n- [x] El Dockerfile del frontend puede construirse.\n- [x] La aplicación responde en `http://localhost:3000` cuando se arranca.\n\n## Dependencias\n\nDepende de **B-001.1**.\n\n## Evidencia\n\nEjecutar la instalación o build disponible y documentar la URL local de comprobación.",
+        "number": 31,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.3] Preparar la configuración inicial del frontend",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/31"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--e_4",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.3] Preparar la configuración inicial del frontend"
+    },
+    {
+      "content": {
+        "body": "# [B-001.4] Crear carpetas de datos y esquemas compartidos\n\n## Descripción\n\nSeparar los datos temporales del código y preparar los contratos compartidos entre backend y frontend.\n\n## Estructura esperada\n\n```text\ndata/midi/\ndata/uploads/\ndata/sessions/\nshared/schemas/\nshared/schemas/action.schema.json\n```\n\n## Criterios de aceptación\n\n- [x] Los archivos MIDI tienen una ubicación definida.\n- [x] Las cargas temporales están separadas.\n- [x] Las sesiones de práctica tienen una carpeta propia.\n- [x] Los esquemas están fuera de `backend/` y `frontend/`.\n- [x] `action.schema.json` es JSON válido.\n- [x] Python puede leer el esquema usando UTF-8.\n- [x] No se almacenan archivos privados dentro del repositorio.\n- [ ] El contrato permite evolucionar sin acoplar directamente las capas.\n\n## Dependencias\n\nDepende de **B-001.1**. Puede coordinarse con **B-001.2** y **B-001.3**.\n\n## Validación\n\n```powershell\npython -c \"import json; json.load(open('shared/schemas/action.schema.json', encoding='utf-8')); print('JSON OK')\"\n```",
+        "number": 32,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.4] Crear carpetas de datos y esquemas compartidos",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/32"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--fEM",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.4] Crear carpetas de datos y esquemas compartidos"
+    },
+    {
+      "content": {
+        "body": "# [B-001.5] Configurar variables de entorno y `.gitignore`\n\n## Descripción\n\nDefinir la configuración externa sin versionar secretos ni depender de valores específicos de una máquina.\n\n## Archivos esperados\n\n```text\n.env.example\n.gitignore\n```\n\n## Variables iniciales\n\n```text\nAPI_HOST\nAPI_PORT\nCORS_ORIGINS\nNEXT_PUBLIC_API_URL\nNEXT_PUBLIC_WS_URL\nGROQ_API_KEY\nLANGCHAIN_API_KEY\nLANGCHAIN_TRACING_V2\n```\n\n## Criterios de aceptación\n\n- [x] `.env` está excluido de Git.\n- [x] `.env.example` existe y no contiene secretos reales.\n- [x] Las variables de backend y frontend están documentadas.\n- [x] Las URLs HTTP y WebSocket están separadas.\n- [x] Los nombres son consistentes con el código.\n- [x] No hay claves API en el código fuente.\n- [x] Los logs no imprimen secretos.\n\n## Dependencias\n\nDepende de **B-001.1**. Puede coordinarse con **B-001.2** y **B-001.3**.\n\n## Evidencia\n\nMostrar una comprobación de Git de los archivos ignorados sin revelar el contenido de `.env`.",
+        "number": 33,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.5] Configurar variables de entorno y `.gitignore`",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/33"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--fHI",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.5] Configurar variables de entorno y `.gitignore`"
+    },
+    {
+      "content": {
+        "body": "# [B-001.6] Preparar Docker Compose y contextos de build\n\n## Descripción\n\nPermitir construir y ejecutar backend y frontend desde la raíz del proyecto con Docker Compose.\n\n## Archivos esperados\n\n```text\ndocker-compose.yml\nbackend/Dockerfile\nfrontend/Dockerfile\n```\n\n## Servicios iniciales\n\n```text\nbackend  → puerto 8000\nfrontend → puerto 3000\n```\n\n## Criterios de aceptación\n\n- [x] `docker-compose.yml` tiene sintaxis válida.\n- [x] Backend y frontend tienen servicios definidos.\n- [x] Los contextos de build son correctos.\n- [x] Los Dockerfiles no copian archivos fuera de su contexto.\n- [x] Los puertos están correctamente expuestos.\n- [x] Los volúmenes de datos están definidos cuando corresponda.\n- [x] Los servicios comparten una red de Compose.\n- [x] El frontend puede resolver la configuración del backend.\n- [x] No se copian secretos dentro de las imágenes.\n\n## Dependencias\n\nDepende de **B-001.2**, **B-001.3**, **B-001.4** y **B-001.5**.\n\n## Validación\n\n```powershell\ndocker compose config\ndocker compose build\n```",
+        "number": 34,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.6] Preparar Docker Compose y contextos de build",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/34"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--fL4",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.6] Preparar Docker Compose y contextos de build"
+    },
+    {
+      "content": {
+        "body": "# [B-001.7] Añadir documentación mínima de instalación y arranque\n\n## Descripción\n\nDocumentar el procedimiento para que otra persona pueda preparar y arrancar el proyecto sin explicaciones adicionales.\n\n## Contenido mínimo\n\n1. Requisitos previos.\n2. Preparación de `.env` desde `.env.example`.\n3. Construcción de imágenes.\n4. Arranque de servicios.\n5. URLs locales.\n6. Detención de servicios.\n7. Validaciones básicas.\n\n## Criterios de aceptación\n\n- [x] Los pasos parten desde la raíz del repositorio.\n- [x] Se explica cómo crear `.env` sin incluir secretos.\n- [x] Se documentan `docker compose build`, `up` y `down`.\n- [x] Se documentan las URLs locales.\n- [x] Se explica cómo ejecutar las validaciones básicas.\n- [x] Otra persona puede repetir el arranque siguiendo únicamente la documentación.\n- [x] No se duplica información que corresponde a `PLAN.md` o `ARCHITECTURE.md`.\n\n## Dependencias\n\nDepende de **B-001.1** a **B-001.6**.\n\n## Evidencia\n\nRealizar una prueba siguiendo la documentación desde una terminal limpia o documentar qué parte no pudo probarse.",
+        "number": 35,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.7] Añadir documentación mínima de instalación y arranque",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/35"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--fPc",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.7] Añadir documentación mínima de instalación y arranque"
+    },
+    {
+      "content": {
+        "body": "# [B-001.8] Validar la estructura completa\n\n## Descripción\n\nComprobar que la estructura inicial, backend, frontend, datos y Docker funcionan conjuntamente.\n\n## Criterios de aceptación\n\n- [ ] `docker compose config` finaliza correctamente.\n- [ ] La imagen del backend se construye.\n- [ ] La imagen del frontend se construye.\n- [ ] Los contenedores arrancan correctamente.\n- [ ] El frontend responde en `http://localhost:3000`.\n- [ ] El backend responde en `http://localhost:8000`.\n- [ ] No existen errores de importación Python.\n- [ ] No existen errores de compilación TypeScript.\n- [ ] Los directorios de datos están disponibles.\n- [ ] El frontend puede comunicarse con el backend.\n- [ ] Los tests iniciales pueden ejecutarse.\n- [ ] No quedan rutas incorrectas ni referencias a archivos inexistentes.\n\n## Dependencias\n\nDepende de **B-001.2** a **B-001.7**.\n\n## Validación sugerida\n\n```powershell\ndocker compose config\ndocker compose build\ndocker compose up\npython -m compileall backend/src backend/tests\n```\n\nSi ya existe el endpoint:\n\n```powershell\ncurl http://localhost:8000/health\n```\n\n## Evidencia\n\nAdjuntar logs o capturas de los servicios y anotar cualquier limitación reproducible.",
+        "number": 36,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-001.8] Validar la estructura completa",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/36"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg--fS4",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-001.8] Validar la estructura completa"
+    },
+    {
+      "content": {
+        "body": "# [B-002.1] Definir el contrato de piezas MIDI\n\n## Descripción\n\nDefinir los modelos y respuestas mínimas que representarán una pieza MIDI cargada, sin implementar todavía el parsing completo ni el endpoint final de B-003.\n\n## Alcance\n\n- Definir un identificador estable de pieza.\n\n- Definir nombre de archivo original y nombre almacenado.\n\n- Definir tamaño, extensión y ruta lógica sin exponer rutas privadas innecesarias.\n\n- Definir metadatos iniciales opcionales: número de tracks, duración aproximada, tempo y número de notas.\n\n- Mantener los modelos independientes de FastAPI cuando sea posible.\n\n## Criterios de aceptación\n\n- [x] Existe un modelo tipado para una pieza almacenada.\n\n- [x] Existe un modelo de respuesta para la carga inicial.\n\n- [x] Los campos obligatorios y opcionales están documentados.\n\n- [x] El contrato no contiene rutas absolutas del equipo del usuario.\n\n- [x] El contrato puede ser utilizado por B-003 sin redefinirse.\n\n- [x] Existen tests de serialización y validación básica.\n\n## Dependencias\n\nDepende de **B-002**. Es prerequisito de **B-002.4** y **B-003**.\n\n## Evidencia esperada\n\nModelos tipados, ejemplo de respuesta y tests de contrato.",
+        "number": 37,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002.1] Definir el contrato de piezas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/37"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_MmB4",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-002.1] Definir el contrato de piezas MIDI"
+    },
+    {
+      "content": {
+        "body": "# [B-002.2] Preparar almacenamiento local de piezas MIDI\n\n## Descripción\n\nCrear la abstracción mínima de almacenamiento y una implementación local basada en filesystem para guardar piezas MIDI sin acoplar el endpoint a rutas concretas.\n\n## Alcance\n\n- Definir una interfaz o protocolo de almacenamiento.\n\n- Implementar el adaptador de filesystem local.\n\n- Obtener la raíz desde `MIDI_STORAGE_PATH`.\n\n- Crear la carpeta de destino cuando sea necesario.\n\n- Guardar y recuperar archivos mediante identificadores estables.\n\n- Evitar sobrescrituras accidentales.\n\n## Criterios de aceptación\n\n- [x] El caso de uso depende de una abstracción, no de `open()` directamente.\n\n- [x] La implementación local usa `MIDI_STORAGE_PATH`.\n\n- [x] La carpeta se crea de forma segura cuando no existe.\n\n- [x] Guardar y recuperar un archivo funciona con tests temporales.\n\n- [x] Los archivos no se guardan dentro de `backend/src/`.\n\n- [x] El adaptador no ejecuta contenido del archivo cargado.\n\n- [x] B-003 puede reutilizarlo para persistir una carga válida.\n\n## Dependencias\n\nDepende de **B-002**. Puede coordinarse con **B-002.1** y es prerequisito de **B-002.4** y **B-003**.\n\n## Evidencia esperada\n\nContrato de almacenamiento, adaptador local y tests con un directorio temporal.",
+        "number": 38,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002.2] Preparar almacenamiento local de piezas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/38"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_MmVI",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-002.2] Preparar almacenamiento local de piezas MIDI"
+    },
+    {
+      "content": {
+        "body": "# [B-002.3] Definir límites y seguridad de cargas MIDI\n\n## Descripción\n\nEstablecer las reglas de validación previa que B-003 aplicará antes de almacenar un archivo MIDI.\n\n## Alcance\n\n- Aceptar únicamente `.mid` y `.midi` sin depender solo del nombre del archivo.\n\n- Definir un límite inicial de tamaño configurable o documentado.\n\n- Normalizar nombres sin permitir path traversal.\n\n- Generar nombres internos que eviten colisiones y sobrescrituras.\n\n- Rechazar archivos vacíos o claramente inválidos antes de persistirlos.\n\n- Definir errores estables para que FastAPI pueda traducirlos a respuestas HTTP.\n\n## Criterios de aceptación\n\n- [x] Las extensiones aceptadas están centralizadas.\n\n- [x] El límite de tamaño está definido y probado.\n\n- [x] Se rechazan nombres con rutas, traversal o caracteres no permitidos.\n\n- [x] El nombre original se conserva solo como metadato seguro.\n\n- [x] Las reglas no dependen de un proveedor externo.\n\n- [x] Existen tests para extensión, tamaño, nombre y colisión.\n\n- [x] B-003 puede usar las reglas sin duplicarlas en el endpoint.\n\n## Dependencias\n\nDepende de **B-002**. Puede coordinarse con **B-002.1** y **B-002.2**. Es prerequisito de **B-002.4** y **B-003**.\n\n## Evidencia esperada\n\nValidador reutilizable, límites documentados y tests de casos válidos e inválidos.",
+        "number": 39,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002.3] Definir límites y seguridad de cargas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/39"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_Mmmk",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-002.3] Definir límites y seguridad de cargas MIDI"
+    },
+    {
+      "content": {
+        "body": "# [B-002.4] Preparar fixtures y pruebas para la carga MIDI\n\n## Descripción\n\nCrear la base de pruebas que permita implementar B-003 con confianza y comprobar que el healthcheck existente no se rompe.\n\n## Alcance\n\n- Crear uno o más fixtures MIDI mínimos y válidos.\n\n- Crear casos inválidos: extensión no admitida, archivo vacío, contenido no MIDI y exceso de tamaño.\n\n- Probar contrato, almacenamiento y validadores juntos.\n\n- Documentar la respuesta esperada de `POST /api/v1/pieces`.\n\n- Mantener una prueba de regresión para `/health`.\n\n## Criterios de aceptación\n\n- [x] Existe al menos un fixture MIDI válido creado por el proyecto o con licencia compatible.\n\n- [x] Los fixtures inválidos no contienen datos privados.\n\n- [x] Hay tests para carga válida y rechazos esperados.\n\n- [x] Hay una prueba de regresión del healthcheck.\n\n- [x] Los tests se ejecutan sin depender de rutas absolutas.\n\n- [x] La estructura de pruebas permite añadir casos de parsing en B-003 y B-005.\n\n- [x] La evidencia deja claro qué queda para B-003.\n\n## Dependencias\n\nDepende de **B-002.1**, **B-002.2** y **B-002.3**. Es la última subissue de B-002 y habilita **B-003**.\n\n## Evidencia esperada\n\nFixtures versionados, tests ejecutados y contrato de integración documentado.",
+        "number": 40,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-002.4] Preparar fixtures y pruebas para la carga MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/40"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_Mm7Y",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-002.4] Preparar fixtures y pruebas para la carga MIDI"
+    },
+    {
+      "content": {
+        "body": "# [B-027.1] Seleccionar las 15 piezas de dominio público o licencia compatible\n\n## Descripción\n\nInvestigar y seleccionar 15 piezas MIDI de piano que sean de dominio público o tengan licencia compatible con el uso en el proyecto.\n\n## Alcance\n\n- Compositores de dominio público: Bach, Mozart, Beethoven, Chopin, Schubert, etc.\n- Fuentes: Mutopia Project, IMSLP, o colecciones con licencia explícita.\n- Verificar que la transcripción MIDI específica tenga licencia compatible (no solo la composición).\n- Priorizar piezas con dificultad variada: principiante, intermedio, avanzado.\n\n## Criterios de aceptación\n\n- [x] 15 piezas seleccionadas con fuente y licencia verificadas.\n- [x] Cada pieza tiene documentada: título, compositor, fuente URL, licencia.\n- [x] Las piezas cubren distintos niveles de dificultad.\n- [x] No se incluyen transcripciones con licencia restrictiva o desconocida.\n\n## Dependencias\n\nDepende de **B-027**. Es prerequisito de **B-027.2**.\n\n## Evidencia esperada\n\n- Lista de 15 piezas con metadatos de licencia.\n- Referencias a las fuentes.\n",
+        "number": 43,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-027.1] Seleccionar las 15 piezas de dominio público o licencia compatible",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/43"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dLzs",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-027.1] Seleccionar las 15 piezas de dominio público o licencia compatible"
+    },
+    {
+      "content": {
+        "body": "# [B-027.2] Crear el catálogo de piezas con metadatos y licencias\n\n## Descripción\n\nCrear un catálogo JSON (o similar) que contenga los metadatos de las 15 piezas del corpus, incluyendo procedencia y licencia.\n\n## Alcance\n\n- Crear `data/midi/catalog.json` o similar.\n- Cada entrada incluye: id, título, compositor, licencia, fuente, dificultad, duración aproximada.\n- Los archivos MIDI se ubican en `data/midi/corpus/`.\n- Validar que cada archivo del catálogo existe y es procesable.\n\n## Criterios de aceptación\n\n- [x] El catálogo está versionado en el repositorio (`data/midi/catalog.json`).\n- [x] Cada entrada tiene todos los metadatos requeridos (id, título, compositor, opus, archivo, fuente, licencia, dificultad, duración, notas).\n- [x] Los archivos MIDI referenciados existen en el repositorio (`data/midi/corpus/`, 15/15 válidos con mido).\n- [x] Existe un test que valida la integridad del catálogo (`backend/tests/test_catalog.py`, 5 tests en verde).\n\n## Dependencias\n\nDepende de **B-027.1**. Es prerequisito de **B-027.3**.\n\n## Evidencia esperada\n\n- Catálogo JSON versionado.\n- Script de validación del catálogo.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-027/B-027.2.md](../../blob/main/issues/B-027/B-027.2.md)",
+        "number": 44,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-027.2] Crear el catálogo de piezas con metadatos y licencias",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/44"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dL3w",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-027.2] Crear el catálogo de piezas con metadatos y licencias"
+    },
+    {
+      "content": {
+        "body": "# [B-027.3] Integrar el catálogo en el frontend como piezas seleccionables\n\n## Descripción\n\nPermitir que el usuario seleccione una pieza del catálogo directamente desde el frontend, sin necesidad de cargar un archivo manualmente.\n\n## Alcance\n\n- Crear una sección \"Piezas incluidas\" o similar en el frontend.\n- Mostrar las piezas del catálogo con título, compositor y dificultad.\n- Al seleccionar una pieza, iniciar una sesión de práctica con esa pieza.\n- Mantener la opción de carga manual como alternativa.\n\n## Criterios de aceptación\n\n- [ ] El frontend muestra las piezas del catálogo.\n- [ ] El usuario puede seleccionar una pieza y empezar a practicar.\n- [ ] La pieza seleccionada se carga correctamente en el backend.\n- [ ] La opción de carga manual sigue funcionando.\n\n## Dependencias\n\nDepende de **B-027.2**, **B-003** y **B-004**.\n\n## Evidencia esperada\n\n- Interfaz de selección de piezas.\n- Flujo de práctica iniciado desde el catálogo.\n",
+        "number": 45,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-027.3] Integrar el catálogo en el frontend como piezas seleccionables",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/45"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dL7Q",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-027.3] Integrar el catálogo en el frontend como piezas seleccionables"
+    },
+    {
+      "content": {
+        "body": "# [B-003.1] Instalar SQLite + sqlite-vec y esquema base de piezas\n\n## Descripción\n\nInstalar la extensión sqlite-vec, crear `database.py` con una conexión reutilizable y definir el esquema base para piezas y vectores.\n\n## Alcance\n\n- Añadir la dependencia sqlite-vec al backend (y a la imagen Docker).\n- Cargar la extensión al abrir la conexión SQLite.\n- Reutilizar `DATABASE_URL` de la configuración existente (`config.py`).\n- Crear `backend/src/piano_mentor/database.py` con funciones de conexión y creación de esquema.\n- Tabla `pieces`: `id`, `filename`, `stored_filename`, `size_bytes`, `extension`, `tracks`, `duration_s`, `notes_count`, `created_at`.\n- Tabla `piece_vectors`: `piece_id` (FK a `pieces`), `embedding` (vector sqlite-vec, nullable hasta que B-005/B-013 definan las features).\n- Documentar el esquema (migración mínima o script de init versionado).\n\n## Criterios de aceptación\n\n- [x] La extensión sqlite-vec se carga sin errores en local y en Docker.\n- [x] Existe una función de conexión reutilizable por otros módulos (p. ej. B-012).\n- [x] Las tablas `pieces` se crean de forma reproducible.\n- [x] Existen tests de conexión, carga de la extensión y creación del esquema.\n- [x] No se crean tablas de sesiones (reservadas para B-012).\n\n## Dependencias\n\nDepende de **B-003** y **B-002**. Es prerequisito de **B-003.2** y **B-003.3**.\n\n## Evidencia esperada\n\n- Dependencia instalada, `database.py`, esquema documentado y tests de conexión.\n",
+        "number": 46,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-003.1] Instalar SQLite + sqlite-vec y esquema base de piezas",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/46"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d03M",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-003.1] Instalar SQLite + sqlite-vec y esquema base de piezas"
+    },
+    {
+      "content": {
+        "body": "# [B-003.2] Implementar POST /api/v1/pieces con persistencia de metadatos\n\n## Descripción\n\nCompletar el endpoint de carga para que, además de validar, persista los metadatos de la pieza en SQLite y devuelva el contrato definido en B-002.1.\n\n## Alcance\n\n- Reutilizar validadores de B-002.3 y almacenamiento de B-002.2 sin duplicarlos.\n- Guardar los bytes en filesystem y los metadatos en la tabla `pieces`.\n- Devolver `PieceResponse` con el `id` persistido.\n- Traducir errores de validación a HTTP 400 y fallos de persistencia a HTTP 500.\n- No implementar parsing musical completo (B-005); los campos de metadatos musicales pueden quedar nulos.\n\n## Criterios de aceptación\n\n- [ ] Un MIDI válido se guarda en filesystem y sus metadatos en SQLite.\n- [ ] Un archivo inválido se rechaza sin escribir ni en filesystem ni en SQLite.\n- [ ] La respuesta coincide con el contrato `PieceResponse` de B-002.1.\n- [ ] El endpoint no contiene rutas absolutas ni lógica de validación duplicada.\n- [ ] Existen tests de carga válida, rechazos y persistencia consultable.\n- [ ] El healthcheck sigue en verde.\n\n## Dependencias\n\nDepende de **B-003.1** y **B-002**. Es prerequisito de **B-004** y **B-005**.\n\n## Evidencia esperada\n\n- Endpoint con persistencia, tests de integración y ejemplo de respuesta.\n",
+        "number": 47,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-003.2] Implementar POST /api/v1/pieces con persistencia de metadatos",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/47"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d068",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-003.2] Implementar POST /api/v1/pieces con persistencia de metadatos"
+    },
+    {
+      "content": {
+        "body": "# [B-003.3] Cargar catalog.json del corpus en SQLite\n\n## Descripción\n\nCargar las 15 piezas de `data/midi/catalog.json` en SQLite para que el corpus esté disponible sin subidas manuales.\n\n## Alcance\n\n- Crear un script o comando (p. ej. `scripts/load_catalog.py` o función en backend) que lea `catalog.json`.\n- Verificar que cada archivo referenciado existe antes de insertarlo.\n- Insertar o actualizar (idempotente) los metadatos en la tabla `pieces`.\n- Registrar licencia, fuente y dificultad de cada pieza.\n- No generar embeddings todavía: la columna vectorial queda nula hasta que B-005/B-013 definan las features.\n- No modificar el formato de `catalog.json` (propiedad de B-027.2).\n\n## Criterios de aceptación\n\n- [x] Las 15 piezas del catálogo existen como filas en `pieces`.\n- [x] La carga es idempotente (segunda ejecución no duplica).\n- [x] Los archivos MIDI referenciados existen en `data/midi/corpus/`.\n- [x] Licencia y fuente quedan registradas por pieza.\n- [x] Existe un test que valida la carga contra el catálogo versionado.\n- [x] La carga funciona en local y en Docker.\n\n## Dependencias\n\nDepende de **B-003.1** y **B-027.2** (formato de `catalog.json`). Habilita **B-027.3**.\n\n## Evidencia esperada\n\n- Script de carga, 15 filas en SQLite y test de carga del catálogo.\n",
+        "number": 48,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-003.3] Cargar catalog.json del corpus en SQLite",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/48"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d0_c",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-003.3] Cargar catalog.json del corpus en SQLite"
+    },
+    {
+      "content": {
+        "body": "# [B-004.1] Crear el cliente HTTP tipado del frontend\n\n## Descripción\n\nCrear `frontend/src/lib/api-client.ts` como único punto de llamadas REST hacia FastAPI, con los tipos de TypeScript que reflejan los contratos Pydantic ya existentes.\n\n## Alcance\n\n- Crear `frontend/src/lib/api-client.ts` (hoy solo existe un `.gitkeep` en `frontend/src/lib/`).\n- Tipar `PieceResponse`, `PieceMetadata` y el error `{code, message}` de B-002.1/B-003.2 en TypeScript.\n- Exponer `uploadPiece(file)` sobre `POST /api/v1/pieces` y `getHealth()` sobre `GET /health`.\n- Usar la URL base desde `NEXT_PUBLIC_API_URL` (ya definida en `docker-compose.yml`), sin rutas absolutas incrustadas.\n- Mapear respuestas 4xx/5xx a un error tipado con `code` y `message`, sin lanzar excepciones sin capturar al llamador.\n- No usar `fetch` fuera de este módulo.\n\n## Criterios de aceptación\n\n- [ ] `api-client.ts` compila con TypeScript en modo estricto.\n- [ ] Los tipos coinciden con `schemas.py` del backend (mismos campos y nulabilidad).\n- [ ] `uploadPiece` envía el archivo como `multipart/form-data` con el campo `file`.\n- [ ] Un 400 del backend se entrega al llamador con su `code` y `message` originales.\n- [ ] Ningún componente accede a la API sin pasar por este cliente.\n- [ ] `npm run build` termina sin errores.\n\n## Dependencias\n\nDepende de **B-004**. Es prerequisito de **B-004.2** y será reutilizado por **B-012**.\n\n## Evidencia esperada\n\n- Módulo `api-client.ts` con tipos exportados y verificación de compilación.\n",
+        "number": 49,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-004.1] Crear el cliente HTTP tipado del frontend",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/49"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXoo",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-004.1] Crear el cliente HTTP tipado del frontend"
+    },
+    {
+      "content": {
+        "body": "# [B-004.2] Conectar la pantalla de carga y mostrar los metadatos devueltos\n\n## Descripción\n\nConectar el componente `MidiUploader.tsx` (hoy placeholder sin lógica) al cliente HTTP y mostrar al usuario los metadatos que el backend persistió y devolvió.\n\n## Alcance\n\n- Reemplazar el placeholder de `MidiUploader.tsx` por la carga real vía `uploadPiece`.\n- Validación orientativa en cliente: extensión `.mid`/`.midi` y tamaño antes de subir (la autoridad sigue siendo el backend).\n- Estados visibles: archivo seleccionado, subiendo, listo y error.\n- Mostrar metadatos devueltos: filename, tamaño, extensión, y tracks/duración/nº de notas cuando no sean nulos.\n- Mantener el resto de la página (`SessionStatus`, `PianoKeyboard`) sin cambios.\n- No duplicar en el frontend reglas de validación del backend: la validación cliente es solo UX.\n\n## Criterios de aceptación\n\n- [ ] Un MIDI válido seleccionado se sube y sus metadatos aparecen en la pantalla.\n- [ ] El estado \"subiendo\" impide envíos repetidos mientras hay una carga en curso.\n- [ ] Los campos nulos de metadatos no se muestran como ceros ni como basura.\n- [ ] La validación cliente rechaza extensiones no permitidas antes de llamar al backend.\n- [ ] El backend sigue siendo el único que valida el contenido real del archivo.\n- [ ] `npm run build` compila sin errores y el healthcheck del backend sigue en verde.\n\n## Dependencias\n\nDepende de **B-004.1**. Es prerequisito de **B-004.3** y **B-027.3**.\n\n## Evidencia esperada\n\n- `MidiUploader.tsx` conectado y captura del flujo subir → ver metadatos.\n",
+        "number": 50,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-004.2] Conectar la pantalla de carga y mostrar los metadatos devueltos",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/50"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXsA",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-004.2] Conectar la pantalla de carga y mostrar los metadatos devueltos"
+    },
+    {
+      "content": {
+        "body": "# [B-004.3] Manejar errores de carga y verificar el flujo end-to-end\n\n## Descripción\n\nAsegurar que cualquier fallo de la carga se comunica de forma entendible en la web y verificar el flujo completo seleccionar → subir → ver metadatos contra el backend real en Docker.\n\n## Alcance\n\n- Mostrar los errores del backend traducidos: 400 (`validation_*`) y 500 (`persistence_error`) con su `message`, sin exponer trazas.\n- Manejar el caso de backend caído o sin red: mensaje de \"servicio no disponible\" sin romper la página.\n- Añadir estado vacío y limpiar el error al seleccionar un archivo nuevo.\n- Comprobar el flujo end-to-end con Docker Compose (`docker compose up`) subiendo un MIDI del corpus y uno inválido.\n- Tests del cliente: al menos un test de `uploadPiece` con éxito y uno con error 400 (con `fetch` simulado).\n- Documentar en `docs/GETTING_STARTED.md` el flujo web de carga una vez verificado (apartado breve).\n\n## Criterios de aceptación\n\n- [ ] Un archivo inválido muestra el mensaje del backend, sin excepción ni pantalla en blanco.\n- [ ] Con el backend detenido, la web muestra un error controlado y sigue siendo navegable.\n- [ ] El error desaparece al cargar un archivo válido después de uno inválido.\n- [ ] Existen tests del cliente para éxito y fallo 400.\n- [ ] El flujo completo funciona en Docker: subir un MIDI del corpus y ver sus metadatos.\n- [ ] El healthcheck del backend continúa en verde y los 60 tests de backend no se ven afectados.\n\n## Dependencias\n\nDepende de **B-004.2**. Cierra **B-004**.\n\n## Evidencia esperada\n\n- Capturas de error controlado, tests del cliente y verificación del flujo con Docker.\n",
+        "number": 51,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-004.3] Manejar errores de carga y verificar el flujo end-to-end",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/51"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXw4",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-004.3] Manejar errores de carga y verificar el flujo end-to-end"
     }
   ],
   "notes": [
