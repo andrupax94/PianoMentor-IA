@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 18:39 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-09 20:40 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -850,6 +850,8 @@ piano-mentor-ai/
 ├── frontend/src/components/SessionStatus.tsx
 ├── frontend/src/lib/
 ├── frontend/src/lib/.gitkeep
+├── frontend/src/lib/api-client.test.ts
+├── frontend/src/lib/api-client.ts
 ├── frontend/tsconfig.json
 ├── frontend/tsconfig.tsbuildinfo
 ├── GLOSSARY.md
@@ -947,11 +949,12 @@ piano-mentor-ai/
 | `frontend/src/app/page.tsx` | Página inicial: carga de MIDI y acceso a práctica. | Entrada del flujo cargar → practicar. |
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación. | Base visual de la web. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. | Vista de tocar, evaluar y ver al agente. |
-| `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend. | Subida con validación y errores visibles. |
+| `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados y metadatos devueltos. | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
 | `frontend/src/components/PianoKeyboard.tsx` | Piano virtual y resaltado de notas. | Muestra notas esperadas y recibidas; sin parsing MIDI. |
 | `frontend/src/components/SessionStatus.tsx` | Estado actual: tempo, compás y quién controla el piano. | Hace visible practicing/waiting/demonstrating. |
 | `frontend/src/components/PracticeSession.tsx` | Vista principal de práctica (se incorpora con B-012). | Composición de teclado + estado + controles. |
-| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI (se incorpora con B-004). | Único punto de llamadas REST desde componentes. |
+| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
+| `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
 | `data/midi/catalog.json` | Catálogo versionado de las 15 piezas del corpus: título, compositor, opus, licencia, source_url, dificultad y métricas. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. |

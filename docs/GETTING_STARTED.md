@@ -146,9 +146,21 @@ cd ..
 ```powershell
 cd frontend
 npm install
+npm run test
 npm run build
 cd ..
 ```
+
+### Flujo web de carga (B-004)
+
+Una vez arrancados los servicios, el primer flujo completo web → API se prueba en <http://localhost:3000>:
+
+1. En el panel **Cargar pieza**, selecciona un archivo `.mid` o `.midi` (por ejemplo, uno de `data/midi/corpus/`).
+2. La web valida de forma orientativa la extensión y el tamaño, lo sube a `POST /api/v1/pieces` y muestra los metadatos que el backend persistió (nombre, tamaño, extensión y, cuando estén disponibles, pistas, duración y número de notas).
+3. Un archivo inválido (por ejemplo, un `.txt`) muestra el mensaje de error del backend sin recargar la página.
+4. Si el backend está detenido, la web muestra "No se pudo conectar con el servicio" y la página sigue siendo navegable.
+
+Todas las llamadas REST del frontend pasan por `frontend/src/lib/api-client.ts`; ningún componente usa `fetch` directamente.
 
 ## 9. Detener los servicios
 
