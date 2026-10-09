@@ -36,7 +36,7 @@ backend/tests/test_catalog.py,"Catálogo o listado base de piezas.","Orden y acc
 frontend/Dockerfile,"Imagen reproducible del frontend Next.js.","Servir la UI en local y base del despliegue en Vercel."
 frontend/package.json,"Dependencias y scripts del frontend (Next.js, TypeScript).","Instalar y arrancar la web."
 frontend/next.config.ts,"Configuración de Next.js.","Ajustes de build y runtime web."
-frontend/tsconfig.json,"Configuración del compilador TypeScript.","Tipos estrictos en el frontend."
+frontend/tsconfig.json,"Configuración del compilador TypeScript (Next la reescribe solo; ignorada en git).","Tipos estrictos en el frontend; Next la regenera/ajusta al arrancar."
 frontend/src/app/layout.tsx,"Layout global de la aplicación web.","Envoltorio común de páginas."
 frontend/src/app/page.tsx,"Página inicial: carga de MIDI y acceso a práctica.","Entrada del flujo cargar → practicar."
 frontend/src/app/globals.css,"Estilos globales de la aplicación.","Base visual de la web."

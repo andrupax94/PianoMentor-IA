@@ -28,6 +28,8 @@ node_modules/
 out/
 .nx/
 .turbo/
+next-env.d.ts
+*.tsbuildinfo
 
 # Local data and user uploads
 data/*.db
@@ -65,3 +67,6 @@ dist/
 # Skill package/build artifacts
 *.skill
 opencode.exe
+frontend/tsconfig.json
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
