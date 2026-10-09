@@ -7,6 +7,10 @@ services:
       context: ./backend
     env_file:
       - .env
+    environment:
+      # El volumen monta ./data en /data; sin esto, .env apuntaría a /app/data (inexistente/efímero).
+      MIDI_STORAGE_PATH: /data/midi
+      DATABASE_URL: sqlite:////data/piano_mentor.db
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests

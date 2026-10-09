@@ -56,6 +56,9 @@ SKIP_DIRS = {
 SKIP_SUFFIXES = {".pyc", ".pyo", ".bak", ".skill"}
 SKIP_NAMES = {"opencode.exe"}
 
+# Dentro de data/ solo se documentan los archivos versionados (el resto es volátil).
+DATA_TRACKED_FILES = {".gitkeep", "catalog.json"}
+
 # Estilo de comentario por extensión. None = sin sintaxis de comentario (se omite en --write).
 HASH_SUFFIXES = {".py", ".toml", ".yml", ".yaml", ".sh", ".ps1", ".example", ".gitignore", ""}
 SLASH_SUFFIXES = {".js", ".mjs", ".ts", ".tsx"}
@@ -192,8 +195,8 @@ def iter_tree_lines() -> list[str]:
             continue
         if path.is_file() and path.suffix in SKIP_SUFFIXES:
             continue
-        # Omitir contenido volátil de data/ (solo conservar .gitkeep)
-        if parts[0] == "data" and path.is_file() and name != ".gitkeep":
+        # Omitir contenido volátil de data/ (solo los archivos versionados)
+        if parts[0] == "data" and path.is_file() and name not in DATA_TRACKED_FILES:
             continue
         suffix = "/" if path.is_dir() else ""
         entries.append(rel.as_posix() + suffix)

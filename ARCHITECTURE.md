@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 16:40 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-09 17:09 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -781,6 +781,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/__init__.py
 ├── backend/src/piano_mentor/agent.py
 ├── backend/src/piano_mentor/api.py
+├── backend/src/piano_mentor/catalog.py
 ├── backend/src/piano_mentor/config.py
 ├── backend/src/piano_mentor/database.py
 ├── backend/src/piano_mentor/evaluation.py
@@ -802,6 +803,7 @@ piano-mentor-ai/
 ├── backend/tests/conftest.py
 ├── backend/tests/test_agent.py
 ├── backend/tests/test_catalog.py
+├── backend/tests/test_catalog_load.py
 ├── backend/tests/test_database.py
 ├── backend/tests/test_evaluation.py
 ├── backend/tests/test_health.py
@@ -814,6 +816,7 @@ piano-mentor-ai/
 ├── data/
 ├── data/midi/
 ├── data/midi/.gitkeep
+├── data/midi/catalog.json
 ├── data/midi/corpus/
 ├── data/sessions/
 ├── data/sessions/.gitkeep
@@ -917,6 +920,7 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
 | `backend/src/piano_mentor/database.py` | Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas e inserción de metadatos de piezas. | Persistencia de piezas (B-003.2/B-003.3); reutilizable por B-012. |
 | `backend/src/piano_mentor/migrations/0001_init_pieces.sql` | Migración inicial: tabla pieces con metadatos de carga y de catálogo (sin vectores todavía). | Esquema versionado de SQLite; piezas sin embedding hasta B-005/B-013. |
+| `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados. | CLI python -m piano_mentor.catalog; B-003.3 no toca el formato del catálogo. |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido y normalización básica. | Confianza en el parsing. |
 | `backend/tests/test_evaluation.py` | Notas correctas, omitidas, adicionales y timing. | Confianza en el evaluador. |
@@ -929,6 +933,7 @@ piano-mentor-ai/
 | `backend/tests/test_database.py` | Conexión SQLite, carga de sqlite-vec, esquema pieces e idempotencia de migraciones. | Confianza en la persistencia de metadatos. |
 | `backend/tests/conftest.py` | Fixture global que aísla la base de datos de cada test en un directorio temporal. | Evita escribir data/*.db durante pytest. |
 | `backend/tests/test_piece_persistence.py` | Persistencia de POST /pieces: carga válida guardada, inválida sin escrituras y error de BD → 500. | Confianza en la persistencia del endpoint (B-003.2). |
+| `backend/tests/test_catalog_load.py` | Carga del catálogo: 15 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI. | Confianza en el corpus cargado en SQLite (B-003.3). |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
 | `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript). | Instalar y arrancar la web. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |
@@ -944,6 +949,7 @@ piano-mentor-ai/
 | `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI (se incorpora con B-004). | Único punto de llamadas REST desde componentes. |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
+| `data/midi/catalog.json` | Catálogo versionado de las 15 piezas del corpus: título, compositor, opus, licencia, source_url, dificultad y métricas. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. |
 | `data/uploads/.gitkeep` | Mantiene la carpeta de uploads locales en git. | MIDI subidos durante el desarrollo (privados). |
 | `data/sessions/.gitkeep` | Mantiene la carpeta de sesiones locales en git. | Datos temporales o exportaciones de sesión. |
 | `shared/schemas/action.schema.json` | Contrato JSON de acciones permitidas del agente. | Valida wait/give_hint/slow_down/demonstrate/accompany/return_control. |

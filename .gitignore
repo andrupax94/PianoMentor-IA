@@ -41,6 +41,9 @@ data/sessions/*
 !data/midi/.gitkeep
 !data/uploads/.gitkeep
 !data/sessions/.gitkeep
+# El catálogo de metadatos (título, licencia, source_url, dificultad) sí se versiona;
+# los .mid del corpus son de terceros (Mutopia) y no se versionan.
+!data/midi/catalog.json
 
 # Logs and runtime files
 *.log

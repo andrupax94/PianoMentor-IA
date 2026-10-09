@@ -105,7 +105,31 @@ Invoke-WebRequest http://localhost:3000 -UseBasicParsing
 
 La respuesta esperada es HTTP `200`.
 
-## 7. Validaciones locales opcionales
+## 7. Cargar el corpus MIDI en SQLite
+
+La base de datos se crea con su esquema en cuanto arranca el backend, pero las 15 piezas del corpus se cargan con un comando puntual (B-003.3):
+
+```powershell
+docker compose exec backend python -m piano_mentor.catalog
+```
+
+La salida esperada es `Catálogo cargado: 15 piezas en sqlite:////data/piano_mentor.db`.
+
+La carga es **idempotente**: repetirla no duplica filas, así que es seguro ejecutarla en cada despliegue.
+
+> Requisito previo: el corpus debe existir en `data/midi/corpus/` junto con `data/midi/catalog.json`. El catálogo está versionado; los `.mid` del corpus no (licencias de terceros), así que en una copia nueva hay que traerlos aparte. Ver "Despliegue en otro host Docker".
+
+### Reconstruir las imágenes al cambiar dependencias
+
+El código fuente se sirve por volumen, pero las dependencias Python se instalan en tiempo de build. Si cambia `backend/pyproject.toml` (por ejemplo, al añadir una extensión como `sqlite-vec`), hay que reconstruir:
+
+```powershell
+docker compose up -d --build backend
+```
+
+`docker compose up -d` solo (sin `--build`) reutiliza la imagen anterior y no instala nada nuevo.
+
+## 8. Validaciones locales opcionales
 
 ### Backend
 
@@ -126,7 +150,7 @@ npm run build
 cd ..
 ```
 
-## 8. Detener los servicios
+## 9. Detener los servicios
 
 ```powershell
 docker compose down
@@ -140,7 +164,32 @@ docker compose down -v
 
 No uses la segunda variante si necesitas conservar dependencias cacheadas dentro de los volúmenes de desarrollo.
 
-## 9. Problemas frecuentes
+## 10. Despliegue en otro host Docker
+
+En un servidor con Docker (VPS, cloud, NAS) el flujo es el mismo, con tres diferencias:
+
+### 1. El corpus MIDI no viaja con git
+
+`data/midi/catalog.json` (los metadatos: título, licencia, `source_url`, dificultad) **sí está versionado**, pero los `.mid` de `data/midi/corpus/` están excluidos de `.gitignore` por licencias de terceros. Después de clonar, cópialos al host (por `scp`, `rsync` o un volumen externo) antes de ejecutar el comando de carga del paso 7. Sin ellos, el comando devuelve `CatalogError: MIDI referenciado inexistente`. Cada entrada del catálogo incluye `source_url` para re-descargar el archivo original desde Mutopia si hiciera falta.
+
+### 2. Crea el `.env` en el host
+
+Copia `.env.example` a `.env` y rellena los valores reales (por ejemplo `GROQ_API_KEY` si vas a usar el LLM). El archivo está excluido de Git y el backend lo lee con `env_file`.
+
+### 3. El frontend apunta a `localhost` por defecto
+
+En `docker-compose.yml`, `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL` están a `http://localhost:8000`. Next.js **quema esas variables en tiempo de build**, así que:
+
+- Si accedes al frontend desde el propio host (o con un túnel/VPN hacia el backend), no hay que tocar nada.
+- Si el navegador está en otro equipo, edita `docker-compose.yml` y sustituye `localhost` por la IP o dominio del host (`http://<host>:8000`) **antes** de ejecutar `docker compose up -d --build`, que fuerza el rebuild del frontend.
+
+### Persistencia de datos
+
+`./data` se monta en `/data` dentro del contenedor: la base SQLite (`/data/piano_mentor.db`) y los MIDI sobreviven a `docker compose down`. El directorio `data/` debe existir en el host antes del primer arranque; si no, Docker lo crea como raíz propiedad de root, lo que puede romper permisos de escritura del backend.
+
+Puertos expuestos por defecto: `8000` (backend) y `3000` (frontend). Para un host accesible desde Internet, limita el acceso (firewall, reverse proxy con TLS) y no expongas el backend sin autenticación.
+
+## 11. Problemas frecuentes
 
 ### Docker no está disponible
 
@@ -181,4 +230,4 @@ Invoke-WebRequest http://localhost:8000/health -UseBasicParsing
 
 ## Alcance de esta guía
 
-Esta guía cubre la estructura inicial y el arranque local de B-001. Las instrucciones funcionales de carga MIDI, práctica, evaluación y acciones pedagógicas se documentarán junto con sus respectivos módulos e Issues.
+Esta guía cubre el arranque local con Docker Compose y la carga del corpus MIDI en SQLite (B-003). Las instrucciones funcionales de práctica, evaluación y acciones pedagógicas se documentarán junto con sus respectivos módulos e Issues.
