@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/src
 COPY pyproject.toml ./
 COPY src ./src
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir "." \
-    && pip install --no-cache-dir "pytest" "httpx"
+    && pip install --no-cache-dir "pytest" "httpx" "sqlite-vec>=0.1.9,<1.0"
 
 COPY tests ./tests
 

@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 14:33 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-09 16:40 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -782,9 +782,12 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/agent.py
 ├── backend/src/piano_mentor/api.py
 ├── backend/src/piano_mentor/config.py
+├── backend/src/piano_mentor/database.py
 ├── backend/src/piano_mentor/evaluation.py
 ├── backend/src/piano_mentor/main.py
 ├── backend/src/piano_mentor/midi.py
+├── backend/src/piano_mentor/migrations/
+├── backend/src/piano_mentor/migrations/0001_init_pieces.sql
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
 ├── backend/src/piano_mentor/storage.py
@@ -796,12 +799,15 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor_backend.egg-info/SOURCES.txt
 ├── backend/src/piano_mentor_backend.egg-info/top_level.txt
 ├── backend/tests/
+├── backend/tests/conftest.py
 ├── backend/tests/test_agent.py
 ├── backend/tests/test_catalog.py
+├── backend/tests/test_database.py
 ├── backend/tests/test_evaluation.py
 ├── backend/tests/test_health.py
 ├── backend/tests/test_midi.py
 ├── backend/tests/test_piece_contract.py
+├── backend/tests/test_piece_persistence.py
 ├── backend/tests/test_piece_upload.py
 ├── backend/tests/test_storage.py
 ├── backend/tests/test_validators.py
@@ -909,6 +915,8 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/evaluation.py` | Evaluador determinista: notas correctas, omitidas, extras, precisión y timing. | Mide la interpretación sin LLM ni UI. |
 | `backend/src/piano_mentor/practice.py` | Casos de uso de sesión de práctica: crear sesión, estado y eventos. | Coordina pieza + interpretación + estado. |
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
+| `backend/src/piano_mentor/database.py` | Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas e inserción de metadatos de piezas. | Persistencia de piezas (B-003.2/B-003.3); reutilizable por B-012. |
+| `backend/src/piano_mentor/migrations/0001_init_pieces.sql` | Migración inicial: tabla pieces con metadatos de carga y de catálogo (sin vectores todavía). | Esquema versionado de SQLite; piezas sin embedding hasta B-005/B-013. |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido y normalización básica. | Confianza en el parsing. |
 | `backend/tests/test_evaluation.py` | Notas correctas, omitidas, adicionales y timing. | Confianza en el evaluador. |
@@ -918,6 +926,9 @@ piano-mentor-ai/
 | `backend/tests/test_piece_upload.py` | Integración del endpoint POST /pieces. | Contrato de carga extremo a extremo. |
 | `backend/tests/test_piece_contract.py` | Contrato de metadatos de pieza del MVP. | Evita rupturas del formato de pieza. |
 | `backend/tests/test_catalog.py` | Catálogo o listado base de piezas. | Orden y acceso a piezas de demo. |
+| `backend/tests/test_database.py` | Conexión SQLite, carga de sqlite-vec, esquema pieces e idempotencia de migraciones. | Confianza en la persistencia de metadatos. |
+| `backend/tests/conftest.py` | Fixture global que aísla la base de datos de cada test en un directorio temporal. | Evita escribir data/*.db durante pytest. |
+| `backend/tests/test_piece_persistence.py` | Persistencia de POST /pieces: carga válida guardada, inválida sin escrituras y error de BD → 500. | Confianza en la persistencia del endpoint (B-003.2). |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
 | `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript). | Instalar y arrancar la web. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |

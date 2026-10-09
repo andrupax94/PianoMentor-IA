@@ -1,12 +1,14 @@
 # description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). Debe mantenerse delgado.
 # context: Traduce HTTP/WS a servicios; sin lógica musical compleja.
 
+import sqlite3
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 
 from .agent import AgentService
 from .config import settings
+from .database import save_piece
 from .practice import PracticeService
 from .schemas import (
     ActionRequest,
@@ -19,11 +21,11 @@ from .schemas import (
 )
 from .storage import LocalPieceStorage
 from .validators import (
+    ValidationError,
     sanitize_filename,
     validate_content,
     validate_extension,
     validate_size,
-    ValidationError,
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -48,6 +50,22 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
         piece_id = storage.save(original_name, content)
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail={"code": exc.code, "message": exc.message})
+
+    try:
+        save_piece(
+            {
+                "id": piece_id,
+                "filename": original_name,
+                "stored_filename": piece_id,
+                "size_bytes": len(content),
+                "extension": extension,
+            }
+        )
+    except sqlite3.Error as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "persistence_error", "message": "No se pudieron guardar los metadatos"},
+        ) from exc
 
     return PieceResponse(
         id=piece_id,
