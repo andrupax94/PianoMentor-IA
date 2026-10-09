@@ -1,3 +1,6 @@
+# description: Entrada FastAPI: crea app, configura CORS y registra el router.
+# context: Arranque del backend y endpoint /health.
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

@@ -1,3 +1,6 @@
+<!-- description: Bitácora viva de problemas, diagnóstico y soluciones. -->
+<!-- context: Consultar ante fallos conocidos. -->
+
 # Problemas frecuentes y soluciones
 
 Este documento es una bitácora técnica para registrar problemas reproducibles, diagnóstico y solución. Debe crecer junto con el proyecto sin sustituir la documentación de arquitectura ni el plan de trabajo.

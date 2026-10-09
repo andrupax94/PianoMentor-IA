@@ -1,3 +1,6 @@
+# description: Catálogo o listado base de piezas.
+# context: Orden y acceso a piezas de demo.
+
 """Tests de integridad de data/midi/catalog.json (B-027.2)."""
 
 import json

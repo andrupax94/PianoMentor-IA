@@ -1,3 +1,6 @@
+# description: Orquestación local: servicios backend (FastAPI) y frontend (Next.js) con volúmenes de datos.
+# context: Arranque reproducible del MVP; base del despliegue local.
+
 services:
   backend:
     build:

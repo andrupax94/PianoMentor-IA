@@ -1,3 +1,6 @@
+# description: Imagen reproducible del backend FastAPI.
+# context: Despliegue local y base del Space de Hugging Face.
+
 FROM python:3.12-slim
 
 WORKDIR /app

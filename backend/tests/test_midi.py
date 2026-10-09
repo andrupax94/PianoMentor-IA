@@ -1,3 +1,6 @@
+# description: MIDI válido, inválido y normalización básica.
+# context: Confianza en el parsing.
+
 from piano_mentor.midi import MidiService
 
 

@@ -1,3 +1,6 @@
+/* description: Estilos globales de la aplicación. */
+/* context: Base visual de la web. */
+
 :root { color-scheme: dark; --bg: #10131a; --panel: #191e29; --accent: #62e6c7; --text: #eef3f7; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: Arial, sans-serif; }

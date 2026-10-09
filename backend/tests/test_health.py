@@ -1,3 +1,6 @@
+# description: Verifica que la API arranca y /health responde.
+# context: Humo del backend.
+
 from fastapi.testclient import TestClient
 
 from piano_mentor.main import app

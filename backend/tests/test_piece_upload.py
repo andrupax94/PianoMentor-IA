@@ -1,3 +1,6 @@
+# description: Integración del endpoint POST /pieces.
+# context: Contrato de carga extremo a extremo.
+
 """Tests de integración para la carga de piezas MIDI (B-002.4)."""
 
 from pathlib import Path

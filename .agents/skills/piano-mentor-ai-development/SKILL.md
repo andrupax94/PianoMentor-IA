@@ -3,6 +3,8 @@ name: piano-mentor-ai-development
 description: Desarrollo y mantenimiento de PianoMentor AI, un sistema interactivo de enseñanza de piano basado en MIDI, FastAPI y un agente pedagógico validado. Usar al modificar este proyecto, diseñar módulos, implementar parsing o reproducción MIDI, evaluar interpretaciones, crear la consola retro, integrar el frontend o añadir LangGraph/LLM.
 license: Complete terms in LICENSE.txt
 ---
+<!-- description: Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. -->
+<!-- context: Cargar al modificar MIDI, evaluación, frontend o agente. -->
 
 # PianoMentor AI Development
 

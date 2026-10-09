@@ -1,3 +1,6 @@
+# description: Guardado local de piezas MIDI en filesystem.
+# context: Persistencia MVP de bytes MIDI; metadatos irán a SQLite.
+
 """Abstracción de almacenamiento y adaptador local para piezas MIDI."""
 
 from __future__ import annotations

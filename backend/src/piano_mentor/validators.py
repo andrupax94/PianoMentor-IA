@@ -1,3 +1,6 @@
+# description: Validación de uploads MIDI: nombre, extensión, tamaño y contenido.
+# context: Rechaza archivos inválidos antes de guardarlos.
+
 """Validación y normalización de cargas MIDI."""
 
 from __future__ import annotations

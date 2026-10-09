@@ -1,3 +1,6 @@
+<!-- description: Cronograma y aceptación del MVP en 5 semanas: backlog, entregables semanales y Definition of Done. -->
+<!-- context: Fuente de verdad de qué hacer y en qué orden; no describe estructura técnica. -->
+
 # Plan de trabajo — PianoMentor AI
 
 > Este documento es la fuente de verdad para el **cronograma, entregables, prioridades y criterios de aceptación** del MVP.

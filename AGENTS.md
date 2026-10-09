@@ -1,3 +1,6 @@
+<!-- description: Instrucciones persistentes del entorno: terminal PowerShell 5.1, UTF-8 sin BOM y reglas del proyecto. -->
+<!-- context: Leer antes de crear o sobrescribir archivos desde herramientas. -->
+
 # Instrucciones persistentes de PianoMentor AI
 
 ## Terminal y codificación de archivos

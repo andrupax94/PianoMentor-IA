@@ -1,3 +1,6 @@
+# description: Notas correctas, omitidas, adicionales y timing.
+# context: Confianza en el evaluador.
+
 from piano_mentor.evaluation import PerformanceEvaluator
 
 

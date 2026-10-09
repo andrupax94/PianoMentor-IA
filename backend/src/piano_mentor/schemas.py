@@ -1,3 +1,6 @@
+# description: Modelos Pydantic de peticiones y respuestas de la API.
+# context: Contrato tipado entre frontend y backend.
+
 from pydantic import BaseModel, Field
 
 

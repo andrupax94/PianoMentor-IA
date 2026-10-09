@@ -1,3 +1,6 @@
+# description: Extensión, tamaño, nombre y contenido de uploads.
+# context: Confianza en el rechazo de archivos malos.
+
 """Tests de validación y seguridad de cargas MIDI (B-002.3)."""
 
 import pytest

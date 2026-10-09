@@ -1,3 +1,6 @@
+# description: Casos de uso de sesión de práctica: crear sesión, estado y eventos.
+# context: Coordina pieza + interpretación + estado.
+
 from uuid import uuid4
 
 

@@ -1,3 +1,6 @@
+// description: Página inicial: carga de MIDI y acceso a práctica.
+// context: Entrada del flujo cargar → practicar.
+
 import { MidiUploader } from "../components/MidiUploader";
 import { PianoKeyboard } from "../components/PianoKeyboard";
 import { SessionStatus } from "../components/SessionStatus";

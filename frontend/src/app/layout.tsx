@@ -1,3 +1,6 @@
+// description: Layout global de la aplicación web.
+// context: Envoltorio común de páginas.
+
 import type { Metadata } from "next";
 import "./globals.css";
 

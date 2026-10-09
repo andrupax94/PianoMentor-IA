@@ -1,3 +1,6 @@
+# description: Dependencias y config Python del backend (FastAPI, Pydantic, Mido, pytest).
+# context: Instalar y fijar versiones del backend.
+
 [project]
 name = "piano-mentor-backend"
 version = "0.1.0"

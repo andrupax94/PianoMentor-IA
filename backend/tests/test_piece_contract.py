@@ -1,3 +1,6 @@
+# description: Contrato de metadatos de pieza del MVP.
+# context: Evita rupturas del formato de pieza.
+
 """Tests del contrato de piezas MIDI (B-002.1)."""
 
 from piano_mentor.schemas import PieceMetadata, PieceResponse

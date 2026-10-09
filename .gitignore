@@ -1,3 +1,6 @@
+# description: Exclusiones de git: secretos, venv, node_modules, .next, datos locales y *.skill.
+# context: Evita subir .env, uploads MIDI y artefactos generados.
+
 # Secrets and local environment files
 .env
 .env.*

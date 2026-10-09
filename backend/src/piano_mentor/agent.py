@@ -1,3 +1,6 @@
+# description: Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control).
+# context: Fallback obligatorio sin LLM; nunca envía MIDI directo.
+
 ALLOWED_ACTIONS = {"wait", "give_hint", "slow_down", "demonstrate", "accompany", "return_control"}
 
 

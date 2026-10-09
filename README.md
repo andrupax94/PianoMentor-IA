@@ -1,3 +1,6 @@
+<!-- description: Producto PianoMentor AI: visión, alcance del MVP, principios y mapa de documentos. -->
+<!-- context: Leer antes de cualquier cambio de arquitectura o comportamiento. -->
+
 # PianoMentor AI
 
 > **Profesor de piano virtual con IA** que observa la interpretación del estudiante, evalúa su desempeño y propone intervenciones pedagógicas concretas sobre una pieza MIDI.

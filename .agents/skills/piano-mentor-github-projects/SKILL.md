@@ -2,6 +2,8 @@
 name: piano-mentor-github-projects
 description: Automatización de GitHub Projects para PianoMentor AI. Usar al crear o reutilizar Issues, añadirlos al Project, sincronizar Priority y Target date, exportar un respaldo local, detectar duplicados, revisar límites de API o decidir cómo reflejar Sub-issues en PLAN.md.
 ---
+<!-- description: Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. -->
+<!-- context: Cargar al operar backlog e issues B-xxx. -->
 
 # GitHub Projects de PianoMentor AI
 

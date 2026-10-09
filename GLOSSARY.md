@@ -1,3 +1,6 @@
+<!-- description: Definiciones de términos musicales, técnicos y pedagógicos del proyecto. -->
+<!-- context: Resolver vocabulario (nota, compás, timing, acción) antes de diseñar. -->
+
 # 📘 Glosario de PianoMentor AI
 
 > Guía de referencia para comprender los conceptos, lenguajes, frameworks, formatos y herramientas utilizados en PianoMentor AI.

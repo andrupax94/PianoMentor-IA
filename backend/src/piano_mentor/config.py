@@ -1,3 +1,6 @@
+# description: Configuración tipada desde variables de entorno (Settings).
+# context: Centraliza puertos, CORS, rutas MIDI y base de datos.
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

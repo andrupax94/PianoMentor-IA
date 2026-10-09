@@ -1,3 +1,6 @@
+// description: Estado actual: tempo, compás y quién controla el piano.
+// context: Hace visible practicing/waiting/demonstrating.
+
 export function SessionStatus() {
   return (
     <section className="panel">

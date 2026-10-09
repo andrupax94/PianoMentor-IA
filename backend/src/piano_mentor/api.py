@@ -1,3 +1,6 @@
+# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). Debe mantenerse delgado.
+# context: Traduce HTTP/WS a servicios; sin lógica musical compleja.
+
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect

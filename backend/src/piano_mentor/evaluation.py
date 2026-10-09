@@ -1,3 +1,6 @@
+# description: Evaluador determinista: notas correctas, omitidas, extras, precisión y timing.
+# context: Mide la interpretación sin LLM ni UI.
+
 class PerformanceEvaluator:
     """Evaluador determinista inicial; se completará con matching y timing."""
 

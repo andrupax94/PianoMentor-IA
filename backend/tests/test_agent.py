@@ -1,3 +1,6 @@
+# description: Reglas, validación de acciones y devolución del control.
+# context: Confianza en el agente determinista.
+
 from piano_mentor.agent import AgentService
 
 

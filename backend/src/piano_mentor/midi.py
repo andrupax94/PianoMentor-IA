@@ -1,3 +1,6 @@
+# description: Motor MIDI determinista: lectura, validación y normalización con Mido.
+# context: Núcleo musical; no decide pedagogía ni responde HTTP.
+
 from pathlib import Path
 
 

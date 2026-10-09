@@ -1,3 +1,6 @@
+# description: Guardado y recuperación local de piezas.
+# context: Confianza en el filesystem del MVP.
+
 """Tests del almacenamiento local de piezas MIDI (B-002.2)."""
 
 from pathlib import Path

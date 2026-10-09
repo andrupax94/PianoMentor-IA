@@ -1,3 +1,6 @@
+<!-- description: Guía reproducible de instalación, arranque y validación local. -->
+<!-- context: Primer arranque del proyecto. -->
+
 # Guía de instalación y arranque
 
 Esta guía permite preparar y arrancar PianoMentor AI desde una copia limpia del repositorio.

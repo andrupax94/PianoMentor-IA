@@ -1,3 +1,6 @@
+// description: Página de una sesión de práctica concreta.
+// context: Vista de tocar, evaluar y ver al agente.
+
 type PracticePageProps = {
   params: Promise<{ sessionId: string }>;
 };
