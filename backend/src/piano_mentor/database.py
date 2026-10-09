@@ -89,6 +89,22 @@ def insert_piece(conn: sqlite3.Connection, record: Mapping[str, object]) -> None
     conn.commit()
 
 
+def upsert_piece(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Inserta o actualiza metadatos por id (carga idempotente del catálogo, B-003.3)."""
+    columns = [name for name in PIECE_COLUMNS if name in record]
+    if "id" not in columns:
+        raise ValueError("upsert_piece requiere al menos el campo 'id'")
+    updated = [name for name in columns if name != "id"]
+    assignments = ", ".join(f"{name} = excluded.{name}" for name in updated)
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO pieces ({', '.join(columns)}) VALUES ({placeholders}) "
+        f"ON CONFLICT(id) DO UPDATE SET {assignments}",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
 def get_piece(conn: sqlite3.Connection, piece_id: str) -> sqlite3.Row | None:
     """Lee una pieza persistida por su id."""
     return conn.execute("SELECT * FROM pieces WHERE id = ?", (piece_id,)).fetchone()
