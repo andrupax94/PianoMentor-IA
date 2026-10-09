@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 17:09 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-09 18:39 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -875,6 +875,11 @@ piano-mentor-ai/
 ├── issues/B-003/B-003.2.md
 ├── issues/B-003/B-003.3.md
 ├── issues/B-003/B-003.md
+├── issues/B-004/
+├── issues/B-004/B-004.1.md
+├── issues/B-004/B-004.2.md
+├── issues/B-004/B-004.3.md
+├── issues/B-004/B-004.md
 ├── issues/B-027/
 ├── issues/B-027/B-027.1.md
 ├── issues/B-027/B-027.2.md
@@ -896,7 +901,7 @@ piano-mentor-ai/
 | `README.md` | Producto PianoMentor AI: visión, alcance del MVP, principios y mapa de documentos. | Leer antes de cualquier cambio de arquitectura o comportamiento. |
 | `PLAN.md` | Cronograma y aceptación del MVP en 5 semanas: backlog, entregables semanales y Definition of Done. | Fuente de verdad de qué hacer y en qué orden; no describe estructura técnica. |
 | `ARCHITECTURE.md` | Arquitectura generada: base manual + Anexo A (filetree real) + Anexo B (tabla de este CSV). | NO editar a mano; editar architecture_base.md o files.csv y regenerar. |
-| `AGENTS.md` | Instrucciones persistentes del entorno: terminal PowerShell 5.1, UTF-8 sin BOM y reglas del proyecto. | Leer antes de crear o sobrescribir archivos desde herramientas. |
+| `AGENTS.md` | Instrucciones persistentes del entorno: terminal PowerShell 7.6, UTF-8 sin BOM y reglas del proyecto. | Leer antes de crear o sobrescribir archivos desde herramientas. |
 | `GLOSSARY.md` | Definiciones de términos musicales, técnicos y pedagógicos del proyecto. | Resolver vocabulario (nota, compás, timing, acción) antes de diseñar. |
 | `docker-compose.yml` | Orquestación local: servicios backend (FastAPI) y frontend (Next.js) con volúmenes de datos. | Arranque reproducible del MVP; base del despliegue local. |
 | `.env.example` | Plantilla de variables de entorno sin secretos (puertos, CORS, rutas MIDI, Groq). | Copiar a .env para desarrollo; nunca commitear valores reales. |

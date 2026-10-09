@@ -1,22 +1,28 @@
-<!-- description: Instrucciones persistentes del entorno: terminal PowerShell 5.1, UTF-8 sin BOM y reglas del proyecto. -->
+<!-- description: Instrucciones persistentes del entorno: terminal PowerShell 7.6, UTF-8 sin BOM y reglas del proyecto. -->
 <!-- context: Leer antes de crear o sobrescribir archivos desde herramientas. -->
 
 # Instrucciones persistentes de PianoMentor AI
 
 ## Terminal y codificación de archivos
 
-- La terminal de las herramientas puede ejecutarse como Windows PowerShell 5.1 aunque el usuario tenga PowerShell 7.6 instalado.
-- No asumir que `pwsh` puede ejecutarse desde esta sesión. Puede aparecer en `PATH` pero fallar con `Acceso denegado` si proviene de `WindowsApps`.
-- Para crear o sobrescribir archivos UTF-8, no usar directamente `Set-Content -Encoding UTF8` ni `Out-File -Encoding UTF8`, porque pueden generar BOM en esta terminal.
-- Usar siempre escritura UTF-8 sin BOM mediante .NET:
+- La terminal de las herramientas es PowerShell 7.6.6 (`pwsh.exe`, edición Core). Verificar con `$PSVersionTable.PSVersion` antes de apoyarse en un comportamiento concreto de versión.
+- Requisito del proyecto: todo archivo de texto se guarda en **UTF-8 sin BOM**.
+- En 7.6.6, `Set-Content -Encoding UTF8`, `Out-File -Encoding utf8` y la redirección `>` escriben UTF-8 sin BOM. Comprobado midiendo: en un fichero con `á` los primeros bytes son `195,161`; un BOM empezaría por `239,187,191`.
+- Si se quiere garantía explícita, escribir UTF-8 sin BOM mediante .NET:
 
 ```powershell
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($path, $content, $utf8NoBom)
 ```
 
+- Al capturar la salida de un comando nativo (por ejemplo `gh`) para analizarla con otra herramienta, **no** usar `comando | python`: PowerShell transcodifica por la codificación de consola y destruye los caracteres no ASCII, que llegan como `?`. Capturar con redirección de `cmd`, que es passthrough de bytes puros:
+
+```powershell
+cmd /c "gh issue view 4 --json body --jq .body > %TEMP%\salida.json"
+```
+
 - Después de crear JSON, comprobar que Python puede leerlo con `encoding="utf-8"`.
-- No pedir al usuario que cambie su instalación de PowerShell para resolver esta limitación del entorno de herramientas.
+- En Windows PowerShell 5.1 estas garantías no valían: `>` escribía UTF-16 con BOM y `@($json | ConvertFrom-Json)` anidaba el array. No asumir 5.1; si se detecta, tratar los ficheros con el método .NET y evitar los pipes entre comandos nativos.
 
 ## Proyecto
 

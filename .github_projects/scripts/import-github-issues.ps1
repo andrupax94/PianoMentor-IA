@@ -9,7 +9,8 @@ param(
     [switch]$Preview,
     [switch]$SkipFieldSync,
     [switch]$ForceIssueBodies,
-    [switch]$IncludeMissingIssueDocs
+    [switch]$IncludeMissingIssueDocs,
+    [string]$OnlyId = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -113,10 +114,22 @@ if (-not $Preview) {
     if ($LASTEXITCODE -ne 0) {
         throw "No se pudieron consultar los Issues existentes del repositorio $Repository."
     }
-    $existingIssues = @($existingJson | Out-String | ConvertFrom-Json)
-    Write-Output "Issues existentes consultados una sola vez: $($existingIssues.Count)"
+    # Nota: sin @() directamente sobre el pipe. En Windows PowerShell 5.1,
+    # @($json | ConvertFrom-Json) devuelve el array anidado como un único elemento
+    # (.Count = 1 y .number con todos los números pegados). En PowerShell 7+ no
+    # ocurre, pero esta forma es correcta en ambas versiones.
+    $existingIssues = $existingJson | Out-String | ConvertFrom-Json
+    if ($null -eq $existingIssues) { $existingIssues = @() }
+    Write-Output "Issues existentes consultados una sola vez: $(@($existingIssues).Count)"
 }
 $labels = @('P0', 'P1', 'P2', 'Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5', 'MIDI', 'Backend', 'Frontend', 'Evaluación', 'Agente', 'IA', 'Deploy', 'Video', 'Comunicación', 'Arquitectura', 'Calidad', 'Documentación')
+
+if (-not [string]::IsNullOrWhiteSpace($OnlyId)) {
+    if (@($items | Where-Object { $_.ID -eq $OnlyId }).Count -eq 0) {
+        throw "No existe ninguna fila con ID '$OnlyId' en $CsvPath."
+    }
+    Write-Output "Filtro activo: solo se procesará $OnlyId."
+}
 
 if (-not $Preview -and $ProjectNumber -le 0 -and -not [string]::IsNullOrWhiteSpace($ProjectTitle)) {
     $ProjectNumber = Resolve-ProjectNumber -Owner $ProjectOwner -Title $ProjectTitle
@@ -129,6 +142,9 @@ if ($Preview) {
 }
 
 foreach ($item in $items) {
+    if (-not [string]::IsNullOrWhiteSpace($OnlyId) -and $item.ID -ne $OnlyId) {
+        continue
+    }
     $title = "[$($item.ID)] $($item.Title)"
     $body = @"
 ## Objetivo
