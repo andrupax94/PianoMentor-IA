@@ -24,6 +24,22 @@ class MidiParseError(Exception):
 
 
 @dataclass(frozen=True)
+class NormalizedNote:
+    """Nota interna estable: el contrato que consumen reproducción, compases y evaluación.
+
+    Todos los instantes van en segundos reales (ya convertidos con TempoMap),
+    nunca en ticks. Congelada para que nadie la mute por accidente.
+    """
+
+    pitch: int
+    start_seconds: float
+    duration_seconds: float
+    velocity: int
+    channel: int
+    track: int
+
+
+@dataclass(frozen=True)
 class TempoMap:
     """Mapa de tempo inmutable de una pieza: convierte ticks a segundos de forma determinista."""
 
@@ -112,6 +128,97 @@ def _read_midi_file(path: Path) -> mido.MidiFile:
         ) from exc
 
 
+def _is_note_on(message: mido.Message) -> bool:
+    """note_on con velocidad positiva (vel 0 equivale a note_off en la convención MIDI)."""
+    return message.type == "note_on" and message.velocity > 0
+
+
+def _is_note_off(message: mido.Message) -> bool:
+    """note_off explícito o note_on con velocidad 0."""
+    return message.type == "note_off" or (message.type == "note_on" and message.velocity == 0)
+
+
+def _open_note_key(message: mido.Message, track: int) -> tuple[int, int, int]:
+    """Identidad de una nota abierta: pitch, canal y pista de origen (sin velocity)."""
+    return (message.note, message.channel, track)
+
+
+def _normalize_notes(midi: mido.MidiFile, tempo_map: TempoMap) -> list[NormalizedNote]:
+    """Empareja note_on/note_off por pitch+canal+pista y devuelve notas en segundos.
+
+    Convención aplicada:
+    - Las notas se emparejan en orden FIFO por (pitch, canal, pista).
+    - Una nota sin note_off se corta al final de la pieza (duración hasta `midi.length`).
+    - Salida ordenada de forma estable por (inicio, pitch, canal, pista).
+    """
+    piece_end = _duration_seconds(midi) or 0.0
+    notes: list[NormalizedNote] = []
+    open_notes: dict[tuple[int, int, int], list[tuple[int, int]]] = {}
+
+    for track_index, track in enumerate(midi.tracks):
+        tick = 0
+        for message in track:
+            tick += message.time
+            if _is_note_on(message):
+                key = _open_note_key(message, track_index)
+                open_notes.setdefault(key, []).append((tick, message.velocity))
+            elif _is_note_off(message):
+                key = _open_note_key(message, track_index)
+                pending = open_notes.get(key)
+                if pending:
+                    start_tick, velocity = pending.pop(0)
+                    notes.append(
+                        _build_note(
+                            tempo_map,
+                            message.note,
+                            message.channel,
+                            track_index,
+                            start_tick,
+                            tick,
+                            velocity,
+                        )
+                    )
+
+    # Notas sin note_off: se cortan al final de la pieza, sin lanzar excepción.
+    for (note, channel, track), pending in open_notes.items():
+        for start_tick, velocity in pending:
+            start_seconds = tempo_map.tick_to_seconds(start_tick)
+            notes.append(
+                NormalizedNote(
+                    pitch=note,
+                    start_seconds=start_seconds,
+                    duration_seconds=round(piece_end - start_seconds, ROUNDING_DECIMALS),
+                    velocity=velocity,
+                    channel=channel,
+                    track=track,
+                )
+            )
+
+    return sorted(notes, key=lambda n: (n.start_seconds, n.pitch, n.channel, n.track))
+
+
+def _build_note(
+    tempo_map: TempoMap,
+    note: int,
+    channel: int,
+    track: int,
+    start_tick: int,
+    end_tick: int,
+    velocity: int,
+) -> NormalizedNote:
+    """Crea una nota normalizada a partir de sus ticks de inicio y fin."""
+    start_seconds = tempo_map.tick_to_seconds(start_tick)
+    end_seconds = tempo_map.tick_to_seconds(end_tick)
+    return NormalizedNote(
+        pitch=note,
+        start_seconds=start_seconds,
+        duration_seconds=round(end_seconds - start_seconds, ROUNDING_DECIMALS),
+        velocity=velocity,
+        channel=channel,
+        track=track,
+    )
+
+
 class MidiService:
     """Motor MIDI determinista: lee metadatos y normaliza piezas sin estado global."""
 
@@ -132,9 +239,18 @@ class MidiService:
         """Construye el mapa de tempo de un archivo para convertir ticks a segundos."""
         return TempoMap.build(_read_midi_file(path))
 
-    def normalize(self, source: object) -> list[dict[str, object]]:
-        """Normaliza una fuente MIDI a notas internas; placeholder inicial."""
-        return []
+    def normalize(self, source: Path | None) -> list[NormalizedNote]:
+        """Normaliza un MIDI a la lista estable de notas internas.
+
+        - Fuente no válida (None u otro tipo que no sea Path) mantiene el
+          comportamiento placeholder y devuelve `[]`, sin excepción.
+        - Un Path legible produce las notas reales en segundos (B-005.2/B-005.3).
+        - Un Path ilegible lanza MidiParseError con código estable.
+        """
+        if not isinstance(source, Path):
+            return []
+        midi = _read_midi_file(source)
+        return _normalize_notes(midi, TempoMap.build(midi))
 
     def play_section(
         self, piece_id: str, start_measure: int, end_measure: int

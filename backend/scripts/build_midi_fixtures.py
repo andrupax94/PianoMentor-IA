@@ -100,11 +100,72 @@ def build_corrupt() -> bytes:
     return b"NOT-A-MIDI-FILE\x00\x01\x02\x03esto no es un MIDI v\x00\xff\xfe"
 
 
+def build_unclosed_note() -> mido.MidiFile:
+    """Una nota cerrada y otra sin note_off: el normalizador debe cortarla al final."""
+    midi = mido.MidiFile(type=0, ticks_per_beat=TICKS_PER_BEAT)
+    track = _new_track(midi)
+    track.append(mido.MetaMessage("set_tempo", tempo=TEMPO_120_BPM, time=0))
+    track.append(mido.Message("note_on", note=60, velocity=64, channel=0, time=0))
+    # note 62 empieza a mitad de la anterior y queda abierta: no tiene note_off.
+    track.append(mido.Message("note_on", note=62, velocity=64, channel=0, time=TICKS_PER_BEAT // 2))
+    track.append(mido.Message("note_off", note=60, velocity=0, channel=0, time=TICKS_PER_BEAT // 2))
+    track.append(mido.MetaMessage("end_of_track", time=0))
+    return midi
+
+
+def build_mixed_problems() -> mido.MidiFile:
+    """Pieza más larga que mezcla acorde, dos canales (manos), cambio de tempo y nota sin cerrar."""
+    midi = mido.MidiFile(type=1, ticks_per_beat=TICKS_PER_BEAT)
+
+    # Cambio de tempo a mitad (120 -> 60 BPM) en el tick 960.
+    meta_track = _new_track(midi)
+    meta_track.append(mido.MetaMessage("set_tempo", tempo=TEMPO_120_BPM, time=0))
+    meta_track.append(mido.MetaMessage("set_tempo", tempo=TEMPO_60_BPM, time=2 * TICKS_PER_BEAT))
+    meta_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    # Mano derecha (canal 0): acorde de 3 notas, una nota que cruza el cambio de
+    # tempo y una nota sin cerrar al final.
+    right_track = _new_track(midi)
+    for note in (72, 76, 79):
+        right_track.append(mido.Message("note_on", note=note, velocity=80, channel=0, time=0))
+    for index, note in enumerate((72, 76, 79)):
+        right_track.append(
+            mido.Message(
+                "note_off",
+                note=note,
+                velocity=0,
+                channel=0,
+                time=TICKS_PER_BEAT if index == 0 else 0,
+            )
+        )
+    # note 81 cruza el cambio de tempo: empieza a 120 BPM y termina a 60 BPM.
+    right_track.append(mido.Message("note_on", note=81, velocity=90, channel=0, time=0))
+    right_track.append(
+        mido.Message("note_off", note=81, velocity=0, channel=0, time=3 * TICKS_PER_BEAT // 2)
+    )
+    # note 84 queda abierta: no tiene note_off.
+    right_track.append(mido.Message("note_on", note=84, velocity=100, channel=0, time=0))
+    right_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    # Mano izquierda (canal 9): dos notas largas, la primera cruza el cambio de tempo.
+    left_track = _new_track(midi)
+    left_track.append(mido.Message("note_on", note=36, velocity=70, channel=9, time=0))
+    left_track.append(
+        mido.Message("note_off", note=36, velocity=0, channel=9, time=2 * TICKS_PER_BEAT)
+    )
+    left_track.append(mido.Message("note_on", note=43, velocity=70, channel=9, time=0))
+    left_track.append(mido.Message("note_off", note=43, velocity=0, channel=9, time=TICKS_PER_BEAT))
+    left_track.append(mido.MetaMessage("end_of_track", time=0))
+    return midi
+
+
 MIDI_BUILDERS: dict[str, Callable[[], mido.MidiFile]] = {
     "single_track.mid": build_single_track,
     "multi_track.mid": build_multi_track,
     "tempo_change.mid": build_tempo_change,
     "no_tempo.mid": build_no_tempo,
+    "unclosed_note.mid": build_unclosed_note,
+    "mixed_problems.mid": build_mixed_problems,
 }
 
 BYTE_BUILDERS: dict[str, Callable[[], bytes]] = {
