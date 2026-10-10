@@ -1,0 +1,8 @@
+/* description: Estilos de tempo y compás. */
+/* context: B-006.4; simplicidad primero. */
+
+.tempo p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}

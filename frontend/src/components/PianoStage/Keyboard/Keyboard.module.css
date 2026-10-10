@@ -1,0 +1,7 @@
+/* description: Estilos del envoltorio del teclado. */
+/* context: B-006.4; simplicidad primero. */
+
+.keyboard {
+  padding: 0 12px 12px;
+  background: #141a26;
+}

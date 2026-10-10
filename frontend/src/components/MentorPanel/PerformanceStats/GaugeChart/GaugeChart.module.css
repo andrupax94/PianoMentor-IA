@@ -1,0 +1,21 @@
+/* description: Estilos del medidor circular. */
+/* context: B-006.4; simplicidad primero. */
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.gauge p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #aab6c2;
+}
+
+.number {
+  fill: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+}

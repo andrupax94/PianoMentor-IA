@@ -1,0 +1,42 @@
+/* description: Estilos del chat del mentor. */
+/* context: B-006.4; simplicidad primero. */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #2b3544;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heading p {
+  margin: 2px 0 0;
+  color: #aab6c2;
+  font-size: 0.85rem;
+}
+
+.avatar {
+  font-size: 1.8rem;
+}
+
+.bubble {
+  border: 1px solid #2b3544;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
+.input {
+  border: 1px solid #2b3544;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  padding: 12px 16px;
+}

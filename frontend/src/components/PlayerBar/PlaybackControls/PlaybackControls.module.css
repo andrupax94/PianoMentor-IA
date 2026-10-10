@@ -1,0 +1,12 @@
+/* description: Estilos de los botones de transporte. */
+/* context: B-006.4; simplicidad primero. */
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.controls button {
+  width: 44px;
+  padding: 10px 0;
+}

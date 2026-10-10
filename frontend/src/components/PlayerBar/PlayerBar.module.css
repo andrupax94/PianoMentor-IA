@@ -1,0 +1,9 @@
+/* description: Estilos de la franja del reproductor. */
+/* context: B-006.4; simplicidad primero. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 0;
+}

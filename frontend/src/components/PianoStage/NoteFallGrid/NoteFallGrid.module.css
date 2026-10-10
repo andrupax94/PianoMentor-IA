@@ -1,0 +1,25 @@
+/* description: Estilos de la cuadrícula de notas. */
+/* context: B-006.4; simplicidad primero. */
+
+.grid {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 220px;
+  padding: 12px;
+  background: #141a26;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  color: #5a6572;
+  font-size: 0.8rem;
+}
+
+.hint {
+  align-self: center;
+  color: #5a6572;
+  font-size: 0.9rem;
+}

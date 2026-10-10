@@ -1,0 +1,9 @@
+/* description: Estilos del encabezado principal. */
+/* context: B-006.4; simplicidad primero, el CSS full vendrá después. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 0;
+}

@@ -1,0 +1,25 @@
+/* description: Estilos de las estadísticas de rendimiento. */
+/* context: B-006.4; simplicidad primero. */
+
+.stats {
+  border: 1px solid #2b3544;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.stats h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.gauges {
+  display: flex;
+  gap: 16px;
+  justify-content: space-around;
+}
+
+.weak {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: #e8a13e;
+}

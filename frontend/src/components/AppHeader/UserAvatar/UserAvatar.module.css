@@ -1,0 +1,13 @@
+/* description: Estilos del avatar de usuario. */
+/* context: B-006.4; simplicidad primero. */
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e8a13e;
+  color: #10131a;
+  font-weight: 700;
+}

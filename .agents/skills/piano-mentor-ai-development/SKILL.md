@@ -162,6 +162,24 @@ La estética puede inspirarse en paneles retro de teclados Yamaha, pero no copia
 
 Preferir Next.js, TypeScript, Tone.js y Canvas/SVG. Mantener la evaluación local o en un proceso de baja latencia cuando sea necesario. Usar WebSocket para estado de sesión en tiempo real y HTTP para operaciones de piezas, sesiones y acciones.
 
+### Convención de componentes (trío .tsx/.module.css/.types.ts)
+
+Cada componente vive en su propia carpeta y se reparte en tres ficheros separados:
+
+```text
+Componente/
+  ├── Componente.tsx         solo JSX y composición (sin lógica de negocio)
+  ├── Componente.module.css  solo estilos del componente (CSS Modules)
+  └── Componente.types.ts    solo props y tipos (interfaces exportadas)
+```
+
+Reglas:
+
+- El `.tsx` no lleva tipos inline (van al `.types.ts`) ni estilos globales (van al `.module.css`).
+- Los subcomponentes son subcarpetas que repiten el mismo trío.
+- Los componentes solo llaman a la API vía `api-client.ts`; nunca `fetch` directo.
+- La lógica testeable (matemática, transporte, validación) vive en `src/lib/`, no en los componentes.
+
 La Web MIDI API requiere contexto seguro y permisos del usuario. Tratarla como capacidad opcional hasta validar la experiencia con teclado del ordenador.
 
 ## API conceptual

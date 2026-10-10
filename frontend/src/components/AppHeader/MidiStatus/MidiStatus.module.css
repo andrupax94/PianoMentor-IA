@@ -1,0 +1,25 @@
+/* description: Estilos del indicador de teclado MIDI. */
+/* context: B-006.4; simplicidad primero. */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.on,
+.off {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.on {
+  background: #e8b93e;
+}
+
+.off {
+  background: #5a6572;
+}

@@ -1,0 +1,11 @@
+/* description: Estilos del contenedor del piano. */
+/* context: B-006.4; simplicidad primero. */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #2b3544;
+  border-radius: 16px;
+  overflow: hidden;
+}

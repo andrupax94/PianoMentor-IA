@@ -4,11 +4,19 @@
 import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
 from .agent import AgentService
 from .config import settings
-from .database import find_existing_piece, save_piece
+from .database import find_existing_piece, find_piece_by_id, save_piece
 from .midi import MidiParseError, MidiService
 from .practice import PracticeService
 from .schemas import (
@@ -16,7 +24,9 @@ from .schemas import (
     ActionResponse,
     EvaluationResponse,
     HealthResponse,
+    NoteResponse,
     PieceMetadata,
+    PieceNotesResponse,
     PieceResponse,
     SessionCreate,
     SessionResponse,
@@ -131,6 +141,79 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
         extension=extension,
         source="upload",
         metadata=metadata,
+    )
+
+
+@router.get("/pieces/{piece_id}/notes", response_model=PieceNotesResponse)
+def get_piece_notes(
+    piece_id: str,
+    from_s: float | None = Query(default=None),
+    to_s: float | None = Query(default=None),
+) -> PieceNotesResponse:
+    # B-006.1: servir la partitura ordenada por tiempo con ventana opcional.
+    # La ventana se valida a mano para responder 400 con código estable en
+    # lugar del 422 genérico del framework.
+    if (
+        (from_s is not None and from_s < 0)
+        or (to_s is not None and to_s < 0)
+        or (from_s is not None and to_s is not None and from_s > to_s)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_window", "message": "from_s/to_s deben ser >= 0 y from_s <= to_s"},
+        )
+
+    row = find_piece_by_id(piece_id)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "piece_not_found", "message": f"No existe la pieza: {piece_id}"},
+        )
+
+    # El corpus vive en midi_path relativo al almacén; las subidas usan su id.
+    midi_path = (
+        Path(settings.midi_storage_path) / row["midi_path"]
+        if row["midi_path"]
+        else storage.get_path(row["stored_filename"])
+    )
+    try:
+        score = midi_service.score(midi_path)
+    except MidiParseError as exc:
+        if exc.code == "midi_file_not_found":
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "piece_file_not_found", "message": exc.message},
+            ) from exc
+        raise HTTPException(
+            status_code=400, detail={"code": exc.code, "message": exc.message}
+        ) from exc
+
+    notes = score["notes"]
+    # sorted() es estable: los empates conservan el orden del archivo.
+    ordered = sorted(notes, key=lambda note: note.start_seconds)
+    if from_s is not None:
+        ordered = [note for note in ordered if note.start_seconds >= from_s]
+    if to_s is not None:
+        ordered = [note for note in ordered if note.start_seconds <= to_s]
+
+    return PieceNotesResponse(
+        piece_id=row["id"],
+        tempo=score["tempo"],
+        duration_seconds=row["duration_s"],
+        notes_total=len(notes),
+        from_s=from_s,
+        to_s=to_s,
+        notes=[
+            NoteResponse(
+                pitch=note.pitch,
+                start_seconds=note.start_seconds,
+                duration_seconds=note.duration_seconds,
+                velocity=note.velocity,
+                channel=note.channel,
+                track=note.track,
+            )
+            for note in ordered
+        ],
     )
 
 

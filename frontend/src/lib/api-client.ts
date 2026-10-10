@@ -24,6 +24,27 @@ export interface PieceResponse {
   metadata: PieceMetadata;
 }
 
+/** Una nota normalizada lista para reproducir; tiempos en segundos, alineada con NoteResponse. */
+export interface PlayableNote {
+  pitch: number;
+  start_seconds: number;
+  duration_seconds: number;
+  velocity: number;
+  channel: number;
+  track: number;
+}
+
+/** Respuesta de GET /api/v1/pieces/{id}/notes, alineada con PieceNotesResponse de Pydantic. */
+export interface PieceNotesResponse {
+  piece_id: string;
+  tempo: number | null;
+  duration_seconds: number | null;
+  notes_total: number;
+  from_s: number | null;
+  to_s: number | null;
+  notes: PlayableNote[];
+}
+
 /** Respuesta de GET /health. */
 export interface HealthResponse {
   status: string;
@@ -36,6 +57,10 @@ const ERROR_CODES = [
   "empty_file",
   "file_too_large",
   "persistence_error",
+  "invalid_window",
+  "piece_not_found",
+  "piece_file_not_found",
+  "invalid_midi_content",
   "unexpected_response",
   "network_error",
 ] as const;
@@ -111,6 +136,18 @@ export async function uploadPiece(file: File): Promise<PieceResponse> {
   form.append("file", file, file.name);
 
   return request<PieceResponse>("/api/v1/pieces", { method: "POST", body: form });
+}
+
+/** Pide la partitura ordenada de una pieza, con ventana opcional por segundos. */
+export async function getPieceNotes(
+  pieceId: string,
+  window?: { from_s?: number; to_s?: number },
+): Promise<PieceNotesResponse> {
+  const params = new URLSearchParams();
+  if (window?.from_s !== undefined) params.set("from_s", String(window.from_s));
+  if (window?.to_s !== undefined) params.set("to_s", String(window.to_s));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return request<PieceNotesResponse>(`/api/v1/pieces/${encodeURIComponent(pieceId)}/notes${query}`);
 }
 
 /** Consulta el healthcheck del backend en GET /health. */

@@ -1,0 +1,13 @@
+/* description: Estilos de la navegación principal. */
+/* context: B-006.4; simplicidad primero. */
+
+.nav {
+  display: flex;
+  gap: 20px;
+  margin: 0 auto;
+}
+
+.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}

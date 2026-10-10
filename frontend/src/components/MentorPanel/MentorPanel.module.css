@@ -1,0 +1,8 @@
+/* description: Estilos de la columna del mentor. */
+/* context: B-006.4; simplicidad primero. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

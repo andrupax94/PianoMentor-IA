@@ -55,3 +55,26 @@ class EvaluationResponse(BaseModel):
     notes_score: float = 0.0
     timing_score: float = 0.0
     status: str = "stub"
+
+
+class NoteResponse(BaseModel):
+    """Una nota normalizada lista para reproducir (tiempos en segundos)."""
+
+    pitch: int
+    start_seconds: float
+    duration_seconds: float
+    velocity: int
+    channel: int
+    track: int
+
+
+class PieceNotesResponse(BaseModel):
+    """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1)."""
+
+    piece_id: str
+    tempo: float | None = None
+    duration_seconds: float | None = None
+    notes_total: int = 0
+    from_s: float | None = None
+    to_s: float | None = None
+    notes: list[NoteResponse] = []

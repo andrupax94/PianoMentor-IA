@@ -1,0 +1,23 @@
+/* description: Estilos de la información de la pieza. */
+/* context: B-006.4; simplicidad primero. */
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info p {
+  margin: 2px 0 0;
+  color: #aab6c2;
+  font-size: 0.85rem;
+}
+
+.cover {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #2b3544;
+}

@@ -152,6 +152,16 @@ def find_existing_piece(content_hash: str) -> sqlite3.Row | None:
         conn.close()
 
 
+def find_piece_by_id(piece_id: str) -> sqlite3.Row | None:
+    """Lee una pieza por su id, gestionando su propia conexión (B-006.1)."""
+    conn = connect()
+    try:
+        init_db(conn)
+        return get_piece(conn, piece_id)
+    finally:
+        conn.close()
+
+
 def init_db(conn: sqlite3.Connection) -> list[str]:
     """Aplica las migraciones pendientes y devuelve sus versiones aplicadas."""
     applied: list[str] = []

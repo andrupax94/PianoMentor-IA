@@ -252,6 +252,20 @@ class MidiService:
         midi = _read_midi_file(source)
         return _normalize_notes(midi, TempoMap.build(midi))
 
+    def score(self, source: Path) -> dict[str, object]:
+        """Lee partitura y tempo inicial en una sola pasada (B-006.1).
+
+        Evita parsear el archivo dos veces cuando el llamador necesita las
+        notas y el tempo a la vez. Lanza MidiParseError con código estable
+        si el archivo falta o es ilegible.
+        """
+        midi = _read_midi_file(source)
+        tempo_map = TempoMap.build(midi)
+        return {
+            "notes": _normalize_notes(midi, tempo_map),
+            "tempo": tempo_map.initial_tempo(),
+        }
+
     def play_section(
         self, piece_id: str, start_measure: int, end_measure: int
     ) -> dict[str, object]:

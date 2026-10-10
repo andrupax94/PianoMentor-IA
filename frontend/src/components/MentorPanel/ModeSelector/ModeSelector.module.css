@@ -1,0 +1,19 @@
+/* description: Estilos del selector de modo. */
+/* context: B-006.4; simplicidad primero. */
+
+.modes {
+  display: flex;
+  gap: 8px;
+}
+
+.modes button {
+  flex: 1;
+  background: #191e29;
+  color: var(--text);
+  border: 1px solid #2b3544;
+  font-weight: 400;
+}
+
+.modes button[aria-pressed="true"] {
+  border-color: var(--accent);
+}

@@ -742,7 +742,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-10 17:58 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-10 20:28 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -826,6 +826,7 @@ piano-mentor-ai/
 ├── backend/tests/test_piece_contract.py
 ├── backend/tests/test_piece_dedup.py
 ├── backend/tests/test_piece_musical_metadata.py
+├── backend/tests/test_piece_notes.py
 ├── backend/tests/test_piece_persistence.py
 ├── backend/tests/test_piece_upload.py
 ├── backend/tests/test_storage.py
@@ -841,7 +842,8 @@ piano-mentor-ai/
 ├── data/uploads/.gitkeep
 ├── desing/
 ├── desing/main_page.ai
-├── desing/main_page_LG.jpg
+├── desing/main_page_box.jpg
+├── desing/main_page_desing.jpg
 ├── docker-compose.yml
 ├── docs/
 ├── docs/GETTING_STARTED.md
@@ -858,18 +860,97 @@ piano-mentor-ai/
 ├── frontend/src/app/
 ├── frontend/src/app/globals.css
 ├── frontend/src/app/layout.tsx
+├── frontend/src/app/page.module.css
 ├── frontend/src/app/page.tsx
 ├── frontend/src/app/practice/
 ├── frontend/src/app/practice/[sessionId]/
 ├── frontend/src/app/practice/[sessionId]/page.tsx
 ├── frontend/src/components/
+├── frontend/src/components/AppHeader/
+├── frontend/src/components/AppHeader/AppHeader.module.css
+├── frontend/src/components/AppHeader/AppHeader.tsx
+├── frontend/src/components/AppHeader/AppHeader.types.ts
+├── frontend/src/components/AppHeader/BrandLogo/
+├── frontend/src/components/AppHeader/BrandLogo/BrandLogo.module.css
+├── frontend/src/components/AppHeader/BrandLogo/BrandLogo.tsx
+├── frontend/src/components/AppHeader/BrandLogo/BrandLogo.types.ts
+├── frontend/src/components/AppHeader/MainNav/
+├── frontend/src/components/AppHeader/MainNav/MainNav.module.css
+├── frontend/src/components/AppHeader/MainNav/MainNav.tsx
+├── frontend/src/components/AppHeader/MainNav/MainNav.types.ts
+├── frontend/src/components/AppHeader/MidiStatus/
+├── frontend/src/components/AppHeader/MidiStatus/MidiStatus.module.css
+├── frontend/src/components/AppHeader/MidiStatus/MidiStatus.tsx
+├── frontend/src/components/AppHeader/MidiStatus/MidiStatus.types.ts
+├── frontend/src/components/AppHeader/UserAvatar/
+├── frontend/src/components/AppHeader/UserAvatar/UserAvatar.module.css
+├── frontend/src/components/AppHeader/UserAvatar/UserAvatar.tsx
+├── frontend/src/components/AppHeader/UserAvatar/UserAvatar.types.ts
+├── frontend/src/components/component-tree.test.ts
+├── frontend/src/components/MentorPanel/
+├── frontend/src/components/MentorPanel/MentorChat/
+├── frontend/src/components/MentorPanel/MentorChat/MentorChat.module.css
+├── frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx
+├── frontend/src/components/MentorPanel/MentorChat/MentorChat.types.ts
+├── frontend/src/components/MentorPanel/MentorPanel.module.css
+├── frontend/src/components/MentorPanel/MentorPanel.tsx
+├── frontend/src/components/MentorPanel/MentorPanel.types.ts
+├── frontend/src/components/MentorPanel/ModeSelector/
+├── frontend/src/components/MentorPanel/ModeSelector/ModeSelector.module.css
+├── frontend/src/components/MentorPanel/ModeSelector/ModeSelector.tsx
+├── frontend/src/components/MentorPanel/ModeSelector/ModeSelector.types.ts
+├── frontend/src/components/MentorPanel/PerformanceStats/
+├── frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/
+├── frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.module.css
+├── frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.tsx
+├── frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.types.ts
+├── frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.module.css
+├── frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.tsx
+├── frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.types.ts
 ├── frontend/src/components/MidiUploader.tsx
 ├── frontend/src/components/PianoKeyboard.tsx
+├── frontend/src/components/PianoStage/
+├── frontend/src/components/PianoStage/Keyboard/
+├── frontend/src/components/PianoStage/Keyboard/Keyboard.module.css
+├── frontend/src/components/PianoStage/Keyboard/Keyboard.tsx
+├── frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts
+├── frontend/src/components/PianoStage/NoteFallGrid/
+├── frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.module.css
+├── frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.tsx
+├── frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.types.ts
+├── frontend/src/components/PianoStage/PianoStage.module.css
+├── frontend/src/components/PianoStage/PianoStage.tsx
+├── frontend/src/components/PianoStage/PianoStage.types.ts
+├── frontend/src/components/PlayerBar/
+├── frontend/src/components/PlayerBar/PlaybackControls/
+├── frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.module.css
+├── frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.tsx
+├── frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.types.ts
+├── frontend/src/components/PlayerBar/PlayerBar.module.css
+├── frontend/src/components/PlayerBar/PlayerBar.tsx
+├── frontend/src/components/PlayerBar/PlayerBar.types.ts
+├── frontend/src/components/PlayerBar/ProgressBar/
+├── frontend/src/components/PlayerBar/ProgressBar/ProgressBar.module.css
+├── frontend/src/components/PlayerBar/ProgressBar/ProgressBar.tsx
+├── frontend/src/components/PlayerBar/ProgressBar/ProgressBar.types.ts
+├── frontend/src/components/PlayerBar/SongInfo/
+├── frontend/src/components/PlayerBar/SongInfo/SongInfo.module.css
+├── frontend/src/components/PlayerBar/SongInfo/SongInfo.tsx
+├── frontend/src/components/PlayerBar/SongInfo/SongInfo.types.ts
+├── frontend/src/components/PlayerBar/TempoMeasure/
+├── frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.module.css
+├── frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx
+├── frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.types.ts
 ├── frontend/src/components/SessionStatus.tsx
 ├── frontend/src/lib/
 ├── frontend/src/lib/.gitkeep
 ├── frontend/src/lib/api-client.test.ts
 ├── frontend/src/lib/api-client.ts
+├── frontend/src/lib/playback-engine.test.ts
+├── frontend/src/lib/playback-engine.ts
+├── frontend/src/lib/playback-schedule.test.ts
+├── frontend/src/lib/playback-schedule.ts
+├── frontend/src/lib/usePlayback.ts
 ├── frontend/tsconfig.json
 ├── frontend/tsconfig.tsbuildinfo
 ├── GLOSSARY.md
@@ -906,11 +987,21 @@ piano-mentor-ai/
 ├── issues/B-005/B-005.3.md
 ├── issues/B-005/B-005.4.md
 ├── issues/B-005/B-005.md
+├── issues/B-006/
+├── issues/B-006/B-006.1.md
+├── issues/B-006/B-006.2.md
+├── issues/B-006/B-006.3.md
+├── issues/B-006/B-006.4.md
+├── issues/B-006/B-006.md
 ├── issues/B-027/
 ├── issues/B-027/B-027.1.md
 ├── issues/B-027/B-027.2.md
 ├── issues/B-027/B-027.3.md
 ├── issues/B-027/B-027.md
+├── issues/B-028/
+├── issues/B-028/B-028.md
+├── issues/B-029/
+├── issues/B-029/B-029.md
 ├── LICENSE
 ├── nota.txt
 ├── PLAN.md
@@ -964,6 +1055,7 @@ piano-mentor-ai/
 | `backend/tests/test_piece_upload.py` | Integración del endpoint POST /pieces. | Contrato de carga extremo a extremo. |
 | `backend/tests/test_piece_musical_metadata.py` | Integración del cable motor MIDI -> carga: metadatos reales en respuesta y BD, y MIDI ilegible rechazado sin huérfanos. | Confianza en B-005.4: inspect_file conectado a POST /pieces. |
 | `backend/tests/test_piece_dedup.py` | Deduplicación por SHA-256 en POST /pieces: subida repetida devuelve la misma pieza sin archivo ni fila extra, contenido distinto crea pieza nueva y subida idéntica al corpus reutiliza la entrada del catálogo con su título. | Confianza en la detección de duplicados y en la procedencia corpus/upload. |
+| `backend/tests/test_piece_notes.py` | Endpoint GET /pieces/{id}/notes de B-006.1: partitura ordenada y determinista, ventana from_s/to_s, 404 estable ante id inexistente y 400 ante MIDI ilegible o ventana inválida. | Confianza en el contrato de la partitura reproducible. |
 | `backend/tests/test_piece_contract.py` | Contrato de metadatos de pieza del MVP. | Evita rupturas del formato de pieza. |
 | `backend/tests/test_catalog.py` | Catálogo o listado base de piezas. | Orden y acceso a piezas de demo. |
 | `backend/tests/test_database.py` | Conexión SQLite, carga de sqlite-vec, esquema pieces e idempotencia de migraciones. | Confianza en la persistencia de metadatos. |
@@ -984,6 +1076,11 @@ piano-mentor-ai/
 | `frontend/src/components/PracticeSession.tsx` | Vista principal de práctica (se incorpora con B-012). | Composición de teclado + estado + controles. |
 | `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated) y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
 | `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/playback-schedule.ts` | Matemática pura de reproducción (B-006.2): schedule ordenado con factor de tempo, ventana de eventos, pitch a Hz y recortes. | Sin DOM ni AudioContext; testeable con números, la ejecuta el motor de transporte. |
+| `frontend/src/lib/playback-engine.ts` | Motor de transporte sin framework (B-006.2): play/pausa/stop/seek y tempo con reloj y voz de audio inyectados. | Determinista con tiempo falso en tests; usePlayback lo viste con React+WebAudio. |
+| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): expone snapshot y acciones, programa WebAudio con anticipación. | Capa fina sobre PlaybackEngine; la lógica testeable vive en el motor. |
+| `frontend/src/lib/playback-schedule.test.ts` | Tests de la matemática de reproducción: escala por factor, orden estable, ventana, pitch y recortes. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/playback-engine.test.ts` | Tests del motor de transporte con reloj falso y voz que graba: programación, pausa, seek, fin y tempo. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
 | `data/midi/catalog.json` | Catálogo versionado de las 15 piezas del corpus: título, compositor, opus, licencia, source_url, dificultad y métricas. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. |
@@ -996,10 +1093,69 @@ piano-mentor-ai/
 | `issues/B-002/B-002.md` | Resumen y aceptación de la Issue B-002 (contrato y almacenamiento de piezas). | Contrato base de piezas MIDI. |
 | `issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas y vectores. |
 | `issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
+| `issues/B-006/B-006.md` | Resumen y aceptación de la Issue B-006 (reproducción básica): API de notas, reloj en el navegador, tempo y base de componentes del front. | Transporte play/pausa/stop sin estado en el servidor; detalle en B-006.N.md. |
 | `.agents/skills/piano-mentor-ai-development/SKILL.md` | Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. | Cargar al modificar MIDI, evaluación, frontend o agente. |
 | `.agents/skills/piano-mentor-github-projects/SKILL.md` | Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. | Cargar al operar backlog e issues B-xxx. |
 | `.agents/skills/piano-mentor-architecture/SKILL.md` | Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree. | Cargar al documentar archivos o estructura; ejecuta el script. |
 | `desing/main_page.ai` | Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado). | Fuente de diseño de la página inicial; implementar en Next.js según este diseño. |
+| `desing/main_page_box.jpg` | Cajas de referencia de la main page (encabezado, controles, piano virtual, lateral del mentor y zona de subida) usadas para derivar el árbol de componentes. | Fuente estructural de B-006.4; el estilo final lo marca main_page_desing.jpg. |
+| `desing/main_page_desing.jpg` | Render estilizado de referencia de la main page (cabecera, player, piano C1–C6 y panel del mentor). | Solo idea visual para B-006.4; simplicidad primero, el CSS full vendrá después. En código el rótulo se escribe 'Progress' (el diseño pone 'Progess'). |
 | `frontend/assets/piano_virtual_88_pressed.svg` | Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada. | Asset del teclado virtual para el frontend; manipular por id para resaltado y pressed. |
+| `frontend/src/app/page.module.css` | Layout de dos columnas de la página inicial (zona principal + lateral). | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/AppHeader.tsx` | Encabezado principal: compone logo, navegación, estado MIDI y avatar. | B-006.4; armazón estático. |
+| `frontend/src/components/AppHeader/AppHeader.module.css` | Estilos del encabezado principal. | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/AppHeader.types.ts` | Props del encabezado (midiConnected, userInitial). | B-006.4. |
+| `frontend/src/components/AppHeader/BrandLogo/BrandLogo.tsx` | Logo de marca con barras de piano y nombre. | B-006.4; armazón estático. |
+| `frontend/src/components/AppHeader/BrandLogo/BrandLogo.module.css` | Estilos del logo de marca. | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/BrandLogo/BrandLogo.types.ts` | Props del logo (brandName). | B-006.4. |
+| `frontend/src/components/AppHeader/MainNav/MainNav.tsx` | Navegación principal: Learn activa; Library, Progress y Settings (bloqueadas). | B-006.4; sin rutas todavía. En código 'Progress' (el diseño pone 'Progess'). |
+| `frontend/src/components/AppHeader/MainNav/MainNav.module.css` | Estilos de la navegación principal. | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/MainNav/MainNav.types.ts` | Props de navegación (active). | B-006.4. |
+| `frontend/src/components/AppHeader/MidiStatus/MidiStatus.tsx` | Indicador de estado del teclado MIDI. | B-006.4; la detección Web MIDI real es posterior. |
+| `frontend/src/components/AppHeader/MidiStatus/MidiStatus.module.css` | Estilos del indicador MIDI. | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/MidiStatus/MidiStatus.types.ts` | Props del indicador (connected). | B-006.4. |
+| `frontend/src/components/AppHeader/UserAvatar/UserAvatar.tsx` | Avatar de usuario con inicial. | B-006.4; sin autenticación todavía (B-029). |
+| `frontend/src/components/AppHeader/UserAvatar/UserAvatar.module.css` | Estilos del avatar. | B-006.4; simplicidad primero. |
+| `frontend/src/components/AppHeader/UserAvatar/UserAvatar.types.ts` | Props del avatar (initial). | B-006.4. |
+| `frontend/src/components/PlayerBar/PlayerBar.tsx` | Franja del reproductor: pieza, controles, tempo y progreso. | B-006.4; el transporte se enchufa en B-007. |
+| `frontend/src/components/PlayerBar/PlayerBar.module.css` | Estilos de la franja del reproductor. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PlayerBar/PlayerBar.types.ts` | Props de la franja (título, arreglo, tempo, compás, progreso). | B-006.4. |
+| `frontend/src/components/PlayerBar/SongInfo/SongInfo.tsx` | Portada y título de la pieza en reproducción. | B-006.4; armazón estático. |
+| `frontend/src/components/PlayerBar/SongInfo/SongInfo.module.css` | Estilos de la información de la pieza. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PlayerBar/SongInfo/SongInfo.types.ts` | Props de información (title, subtitle). | B-006.4. |
+| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.tsx` | Botones de transporte: reenvían callbacks sin lógica propia. | B-006.4; B-007 los conecta al usePlayback de B-006.2. |
+| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.module.css` | Estilos de los botones de transporte. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.types.ts` | Callbacks de transporte (onRewind/onPlay/onStop/onForward). | B-006.4. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx` | Tempo en BPM y compás en reproducción. | B-006.4; armazón estático. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.module.css` | Estilos de tempo y compás. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.types.ts` | Props de tempo y compás (tempoBpm, measure). | B-006.4. |
+| `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.tsx` | Barra de progreso con porcentaje y rol progressbar. | B-006.4; armazón estático. |
+| `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.module.css` | Estilos de la barra de progreso. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.types.ts` | Props de progreso (value 0–100). | B-006.4. |
+| `frontend/src/components/PianoStage/PianoStage.tsx` | Contenedor del piano: cuadrícula de notas + teclado. | B-006.4; armazón estático. |
+| `frontend/src/components/PianoStage/PianoStage.module.css` | Estilos del contenedor del piano. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PianoStage/PianoStage.types.ts` | Props del escenario (octaves). | B-006.4. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.tsx` | Cuadrícula placeholder donde caerán las notas, con etiquetas C1–C3. | B-006.4; la animación llega con B-007. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.module.css` | Estilos de la cuadrícula de notas. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.types.ts` | Props de la cuadrícula (octaves). | B-006.4. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Envoltorio temporal que reutiliza PianoKeyboard sin modificarlo. | B-006.4; B-007 construye aquí el teclado C1–C6 real. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.module.css` | Estilos del envoltorio del teclado. | B-006.4; simplicidad primero. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del envoltorio (children opcional). | B-006.4. |
+| `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna del mentor: chat, modos, rendimiento y flujo existente reubicado. | B-006.4; reutiliza MidiUploader y SessionStatus sin modificarlos. |
+| `frontend/src/components/MentorPanel/MentorPanel.module.css` | Estilos de la columna del mentor. | B-006.4; simplicidad primero. |
+| `frontend/src/components/MentorPanel/MentorPanel.types.ts` | Props del panel (weakPoint). | B-006.4. |
+| `frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx` | Chat del mentor: avatar, burbuja de ejemplo e input de placeholder. | B-006.4; el chat real con el agente llega después. |
+| `frontend/src/components/MentorPanel/MentorChat/MentorChat.module.css` | Estilos del chat del mentor. | B-006.4; simplicidad primero. |
+| `frontend/src/components/MentorPanel/MentorChat/MentorChat.types.ts` | Props del chat (exampleMessage). | B-006.4. |
+| `frontend/src/components/MentorPanel/ModeSelector/ModeSelector.tsx` | Selector de modo: Observar activo, Duo y Tomar Control. | B-006.4; armazón estático. |
+| `frontend/src/components/MentorPanel/ModeSelector/ModeSelector.module.css` | Estilos del selector de modo. | B-006.4; simplicidad primero. |
+| `frontend/src/components/MentorPanel/ModeSelector/ModeSelector.types.ts` | Modo del mentor (MentorMode) y prop mode. | B-006.4. |
+| `frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.tsx` | Rendimiento del pasaje: dos medidores y punto débil. | B-006.4; valores reales en B-013. |
+| `frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.module.css` | Estilos de las estadísticas. | B-006.4; simplicidad primero. |
+| `frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.types.ts` | Props de estadísticas (timing, notes, weakPoint). | B-006.4. |
+| `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.tsx` | Medidor circular reutilizable en SVG puro. | B-006.4; armazón estático. |
+| `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.module.css` | Estilos del medidor circular. | B-006.4; simplicidad primero. |
+| `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.types.ts` | Props del medidor (value, label). | B-006.4. |
+| `frontend/src/components/component-tree.test.ts` | Humo del árbol de componentes: los 18 existen y son funciones. | Criterio de B-006.4; no renderiza (sin DOM en los tests). |
 
 _Para añadir un archivo nuevo: agrega su fila en `architecture/files.csv` y ejecuta `python architecture/generate_architecture.py`._
