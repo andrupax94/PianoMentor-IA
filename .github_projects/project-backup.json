@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-10T18:13:35.1481236Z",
+  "exportedAtUtc": "2026-10-10T20:43:00.1126641Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -163,20 +163,45 @@
   "items": [
     {
       "content": {
-        "body": "",
-        "number": 41,
+        "body": "## Objetivo\nReproducir una pieza o sección con play, pausa, detención y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 9,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend.",
+        "title": "[B-006] Implementar reproducción básica",
         "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/41"
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/9"
       },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_N5KE",
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-496I",
       "labels": [
-        "P2"
+        "P0",
+        "Semana 1",
+        "MIDI"
       ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Ready",
+      "target date": "2026-10-12",
+      "title": "[B-006] Implementar reproducción básica"
+    },
+    {
+      "content": {
+        "body": "<!-- description: Resumen y aceptación de la Issue B-028 (deduplicación por hash y procedencia de piezas). -->\n<!-- context: Evita duplicar filas y archivos en POST /pieces y distingue corpus de subidas de usuario. -->\n\n# [B-028] Detectar duplicados por hash y marcar procedencia\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual en Docker y de aceptación.\n\n## Resumen\n\nAl subir un MIDI, calcular su **SHA-256** antes de guardar nada y devolver la pieza que ya existe en la base de datos si el contenido es idéntico, en lugar de crear un archivo y una fila nuevos. Cada pieza queda marcada con su procedencia: `source` = `corpus` (catálogo `data/midi`) o `upload` (subida), y `owner_id` reservado para autenticación (`NULL` = anónimo).\n\n## Objetivo\n\nQue la misma pieza no exista varias veces en la BD ni en disco, y dejar preparada la distinción entre el corpus (visible para todos) y las subidas de usuario (base del futuro control de acceso de B-029). Además sienta la identidad por hash que necesitará la futura cache: si una pieza ya fue normalizada y evaluada, se reconoce y se reutiliza en vez de repetir el trabajo.\n\n## Alcance\n\n- Migración `0003_add_hash_and_provenance.sql`: columnas `content_hash`, `source` y `owner_id` en `pieces`, con índice sobre `content_hash`.\n- `content_hash()` (SHA-256) en `storage.py`.\n- `find_piece_by_hash()` en `database.py`, priorizando el corpus si hubiera empate.\n- `POST /api/v1/pieces` deduplica **antes** de guardar el archivo: si el hash ya existe responde con la pieza existente (`deduplicated: true`, `status: existing`) sin tocar disco ni BD.\n- `catalog.py` calcula el hash y marca `source='corpus'`, de modo que subir un MIDI idéntico a uno del catálogo devuelve su entrada (con título y compositor).\n- `PieceResponse` expone `source` y `deduplicated`; el frontend avisa *\"Esta pieza ya existía\"* y muestra el origen.\n- Limpieza de las 3 subidas antiguas que duplicaban contenido ya existente (2 del corpus + 1 repetida entre sí).\n\n## Fuera de alcance\n\n- Control de acceso: cada usuario solo ve sus propios MIDIs y todos ven el corpus (B-029).\n- Tratamiento de las subidas anónimas: borrarlas o promoverlas a cache/corpus (B-029).\n- Partir corpus y subidas en **dos tablas**: se descartó; la separación es por columnas (`source`, `owner_id`) para no fragmentar las consultas de sesiones (B-012) ni evaluación (B-013).\n- La cache de resultados de normalización/evaluación en sí: aquí solo se aporta la identidad por hash que esa cache necesitará.\n\n## Criterios de aceptación\n\n- [x] Subir dos veces el mismo archivo devuelve el mismo `id`: no se crea una segunda fila ni un segundo archivo en disco.\n- [x] La respuesta de una subida repetida marca `deduplicated: true` y `status: existing`.\n- [x] Subir un MIDI byte a byte idéntico a uno del corpus devuelve la entrada del catálogo (`p01`…), con su título y compositor, sin crear fila nueva.\n- [x] Un contenido distinto sigue creando una pieza nueva con `source: upload`.\n- [x] El catálogo carga con `source='corpus'` y `content_hash` en las 15 piezas.\n- [x] La migración se aplica sobre la BD existente sin perder filas (19/19 con hash) y las subidas antiguas rellenan su hash.\n- [x] Los tests de backend (96) y frontend (3) pasan y `ruff` no añade avisos nuevos.\n- [ ] La verificación manual en Docker muestra el aviso de pieza reutilizada al subir dos veces el mismo archivo.\n\n## Dependencias\n\nDepende de **B-003** (tabla `pieces` y `stored_filename`) y aprovecha **B-005.4** (metadatos en la carga). Prepara **B-029** (control de MIDIs por usuario) y la futura cache de piezas procesadas.\n\n## Compatibilidad con otras issues\n\n- **B-003.3 (catálogo):** `upsert_piece` sigue funcionando por id; ahora añade hash y `source='corpus'`.\n- **B-012 (sesiones) / B-013 (evaluación):** siguen apuntando a `pieces`; no se creó una segunda tabla.\n- **B-029:** parte de `owner_id` ya existente y de `source` para filtrar.\n- **Determinismo:** el hash es una operación sobre bytes, sin dependencia del motor musical ni del LLM.\n\n## Evidencia esperada\n\n- Migración `0003`, `content_hash()` en `storage.py`, `find_piece_by_hash()` en `database.py` y deduplicación en `api.py`.\n- `backend/tests/test_piece_dedup.py` (subida repetida, subida idéntica al corpus y procedencia).\n- `ARCHITECTURE.md` regenerado con el contrato ampliado de `PieceResponse`.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-028/B-028.md](../../blob/main/issues/B-028/B-028.md)",
+        "number": 56,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-028] Detectar duplicados por hash y marcar procedencia",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/56"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_4rk8",
+      "labels": [
+        "Semana 1",
+        "MIDI",
+        "P1"
+      ],
+      "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Review",
-      "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend."
+      "target date": "2026-10-12",
+      "title": "[B-028] Detectar duplicados por hash y marcar procedencia"
     },
     {
       "content": {
@@ -195,9 +220,26 @@
       ],
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "In Progress",
+      "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-005] Normalizar notas MIDI"
+    },
+    {
+      "content": {
+        "body": "",
+        "number": 41,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend.",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/41"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_N5KE",
+      "labels": [
+        "P2"
+      ],
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Review",
+      "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend."
     },
     {
       "content": {
@@ -324,27 +366,6 @@
       "status": "Backlog",
       "target date": "2026-10-19",
       "title": "[B-008] Calcular compases inicialmente"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nReproducir una pieza o sección con play, pausa, detención y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
-        "number": 9,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006] Implementar reproducción básica",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/9"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-496I",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "MIDI"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "target date": "2026-10-12",
-      "title": "[B-006] Implementar reproducción básica"
     },
     {
       "content": {
@@ -1125,7 +1146,7 @@
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wAVI",
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-005.3] Definir la nota normalizada interna"
     },
@@ -1141,28 +1162,9 @@
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wAX0",
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-005.4] Integrar metadatos musicales en la carga y verificar el flujo"
-    },
-    {
-      "content": {
-        "body": "<!-- description: Resumen y aceptación de la Issue B-028 (deduplicación por hash y procedencia de piezas). -->\n<!-- context: Evita duplicar filas y archivos en POST /pieces y distingue corpus de subidas de usuario. -->\n\n# [B-028] Detectar duplicados por hash y marcar procedencia\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual en Docker y de aceptación.\n\n## Resumen\n\nAl subir un MIDI, calcular su **SHA-256** antes de guardar nada y devolver la pieza que ya existe en la base de datos si el contenido es idéntico, en lugar de crear un archivo y una fila nuevos. Cada pieza queda marcada con su procedencia: `source` = `corpus` (catálogo `data/midi`) o `upload` (subida), y `owner_id` reservado para autenticación (`NULL` = anónimo).\n\n## Objetivo\n\nQue la misma pieza no exista varias veces en la BD ni en disco, y dejar preparada la distinción entre el corpus (visible para todos) y las subidas de usuario (base del futuro control de acceso de B-029). Además sienta la identidad por hash que necesitará la futura cache: si una pieza ya fue normalizada y evaluada, se reconoce y se reutiliza en vez de repetir el trabajo.\n\n## Alcance\n\n- Migración `0003_add_hash_and_provenance.sql`: columnas `content_hash`, `source` y `owner_id` en `pieces`, con índice sobre `content_hash`.\n- `content_hash()` (SHA-256) en `storage.py`.\n- `find_piece_by_hash()` en `database.py`, priorizando el corpus si hubiera empate.\n- `POST /api/v1/pieces` deduplica **antes** de guardar el archivo: si el hash ya existe responde con la pieza existente (`deduplicated: true`, `status: existing`) sin tocar disco ni BD.\n- `catalog.py` calcula el hash y marca `source='corpus'`, de modo que subir un MIDI idéntico a uno del catálogo devuelve su entrada (con título y compositor).\n- `PieceResponse` expone `source` y `deduplicated`; el frontend avisa *\"Esta pieza ya existía\"* y muestra el origen.\n- Limpieza de las 3 subidas antiguas que duplicaban contenido ya existente (2 del corpus + 1 repetida entre sí).\n\n## Fuera de alcance\n\n- Control de acceso: cada usuario solo ve sus propios MIDIs y todos ven el corpus (B-029).\n- Tratamiento de las subidas anónimas: borrarlas o promoverlas a cache/corpus (B-029).\n- Partir corpus y subidas en **dos tablas**: se descartó; la separación es por columnas (`source`, `owner_id`) para no fragmentar las consultas de sesiones (B-012) ni evaluación (B-013).\n- La cache de resultados de normalización/evaluación en sí: aquí solo se aporta la identidad por hash que esa cache necesitará.\n\n## Criterios de aceptación\n\n- [x] Subir dos veces el mismo archivo devuelve el mismo `id`: no se crea una segunda fila ni un segundo archivo en disco.\n- [x] La respuesta de una subida repetida marca `deduplicated: true` y `status: existing`.\n- [x] Subir un MIDI byte a byte idéntico a uno del corpus devuelve la entrada del catálogo (`p01`…), con su título y compositor, sin crear fila nueva.\n- [x] Un contenido distinto sigue creando una pieza nueva con `source: upload`.\n- [x] El catálogo carga con `source='corpus'` y `content_hash` en las 15 piezas.\n- [x] La migración se aplica sobre la BD existente sin perder filas (19/19 con hash) y las subidas antiguas rellenan su hash.\n- [x] Los tests de backend (96) y frontend (3) pasan y `ruff` no añade avisos nuevos.\n- [ ] La verificación manual en Docker muestra el aviso de pieza reutilizada al subir dos veces el mismo archivo.\n\n## Dependencias\n\nDepende de **B-003** (tabla `pieces` y `stored_filename`) y aprovecha **B-005.4** (metadatos en la carga). Prepara **B-029** (control de MIDIs por usuario) y la futura cache de piezas procesadas.\n\n## Compatibilidad con otras issues\n\n- **B-003.3 (catálogo):** `upsert_piece` sigue funcionando por id; ahora añade hash y `source='corpus'`.\n- **B-012 (sesiones) / B-013 (evaluación):** siguen apuntando a `pieces`; no se creó una segunda tabla.\n- **B-029:** parte de `owner_id` ya existente y de `source` para filtrar.\n- **Determinismo:** el hash es una operación sobre bytes, sin dependencia del motor musical ni del LLM.\n\n## Evidencia esperada\n\n- Migración `0003`, `content_hash()` en `storage.py`, `find_piece_by_hash()` en `database.py` y deduplicación en `api.py`.\n- `backend/tests/test_piece_dedup.py` (subida repetida, subida idéntica al corpus y procedencia).\n- `ARCHITECTURE.md` regenerado con el contrato ampliado de `PieceResponse`.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-028/B-028.md](../../blob/main/issues/B-028/B-028.md)",
-        "number": 56,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-028] Detectar duplicados por hash y marcar procedencia",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/56"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_4rk8",
-      "labels": [
-        "Semana 1",
-        "MIDI",
-        "P1"
-      ],
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "title": "[B-028] Detectar duplicados por hash y marcar procedencia"
     },
     {
       "content": {
@@ -1179,9 +1181,67 @@
         "Semana 5",
         "P2"
       ],
+      "priority": "P2",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-11-09",
       "title": "[B-029] Control de MIDIs por usuario y subidas anónimas"
+    },
+    {
+      "content": {
+        "body": "# [B-006.1] Servir las notas reproducibles de una pieza\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nExponer desde el backend la partitura lista para reproducir: las notas normalizadas de B-005 de una pieza persistida, ordenadas por instante de inicio, con una ventana opcional por segundos (`from_s`/`to_s`) que anticipe la selección de secciones de B-008. Es la única llamada de red que necesita la reproducción; a partir de aquí el navegador trabaja con datos locales.\n\n## Alcance\n\n- Nuevo endpoint de solo lectura, p. ej. `GET /api/v1/pieces/{piece_id}/notes`, que resuelve la pieza por id (corpus o subida, reutilizando la dedup de B-028).\n- Lee el MIDI del filesystem (`stored_filename`), lo normaliza con el motor de B-005 y devuelve las notas ordenadas por `start_s` (con orden estable ante empates): pitch, inicio, duración, velocity, canal y track.\n- Parámetros opcionales `from_s`/`to_s` que recortan la ventana sin reordenar ni reinterpretar nada.\n- La respuesta incluye el tempo inicial, la duración total y los metadatos ya conocidos de la pieza para que el front no tenga que pedirlos por separado.\n- La pieza inexistente responde 404 con código estable; un MIDI ilegible responde 400 con el mismo código de B-005.4.\n- Tests de backend: orden estable, ventana de sección, pieza inexistente y corpus real.\n\n## Criterios de aceptación\n\n- [x] Pedir las notas de una pieza del corpus devuelve la secuencia completa ordenada por tiempo, idéntica entre llamadas.\n- [x] `from_s`/`to_s` recortan la ventana sin alterar el orden ni los tiempos de las notas incluidas.\n- [x] La respuesta trae tempo inicial y duración total coherentes con `PieceMetadata`.\n- [x] Un id inexistente devuelve 404 con código estable, sin trazas expuestas.\n- [x] `python -m pytest -q` pasa y el healthcheck continúa en verde.\n\n## Dependencias\n\nDepende de **B-005** (normalización y tempo) y de **B-003** (pieza persistida con `stored_filename`). Habilita a **B-006.2**, **B-006.3** y, más adelante, a **B-007**, **B-008** y **B-013**.\n\n## Evidencia esperada\n\n- Endpoint documentado en el contrato, tests de orden/ventana/errores y ejemplo de respuesta para una pieza del corpus.\n",
+        "number": 58,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.1] Servir las notas reproducibles de una pieza",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/58"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51NU",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-006.1] Servir las notas reproducibles de una pieza"
+    },
+    {
+      "content": {
+        "body": "# [B-006.2] Reloj de reproducción en el front (play/pausa/stop)\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nImplementar el transporte de reproducción en el navegador: play, pausa (retoma donde estaba), stop y posición actual, ejecutando localmente el *schedule* que sirve B-006.1 con el reloj de WebAudio. Ninguna acción del transporte viaja por la red, así que responde al instante, no sufre jitter y funciona igual con N usuarios porque el backend no guarda estado de reproducción.\n\n## Alcance\n\n- Módulo puro y testeable (p. ej. `frontend/src/lib/playback-schedule.ts`) que, dadas las notas, un desplazamiento inicial y un factor de tempo, calcula qué eventos suenan en cada instante; el reloj real solo entra por un parámetro inyectable.\n- Estado del transporte (p. ej. `usePlayback`): `playing`/`paused`/`stopped`, posición en segundos, `play()`, `pause()`, `stop()` y `seek(seconds)`.\n- Programación del audio con el reloj de WebAudio a partir del *schedule*; la pausa congela la posición y el play la retoma sin saltos audibles.\n- La posición se expone de forma que B-007 pueda pintar teclas y notas cayendo sincronizadas (esta sub-issue no dibuja nada).\n- Tests con vitest y reloj falso: play→pausa→play retoma el mismo punto, stop vuelve a cero, seek reposiciona y los eventos programados coinciden con el *schedule*.\n- Al cambiar de pieza o desmontar, el transporte se detiene y libera los recursos de audio.\n\n## Criterios de aceptación\n\n- [x] Play inicia la reproducción, pausa la congela, un segundo play retoma en el mismo punto y stop vuelve al inicio.\n- [x] La posición avanza de forma continua y monótona mientras suena.\n- [x] Ninguna acción del transporte realiza llamadas de red (verificable con fetch espiado en tests o en la pestaña de red).\n- [x] Los eventos sonoros programados coinciden con el *schedule* de B-006.1 para una pieza del corpus.\n- [x] Cambiar de pieza detiene la anterior sin solapamientos ni fugas de audio.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (notas + metadatos). Habilita a **B-006.3** (factor de tempo sobre este transporte) y a **B-007** (visuales sincronizados con la posición).\n\n## Evidencia esperada\n\n- Módulo de *schedule* con tests de reloj falso, hook de transporte con tests y verificación manual en Docker (oír play/pausa/stop sin errores en consola).\n",
+        "number": 59,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/59"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51QA",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)"
+    },
+    {
+      "content": {
+        "body": "# [B-006.3] Tempo inicial y factor de velocidad\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nQue la reproducción arranque al tempo real de la pieza y permita escalar la velocidad con un factor (p. ej. estudio lento), manteniendo la sincronía entre lo que se oye y la posición mostrada. Como B-005 ya entrega los tiempos en segundos (con los cambios de tempo aplicados), el factor se aplica de forma uniforme dividiendo los tiempos, sin reinterpretar el MIDI.\n\n## Alcance\n\n- El transporte de B-006.2 arranca con el tempo inicial que trae B-006.1 (`tempo` de `PieceMetadata`); si es nulo, se usa un valor por defecto documentado.\n- Factor de velocidad ajustable (rango documentado, p. ej. 0.5–1.5): escala posición y eventos programados de forma coherente, en caliente y sin reiniciar la pieza.\n- La posición mostrada y los eventos sonoros usan siempre la misma base temporal escalada, para que B-007 y B-013 no vean dos relojes distintos.\n- El tempo efectivo (BPM × factor) queda expuesto en el estado del transporte para pintarlo en la UI (PlayerBar lo mostrará en B-006.4/B-007).\n- Tests: con factor 0.5 todo dura el doble, con 2.0 la mitad; cambiar el factor en caliente no produce saltos ni eventos duplicados/perdidos.\n\n## Criterios de aceptación\n\n- [x] Al dar play sin tocar nada, la pieza suena a su tempo real.\n- [x] Con factor 0.5 la reproducción dura el doble y con 2.0 la mitad, de forma exacta según tests.\n- [x] Cambiar el factor durante la reproducción no genera saltos, solapes ni silencios espurios.\n- [x] El estado expone el tempo efectivo para la UI.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (tempo inicial y tiempos en segundos) y **B-006.2** (transporte). Habilita a **B-007** (mostrar tempo) y a **B-013** (referencia temporal de evaluación).\n\n## Evidencia esperada\n\n- Factor de tempo aplicado al *schedule* con tests de escala exacta y verificación manual en Docker (estudio lento audible).\n",
+        "number": 60,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.3] Tempo inicial y factor de velocidad",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/60"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51S4",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-006.3] Tempo inicial y factor de velocidad"
+    },
+    {
+      "content": {
+        "body": "# [B-006.4] Crear la base de componentes del front\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nCrear el andamiaje de componentes de la página principal según las cajas de `desing/main_page_box.jpg` (con `desing/main_page_desing.jpg` como idea visual, buscando simplicidad): montar en `page.tsx` el armazón AppHeader + PlayerBar + PianoStage + MentorPanel con sus subcomponentes, cada uno en su carpeta con el trío `Nombre.tsx` + `Nombre.module.css` + `Nombre.types.ts`. Es solo estructura con contenido estático fiel al diseño; el cableado real (transporte de B-006.2/B-006.3 y piano de B-007) vendrá después. No se elimina ni se rompe nada existente.\n\n## Alcance\n\n- Crear el árbol bajo `frontend/src/components/` (los `(...)` indican subcarpetas con el mismo trío de ficheros):\n  - `AppHeader/` (logo + navegación + estado MIDI + avatar): `BrandLogo/`, `MainNav/` (Learn activo; Library, Progress, Settings; Progress y Settings con candado), `MidiStatus/` (\"MIDI Keyboard connected\" con punto amarillo), `UserAvatar/` (\"A\").\n  - `PlayerBar/` (franja superior del área izquierda): `SongInfo/` (portada, título, \"Piano Arrangement\"), `PlaybackControls/` (rewind, play, stop, forward), `TempoMeasure/` (\"Tempo: 60 BPM\", \"Measure: 12/16\"), `ProgressBar/` (barra + \"75%\").\n  - `PianoStage/` (contenedor del piano): `NoteFallGrid/` (cuadrícula con etiquetas de octava C1–C3 en ambos laterales), `Keyboard/` (teclado C1–C6, blancas y negras).\n  - `MentorPanel/` (columna derecha): `MentorChat/` (avatar robot, \"PianoMentor Chat\", \"Tu Profesor de piano IA\", burbuja de ejemplo, input \"Habla con PianoMentor...\"), `ModeSelector/` (Observar activo, Duo, Tomar Control), `PerformanceStats/` (Rendimiento (Este Pasaje), medidores Timing 74 % y Notas 91 %, \"Punto Débil: Transición de mano izquierda\") con `GaugeChart/` reutilizable.\n- `page.tsx` monta el armazón nuevo; `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando (se reubican dentro del armazón donde encajen o se dejan montados con una nota en este doc durante la implementación).\n- Contenido estático/placeholder donde aún no hay backend (chat, medidores, progreso); los valores de ejemplo del diseño van como constantes, no hardcodeados en el JSX.\n- Convenciones: CSS Modules por componente, props en `.types.ts`, sin `fetch` directo (todo por `api-client.ts`), textos de la UI en español salvo los rótulos propios del diseño en inglés (Learn, Library, Progress, Settings).\n- Ojo: el diseño escribe \"Progess\"; en código se usa **\"Progress\"**.\n- Solo reorganización ligera: ningún cambio de rutas, contratos ni estilos globales más allá de lo que pida el armazón.\n\n## Criterios de aceptación\n\n- [x] El árbol de componentes existe con el trío `.tsx` + `.module.css` + `.types.ts` en cada nivel y compila (`npm run build`).\n- [x] La página monta AppHeader + PlayerBar + PianoStage + MentorPanel con aspecto fiel al diseño (verificado en Docker por el usuario con captura).\n- [x] `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando tras la reorganización.\n- [x] No hay lógica cableada a medio hacer: lo pendiente (transporte, chat, medidores reales) queda como placeholder explícito referenciando a B-006.2/B-006.3 y B-007.\n- [x] `npm test -- --run` pasa y no hay llamadas directas a `fetch` fuera de `api-client.ts`.\n\n## Dependencias\n\nNo depende de **B-006.1–B-006.3** para el andamiaje (es estático), pero se coloca la última a propósito: define dónde se enchufarán el transporte (PlayerBar), la posición (PianoStage) y los datos del mentor (MentorPanel) cuando B-007 los cablee. Respeta a **B-004** (flujo de carga existente).\n\n## Evidencia esperada\n\n- Árbol de componentes creado, captura de la página montada junto al diseño y verificación en Docker de que el flujo de carga sigue funcionando.\n",
+        "number": 61,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.4] Crear la base de componentes del front",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/61"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51W0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-006.4] Crear la base de componentes del front"
     }
   ],
   "notes": [

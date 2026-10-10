@@ -137,6 +137,10 @@ Para guardar una instantánea fechada:
 
 No comparar el título completo. Buscar por `[B-xxx]` y operar sobre los elementos del Project, no sobre el primer Issue que devuelva el repositorio.
 
+### Issue encontrada por API pero invisible en la web
+
+Caso real (B-006): `gh issue list --search "[B-006]"` devolvió la #6 CLOSED duplicada, pero en la web del repositorio (incluso en cerradas) solo aparece la #9 OPEN. La búsqueda de la web y la de la API pueden discrepar. Ante un supuesto duplicado: verificar por URL directa (`gh issue view N` o `github.com/.../issues/N`), informar al usuario y dejarlo como está salvo decisión explícita. Nunca borrar por un match de búsqueda.
+
 ### Elemento ya existente
 
 `Content already exists in this project` no es un error fatal: continuar.
