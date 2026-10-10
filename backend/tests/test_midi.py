@@ -1,11 +1,13 @@
 # description: MIDI válido, inválido y normalización básica.
 # context: Confianza en el parsing.
 
+import dataclasses
 from pathlib import Path
 
+import mido
 import pytest
 
-from piano_mentor.midi import DEFAULT_BPM, MidiParseError, MidiService
+from piano_mentor.midi import DEFAULT_BPM, MidiParseError, MidiService, TempoMap
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "midi"
 
@@ -63,3 +65,59 @@ def test_inspect_file_is_deterministic() -> None:
     service = MidiService()
     path = fixture("multi_track.mid")
     assert service.inspect_file(path) == service.inspect_file(path)
+
+
+def test_tempo_map_converts_ticks_with_constant_tempo() -> None:
+    tempo_map = MidiService().tempo_map(fixture("single_track.mid"))
+    assert tempo_map.ticks_per_beat == 480
+    assert tempo_map.initial_tempo() == 120.0
+    assert tempo_map.tick_to_seconds(480) == pytest.approx(0.5)
+    assert tempo_map.tick_to_seconds(960) == pytest.approx(1.0)
+
+
+def test_tempo_map_displaces_ticks_after_tempo_change() -> None:
+    tempo_map = MidiService().tempo_map(fixture("tempo_change.mid"))
+    # Antes del cambio (120 BPM): 480 ticks = 0.5 s.
+    assert tempo_map.tick_to_seconds(480) == pytest.approx(0.5)
+    # Después del cambio (60 BPM): otros 480 ticks = 1.0 s más.
+    assert tempo_map.tick_to_seconds(960) == pytest.approx(1.5)
+
+
+def test_tempo_map_defaults_to_120_bpm_without_set_tempo() -> None:
+    tempo_map = MidiService().tempo_map(fixture("no_tempo.mid"))
+    assert tempo_map.initial_tempo() == DEFAULT_BPM
+    assert tempo_map.tick_to_seconds(480) == pytest.approx(0.5)
+
+
+def test_tempo_map_treats_negative_tick_as_start() -> None:
+    tempo_map = MidiService().tempo_map(fixture("single_track.mid"))
+    assert tempo_map.tick_to_seconds(-100) == tempo_map.tick_to_seconds(0)
+
+
+def test_tempo_map_is_immutable_and_deterministic() -> None:
+    service = MidiService()
+    path = fixture("tempo_change.mid")
+    first = service.tempo_map(path)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        first.ticks_per_beat = 960  # type: ignore[misc]
+    assert first == service.tempo_map(path)
+    assert first.tick_to_seconds(960) == service.tempo_map(path).tick_to_seconds(960)
+
+
+def test_tempo_map_rejects_empty_changes() -> None:
+    with pytest.raises(ValueError):
+        TempoMap(ticks_per_beat=480, changes=())
+
+
+def test_tempo_map_uses_default_before_first_declared_tempo() -> None:
+    """Un set_tempo tardío no cambia el tempo inicial: antes de él rige 120 BPM."""
+    midi = mido.MidiFile(type=1, ticks_per_beat=480)
+    track = mido.MidiTrack()
+    midi.tracks.append(track)
+    track.append(mido.MetaMessage("set_tempo", tempo=1_000_000, time=480))
+    track.append(mido.MetaMessage("end_of_track", time=0))
+
+    tempo_map = TempoMap.build(midi)
+    assert tempo_map.initial_tempo() == DEFAULT_BPM
+    assert tempo_map.tick_to_seconds(480) == pytest.approx(0.5)
+    assert tempo_map.tick_to_seconds(960) == pytest.approx(1.5)
