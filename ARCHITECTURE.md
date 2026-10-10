@@ -740,7 +740,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-09 20:40 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-10 13:37 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -776,6 +776,8 @@ piano-mentor-ai/
 ├── backend/
 ├── backend/Dockerfile
 ├── backend/pyproject.toml
+├── backend/scripts/
+├── backend/scripts/build_midi_fixtures.py
 ├── backend/src/
 ├── backend/src/piano_mentor/
 ├── backend/src/piano_mentor/__init__.py
@@ -801,6 +803,13 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor_backend.egg-info/top_level.txt
 ├── backend/tests/
 ├── backend/tests/conftest.py
+├── backend/tests/fixtures/
+├── backend/tests/fixtures/midi/
+├── backend/tests/fixtures/midi/corrupt.mid
+├── backend/tests/fixtures/midi/multi_track.mid
+├── backend/tests/fixtures/midi/no_tempo.mid
+├── backend/tests/fixtures/midi/single_track.mid
+├── backend/tests/fixtures/midi/tempo_change.mid
 ├── backend/tests/test_agent.py
 ├── backend/tests/test_catalog.py
 ├── backend/tests/test_catalog_load.py
@@ -882,6 +891,12 @@ piano-mentor-ai/
 ├── issues/B-004/B-004.2.md
 ├── issues/B-004/B-004.3.md
 ├── issues/B-004/B-004.md
+├── issues/B-005/
+├── issues/B-005/B-005.1.md
+├── issues/B-005/B-005.2.md
+├── issues/B-005/B-005.3.md
+├── issues/B-005/B-005.4.md
+├── issues/B-005/B-005.md
 ├── issues/B-027/
 ├── issues/B-027/B-027.1.md
 ├── issues/B-027/B-027.2.md
@@ -914,6 +929,7 @@ piano-mentor-ai/
 | `architecture/generate_architecture.py` | Script que combina base + filetree real + files.csv y escribe ARCHITECTURE.md. | Ejecutar con python tras editar la base o el CSV; no modifica la base. |
 | `backend/Dockerfile` | Imagen reproducible del backend FastAPI. | Despliegue local y base del Space de Hugging Face. |
 | `backend/pyproject.toml` | Dependencias y config Python del backend (FastAPI, Pydantic, Mido, pytest). | Instalar y fijar versiones del backend. |
+| `backend/scripts/build_midi_fixtures.py` | Genera los fixtures MIDI deterministas de backend/tests/fixtures/midi/ (una pista, multi-track, cambio de tempo, sin tempo y corrupto). | Regenerar fixtures de B-005.1 con python backend/scripts/build_midi_fixtures.py; no editar los .mid a mano. |
 | `backend/src/piano_mentor/__init__.py` | Marca el paquete Python piano_mentor. | Raíz de importaciones del backend. |
 | `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. |
 | `backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno (Settings). | Centraliza puertos, CORS, rutas MIDI y base de datos. |
@@ -921,7 +937,7 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API. | Contrato tipado entre frontend y backend. |
 | `backend/src/piano_mentor/validators.py` | Validación de uploads MIDI: nombre, extensión, tamaño y contenido. | Rechaza archivos inválidos antes de guardarlos. |
 | `backend/src/piano_mentor/storage.py` | Guardado local de piezas MIDI en filesystem. | Persistencia MVP de bytes MIDI; metadatos irán a SQLite. |
-| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura, validación y normalización con Mido. | Núcleo musical; no decide pedagogía ni responde HTTP. |
+| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales) y normalización de notas internas. | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError. |
 | `backend/src/piano_mentor/evaluation.py` | Evaluador determinista: notas correctas, omitidas, extras, precisión y timing. | Mide la interpretación sin LLM ni UI. |
 | `backend/src/piano_mentor/practice.py` | Casos de uso de sesión de práctica: crear sesión, estado y eventos. | Coordina pieza + interpretación + estado. |
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
@@ -929,7 +945,7 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/migrations/0001_init_pieces.sql` | Migración inicial: tabla pieces con metadatos de carga y de catálogo (sin vectores todavía). | Esquema versionado de SQLite; piezas sin embedding hasta B-005/B-013. |
 | `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados. | CLI python -m piano_mentor.catalog; B-003.3 no toca el formato del catálogo. |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
-| `backend/tests/test_midi.py` | MIDI válido, inválido y normalización básica. | Confianza en el parsing. |
+| `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales) y normalización básica. | Confianza en el parsing. |
 | `backend/tests/test_evaluation.py` | Notas correctas, omitidas, adicionales y timing. | Confianza en el evaluador. |
 | `backend/tests/test_agent.py` | Reglas, validación de acciones y devolución del control. | Confianza en el agente determinista. |
 | `backend/tests/test_validators.py` | Extensión, tamaño, nombre y contenido de uploads. | Confianza en el rechazo de archivos malos. |
