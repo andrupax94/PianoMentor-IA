@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-09T20:50:04.8040211Z",
+  "exportedAtUtc": "2026-10-10T16:15:36.7769223Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -163,6 +163,44 @@
   "items": [
     {
       "content": {
+        "body": "",
+        "number": 41,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend.",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/41"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_N5KE",
+      "labels": [
+        "P2"
+      ],
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Review",
+      "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend."
+    },
+    {
+      "content": {
+        "body": "## Objetivo\nConvertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-005 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "number": 5,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005] Normalizar notas MIDI",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/5"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47N8",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "MIDI"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "In Progress",
+      "target date": "2026-10-12",
+      "title": "[B-005] Normalizar notas MIDI"
+    },
+    {
+      "content": {
         "body": "<!-- description: Resumen y aceptación de la Issue B-004 (flujo web inicial de carga MIDI). -->\n<!-- context: Primer flujo visible Next.js → FastAPI: subir, validar y ver metadatos. -->\n\n# [B-004] Crear el flujo web inicial\n\n## Resumen\n\nConectar la interfaz existente con `POST /api/v1/pieces` (B-003.2) para que el usuario pueda seleccionar un MIDI desde Next.js, enviarlo al backend y ver sus metadatos o un error claro, cerrando el primer flujo completo web → API.\n\n## Objetivo\n\nQue la carga deje de ser una llamada de curl y pase a ser una experiencia real: el usuario elige un archivo, la web lo valida de forma orientativa, lo sube, muestra lo que el backend persistió y explica cualquier fallo sin romper el resto de la página.\n\n## Sub-issues\n\n- [B-004.1 — Crear el cliente HTTP tipado del frontend](B-004.1.md)\n- [B-004.2 — Conectar la pantalla de carga y mostrar los metadatos devueltos](B-004.2.md)\n- [B-004.3 — Manejar errores de carga y verificar el flujo end-to-end](B-004.3.md)\n\n## Alcance\n\n- Crear `frontend/src/lib/api-client.ts` como único punto de llamadas REST hacia FastAPI.\n- Tipar en TypeScript los contratos ya definidos en Pydantic (`PieceResponse`, `PieceMetadata`, errores `code`/`message`); el backend sigue siendo la fuente de verdad del contrato.\n- Conectar el componente existente `MidiUploader.tsx` (hoy placeholder) al cliente HTTP.\n- Validación orientativa en cliente (extensión y tamaño) que no sustituye a la del backend.\n- Estados visibles de la carga: seleccionando, subiendo, listo y error.\n- Mostrar metadatos devueltos: título/filename, tamaño, extensión, pistas, duración y número de notas cuando estén presentes.\n- Manejar los códigos estables del backend (400 `validation_*`, 500 `persistence_error`) y la caída del servicio.\n\n## Fuera de alcance\n\n- Parsing o normalización de notas en el frontend (B-005 lo resuelve en backend).\n- Reproducción y piano virtual (B-006 y B-007).\n- Sesiones de práctica y WebSocket (B-012 creará `websocket-client.ts` y `PracticeSession.tsx`).\n- Selección del catálogo de piezas (B-027.3).\n- Autenticación, paginación o listado histórico de piezas.\n\n## Criterios de aceptación\n\n- [ ] Un MIDI válido seleccionado en la web se sube y la interfaz muestra sus metadatos.\n- [ ] Un MIDI inválido se rechaza mostrando el mensaje del backend, sin excepciones ni pantalla en blanco.\n- [ ] Todas las llamadas REST pasan por `api-client.ts`; ningún componente usa `fetch` directo.\n- [ ] Los tipos del cliente coinciden con `schemas.py` del backend.\n- [ ] La página sigue funcionando si el backend no está arrancado (error controlado).\n- [ ] El healthcheck y los flujos existentes en verde, y `npm run build` compila sin errores.\n\n## Dependencias\n\nDepende de **B-002** (contrato de piezas) y **B-003** (endpoint con persistencia). Es prerequisito de **B-007** (piano virtual), **B-027.3** (catálogo en frontend) y **B-012** (sesión de práctica sobre este cliente).\n\n## Compatibilidad con otras issues\n\n- **B-003 (endpoint):** consumidor puro; el frontend no reimplementa validación ni persistencia.\n- **B-012 (WebSocket):** reutilizará `api-client.ts` y su manejo de errores; B-004 no crea el cliente WebSocket.\n- **B-027.3 (catálogo):** añadirá una lista de piezas seleccionables; B-004 solo deja la carga manual conectada.\n- **Componentes existentes:** `PianoKeyboard.tsx` y `SessionStatus.tsx` quedan intactos; B-004 no llena su lógica.\n\n## Evidencia esperada\n\n- `api-client.ts`, `MidiUploader` conectado, capturas de metadatos y de error, y verificación del flujo con Docker.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-004/B-004.md](../../blob/main/issues/B-004/B-004.md)",
         "number": 4,
         "repository": "andrupax94/PianoMentor-IA",
@@ -218,26 +256,11 @@
         "Semana 2",
         "P1"
       ],
+      "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Blocked",
+      "target date": "2026-10-19",
       "title": "[B-027] Crear corpus de piezas MIDI de licencia compatible"
-    },
-    {
-      "content": {
-        "body": "",
-        "number": 41,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend.",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/41"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_N5KE",
-      "labels": [
-        "P2"
-      ],
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "In Progress",
-      "title": "[D-001] Diseñar en illustrator un borrador del el main page del frontend."
     },
     {
       "content": {
@@ -280,27 +303,6 @@
       "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-002] Preparar contrato y almacenamiento base de piezas MIDI"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nConvertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-005 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-003 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
-        "number": 5,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-005] Normalizar notas MIDI",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/5"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-47N8",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "MIDI"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "target date": "2026-10-12",
-      "title": "[B-005] Normalizar notas MIDI"
     },
     {
       "content": {
@@ -756,6 +758,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.1] Crear la estructura base de carpetas"
     },
     {
@@ -771,6 +774,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.2] Preparar la configuración inicial del backend"
     },
     {
@@ -786,6 +790,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.3] Preparar la configuración inicial del frontend"
     },
     {
@@ -801,6 +806,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.4] Crear carpetas de datos y esquemas compartidos"
     },
     {
@@ -816,6 +822,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.5] Configurar variables de entorno y `.gitignore`"
     },
     {
@@ -831,6 +838,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.6] Preparar Docker Compose y contextos de build"
     },
     {
@@ -846,6 +854,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.7] Añadir documentación mínima de instalación y arranque"
     },
     {
@@ -861,6 +870,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-001.8] Validar la estructura completa"
     },
     {
@@ -876,6 +886,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-002.1] Definir el contrato de piezas MIDI"
     },
     {
@@ -891,6 +902,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-002.2] Preparar almacenamiento local de piezas MIDI"
     },
     {
@@ -906,6 +918,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-002.3] Definir límites y seguridad de cargas MIDI"
     },
     {
@@ -921,6 +934,7 @@
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-002.4] Preparar fixtures y pruebas para la carga MIDI"
     },
     {
@@ -933,8 +947,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/43"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dLzs",
+      "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-19",
       "title": "[B-027.1] Seleccionar las 15 piezas de dominio público o licencia compatible"
     },
     {
@@ -947,8 +963,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/44"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dL3w",
+      "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-19",
       "title": "[B-027.2] Crear el catálogo de piezas con metadatos y licencias"
     },
     {
@@ -961,8 +979,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/45"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_dL7Q",
+      "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-027.3] Integrar el catálogo en el frontend como piezas seleccionables"
     },
     {
@@ -975,8 +995,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/46"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d03M",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-003.1] Instalar SQLite + sqlite-vec y esquema base de piezas"
     },
     {
@@ -989,8 +1011,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/47"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d068",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-003.2] Implementar POST /api/v1/pieces con persistencia de metadatos"
     },
     {
@@ -1003,8 +1027,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/48"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_d0_c",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-003.3] Cargar catalog.json del corpus en SQLite"
     },
     {
@@ -1017,8 +1043,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/49"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXoo",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-004.1] Crear el cliente HTTP tipado del frontend"
     },
     {
@@ -1031,8 +1059,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/50"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXsA",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-004.2] Conectar la pantalla de carga y mostrar los metadatos devueltos"
     },
     {
@@ -1045,9 +1075,67 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/51"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7Pszg_uXw4",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-004.3] Manejar errores de carga y verificar el flujo end-to-end"
+    },
+    {
+      "content": {
+        "body": "# [B-005.1] Crear fixtures MIDI y leer metadatos con Mido\n\n## Descripción\n\nSustituir el placeholder de `MidiService.inspect_file` por lectura real con Mido y extraer los metadatos musicales de la pieza: número de tracks, tempo inicial, número de notas, duración aproximada y canales. Para poder testear sin depender del corpus, crear fixtures MIDI pequeños y deterministas.\n\n## Alcance\n\n- Crear fixtures `.mid` pequeños generados con Mido (o incluidos como binarios versionados) en `backend/tests/fixtures/`: al menos uno de una sola pista, uno con varios tracks y uno con cambio de tempo.\n- Implementar la lectura del archivo desde el filesystem con `mido.MidiFile`.\n- Extraer metadatos: `tracks`, tempo inicial (BPM derivado del primer `set_tempo` o 120 por defecto), `notes_count` ( eventos `note_on` con velocity > 0), duración aproximada en segundos y conjunto de canales usados.\n- Mantener el contrato existente de `PieceMetadata` de B-002.1 (tracks, duration_seconds, tempo, notes_count); los canales se exponen en la respuesta del servicio, no en el esquema actual.\n- Devolver un error con código estable (por ejemplo `invalid_midi_content`) cuando el contenido no sea un MIDI legible, sin excepción sin capturar en el llamador.\n- No convertir ticks a tiempo todavía (B-005.2) ni producir notas normalizadas (B-005.3); la duración de esta sub-issue puede ser la aproximada por `Mido`.\n\n## Criterios de aceptación\n\n- [ ] `inspect_file` devuelve tracks, tempo inicial, número de notas, duración y canales de un fixture.\n- [ ] El fixture con varios tracks reporta el número real de tracks.\n- [ ] Un archivo con contenido corrupto se rechaza con un código de error estable.\n- [ ] El servicio sigue siendo determinista: dos lecturas del mismo archivo dan el mismo resultado.\n- [ ] Los fixtures están versionados y no dependen del corpus de terceros.\n- [ ] `python -m pytest -q` pasa y el healthcheck sigue en verde.\n\n## Dependencias\n\nDepende de **B-005**. Es prerequisito de **B-005.2**, **B-005.3** y **B-005.4**.\n\n## Evidencia esperada\n\n- Fixtures MIDI versionados, `inspect_file` implementado y tests de metadatos y contenido inválido.\n",
+        "number": 52,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005.1] Crear fixtures MIDI y leer metadatos con Mido",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/52"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wANk",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-005.1] Crear fixtures MIDI y leer metadatos con Mido"
+    },
+    {
+      "content": {
+        "body": "# [B-005.2] Convertir ticks a tiempo con el mapa de tempo\n\n## Descripción\n\nImplementar la conversión de ticks MIDI a segundos reales aplicando `ticks_per_beat` y el mapa de tempo de la pieza, de forma que un cambio de `set_tempo` intermedio desplace correctamente los instantes posteriores.\n\n## Alcance\n\n- Construir el mapa de tempo de la pieza (eventos `set_tempo` con su tick absoluto) y usarlo para convertir cualquier tick a segundos.\n- Aplicar el tempo por defecto de 120 BPM cuando el archivo no declara `set_tempo`.\n- Exponer una función determinista de conversión (por ejemplo `tick_to_seconds` / `absolute_tick_to_seconds`) reutilizable por el resto del motor.\n- Manejar piezas con un solo tempo y piezas con varios cambios de tempo.\n- No decidir compases ni rangos de práctica (B-008); la salida es tiempo, no medida musical.\n\n## Criterios de aceptación\n\n- [ ] Un tick convertido con tempo constante coincide con el cálculo teórico (tempo inicial).\n- [ ] En el fixture con cambio de tempo, los instantes posteriores al cambio se desplazan correctamente.\n- [ ] Un archivo sin `set_tempo` usa 120 BPM por defecto.\n- [ ] La conversión es determinista y no depende del estado global del servicio.\n- [ ] `python -m pytest -q` pasa con tests específicos de conversión.\n\n## Dependencias\n\nDepende de **B-005.1**. Es prerequisito de **B-005.3** y, a través de ella, de **B-008**.\n\n## Evidencia esperada\n\n- Función de conversión ticks → segundos con tests de tempo constante, tempo variable y tempo por defecto.\n",
+        "number": 53,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005.2] Convertir ticks a tiempo con el mapa de tempo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/53"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wARg",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "title": "[B-005.2] Convertir ticks a tiempo con el mapa de tempo"
+    },
+    {
+      "content": {
+        "body": "# [B-005.3] Definir la nota normalizada interna\n\n## Descripción\n\nDefinir la representación interna estable de una nota —el contrato que consumirán reproducción, compases, polifonía y evaluación— y sustituir el placeholder de `MidiService.normalize` por la producción real de notas a partir de un MIDI.\n\n## Alcance\n\n- Definir la nota normalizada (dataclass o `TypedDict`, congelada) con, al menos: pitch, instante de inicio en segundos, duración en segundos, velocity, canal y track de origen.\n- Emparejar los eventos `note_on` (velocity > 0) con su `note_off` (o `note_on` con velocity 0) del mismo pitch, canal y track, usando la convención MIDI estándar.\n- Expresar inicio y duración en segundos reutilizando la conversión de **B-005.2**, no en ticks.\n- Devolver las notas ordenadas de forma estable (por inicio y, a igual inicio, por pitch/canal/track) para que la salida sea determinista.\n- Exponer el resultado de `normalize` como fuente única de verdad para el resto del motor; `midi.py` no decide pedagogía ni persiste la secuencia completa.\n- Mantener el comportamiento de placeholder cuando se le pase una fuente no válida, para no romper el test existente mientras el servicio se integra en B-005.4.\n\n## Criterios de aceptación\n\n- [ ] `normalize` devuelve notas con pitch, inicio, duración, velocity, canal y track en unidades estables (segundos).\n- [ ] Una nota sostenida produce una única nota normalizada con su duración real.\n- [ ] Las notas simultáneas (acorde) se devuelven por separado, cada una con su instante.\n- [ ] El orden de salida es estable: el mismo archivo produce siempre la misma lista.\n- [ ] Una nota sin `note_off` se trata de forma definida y documentada (corte o descarte), sin lanzar excepción sin capturar.\n- [ ] `python -m pytest -q` pasa con tests de notas simples, acordes y notas sin cierre.\n\n## Dependencias\n\nDepende de **B-005.1** y **B-005.2**. Es prerequisito de **B-005.4**, **B-006** (reproducción), **B-007** (notas esperadas), **B-009** (polifonía) y **B-013** (evaluación).\n\n## Evidencia esperada\n\n- Tipo de nota normalizado documentado, `normalize` implementado y tests de emparejamiento, orden y determinismo.\n",
+        "number": 54,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005.3] Definir la nota normalizada interna",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/54"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wAVI",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-005.3] Definir la nota normalizada interna"
+    },
+    {
+      "content": {
+        "body": "# [B-005.4] Integrar metadatos musicales en la carga y verificar el flujo\n\n## Descripción\n\nConectar el motor normalizado con la carga de piezas para que, al subir un MIDI, los campos musicales (`tracks`, `duration_seconds`, `tempo`, `notes_count`) se calculen, persistan en SQLite y se devuelvan al frontend, que ya sabe mostrarlos.\n\n## Alcance\n\n- Invocar `MidiService.inspect_file` desde el flujo de `POST /api/v1/pieces` una vez guardado el archivo en filesystem.\n- Persistir los campos musicales en la tabla `pieces` (`tracks`, `duration_s`, `notes_count`) sin romper el esquema existente de B-003.1; añadir migración si se decide persistir también tempo.\n- Devolver esos campos dentro de `metadata` en `PieceResponse`, cumpliendo el contrato de B-002.1 tal como lo refleja `schemas.py`.\n- Definir el comportamiento cuando el parsing musical falla tras haber guardado el archivo: decidir y documentar si la carga se rechaza (500 con código estable) o se acepta con metadatos nulos.\n- Verificar el flujo end-to-end con Docker: subir un MIDI del corpus desde la web y ver tracks, duración y número de notas en pantalla.\n- Actualizar los tests de carga para cubrir el caso con metadatos rellenados.\n\n## Criterios de aceptación\n\n- [ ] Tras cargar un MIDI válido, la respuesta incluye tracks, duración y número de notas reales.\n- [ ] Los valores persistidos son consultables en SQLite tras el arranque.\n- [ ] La web muestra esos metadatos sin cambios adicionales en el frontend.\n- [ ] Un fallo de parsing se comunica con un código de error estable, sin trazas expuestas.\n- [ ] El flujo funciona en Docker Compose: subir un MIDI del corpus y ver sus metadatos.\n- [ ] `python -m pytest -q` pasa (60 tests existentes más los nuevos) y el healthcheck continúa en verde.\n\n## Dependencias\n\nDepende de **B-005.1**, **B-005.2** y **B-005.3**. Cierra **B-005** y habilita a **B-006**, **B-008** y **B-013**.\n\n## Evidencia esperada\n\n- Carga con metadatos musicales persistidos, captura de la web mostrándolos y verificación del flujo con Docker.\n",
+        "number": 55,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-005.4] Integrar metadatos musicales en la carga y verificar el flujo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/55"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_wAX0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "title": "[B-005.4] Integrar metadatos musicales en la carga y verificar el flujo"
     }
   ],
   "notes": [
