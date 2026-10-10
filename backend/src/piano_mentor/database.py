@@ -70,6 +70,10 @@ PIECE_COLUMNS = (
     "tracks",
     "duration_s",
     "notes_count",
+    "tempo",
+    "content_hash",
+    "source",
+    "owner_id",
     "license",
     "source_url",
     "difficulty",
@@ -110,12 +114,40 @@ def get_piece(conn: sqlite3.Connection, piece_id: str) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM pieces WHERE id = ?", (piece_id,)).fetchone()
 
 
+def find_piece_by_hash(conn: sqlite3.Connection, content_hash: str) -> sqlite3.Row | None:
+    """Busca una pieza por el SHA-256 de su contenido (deduplicación).
+
+    Si varias filas compartieran hash, se prioriza la del corpus por encima de
+    las subidas: el corpus es la referencia canónica de la pieza.
+    """
+    return conn.execute(
+        "SELECT * FROM pieces WHERE content_hash = ?"
+        " ORDER BY CASE WHEN source = 'corpus' THEN 0 ELSE 1 END, created_at"
+        " LIMIT 1",
+        (content_hash,),
+    ).fetchone()
+
+
 def save_piece(record: Mapping[str, object]) -> None:
     """Persiste metadatos en `DATABASE_URL` creando el esquema si hace falta (B-003.2)."""
     conn = connect()
     try:
         init_db(conn)
         insert_piece(conn, record)
+    finally:
+        conn.close()
+
+
+def find_existing_piece(content_hash: str) -> sqlite3.Row | None:
+    """Busca una pieza ya persistida por hash, gestionando su propia conexión.
+
+    Equivalente en gestión de conexión a `save_piece`; es el paso previo a la
+    deduplicación de subidas.
+    """
+    conn = connect()
+    try:
+        init_db(conn)
+        return find_piece_by_hash(conn, content_hash)
     finally:
         conn.close()
 

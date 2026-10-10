@@ -12,6 +12,8 @@ const PIECE_RESPONSE = {
   size_bytes: 1234,
   extension: ".mid",
   status: "uploaded",
+  source: "upload",
+  deduplicated: false,
   metadata: {
     tracks: 1,
     duration_seconds: null,

@@ -602,6 +602,8 @@ WS   /api/v1/ws/sessions/{session_id}
 
 El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
 
+`POST /api/v1/pieces` deduplica por SHA-256 del contenido: si la pieza ya existe (incluido el corpus) devuelve la fila existente con `deduplicated: true` en lugar de crear un archivo o una fila nueva. La procedencia se marca en `source` (`corpus` o `upload`) y `owner_id` (reservado para autenticación; `NULL` = anónimo). Corpus y subidas comparten la tabla `pieces` y se separan por columnas, no por tablas, para no fragmentar las consultas de sesiones y evaluación.
+
 ## 8. Destino de despliegue inicial
 
 La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:
@@ -740,7 +742,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-10 16:12 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-10 17:58 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -791,6 +793,8 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/midi.py
 ├── backend/src/piano_mentor/migrations/
 ├── backend/src/piano_mentor/migrations/0001_init_pieces.sql
+├── backend/src/piano_mentor/migrations/0002_add_tempo.sql
+├── backend/src/piano_mentor/migrations/0003_add_hash_and_provenance.sql
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
 ├── backend/src/piano_mentor/storage.py
@@ -820,6 +824,8 @@ piano-mentor-ai/
 ├── backend/tests/test_health.py
 ├── backend/tests/test_midi.py
 ├── backend/tests/test_piece_contract.py
+├── backend/tests/test_piece_dedup.py
+├── backend/tests/test_piece_musical_metadata.py
 ├── backend/tests/test_piece_persistence.py
 ├── backend/tests/test_piece_upload.py
 ├── backend/tests/test_storage.py
@@ -835,6 +841,7 @@ piano-mentor-ai/
 ├── data/uploads/.gitkeep
 ├── desing/
 ├── desing/main_page.ai
+├── desing/main_page_LG.jpg
 ├── docker-compose.yml
 ├── docs/
 ├── docs/GETTING_STARTED.md
@@ -935,17 +942,19 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/__init__.py` | Marca el paquete Python piano_mentor. | Raíz de importaciones del backend. |
 | `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. |
 | `backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno (Settings). | Centraliza puertos, CORS, rutas MIDI y base de datos. |
-| `backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). Debe mantenerse delgado. | Traduce HTTP/WS a servicios; sin lógica musical compleja. |
-| `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API. | Contrato tipado entre frontend y backend. |
+| `backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). POST /pieces deduplica por SHA-256 (devuelve la pieza existente si el contenido ya estaba) e invoca inspect_file (B-005.4) para rellenar metadatos musicales, con 400 + limpieza si el MIDI es ilegible. | Traduce HTTP/WS a servicios; delgado, sin lógica musical compleja. |
+| `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API; PieceResponse incluye source (corpus/upload) y deduplicated para la reutilización por hash. | Contrato tipado entre frontend y backend. |
 | `backend/src/piano_mentor/validators.py` | Validación de uploads MIDI: nombre, extensión, tamaño y contenido. | Rechaza archivos inválidos antes de guardarlos. |
-| `backend/src/piano_mentor/storage.py` | Guardado local de piezas MIDI en filesystem. | Persistencia MVP de bytes MIDI; metadatos irán a SQLite. |
+| `backend/src/piano_mentor/storage.py` | Guardado local de piezas MIDI en filesystem, con delete() para limpiar huérfanos y content_hash() (SHA-256) como base de la deduplicación. | Persistencia MVP de bytes MIDI; delete() lo usa B-005.4 para no dejar archivos huérfanos y content_hash() decide si una subida es nueva. |
 | `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales), mapa de tempo inmutable `TempoMap` que convierte ticks a segundos y nota normalizada `NormalizedNote` (pitch, inicio, duración, velocity, canal y pista en segundos). | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError; TempoMap y NormalizedNote son el contrato de tiempo y de nota para reproducción (B-006), compases (B-008), polifonía (B-009) y evaluación (B-013). |
 | `backend/src/piano_mentor/evaluation.py` | Evaluador determinista: notas correctas, omitidas, extras, precisión y timing. | Mide la interpretación sin LLM ni UI. |
 | `backend/src/piano_mentor/practice.py` | Casos de uso de sesión de práctica: crear sesión, estado y eventos. | Coordina pieza + interpretación + estado. |
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
-| `backend/src/piano_mentor/database.py` | Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas e inserción de metadatos de piezas. | Persistencia de piezas (B-003.2/B-003.3); reutilizable por B-012. |
+| `backend/src/piano_mentor/database.py` | Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, inserción de metadatos de piezas (incluye tracks, duration_s, notes_count y tempo desde B-005.4) y búsqueda por content_hash con prioridad del corpus (find_piece_by_hash). | Persistencia de piezas (B-003.2/B-003.3); reutilizable por B-012 y base de la deduplicación de subidas. |
 | `backend/src/piano_mentor/migrations/0001_init_pieces.sql` | Migración inicial: tabla pieces con metadatos de carga y de catálogo (sin vectores todavía). | Esquema versionado de SQLite; piezas sin embedding hasta B-005/B-013. |
-| `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados. | CLI python -m piano_mentor.catalog; B-003.3 no toca el formato del catálogo. |
+| `backend/src/piano_mentor/migrations/0002_add_tempo.sql` | Migración 0002: añade la columna tempo (REAL) a la tabla pieces. | Persistir el tempo inicial (BPM) que el motor ya calcula desde B-005.1. |
+| `backend/src/piano_mentor/migrations/0003_add_hash_and_provenance.sql` | Migración 0003: añade content_hash (SHA-256), source ('corpus'/'upload') y owner_id (reservado, NULL = anónimo), con índice sobre el hash y clasificación de las filas existentes por midi_path. | Detección de duplicados y procedencia; owner_id prepara la futura issue de usuarios. |
+| `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados; calcula content_hash y marca source='corpus' para que subir un MIDI idéntico reutilice el catálogo. | CLI python -m piano_mentor.catalog; B-003.3 no toca el formato del catálogo. |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales), conversión ticks→segundos con TempoMap y nota normalizada (emparejamiento, acordes, orden estable y notas sin cerrar). | Confianza en el parsing, el mapa de tempo y el normalizador. |
 | `backend/tests/test_evaluation.py` | Notas correctas, omitidas, adicionales y timing. | Confianza en el evaluador. |
@@ -953,6 +962,8 @@ piano-mentor-ai/
 | `backend/tests/test_validators.py` | Extensión, tamaño, nombre y contenido de uploads. | Confianza en el rechazo de archivos malos. |
 | `backend/tests/test_storage.py` | Guardado y recuperación local de piezas. | Confianza en el filesystem del MVP. |
 | `backend/tests/test_piece_upload.py` | Integración del endpoint POST /pieces. | Contrato de carga extremo a extremo. |
+| `backend/tests/test_piece_musical_metadata.py` | Integración del cable motor MIDI -> carga: metadatos reales en respuesta y BD, y MIDI ilegible rechazado sin huérfanos. | Confianza en B-005.4: inspect_file conectado a POST /pieces. |
+| `backend/tests/test_piece_dedup.py` | Deduplicación por SHA-256 en POST /pieces: subida repetida devuelve la misma pieza sin archivo ni fila extra, contenido distinto crea pieza nueva y subida idéntica al corpus reutiliza la entrada del catálogo con su título. | Confianza en la detección de duplicados y en la procedencia corpus/upload. |
 | `backend/tests/test_piece_contract.py` | Contrato de metadatos de pieza del MVP. | Evita rupturas del formato de pieza. |
 | `backend/tests/test_catalog.py` | Catálogo o listado base de piezas. | Orden y acceso a piezas de demo. |
 | `backend/tests/test_database.py` | Conexión SQLite, carga de sqlite-vec, esquema pieces e idempotencia de migraciones. | Confianza en la persistencia de metadatos. |
@@ -967,11 +978,11 @@ piano-mentor-ai/
 | `frontend/src/app/page.tsx` | Página inicial: carga de MIDI y acceso a práctica. | Entrada del flujo cargar → practicar. |
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación. | Base visual de la web. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. | Vista de tocar, evaluar y ver al agente. |
-| `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados y metadatos devueltos. | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
+| `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados, aviso de pieza reutilizada y metadatos devueltos (incluye tempo y origen). | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
 | `frontend/src/components/PianoKeyboard.tsx` | Piano virtual y resaltado de notas. | Muestra notas esperadas y recibidas; sin parsing MIDI. |
 | `frontend/src/components/SessionStatus.tsx` | Estado actual: tempo, compás y quién controla el piano. | Hace visible practicing/waiting/demonstrating. |
 | `frontend/src/components/PracticeSession.tsx` | Vista principal de práctica (se incorpora con B-012). | Composición de teclado + estado + controles. |
-| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
+| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated) y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
 | `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
@@ -984,6 +995,7 @@ piano-mentor-ai/
 | `issues/B-001/B-001.md` | Resumen y aceptación de la Issue B-001 (estructura monorepo). | alcance de la issue principal; detalle en B-001.N.md. |
 | `issues/B-002/B-002.md` | Resumen y aceptación de la Issue B-002 (contrato y almacenamiento de piezas). | Contrato base de piezas MIDI. |
 | `issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas y vectores. |
+| `issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
 | `.agents/skills/piano-mentor-ai-development/SKILL.md` | Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. | Cargar al modificar MIDI, evaluación, frontend o agente. |
 | `.agents/skills/piano-mentor-github-projects/SKILL.md` | Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. | Cargar al operar backlog e issues B-xxx. |
 | `.agents/skills/piano-mentor-architecture/SKILL.md` | Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree. | Cargar al documentar archivos o estructura; ejecuta el script. |

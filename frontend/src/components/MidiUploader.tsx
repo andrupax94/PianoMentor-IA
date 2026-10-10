@@ -92,16 +92,24 @@ export function MidiUploader() {
 
       {state.kind === "ready" && (
         <div>
-          <p role="status">Carga completada.</p>
+          <p role="status">
+            {state.piece.deduplicated
+              ? "Esta pieza ya existía: se ha reutilizado en lugar de duplicarla."
+              : "Carga completada."}
+          </p>
           <ul>
             <li>Nombre: <strong>{state.piece.filename}</strong></li>
             <li>Tamaño: <strong>{formatBytes(state.piece.size_bytes)}</strong></li>
             <li>Extensión: <strong>{state.piece.extension}</strong></li>
+            <li>Origen: <strong>{state.piece.source === "corpus" ? "Catálogo" : "Subida"}</strong></li>
             {state.piece.metadata.tracks !== null && (
               <li>Pistas: <strong>{state.piece.metadata.tracks}</strong></li>
             )}
             {state.piece.metadata.duration_seconds !== null && (
               <li>Duración: <strong>{state.piece.metadata.duration_seconds.toFixed(1)} s</strong></li>
+            )}
+            {state.piece.metadata.tempo !== null && (
+              <li>Tempo: <strong>{state.piece.metadata.tempo.toFixed(0)} BPM</strong></li>
             )}
             {state.piece.metadata.notes_count !== null && (
               <li>Notas: <strong>{state.piece.metadata.notes_count}</strong></li>

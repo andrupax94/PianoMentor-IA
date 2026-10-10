@@ -10,7 +10,13 @@ import sqlite3
 import pytest
 
 from piano_mentor.config import settings
-from piano_mentor.database import _database_path, connect, init_db, pending_migrations
+from piano_mentor.database import (
+    MIGRATIONS_DIR,
+    _database_path,
+    connect,
+    init_db,
+    pending_migrations,
+)
 
 
 class TestConnection:
@@ -123,12 +129,13 @@ class TestSchema:
         try:
             first = init_db(conn)
             second = init_db(conn)
-            assert first == ["0001_init_pieces"]
+            # Se aplican todas las migraciones versionadas, en orden.
+            assert first == sorted(script.stem for script in MIGRATIONS_DIR.glob("*.sql"))
             assert second == []
             applied = conn.execute(
                 "SELECT version FROM schema_migrations ORDER BY version"
             ).fetchall()
-            assert [row["version"] for row in applied] == ["0001_init_pieces"]
+            assert [row["version"] for row in applied] == first
         finally:
             conn.close()
 

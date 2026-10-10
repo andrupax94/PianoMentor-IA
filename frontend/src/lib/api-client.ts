@@ -17,6 +17,10 @@ export interface PieceResponse {
   size_bytes: number;
   extension: string;
   status: string;
+  /** Procedencia de la pieza: 'corpus' (catálogo) o 'upload' (subida). */
+  source: string;
+  /** true cuando el contenido ya existía y se ha reutilizado en vez de duplicarlo. */
+  deduplicated: boolean;
   metadata: PieceMetadata;
 }
 

@@ -27,6 +27,8 @@ class PieceResponse(BaseModel):
     size_bytes: int
     extension: str
     status: str = "uploaded"
+    source: str = "upload"
+    deduplicated: bool = False
     metadata: PieceMetadata = PieceMetadata()
 
 

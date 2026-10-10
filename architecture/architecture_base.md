@@ -602,6 +602,8 @@ WS   /api/v1/ws/sessions/{session_id}
 
 El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
 
+`POST /api/v1/pieces` deduplica por SHA-256 del contenido: si la pieza ya existe (incluido el corpus) devuelve la fila existente con `deduplicated: true` en lugar de crear un archivo o una fila nueva. La procedencia se marca en `source` (`corpus` o `upload`) y `owner_id` (reservado para autenticación; `NULL` = anónimo). Corpus y subidas comparten la tabla `pieces` y se separan por columnas, no por tablas, para no fragmentar las consultas de sesiones y evaluación.
+
 ## 8. Destino de despliegue inicial
 
 La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:

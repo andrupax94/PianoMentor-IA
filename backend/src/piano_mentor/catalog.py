@@ -11,6 +11,7 @@ from typing import Any
 
 from .config import settings
 from .database import connect, init_db, upsert_piece
+from .storage import content_hash
 
 
 class CatalogError(Exception):
@@ -42,6 +43,10 @@ def _record(entry: dict[str, Any], base_dir: Path) -> dict[str, Any]:
         "license": entry.get("license"),
         "source_url": entry.get("source_url"),
         "difficulty": entry.get("difficulty"),
+        # B-005.4+: hash y procedencia, para que subir un MIDI idéntico a un
+        # archivo del corpus reutilice la entrada del catálogo en vez de duplicarla.
+        "content_hash": content_hash(midi_file.read_bytes()),
+        "source": "corpus",
     }
 
 
