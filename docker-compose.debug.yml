@@ -1,0 +1,19 @@
+# description: Compose de depuración: back con debugpy (5678) y front con --inspect (9229).
+# context: Uso: docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+#          y luego F5 en VS Code con "Docker: backend (attach)" o "Docker: frontend (attach)".
+
+services:
+  backend:
+    # debugpy no va en la imagen de producción; se instala al arrancar el contenedor.
+    # Ojo con el YAML: toda continuación debe ir a la MISMA indentación o el ">" no la une.
+    command: >
+      sh -c "pip install --no-cache-dir -q debugpy &&
+      python -m debugpy --listen 0.0.0.0:5678 -m uvicorn piano_mentor.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "5678:5678"
+
+  frontend:
+    # Next dev con el inspector de Node para depurar server-side code.
+    command: node --inspect=0.0.0.0:9229 node_modules/next/dist/bin/next dev
+    ports:
+      - "9229:9229"

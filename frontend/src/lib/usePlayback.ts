@@ -9,51 +9,15 @@ import {
   type NoteVoice,
   type PlaybackSnapshot,
 } from "./playback-engine";
-import { pitchToFrequency, type ScheduledEvent } from "./playback-schedule";
 import type { PlayableNote } from "./api-client";
+import { createPolySynth, type PolySynth } from "./synth";
 
-interface ActiveVoice {
-  osc: OscillatorNode;
-  gain: GainNode;
-}
-
-/** Voz WebAudio: oscilador triangular con envolvente según velocity y duración. */
-function createWebAudioVoice(ctx: AudioContext, master: GainNode): NoteVoice {
-  const active = new Set<ActiveVoice>();
-
+/** Voz del motor sobre el sintetizador compartido (reutilizado en audición). */
+function createEngineVoice(synth: PolySynth): NoteVoice {
   return {
-    scheduleNote(event: ScheduledEvent, atTime_s: number): void {
-      const startAt = Math.max(atTime_s, ctx.currentTime);
-      const sounding = Math.max(event.duration_s, 0.05);
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.value = pitchToFrequency(event.pitch);
-      const peak = Math.max(0.5 * (event.velocity / 127), 0.0011);
-      gain.gain.setValueAtTime(0.0001, startAt);
-      gain.gain.exponentialRampToValueAtTime(peak, startAt + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + sounding);
-      osc.connect(gain);
-      gain.connect(master);
-      const handle: ActiveVoice = { osc, gain };
-      active.add(handle);
-      osc.onended = () => active.delete(handle);
-      osc.start(startAt);
-      osc.stop(startAt + sounding + 0.05);
-    },
-    silence(): void {
-      const now = ctx.currentTime;
-      for (const handle of active) {
-        try {
-          handle.gain.gain.cancelScheduledValues(now);
-          handle.gain.gain.setTargetAtTime(0.0001, now, 0.01);
-          handle.osc.stop(now + 0.05);
-        } catch {
-          // Un oscilador ya detenido no debe romper la pausa.
-        }
-      }
-      active.clear();
-    },
+    scheduleNote: (event, atTime_s) =>
+      synth.scheduleNote(event.pitch, event.velocity, event.duration_s, atTime_s),
+    silence: () => synth.silence(),
   };
 }
 
@@ -71,8 +35,10 @@ function createAudioContext(): AudioContext {
  */
 export function usePlayback(tickMs = 25) {
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot>(INITIAL_SNAPSHOT);
+  const [notes, setNotes] = useState<PlayableNote[]>([]);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
+  const synthRef = useRef<PolySynth | null>(null);
   const statusRef = useRef<PlaybackSnapshot["status"]>("stopped");
   statusRef.current = snapshot.status;
 
@@ -87,9 +53,11 @@ export function usePlayback(tickMs = 25) {
       const master = ctx.createGain();
       master.gain.value = 0.9;
       master.connect(ctx.destination);
+      const synth = createPolySynth(ctx, master);
+      synthRef.current = synth;
       engineRef.current = new PlaybackEngine(
         { now: () => ctx.currentTime },
-        createWebAudioVoice(ctx, master),
+        createEngineVoice(synth),
       );
     }
     return engineRef.current;
@@ -97,10 +65,11 @@ export function usePlayback(tickMs = 25) {
 
   const load = useCallback(
     (
-      notes: PlayableNote[],
+      loaded: PlayableNote[],
       options?: { tempoFactor?: number; duration_s?: number; tempo_bpm?: number },
     ) => {
-      ensureEngine().load(notes, options);
+      ensureEngine().load(loaded, options);
+      setNotes(loaded);
       sync();
     },
     [ensureEngine, sync],
@@ -141,6 +110,20 @@ export function usePlayback(tickMs = 25) {
     [sync],
   );
 
+  /** Suena una tecla del PC al instante (audición, fuera del transporte). */
+  const auditionOn = useCallback(
+    (pitch: number, velocity: number) => {
+      ensureEngine();
+      synthRef.current?.noteOn(pitch, velocity);
+    },
+    [ensureEngine],
+  );
+
+  /** Suelta una tecla del PC. */
+  const auditionOff = useCallback((pitch: number) => {
+    synthRef.current?.noteOff(pitch);
+  }, []);
+
   // Mientras suena, un intervalo avanza el motor y refresca la posición para la UI.
   useEffect(() => {
     if (statusRef.current !== "playing") return;
@@ -157,10 +140,11 @@ export function usePlayback(tickMs = 25) {
     return () => {
       engineRef.current?.stop();
       engineRef.current = null;
+      synthRef.current = null;
       void getCtx()?.close().catch(() => undefined);
       ctxRef.current = null;
     };
   }, []);
 
-  return { ...snapshot, load, play, pause, stop, seek, setTempoFactor };
+  return { ...snapshot, notes, load, play, pause, stop, seek, setTempoFactor, auditionOn, auditionOff };
 }

@@ -75,12 +75,15 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-027 | P1 | Crear corpus de piezas MIDI de licencia compatible | 2 |
 | B-028 | P1 | Detectar duplicados por hash y marcar procedencia | 1 |
 | B-029 | P2 | Control de MIDIs por usuario y subidas anónimas | 5 |
+| U-001 | P2 | Configurar el depurador en VS Code y Docker | — |
 
 Las prioridades significan: **P0**, imprescindible para el flujo principal; **P1**, necesario para la demo completa o el primer despliegue; **P2**, posterior y aplazable.
 
 El backlog puede crecer o reordenarse. Cuando una tarea se complete, debe reflejarse en GitHub Projects y, si afecta a la aceptación del MVP, también en la sección correspondiente de este documento.
 
 Tras la revisión de B-005 se añadieron dos tareas no previstas en el plan inicial: **B-028** (detección de duplicados por hash y procedencia de las piezas, implementada en la semana 1) y **B-029** (control de MIDIs por usuario y subidas anónimas, reservada para el final del MVP, fuera del alcance de las semanas 1 a 4).
+
+La serie **U-** está **fuera del plan inicial**: son tareas de herramientas de desarrollo (no de producto) que nacieron a último momento para desbloquear lo que hizo falta mientras se implementaba el resto. No se reparten por semanas (columna `—`), no cuentan para la aceptación del MVP y se atienden cuando hacen falta. La primera es **U-001** (depurador en VS Code y Docker), surgida al cablear B-007.
 
 ### Fechas objetivo iniciales
 

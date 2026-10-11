@@ -183,7 +183,8 @@ Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otr
         }
     }
 
-    $labelsForIssue = @($item.Priority, $item.Week, $item.Area)
+    # Week puede estar vacío (serie U-, fuera del plan): no se genera etiqueta vacía.
+    $labelsForIssue = @($item.Priority, $item.Week, $item.Area) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     if ($Preview) {
         Write-Output "ISSUE: $title | labels=$($labelsForIssue -join ', ')"
         continue

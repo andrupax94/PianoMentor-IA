@@ -1,0 +1,14 @@
+/* description: Estilos del marco del teclado SVG. */
+/* context: B-007.1; el SVG se estira (preserveAspectRatio none) para llenar el
+   contenedor con teclas planas como el diseño; la altura es plana y controlada. */
+
+.frame {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: clamp(120px, 12vw, 170px);
+}

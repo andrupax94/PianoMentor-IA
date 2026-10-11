@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:keyboard": "svgr --typescript --ref --out-dir src/components/PianoStage/Keyboard/SvgKeyboard assets/piano_virtual_88_pressed.svg"
   },
   "dependencies": {
     "next": "^16.4.0",
@@ -15,6 +16,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@svgr/cli": "^8.1.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

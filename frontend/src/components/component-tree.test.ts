@@ -1,7 +1,14 @@
 // description: Humo del árbol de componentes: todos existen y son funciones.
 // context: Criterio de B-006.4; no renderiza (sin DOM en los tests).
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// El SVG generado con SVGR pesa ~57 KB y su parse es el foco de un fallo
+// intermitente del analizador de imports bajo workers; este test solo
+// comprueba que los componentes existen, así que se sustituye por un stub.
+vi.mock("./PianoStage/Keyboard/SvgKeyboard/PianoVirtual88Pressed", () => ({
+  default: () => null,
+}));
 
 import { AppHeader } from "./AppHeader/AppHeader";
 import { BrandLogo } from "./AppHeader/BrandLogo/BrandLogo";
@@ -15,6 +22,7 @@ import { SongInfo } from "./PlayerBar/SongInfo/SongInfo";
 import { TempoMeasure } from "./PlayerBar/TempoMeasure/TempoMeasure";
 import { PianoStage } from "./PianoStage/PianoStage";
 import { Keyboard } from "./PianoStage/Keyboard/Keyboard";
+import { SvgKeyboard } from "./PianoStage/Keyboard/SvgKeyboard/SvgKeyboard";
 import { NoteFallGrid } from "./PianoStage/NoteFallGrid/NoteFallGrid";
 import { MentorPanel } from "./MentorPanel/MentorPanel";
 import { MentorChat } from "./MentorPanel/MentorChat/MentorChat";
@@ -35,6 +43,7 @@ const TREE = {
   TempoMeasure,
   PianoStage,
   Keyboard,
+  SvgKeyboard,
   NoteFallGrid,
   MentorPanel,
   MentorChat,
@@ -44,8 +53,8 @@ const TREE = {
 };
 
 describe("component tree", () => {
-  it("expone los 18 componentes del armazón", () => {
-    expect(Object.keys(TREE)).toHaveLength(18);
+  it("expone los 19 componentes del armazón", () => {
+    expect(Object.keys(TREE)).toHaveLength(19);
     for (const [name, component] of Object.entries(TREE)) {
       expect(typeof component, name).toBe("function");
     }

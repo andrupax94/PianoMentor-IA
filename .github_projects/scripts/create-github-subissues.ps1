@@ -84,7 +84,8 @@ foreach ($document in $documents) {
             $editOutput = & gh issue edit "$($existing.number)" --repo $Repository --body-file $document.FullName 2>&1
             if ($LASTEXITCODE -ne 0) { throw "No se pudo actualizar el cuerpo de $childId.`n$($editOutput | Out-String)" }
             $linkOutput = & gh issue edit "$($parentIssue.number)" --repo $Repository --add-sub-issue "$($existing.number)" 2>&1
-            if ($LASTEXITCODE -ne 0 -and (($linkOutput | Out-String) -notmatch 'already|exist')) { throw "No se pudo vincular $childId al padre $ParentId.`n$($linkOutput | Out-String)" }
+            # GitHub responde "may not contain duplicate sub-issues" cuando ya está vinculada: no es error.
+            if ($LASTEXITCODE -ne 0 -and (($linkOutput | Out-String) -notmatch 'already|exist|duplicate')) { throw "No se pudo vincular $childId al padre $ParentId.`n$($linkOutput | Out-String)" }
         }
         continue
     }

@@ -132,8 +132,13 @@ Write-Output "Project #${ProjectNumber}: Priority='Priority', TargetDate='Target
 Write-Output "Planificación: $($PlanningStartDate.ToString('yyyy-MM-dd'))"
 
 foreach ($item in $items) {
-    $weekNumber = Get-WeekNumber -Week $item.Week
-    $targetDate = $PlanningStartDate.AddDays((($weekNumber - 1) * 7) + 6).ToString('yyyy-MM-dd')
+    # Week vacío = fuera del plan (serie U-): sin Target date, pero Priority sí se sincroniza.
+    $hasWeek = -not [string]::IsNullOrWhiteSpace($item.Week) -and $item.Week -match '(\d+)'
+    $targetDate = $null
+    if ($hasWeek) {
+        $weekNumber = Get-WeekNumber -Week $item.Week
+        $targetDate = $PlanningStartDate.AddDays((($weekNumber - 1) * 7) + 6).ToString('yyyy-MM-dd')
+    }
     $priorityCandidates = Get-PriorityCandidates -Priority $item.Priority
     $priorityValue = Resolve-PriorityValue -Priority $item.Priority -PriorityField $priorityField
     $matchingItems = @($backupItems | Where-Object { (Get-ItemId -Item $_) -eq $item.ID })
@@ -148,7 +153,7 @@ foreach ($item in $items) {
         $currentPriority = Get-FieldValueText -Item $projectItem -Names @('priority', 'Priority')
         $currentTargetDate = Get-FieldValueText -Item $projectItem -Names @('targetDate', 'Target date', 'TargetDate')
         $priorityNeedsUpdate = [string]::IsNullOrWhiteSpace($currentPriority) -or (($priorityCandidates -notcontains $currentPriority) -and (($priorityCandidates | Where-Object { $_ -ieq $currentPriority }).Count -eq 0))
-        $dateNeedsUpdate = [string]::IsNullOrWhiteSpace($currentTargetDate) -or ($currentTargetDate.Substring(0, [Math]::Min(10, $currentTargetDate.Length)) -ne $targetDate)
+        $dateNeedsUpdate = $hasWeek -and ([string]::IsNullOrWhiteSpace($currentTargetDate) -or ($currentTargetDate.Substring(0, [Math]::Min(10, $currentTargetDate.Length)) -ne $targetDate))
         if ($priorityNeedsUpdate -or $dateNeedsUpdate) {
             $changedItems += [pscustomobject]@{ Item = $projectItem; Priority = $priorityNeedsUpdate; TargetDate = $dateNeedsUpdate }
         }

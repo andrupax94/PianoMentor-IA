@@ -4,7 +4,7 @@
 :root { color-scheme: dark; --bg: #10131a; --panel: #191e29; --accent: #62e6c7; --text: #eef3f7; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: Arial, sans-serif; }
-.shell { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+.shell { max-width: 2200px; margin: 0 auto; padding: 16px 24px 48px; }
 .eyebrow { color: var(--accent); letter-spacing: .14em; font-size: .75rem; }
 h1 { max-width: 700px; font-size: clamp(2.4rem, 7vw, 5rem); line-height: .98; margin: 16px 0; }
 .intro { color: #aab6c2; font-size: 1.1rem; }

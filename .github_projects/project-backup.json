@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-10T20:43:00.1126641Z",
+  "exportedAtUtc": "2026-10-11T16:26:15.0047131Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -163,6 +163,91 @@
   "items": [
     {
       "content": {
+        "body": "<!-- description: Resumen y aceptación de la Issue B-007 (piano virtual básico). -->\n<!-- context: Teclas, notas esperadas y estado de reproducción; solo visual, sin entrada. -->\n\n# [B-007] Crear piano virtual básico\n\n**Estado:** pendiente; documentos inicializados, sin implementar.\n\n## Resumen\n\nMostrar el piano en la web usando el asset `frontend/assets/piano_virtual_88_pressed.svg`: teclas visibles (ventana C1–C6 por defecto según el diseño), notas esperadas resaltadas y estado de reproducción sincronizado con el transporte de B-006. Es solo visualización: no hay entrada del usuario (ni clic, ni teclado del ordenador, ni MIDI físico); eso llega con B-013.\n\n## Objetivo\n\nQue al reproducir una pieza se vea qué suena y qué viene después, con la misma referencia temporal que oye el transporte, para que B-008 (secciones), B-010 (tracks) y B-013 (evaluación) tengan dónde pintar y qué comparar.\n\n## Sub-issues\n\n- [B-007.1 — Teclado SVG inline con ventana visible y mapeo pitch→id](B-007.1.md)\n- [B-007.2 — Resaltado de teclas: sonando y esperada](B-007.2.md)\n- [B-007.3 — Cascada de notas sincronizada con la posición](B-007.3.md)\n- [B-007.4 — Sustituir el placeholder y verificar en Docker](B-007.4.md)\n\n## Alcance\n\n- SVG inline (no `<img>`) para manipular el `fill` de cada tecla por su `data-key-id`.\n- Ventana visible con estado (por defecto C1–C6 según `desing/main_page_desing.jpg`).\n- Resaltado de tecla sonando y de nota esperada, derivados de `position_s` y del *schedule* de B-006.\n- Cascada de notas en `NoteFallGrid` sincronizada con la misma posición.\n- Retirada del `PianoKeyboard` temporal dentro de `Keyboard/` una vez cableado el real.\n\n## Fuera de alcance\n\n- Teclas clicables, teclado del ordenador y Web MIDI: la entrada del usuario es de B-013; B-007 no captura nada.\n- Estado \"recibida\": sin entrada no hay nada que pintar; se cablea en B-013.\n- Restyling CSS completo: simplicidad primero, el usuario mete el CSS full después.\n- Compases y selección por compás (B-008); selección o combinación de tracks (B-010).\n- Sonido del lado del servidor o cambios en el transporte de B-006.\n\n## Criterios de aceptación\n\n- [ ] El teclado muestra la ventana C1–C6 por defecto y el mapeo pitch→id es exacto en las 88 teclas.\n- [ ] Al reproducir, la tecla que suena se resalta y la próxima esperada se distingue con otro color.\n- [ ] La cascada de notas avanza sincronizada con la posición, sin deriva visible.\n- [ ] El placeholder antiguo desaparece sin romper la página ni los tests.\n- [ ] Los tests de frontend pasan y `npm run build` compila.\n- [ ] El flujo funciona en Docker Compose con una pieza del corpus (captura como evidencia).\n\n## Dependencias\n\nDepende de **B-004** (flujo web) y **B-006** (partitura, transporte y andamiaje `PianoStage/Keyboard/`). Habilita a **B-008** (pintar por secciones), **B-010** (pintar por tracks) y **B-013** (comparar esperado contra tocado).\n\n## Compatibilidad con otras issues\n\n- **B-006 (transporte):** B-007 solo lee `position_s`, `status` y el *schedule*; no crea otro reloj ni duplica la matemática de tiempos.\n- **B-006.4 (andamiaje):** reutiliza `PianoStage/Keyboard/` y `NoteFallGrid/`; respeta el trío `.tsx` + `.module.css` + `.types.ts` de la skill.\n- **B-013 (evaluación):** recibirá el mismo *schedule* y la misma posición como referencia; B-007 no captura ni puntúa.\n- **Determinismo:** lo visual deriva del estado del transporte; ningún color decide pedagogía.\n\n## Evidencia esperada\n\n- Teclado SVG cableado al transporte, cascada sincronizada y captura en Docker con una pieza del corpus.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-007/B-007.md](../../blob/main/issues/B-007/B-007.md)",
+        "number": 10,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-007] Crear piano virtual básico",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/10"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-BI",
+      "labels": [
+        "P0",
+        "Semana 1",
+        "Frontend"
+      ],
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "In Progress",
+      "target date": "2026-10-12",
+      "title": "[B-007] Crear piano virtual básico"
+    },
+    {
+      "content": {
+        "body": "# [B-006.1] Servir las notas reproducibles de una pieza\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nExponer desde el backend la partitura lista para reproducir: las notas normalizadas de B-005 de una pieza persistida, ordenadas por instante de inicio, con una ventana opcional por segundos (`from_s`/`to_s`) que anticipe la selección de secciones de B-008. Es la única llamada de red que necesita la reproducción; a partir de aquí el navegador trabaja con datos locales.\n\n## Alcance\n\n- Nuevo endpoint de solo lectura, p. ej. `GET /api/v1/pieces/{piece_id}/notes`, que resuelve la pieza por id (corpus o subida, reutilizando la dedup de B-028).\n- Lee el MIDI del filesystem (`stored_filename`), lo normaliza con el motor de B-005 y devuelve las notas ordenadas por `start_s` (con orden estable ante empates): pitch, inicio, duración, velocity, canal y track.\n- Parámetros opcionales `from_s`/`to_s` que recortan la ventana sin reordenar ni reinterpretar nada.\n- La respuesta incluye el tempo inicial, la duración total y los metadatos ya conocidos de la pieza para que el front no tenga que pedirlos por separado.\n- La pieza inexistente responde 404 con código estable; un MIDI ilegible responde 400 con el mismo código de B-005.4.\n- Tests de backend: orden estable, ventana de sección, pieza inexistente y corpus real.\n\n## Criterios de aceptación\n\n- [x] Pedir las notas de una pieza del corpus devuelve la secuencia completa ordenada por tiempo, idéntica entre llamadas.\n- [x] `from_s`/`to_s` recortan la ventana sin alterar el orden ni los tiempos de las notas incluidas.\n- [x] La respuesta trae tempo inicial y duración total coherentes con `PieceMetadata`.\n- [x] Un id inexistente devuelve 404 con código estable, sin trazas expuestas.\n- [x] `python -m pytest -q` pasa y el healthcheck continúa en verde.\n\n## Dependencias\n\nDepende de **B-005** (normalización y tempo) y de **B-003** (pieza persistida con `stored_filename`). Habilita a **B-006.2**, **B-006.3** y, más adelante, a **B-007**, **B-008** y **B-013**.\n\n## Evidencia esperada\n\n- Endpoint documentado en el contrato, tests de orden/ventana/errores y ejemplo de respuesta para una pieza del corpus.\n",
+        "number": 58,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.1] Servir las notas reproducibles de una pieza",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/58"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51NU",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-006.1] Servir las notas reproducibles de una pieza"
+    },
+    {
+      "content": {
+        "body": "# [B-006.4] Crear la base de componentes del front\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nCrear el andamiaje de componentes de la página principal según las cajas de `desing/main_page_box.jpg` (con `desing/main_page_desing.jpg` como idea visual, buscando simplicidad): montar en `page.tsx` el armazón AppHeader + PlayerBar + PianoStage + MentorPanel con sus subcomponentes, cada uno en su carpeta con el trío `Nombre.tsx` + `Nombre.module.css` + `Nombre.types.ts`. Es solo estructura con contenido estático fiel al diseño; el cableado real (transporte de B-006.2/B-006.3 y piano de B-007) vendrá después. No se elimina ni se rompe nada existente.\n\n## Alcance\n\n- Crear el árbol bajo `frontend/src/components/` (los `(...)` indican subcarpetas con el mismo trío de ficheros):\n  - `AppHeader/` (logo + navegación + estado MIDI + avatar): `BrandLogo/`, `MainNav/` (Learn activo; Library, Progress, Settings; Progress y Settings con candado), `MidiStatus/` (\"MIDI Keyboard connected\" con punto amarillo), `UserAvatar/` (\"A\").\n  - `PlayerBar/` (franja superior del área izquierda): `SongInfo/` (portada, título, \"Piano Arrangement\"), `PlaybackControls/` (rewind, play, stop, forward), `TempoMeasure/` (\"Tempo: 60 BPM\", \"Measure: 12/16\"), `ProgressBar/` (barra + \"75%\").\n  - `PianoStage/` (contenedor del piano): `NoteFallGrid/` (cuadrícula con etiquetas de octava C1–C3 en ambos laterales), `Keyboard/` (teclado C1–C6, blancas y negras).\n  - `MentorPanel/` (columna derecha): `MentorChat/` (avatar robot, \"PianoMentor Chat\", \"Tu Profesor de piano IA\", burbuja de ejemplo, input \"Habla con PianoMentor...\"), `ModeSelector/` (Observar activo, Duo, Tomar Control), `PerformanceStats/` (Rendimiento (Este Pasaje), medidores Timing 74 % y Notas 91 %, \"Punto Débil: Transición de mano izquierda\") con `GaugeChart/` reutilizable.\n- `page.tsx` monta el armazón nuevo; `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando (se reubican dentro del armazón donde encajen o se dejan montados con una nota en este doc durante la implementación).\n- Contenido estático/placeholder donde aún no hay backend (chat, medidores, progreso); los valores de ejemplo del diseño van como constantes, no hardcodeados en el JSX.\n- Convenciones: CSS Modules por componente, props en `.types.ts`, sin `fetch` directo (todo por `api-client.ts`), textos de la UI en español salvo los rótulos propios del diseño en inglés (Learn, Library, Progress, Settings).\n- Ojo: el diseño escribe \"Progess\"; en código se usa **\"Progress\"**.\n- Solo reorganización ligera: ningún cambio de rutas, contratos ni estilos globales más allá de lo que pida el armazón.\n\n## Criterios de aceptación\n\n- [x] El árbol de componentes existe con el trío `.tsx` + `.module.css` + `.types.ts` en cada nivel y compila (`npm run build`).\n- [x] La página monta AppHeader + PlayerBar + PianoStage + MentorPanel con aspecto fiel al diseño (verificado en Docker por el usuario con captura).\n- [x] `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando tras la reorganización.\n- [x] No hay lógica cableada a medio hacer: lo pendiente (transporte, chat, medidores reales) queda como placeholder explícito referenciando a B-006.2/B-006.3 y B-007.\n- [x] `npm test -- --run` pasa y no hay llamadas directas a `fetch` fuera de `api-client.ts`.\n\n## Dependencias\n\nNo depende de **B-006.1–B-006.3** para el andamiaje (es estático), pero se coloca la última a propósito: define dónde se enchufarán el transporte (PlayerBar), la posición (PianoStage) y los datos del mentor (MentorPanel) cuando B-007 los cablee. Respeta a **B-004** (flujo de carga existente).\n\n## Evidencia esperada\n\n- Árbol de componentes creado, captura de la página montada junto al diseño y verificación en Docker de que el flujo de carga sigue funcionando.\n",
+        "number": 61,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.4] Crear la base de componentes del front",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/61"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51W0",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-006.4] Crear la base de componentes del front"
+    },
+    {
+      "content": {
+        "body": "# [B-006.3] Tempo inicial y factor de velocidad\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nQue la reproducción arranque al tempo real de la pieza y permita escalar la velocidad con un factor (p. ej. estudio lento), manteniendo la sincronía entre lo que se oye y la posición mostrada. Como B-005 ya entrega los tiempos en segundos (con los cambios de tempo aplicados), el factor se aplica de forma uniforme dividiendo los tiempos, sin reinterpretar el MIDI.\n\n## Alcance\n\n- El transporte de B-006.2 arranca con el tempo inicial que trae B-006.1 (`tempo` de `PieceMetadata`); si es nulo, se usa un valor por defecto documentado.\n- Factor de velocidad ajustable (rango documentado, p. ej. 0.5–1.5): escala posición y eventos programados de forma coherente, en caliente y sin reiniciar la pieza.\n- La posición mostrada y los eventos sonoros usan siempre la misma base temporal escalada, para que B-007 y B-013 no vean dos relojes distintos.\n- El tempo efectivo (BPM × factor) queda expuesto en el estado del transporte para pintarlo en la UI (PlayerBar lo mostrará en B-006.4/B-007).\n- Tests: con factor 0.5 todo dura el doble, con 2.0 la mitad; cambiar el factor en caliente no produce saltos ni eventos duplicados/perdidos.\n\n## Criterios de aceptación\n\n- [x] Al dar play sin tocar nada, la pieza suena a su tempo real.\n- [x] Con factor 0.5 la reproducción dura el doble y con 2.0 la mitad, de forma exacta según tests.\n- [x] Cambiar el factor durante la reproducción no genera saltos, solapes ni silencios espurios.\n- [x] El estado expone el tempo efectivo para la UI.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (tempo inicial y tiempos en segundos) y **B-006.2** (transporte). Habilita a **B-007** (mostrar tempo) y a **B-013** (referencia temporal de evaluación).\n\n## Evidencia esperada\n\n- Factor de tempo aplicado al *schedule* con tests de escala exacta y verificación manual en Docker (estudio lento audible).\n",
+        "number": 60,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.3] Tempo inicial y factor de velocidad",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/60"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51S4",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-006.3] Tempo inicial y factor de velocidad"
+    },
+    {
+      "content": {
+        "body": "# [B-006.2] Reloj de reproducción en el front (play/pausa/stop)\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nImplementar el transporte de reproducción en el navegador: play, pausa (retoma donde estaba), stop y posición actual, ejecutando localmente el *schedule* que sirve B-006.1 con el reloj de WebAudio. Ninguna acción del transporte viaja por la red, así que responde al instante, no sufre jitter y funciona igual con N usuarios porque el backend no guarda estado de reproducción.\n\n## Alcance\n\n- Módulo puro y testeable (p. ej. `frontend/src/lib/playback-schedule.ts`) que, dadas las notas, un desplazamiento inicial y un factor de tempo, calcula qué eventos suenan en cada instante; el reloj real solo entra por un parámetro inyectable.\n- Estado del transporte (p. ej. `usePlayback`): `playing`/`paused`/`stopped`, posición en segundos, `play()`, `pause()`, `stop()` y `seek(seconds)`.\n- Programación del audio con el reloj de WebAudio a partir del *schedule*; la pausa congela la posición y el play la retoma sin saltos audibles.\n- La posición se expone de forma que B-007 pueda pintar teclas y notas cayendo sincronizadas (esta sub-issue no dibuja nada).\n- Tests con vitest y reloj falso: play→pausa→play retoma el mismo punto, stop vuelve a cero, seek reposiciona y los eventos programados coinciden con el *schedule*.\n- Al cambiar de pieza o desmontar, el transporte se detiene y libera los recursos de audio.\n\n## Criterios de aceptación\n\n- [x] Play inicia la reproducción, pausa la congela, un segundo play retoma en el mismo punto y stop vuelve al inicio.\n- [x] La posición avanza de forma continua y monótona mientras suena.\n- [x] Ninguna acción del transporte realiza llamadas de red (verificable con fetch espiado en tests o en la pestaña de red).\n- [x] Los eventos sonoros programados coinciden con el *schedule* de B-006.1 para una pieza del corpus.\n- [x] Cambiar de pieza detiene la anterior sin solapamientos ni fugas de audio.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (notas + metadatos). Habilita a **B-006.3** (factor de tempo sobre este transporte) y a **B-007** (visuales sincronizados con la posición).\n\n## Evidencia esperada\n\n- Módulo de *schedule* con tests de reloj falso, hook de transporte con tests y verificación manual en Docker (oír play/pausa/stop sin errores en consola).\n",
+        "number": 59,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/59"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51QA",
+      "priority": "P0",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Done",
+      "target date": "2026-10-12",
+      "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)"
+    },
+    {
+      "content": {
         "body": "## Objetivo\nReproducir una pieza o sección con play, pausa, detención y tempo inicial.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-006 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | MIDI |\n| Riesgo | Alto |\n| Tamaño | L |\n| Estado inicial | Backlog |\n| Dependencias | B-005 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
         "number": 9,
         "repository": "andrupax94/PianoMentor-IA",
@@ -178,7 +263,7 @@
       ],
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Ready",
+      "status": "Done",
       "target date": "2026-10-12",
       "title": "[B-006] Implementar reproducción básica"
     },
@@ -366,27 +451,6 @@
       "status": "Backlog",
       "target date": "2026-10-19",
       "title": "[B-008] Calcular compases inicialmente"
-    },
-    {
-      "content": {
-        "body": "## Objetivo\nMostrar teclas, notas esperadas y estado de reproducción en Next.js.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-007 |\n| Prioridad | P0 |\n| Semana | Semana 1 |\n| Área | Frontend |\n| Riesgo | Medio |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-004;B-006 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
-        "number": 10,
-        "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-007] Crear piano virtual básico",
-        "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/10"
-      },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg-4-BI",
-      "labels": [
-        "P0",
-        "Semana 1",
-        "Frontend"
-      ],
-      "priority": "P0",
-      "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
-      "target date": "2026-10-12",
-      "title": "[B-007] Crear piano virtual básico"
     },
     {
       "content": {
@@ -1189,59 +1253,67 @@
     },
     {
       "content": {
-        "body": "# [B-006.1] Servir las notas reproducibles de una pieza\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nExponer desde el backend la partitura lista para reproducir: las notas normalizadas de B-005 de una pieza persistida, ordenadas por instante de inicio, con una ventana opcional por segundos (`from_s`/`to_s`) que anticipe la selección de secciones de B-008. Es la única llamada de red que necesita la reproducción; a partir de aquí el navegador trabaja con datos locales.\n\n## Alcance\n\n- Nuevo endpoint de solo lectura, p. ej. `GET /api/v1/pieces/{piece_id}/notes`, que resuelve la pieza por id (corpus o subida, reutilizando la dedup de B-028).\n- Lee el MIDI del filesystem (`stored_filename`), lo normaliza con el motor de B-005 y devuelve las notas ordenadas por `start_s` (con orden estable ante empates): pitch, inicio, duración, velocity, canal y track.\n- Parámetros opcionales `from_s`/`to_s` que recortan la ventana sin reordenar ni reinterpretar nada.\n- La respuesta incluye el tempo inicial, la duración total y los metadatos ya conocidos de la pieza para que el front no tenga que pedirlos por separado.\n- La pieza inexistente responde 404 con código estable; un MIDI ilegible responde 400 con el mismo código de B-005.4.\n- Tests de backend: orden estable, ventana de sección, pieza inexistente y corpus real.\n\n## Criterios de aceptación\n\n- [x] Pedir las notas de una pieza del corpus devuelve la secuencia completa ordenada por tiempo, idéntica entre llamadas.\n- [x] `from_s`/`to_s` recortan la ventana sin alterar el orden ni los tiempos de las notas incluidas.\n- [x] La respuesta trae tempo inicial y duración total coherentes con `PieceMetadata`.\n- [x] Un id inexistente devuelve 404 con código estable, sin trazas expuestas.\n- [x] `python -m pytest -q` pasa y el healthcheck continúa en verde.\n\n## Dependencias\n\nDepende de **B-005** (normalización y tempo) y de **B-003** (pieza persistida con `stored_filename`). Habilita a **B-006.2**, **B-006.3** y, más adelante, a **B-007**, **B-008** y **B-013**.\n\n## Evidencia esperada\n\n- Endpoint documentado en el contrato, tests de orden/ventana/errores y ejemplo de respuesta para una pieza del corpus.\n",
-        "number": 58,
+        "body": "# [B-007.1] Teclado SVG inline con ventana visible y mapeo pitch→id\n\n## Descripción\n\nRenderizar el asset `frontend/assets/piano_virtual_88_pressed.svg` como SVG inline en React (no como `<img>`, para poder tocar cada tecla) y añadir el mapeo exacto de pitch MIDI a id de tecla más una ventana visible con estado (C1–C6 por defecto, como en el diseño). Sin resaltados todavía: solo el teclado dibujado y direccionable.\n\n## Alcance\n\n- Importar el SVG como JSX inline (con la herramienta que se decida en la implementación: componente generado o `dangerouslySetInnerHTML` + query por `data-key-id`; documentar la elegida).\n- Función pura `pitchToKeyId(pitch)` (`nombres[pitch % 12] + octava`, ej. 60→`c4`) con tests en vitest para bordes (21→`a0`, 108→`c8`).\n- Verificar que los 88 ids del asset son únicos y cubren A0–C8 (52 blancas + 36 negras).\n- Estado de ventana visible (`fromKey`/`toKey`, por defecto C1–C6) que recorta qué teclas se muestran; el resto del SVG no se renderiza o se oculta.\n- Documentar el mecanismo de pressed del asset: los gradientes `whitePressed`/`blackPressed` existen pero nada los conmuta; el encendido se hará cambiando `fill` por código en B-007.2.\n- Tests: mapeo en bordes y centro, unicidad de ids y recorte de ventana.\n\n## Criterios de aceptación\n\n- [ ] El teclado se dibuja desde el asset inline y cada tecla es direccionable por su `data-key-id`.\n- [ ] `pitchToKeyId` es exacto en 21, 60, 108 y en los 88 valores intermedios (test de barrido).\n- [ ] La ventana por defecto muestra C1–C6 como en el diseño y es cambiable por estado.\n- [ ] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nNo depende de **B-006.1–B-006.3** (no necesita la partitura para dibujarse). Habilita a **B-007.2** (resaltado) y vive dentro de `PianoStage/Keyboard/` de **B-006.4**.\n\n## Evidencia esperada\n\n- Teclado dibujado desde el asset, función de mapeo con tests y captura de la ventana C1–C6.\n",
+        "number": 62,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006.1] Servir las notas reproducibles de una pieza",
+        "title": "[B-007.1] Teclado SVG inline con ventana visible y mapeo pitch→id",
         "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/58"
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/62"
       },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51NU",
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhABQUE",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
-      "title": "[B-006.1] Servir las notas reproducibles de una pieza"
+      "target date": "2026-10-12",
+      "title": "[B-007.1] Teclado SVG inline con ventana visible y mapeo pitch→id"
     },
     {
       "content": {
-        "body": "# [B-006.2] Reloj de reproducción en el front (play/pausa/stop)\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nImplementar el transporte de reproducción en el navegador: play, pausa (retoma donde estaba), stop y posición actual, ejecutando localmente el *schedule* que sirve B-006.1 con el reloj de WebAudio. Ninguna acción del transporte viaja por la red, así que responde al instante, no sufre jitter y funciona igual con N usuarios porque el backend no guarda estado de reproducción.\n\n## Alcance\n\n- Módulo puro y testeable (p. ej. `frontend/src/lib/playback-schedule.ts`) que, dadas las notas, un desplazamiento inicial y un factor de tempo, calcula qué eventos suenan en cada instante; el reloj real solo entra por un parámetro inyectable.\n- Estado del transporte (p. ej. `usePlayback`): `playing`/`paused`/`stopped`, posición en segundos, `play()`, `pause()`, `stop()` y `seek(seconds)`.\n- Programación del audio con el reloj de WebAudio a partir del *schedule*; la pausa congela la posición y el play la retoma sin saltos audibles.\n- La posición se expone de forma que B-007 pueda pintar teclas y notas cayendo sincronizadas (esta sub-issue no dibuja nada).\n- Tests con vitest y reloj falso: play→pausa→play retoma el mismo punto, stop vuelve a cero, seek reposiciona y los eventos programados coinciden con el *schedule*.\n- Al cambiar de pieza o desmontar, el transporte se detiene y libera los recursos de audio.\n\n## Criterios de aceptación\n\n- [x] Play inicia la reproducción, pausa la congela, un segundo play retoma en el mismo punto y stop vuelve al inicio.\n- [x] La posición avanza de forma continua y monótona mientras suena.\n- [x] Ninguna acción del transporte realiza llamadas de red (verificable con fetch espiado en tests o en la pestaña de red).\n- [x] Los eventos sonoros programados coinciden con el *schedule* de B-006.1 para una pieza del corpus.\n- [x] Cambiar de pieza detiene la anterior sin solapamientos ni fugas de audio.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (notas + metadatos). Habilita a **B-006.3** (factor de tempo sobre este transporte) y a **B-007** (visuales sincronizados con la posición).\n\n## Evidencia esperada\n\n- Módulo de *schedule* con tests de reloj falso, hook de transporte con tests y verificación manual en Docker (oír play/pausa/stop sin errores en consola).\n",
-        "number": 59,
+        "body": "# [B-007.2] Resaltado de teclas: sonando y esperada\n\n## Descripción\n\nPintar sobre el teclado de B-007.1 dos estados derivados del transporte de B-006: la tecla que está sonando (según `position_s`) y la próxima nota esperada (según el *schedule*). El asset solo trae normal/pressed, así que el estado \"esperada\" necesita un tercer acabado (nuevo gradiente o acento) que se decide en la implementación.\n\n## Alcance\n\n- Leer `position_s` y `status` del `usePlayback` de B-006.2 (sin crear otro reloj).\n- Tecla sonando: notas del *schedule* activas en la posición → `fill` a `whitePressed`/`blackPressed` por `data-key-id`.\n- Nota esperada: primera nota con inicio posterior a la posición (dentro de un horizonte documentado) → acabado de acento distinto del pressed.\n- Al pausar/detener, los resaltados se congelan/limpian con el estado del transporte.\n- Sin entrada de usuario: el estado \"recibida/tocada\" no existe aún; se cablea en B-013.\n- Tests: con reloj falso del motor, la tecla correcta se marca como sonando y la siguiente como esperada; en pausa no cambia nada.\n\n## Criterios de aceptación\n\n- [ ] Al reproducir, cada nota que suena ilumina su tecla y al terminar se apaga.\n- [ ] La próxima nota esperada se distingue con otro color antes de sonar.\n- [ ] Pausa congela los colores y stop los limpia.\n- [ ] Ningún resaltado necesita a la red ni duplica la matemática de tiempos.\n- [ ] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-007.1** (teclado direccionable) y **B-006.1–B-006.3** (partitura, transporte y tempo). Habilita a **B-013** (referencia visual de lo esperado).\n\n## Evidencia esperada\n\n- Reproducción con teclas iluminadas y esperada marcada, más captura en Docker.\n",
+        "number": 63,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)",
+        "title": "[B-007.2] Resaltado de teclas: sonando y esperada",
         "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/59"
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/63"
       },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51QA",
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhABQWw",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
-      "title": "[B-006.2] Reloj de reproducción en el front (play/pausa/stop)"
+      "target date": "2026-10-12",
+      "title": "[B-007.2] Resaltado de teclas: sonando y esperada"
     },
     {
       "content": {
-        "body": "# [B-006.3] Tempo inicial y factor de velocidad\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nQue la reproducción arranque al tempo real de la pieza y permita escalar la velocidad con un factor (p. ej. estudio lento), manteniendo la sincronía entre lo que se oye y la posición mostrada. Como B-005 ya entrega los tiempos en segundos (con los cambios de tempo aplicados), el factor se aplica de forma uniforme dividiendo los tiempos, sin reinterpretar el MIDI.\n\n## Alcance\n\n- El transporte de B-006.2 arranca con el tempo inicial que trae B-006.1 (`tempo` de `PieceMetadata`); si es nulo, se usa un valor por defecto documentado.\n- Factor de velocidad ajustable (rango documentado, p. ej. 0.5–1.5): escala posición y eventos programados de forma coherente, en caliente y sin reiniciar la pieza.\n- La posición mostrada y los eventos sonoros usan siempre la misma base temporal escalada, para que B-007 y B-013 no vean dos relojes distintos.\n- El tempo efectivo (BPM × factor) queda expuesto en el estado del transporte para pintarlo en la UI (PlayerBar lo mostrará en B-006.4/B-007).\n- Tests: con factor 0.5 todo dura el doble, con 2.0 la mitad; cambiar el factor en caliente no produce saltos ni eventos duplicados/perdidos.\n\n## Criterios de aceptación\n\n- [x] Al dar play sin tocar nada, la pieza suena a su tempo real.\n- [x] Con factor 0.5 la reproducción dura el doble y con 2.0 la mitad, de forma exacta según tests.\n- [x] Cambiar el factor durante la reproducción no genera saltos, solapes ni silencios espurios.\n- [x] El estado expone el tempo efectivo para la UI.\n- [x] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-006.1** (tempo inicial y tiempos en segundos) y **B-006.2** (transporte). Habilita a **B-007** (mostrar tempo) y a **B-013** (referencia temporal de evaluación).\n\n## Evidencia esperada\n\n- Factor de tempo aplicado al *schedule* con tests de escala exacta y verificación manual en Docker (estudio lento audible).\n",
-        "number": 60,
+        "body": "# [B-007.3] Cascada de notas sincronizada con la posición\n\n## Descripción\n\nAnimar en `NoteFallGrid` la caída de las notas del *schedule* hacia el teclado, sincronizada con la misma `position_s` del transporte. Es la pieza visual \"estilo Synthesia\" del diseño: las notas bajan y llegan al teclado cuando suenan.\n\n## Alcance\n\n- Tomar las notas del *schedule* de B-006 (ya escaladas por el factor de tempo) y la `position_s` del transporte como única referencia temporal.\n- Dibujar las notas que caen en la ventana visible (misma que el teclado de B-007.1) con la técnica que se decida en la implementación (SVG/Canvas/CSS), documentando la elegida.\n- La velocidad de caída deriva de la posición, no de un temporizador propio: pausar congela la cascada y el factor de tempo la acelera/frena en coherencia con el audio.\n- Rendimiento: no re-renderizar todo el árbol por frame; documentar la estrategia (p. ej. refs + rAF local al grid).\n- Tests: con reloj falso, la nota con inicio en T toca el teclado cuando la posición llega a T; en pausa nada se mueve.\n\n## Criterios de aceptación\n\n- [ ] Las notas caen y llegan al teclado justo cuando suenan, sin deriva visible respecto al audio.\n- [ ] Pausa congela la cascada y el factor de tempo la escala igual que el sonido.\n- [ ] La animación no degrada la página (sin tirones apreciables en una pieza del corpus).\n- [ ] `npm test -- --run` pasa y `npm run build` compila.\n\n## Dependencias\n\nDepende de **B-007.1** (ventana visible), **B-007.2** (misma fuente de verdad temporal) y **B-006.1–B-006.3**. Habilita a **B-008** (cascada por secciones).\n\n## Evidencia esperada\n\n- Cascada animada sincronizada con el audio y captura en Docker.\n",
+        "number": 64,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006.3] Tempo inicial y factor de velocidad",
+        "title": "[B-007.3] Cascada de notas sincronizada con la posición",
         "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/60"
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/64"
       },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51S4",
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhABQYI",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
-      "title": "[B-006.3] Tempo inicial y factor de velocidad"
+      "target date": "2026-10-12",
+      "title": "[B-007.3] Cascada de notas sincronizada con la posición"
     },
     {
       "content": {
-        "body": "# [B-006.4] Crear la base de componentes del front\n\n**Estado:** implementado y cubierto por tests; pendiente de verificación manual y aceptación.\n\n## Descripción\n\nCrear el andamiaje de componentes de la página principal según las cajas de `desing/main_page_box.jpg` (con `desing/main_page_desing.jpg` como idea visual, buscando simplicidad): montar en `page.tsx` el armazón AppHeader + PlayerBar + PianoStage + MentorPanel con sus subcomponentes, cada uno en su carpeta con el trío `Nombre.tsx` + `Nombre.module.css` + `Nombre.types.ts`. Es solo estructura con contenido estático fiel al diseño; el cableado real (transporte de B-006.2/B-006.3 y piano de B-007) vendrá después. No se elimina ni se rompe nada existente.\n\n## Alcance\n\n- Crear el árbol bajo `frontend/src/components/` (los `(...)` indican subcarpetas con el mismo trío de ficheros):\n  - `AppHeader/` (logo + navegación + estado MIDI + avatar): `BrandLogo/`, `MainNav/` (Learn activo; Library, Progress, Settings; Progress y Settings con candado), `MidiStatus/` (\"MIDI Keyboard connected\" con punto amarillo), `UserAvatar/` (\"A\").\n  - `PlayerBar/` (franja superior del área izquierda): `SongInfo/` (portada, título, \"Piano Arrangement\"), `PlaybackControls/` (rewind, play, stop, forward), `TempoMeasure/` (\"Tempo: 60 BPM\", \"Measure: 12/16\"), `ProgressBar/` (barra + \"75%\").\n  - `PianoStage/` (contenedor del piano): `NoteFallGrid/` (cuadrícula con etiquetas de octava C1–C3 en ambos laterales), `Keyboard/` (teclado C1–C6, blancas y negras).\n  - `MentorPanel/` (columna derecha): `MentorChat/` (avatar robot, \"PianoMentor Chat\", \"Tu Profesor de piano IA\", burbuja de ejemplo, input \"Habla con PianoMentor...\"), `ModeSelector/` (Observar activo, Duo, Tomar Control), `PerformanceStats/` (Rendimiento (Este Pasaje), medidores Timing 74 % y Notas 91 %, \"Punto Débil: Transición de mano izquierda\") con `GaugeChart/` reutilizable.\n- `page.tsx` monta el armazón nuevo; `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando (se reubican dentro del armazón donde encajen o se dejan montados con una nota en este doc durante la implementación).\n- Contenido estático/placeholder donde aún no hay backend (chat, medidores, progreso); los valores de ejemplo del diseño van como constantes, no hardcodeados en el JSX.\n- Convenciones: CSS Modules por componente, props en `.types.ts`, sin `fetch` directo (todo por `api-client.ts`), textos de la UI en español salvo los rótulos propios del diseño en inglés (Learn, Library, Progress, Settings).\n- Ojo: el diseño escribe \"Progess\"; en código se usa **\"Progress\"**.\n- Solo reorganización ligera: ningún cambio de rutas, contratos ni estilos globales más allá de lo que pida el armazón.\n\n## Criterios de aceptación\n\n- [x] El árbol de componentes existe con el trío `.tsx` + `.module.css` + `.types.ts` en cada nivel y compila (`npm run build`).\n- [x] La página monta AppHeader + PlayerBar + PianoStage + MentorPanel con aspecto fiel al diseño (verificado en Docker por el usuario con captura).\n- [x] `MidiUploader`, `PianoKeyboard` y `SessionStatus` siguen funcionando tras la reorganización.\n- [x] No hay lógica cableada a medio hacer: lo pendiente (transporte, chat, medidores reales) queda como placeholder explícito referenciando a B-006.2/B-006.3 y B-007.\n- [x] `npm test -- --run` pasa y no hay llamadas directas a `fetch` fuera de `api-client.ts`.\n\n## Dependencias\n\nNo depende de **B-006.1–B-006.3** para el andamiaje (es estático), pero se coloca la última a propósito: define dónde se enchufarán el transporte (PlayerBar), la posición (PianoStage) y los datos del mentor (MentorPanel) cuando B-007 los cablee. Respeta a **B-004** (flujo de carga existente).\n\n## Evidencia esperada\n\n- Árbol de componentes creado, captura de la página montada junto al diseño y verificación en Docker de que el flujo de carga sigue funcionando.\n",
-        "number": 61,
+        "body": "# [B-007.4] Sustituir el placeholder y verificar en Docker\n\n## Descripción\n\nJubilar el `PianoKeyboard` temporal: el `Keyboard/` de `PianoStage` pasa a renderizar el teclado SVG real de B-007.1–B-007.2 (con `children` como vía de inyección si hace falta), se elimina el placeholder y se verifica el flujo completo en Docker con captura como evidencia. Es el cierre de B-007.\n\n## Alcance\n\n- Sustituir el uso de `PianoKeyboard` dentro de `Keyboard/` por el teclado real, manteniendo el trío `.tsx` + `.module.css` + `.types.ts`.\n- Eliminar `frontend/src/components/PianoKeyboard.tsx` y actualizar su fila en `architecture/files.csv`, regenerando `ARCHITECTURE.md`.\n- `MidiUploader` y `SessionStatus` no se tocan (siguen viviendo en `MentorPanel` hasta B-012).\n- Verificación en Docker: cargar una pieza del corpus, dar play y comprobar teclas iluminadas + cascada + audio, con captura adjunta.\n- Actualizar los tests que referencien al placeholder si los hay.\n\n## Criterios de aceptación\n\n- [ ] No queda rastro del placeholder en la página ni en el código (salvo historial git).\n- [ ] `npm test -- --run` pasa y `npm run build` compila.\n- [ ] El flujo funciona en Docker Compose con una pieza del corpus: suena, ilumina y cae sincronizado.\n- [ ] Captura de la verificación adjunta como evidencia.\n\n## Dependencias\n\nDepende de **B-007.1**, **B-007.2** y **B-007.3**. Cierra **B-007** y deja el escenario listo para **B-008** y **B-013**.\n\n## Evidencia esperada\n\n- Placeholder eliminado, docs de arquitectura regenerados y captura en Docker.\n",
+        "number": 65,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-006.4] Crear la base de componentes del front",
+        "title": "[B-007.4] Sustituir el placeholder y verificar en Docker",
         "type": "Issue",
-        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/61"
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/65"
       },
-      "id": "PVTI_lAHOAxy1qM4Bl7Pszg_51W0",
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhABQZg",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
-      "title": "[B-006.4] Crear la base de componentes del front"
+      "target date": "2026-10-12",
+      "title": "[B-007.4] Sustituir el placeholder y verificar en Docker"
     }
   ],
   "notes": [
