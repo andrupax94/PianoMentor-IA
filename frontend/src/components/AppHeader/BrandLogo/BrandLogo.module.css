@@ -7,20 +7,24 @@
   gap: 8px;
 }
 
-.bars {
+.brand>strong>span {
+  font-size: 20px;
+}
+
+.brand>strong>span:first-child {
+  color: white;
+  margin-right: 6px;
+}
+
+.brand>strong>span:last-child {
+  color: var(--color1);
+
+}
+
+.brandIcon {
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 20px;
+  background-image: url("/assets/icons/Logo.svg");
+  width: 45px;
+  height: 35px;
+  background-repeat: no-repeat;
 }
-
-.bars i {
-  width: 4px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.bars i:nth-child(1) { height: 12px; }
-.bars i:nth-child(2) { height: 20px; }
-.bars i:nth-child(3) { height: 15px; }
-.bars i:nth-child(4) { height: 18px; }
