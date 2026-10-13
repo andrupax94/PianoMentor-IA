@@ -4,10 +4,36 @@
 .nav {
   display: flex;
   gap: 20px;
-  margin: 0 auto;
+  margin-left: 50px;
 }
 
 .active {
   color: var(--accent);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+}
+
+.nav>span {
+  height: 35px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav>span>p {
+  border-bottom-width: 3px;
+}
+
+
+.nav span span {
+  display: flex;
+  justify-self: center;
+  align-items: center;
+  color: white;
+  display: block;
+  width: 20px;
+  height: 20px;
+  background-repeat: no-repeat;
+  margin-left: 6px;
+  background-position: center;
 }

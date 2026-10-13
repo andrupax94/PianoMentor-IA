@@ -4,4 +4,6 @@
 export interface BrandLogoProps {
   /** Texto de marca junto al logo. */
   brandName?: string;
+  brandNameP1?: string;
+  brandNameP2?: string;
 }

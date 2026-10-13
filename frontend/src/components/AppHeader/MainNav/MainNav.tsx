@@ -5,10 +5,10 @@ import styles from "./MainNav.module.css";
 import type { MainNavProps } from "./MainNav.types";
 
 const ITEMS = [
-  { id: "learn", label: "Learn" },
-  { id: "library", label: "Library" },
-  { id: "progress", label: "Progress", locked: true },
-  { id: "settings", label: "Settings", locked: true },
+  { id: "learn", label: "Learn", icon: "Learn" },
+  { id: "library", label: "Library", icon: "Library" },
+  { id: "progress", label: "Progress", locked: true, icon: "Lock" },
+  { id: "settings", label: "Settings", locked: true, icon: "Lock" },
 ] as const;
 
 export function MainNav({ active = "learn" }: MainNavProps) {
@@ -20,8 +20,25 @@ export function MainNav({ active = "learn" }: MainNavProps) {
           className={item.id === active ? styles.active : undefined}
           aria-current={item.id === active ? "page" : undefined}
         >
-          {item.label}
-          {"locked" in item && item.locked ? " 🔒" : ""}
+          <p
+            style={{
+              color: !("locked" in item && item.locked)
+                ? `white`
+                : `gray`
+            }}
+          >{item.label}
+
+          </p>
+          <span
+            style={{
+              backgroundImage: !("locked" in item && item.locked)
+                ? `url(/assets/icons/${item.icon}.svg)`
+                : `url(/assets/icons/Lock.svg)`
+
+            }}
+          ></span>
+
+
         </span>
       ))}
     </nav>

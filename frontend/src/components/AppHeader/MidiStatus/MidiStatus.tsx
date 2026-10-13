@@ -4,11 +4,11 @@
 import styles from "./MidiStatus.module.css";
 import type { MidiStatusProps } from "./MidiStatus.types";
 
-export function MidiStatus({ connected = true }: MidiStatusProps) {
+export function MidiStatus({ connected = false }: MidiStatusProps) {
   return (
     <p className={styles.status} role="status">
       <span className={connected ? styles.on : styles.off} aria-hidden="true" />
-      {connected ? "MIDI Keyboard connected" : "MIDI Keyboard disconnected"}
+      {!connected ? "MIDI Keyboard connected" : "PC Keyboard connected"}
     </p>
   );
 }
