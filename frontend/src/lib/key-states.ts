@@ -4,6 +4,13 @@
 import { pitchToKeyId } from "./pitch";
 import type { ScheduledEvent } from "./playback-schedule";
 
+/**
+ * Horizonte de anticipación en segundos de partitura. El resaltado "esperada"
+ * y la cascada de notas usan el mismo: así la nota llega al teclado justo
+ * cuando la tecla se enciende.
+ */
+export const HORIZON_S = 2.0;
+
 /** Ids de teclas con nota activa en position_s (inicio <= pos < fin), únicos. */
 export function soundingKeyIds(events: ScheduledEvent[], position_s: number): string[] {
   const ids: string[] = [];
@@ -23,7 +30,7 @@ export function soundingKeyIds(events: ScheduledEvent[], position_s: number): st
 export function expectedKeyIds(
   events: ScheduledEvent[],
   position_s: number,
-  horizon_s = 2.0,
+  horizon_s = HORIZON_S,
 ): string[] {
   const ids: string[] = [];
   for (const event of events) {

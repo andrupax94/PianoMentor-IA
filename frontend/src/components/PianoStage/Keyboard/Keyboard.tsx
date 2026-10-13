@@ -1,50 +1,24 @@
 "use client";
 // description: Teclado del escenario (SVG real + transporte + teclado del PC).
-// context: B-007.2; el PianoKeyboard temporal se elimina en B-007.4.
+// context: B-007.3; el transporte vive en PianoStage y llega por props, porque el
+// NoteFallGrid (su hermano) necesita la misma posición y el mismo schedule. El
+// PianoKeyboard temporal se elimina en B-007.4.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { getPieceNotes } from "../../../lib/api-client";
-import { expectedKeyIds, soundingKeyIds } from "../../../lib/key-states";
-import { buildSchedule } from "../../../lib/playback-schedule";
+import { expectedKeyIds, HORIZON_S, soundingKeyIds } from "../../../lib/key-states";
 import { pitchToKeyId } from "../../../lib/pitch";
 import { AUDITION_VELOCITY, pcKeyLabels } from "../../../lib/pc-keyboard";
 import { useComputerKeyboard } from "../../../lib/useComputerKeyboard";
-import { usePlayback } from "../../../lib/usePlayback";
 import { useResponsiveRange } from "../../../lib/useResponsiveRange";
+import { useVisibleRange } from "../../../lib/useVisibleRange";
 import { SvgKeyboard } from "./SvgKeyboard/SvgKeyboard";
 import styles from "./Keyboard.module.css";
 import type { KeyboardProps } from "./Keyboard.types";
 
-/** Pieza demo hasta B-008/B-012 (aún no hay selección de pieza). */
-const DEMO_PIECE_ID = "p01";
-/** Horizonte de nota esperada en segundos de partitura. */
-const EXPECTED_HORIZON_S = 2.0;
-
-export function Keyboard({ children }: KeyboardProps) {
-  const player = usePlayback();
+export function Keyboard({ player, schedule, children }: KeyboardProps) {
   const [playedIds, setPlayedIds] = useState<string[]>([]);
-  const { auditionOn, auditionOff } = player;
-
-  useEffect(() => {
-    let cancelled = false;
-    getPieceNotes(DEMO_PIECE_ID)
-      .then((score) => {
-        if (cancelled) return;
-        player.load(score.notes, {
-          tempo_bpm: score.tempo ?? undefined,
-          duration_s: score.duration_seconds ?? undefined,
-        });
-      })
-      .catch(() => {
-        // Sin pieza demo no hay resaltado; la página sigue funcionando.
-      });
-    return () => {
-      cancelled = true;
-    };
-    // load es estable; se carga una sola vez al montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { auditionOn, auditionOff, position_s, status } = player;
 
   const { octave } = useComputerKeyboard({
     onNoteOn: ({ pitch }) => {
@@ -63,16 +37,13 @@ export function Keyboard({ children }: KeyboardProps) {
   const labels = useMemo(() => pcKeyLabels(octave), [octave]);
 
   // Rango de octavas responsive: se mide el ancho del contenedor del teclado.
-  const { ref: keyboardRef, fromKey, toKey } = useResponsiveRange<HTMLDivElement>();
+  // El hook publica el rango; de aquí lo lee el NoteFallGrid para su cuadrícula.
+  const { ref: keyboardRef } = useResponsiveRange<HTMLDivElement>();
+  const { fromKey, toKey } = useVisibleRange();
 
-  // El schedule solo se reconstruye al cambiar de pieza o de factor (no en cada tick).
-  const schedule = useMemo(
-    () => buildSchedule(player.notes, player.tempoFactor),
-    [player.notes, player.tempoFactor],
-  );
-  const sounding = player.status === "stopped" ? [] : soundingKeyIds(schedule, player.position_s);
+  const sounding = status === "stopped" ? [] : soundingKeyIds(schedule, position_s);
   const expected =
-    player.status === "stopped" ? [] : expectedKeyIds(schedule, player.position_s, EXPECTED_HORIZON_S);
+    status === "stopped" ? [] : expectedKeyIds(schedule, position_s, HORIZON_S);
   const active = [...sounding, ...playedIds.filter((id) => !sounding.includes(id))];
 
   return (

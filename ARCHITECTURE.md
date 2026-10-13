@@ -742,7 +742,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-11 16:56 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-13 19:50 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -769,6 +769,8 @@ piano-mentor-ai/
 ├── .github_projects/scripts/sync-github-project.ps1
 ├── .gitignore
 ├── .vscode/
+├── .vscode/extensions.json
+├── .vscode/launch.json
 ├── .vscode/settings.json
 ├── AGENTS.md
 ├── architecture/
@@ -844,18 +846,26 @@ piano-mentor-ai/
 ├── desing/main_page.ai
 ├── desing/main_page_box.jpg
 ├── desing/main_page_desing.jpg
+├── docker-compose.debug.yml
 ├── docker-compose.yml
 ├── docs/
 ├── docs/GETTING_STARTED.md
 ├── docs/TROUBLESHOOTING.md
 ├── frontend/
-├── frontend/assets/
-├── frontend/assets/piano_virtual_88_pressed.svg
+├── frontend/AGENTS.md
 ├── frontend/Dockerfile
 ├── frontend/next-env.d.ts
 ├── frontend/next.config.ts
 ├── frontend/package-lock.json
 ├── frontend/package.json
+├── frontend/public/
+├── frontend/public/assets/
+├── frontend/public/assets/icons/
+├── frontend/public/assets/icons/Learn.svg
+├── frontend/public/assets/icons/library.svg
+├── frontend/public/assets/icons/lock.svg
+├── frontend/public/assets/icons/Logo.svg
+├── frontend/public/assets/piano_virtual_88_pressed.svg
 ├── frontend/src/
 ├── frontend/src/app/
 ├── frontend/src/app/globals.css
@@ -926,6 +936,10 @@ piano-mentor-ai/
 ├── frontend/src/components/PianoStage/PianoStage.module.css
 ├── frontend/src/components/PianoStage/PianoStage.tsx
 ├── frontend/src/components/PianoStage/PianoStage.types.ts
+├── frontend/src/components/PlaybackArea/
+├── frontend/src/components/PlaybackArea/PlaybackArea.module.css
+├── frontend/src/components/PlaybackArea/PlaybackArea.tsx
+├── frontend/src/components/PlaybackArea/PlaybackArea.types.ts
 ├── frontend/src/components/PlayerBar/
 ├── frontend/src/components/PlayerBar/PlaybackControls/
 ├── frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.module.css
@@ -951,6 +965,10 @@ piano-mentor-ai/
 ├── frontend/src/lib/.gitkeep
 ├── frontend/src/lib/api-client.test.ts
 ├── frontend/src/lib/api-client.ts
+├── frontend/src/lib/falling-notes.test.ts
+├── frontend/src/lib/falling-notes.ts
+├── frontend/src/lib/key-geometry.test.ts
+├── frontend/src/lib/key-geometry.ts
 ├── frontend/src/lib/key-states.test.ts
 ├── frontend/src/lib/key-states.ts
 ├── frontend/src/lib/pc-keyboard.test.ts
@@ -964,6 +982,12 @@ piano-mentor-ai/
 ├── frontend/src/lib/synth.ts
 ├── frontend/src/lib/useComputerKeyboard.ts
 ├── frontend/src/lib/usePlayback.ts
+├── frontend/src/lib/useResponsiveRange.ts
+├── frontend/src/lib/useVisibleRange.ts
+├── frontend/src/lib/visible-range-store.test.ts
+├── frontend/src/lib/visible-range-store.ts
+├── frontend/src/lib/visible-range.test.ts
+├── frontend/src/lib/visible-range.ts
 ├── frontend/tsconfig.json
 ├── frontend/tsconfig.tsbuildinfo
 ├── GLOSSARY.md
@@ -1011,6 +1035,7 @@ piano-mentor-ai/
 ├── issues/B-007/B-007.2.md
 ├── issues/B-007/B-007.3.md
 ├── issues/B-007/B-007.4.md
+├── issues/B-007/B-007.5.md
 ├── issues/B-007/B-007.md
 ├── issues/B-027/
 ├── issues/B-027/B-027.1.md
@@ -1021,6 +1046,8 @@ piano-mentor-ai/
 ├── issues/B-028/B-028.md
 ├── issues/B-029/
 ├── issues/B-029/B-029.md
+├── issues/U-001/
+├── issues/U-001/U-001.md
 ├── LICENSE
 ├── nota.txt
 ├── PLAN.md
@@ -1086,7 +1113,7 @@ piano-mentor-ai/
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |
 | `frontend/tsconfig.json` | Configuración del compilador TypeScript (Next la reescribe solo; ignorada en git). | Tipos estrictos en el frontend; Next la regenera/ajusta al arrancar. |
 | `frontend/src/app/layout.tsx` | Layout global de la aplicación web. | Envoltorio común de páginas. |
-| `frontend/src/app/page.tsx` | Página inicial: carga de MIDI y acceso a práctica. | Entrada del flujo cargar → practicar. |
+| `frontend/src/app/page.tsx` | Página inicial: armazón AppHeader + PlaybackArea (reproductor y piano) + MentorPanel. | Sigue siendo Server Component: el transporte vive en PlaybackArea y no arrastra el resto al bundle de cliente (B-007.3). |
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación. | Base visual de la web. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. | Vista de tocar, evaluar y ver al agente. |
 | `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados, aviso de pieza reutilizada y metadatos devueltos (incluye tempo y origen). | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
@@ -1097,13 +1124,17 @@ piano-mentor-ai/
 | `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/playback-schedule.ts` | Matemática pura de reproducción (B-006.2): schedule ordenado con factor de tempo, ventana de eventos, pitch a Hz y recortes. | Sin DOM ni AudioContext; testeable con números, la ejecuta el motor de transporte. |
 | `frontend/src/lib/playback-engine.ts` | Motor de transporte sin framework (B-006.2): play/pausa/stop/seek y tempo con reloj y voz de audio inyectados. | Determinista con tiempo falso en tests; usePlayback lo viste con React+WebAudio. |
-| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): expone snapshot, notas, acciones y audición; programa WebAudio con anticipación. | Capa fina sobre PlaybackEngine y el sintetizador compartido; la lógica testeable vive en el motor. |
+| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): snapshot, notas, acciones, audición y getPosition (posición viva sin pasar por estado de React). | Capa fina sobre PlaybackEngine y el sintetizador compartido; getPosition lo consume la cascada de B-007.3. |
 | `frontend/src/lib/synth.ts` | Sintetizador polifónico WebAudio compartido (transporte + audición por teclado). | B-007.2; voces triangulares con envolvente, sin estado global. |
 | `frontend/src/lib/pc-keyboard.ts` | Mapa tecla del PC → pitch por e.code (dos filas + flechas de octava, velocity fija). | B-007.2; puro, independiente del layout del teclado. |
 | `frontend/src/lib/pc-keyboard.test.ts` | Tests del mapa de teclado: filas, octavas, layout y límites del piano. | Criterio de B-007.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/useComputerKeyboard.ts` | Hook que captura keydown/keyup (ignora repeticiones y focos de escritura). | B-007.2; emite eventos que B-013 evaluará. |
-| `frontend/src/lib/key-states.ts` | Ids de teclas sonando y esperada desde schedule y posición. | B-007.2; puro y testeable, sin DOM. |
+| `frontend/src/lib/key-states.ts` | Ids de teclas sonando y esperada desde schedule y posición; exporta HORIZON_S (2 s) como horizonte compartido. | B-007.2; puro y testeable, sin DOM. La cascada usa el mismo horizonte para que la nota llegue justo cuando la tecla se enciende. |
 | `frontend/src/lib/key-states.test.ts` | Tests de sonando/esperada con schedule falso. | Criterio de B-007.2; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/falling-notes.ts` | Notas de la cascada visibles en la ventana de caída y su progreso 0 a 1, derivado de la posición del transporte. | B-007.3; puro y sin DOM: sin reloj propio, así que pausar congela y el factor de tempo escala la caída. |
+| `frontend/src/lib/falling-notes.test.ts` | Tests de la cascada con reloj falso: llega al teclado justo cuando suena, ventana exacta, pausa que no mueve y escala por tempo. | Criterio de B-007.3; se ejecutan con npm run test (Vitest). |
+| `frontend/src/lib/key-geometry.ts` | Geometría horizontal del teclado: centro y ancho de cada tecla como fracción del contenedor, del asset uniforme (blanca cada 40 u). | B-007.3; usado por NoteFallGrid para alinear líneas y bloques con las teclas; SvgKeyboard deja 8 u de margen al recortar el viewBox. |
+| `frontend/src/lib/key-geometry.test.ts` | Tests de la geometría contra el asset real: centros de las 88 teclas, anchos, inset y recuento de blancas. | Criterio de B-007.3; si cambia el SVG de diseño, el barrido falla y avisa. |
 | `frontend/src/lib/playback-schedule.test.ts` | Tests de la matemática de reproducción: escala por factor, orden estable, ventana, pitch y recortes. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/playback-engine.test.ts` | Tests del motor de transporte con reloj falso y voz que graba: programación, pausa, seek, fin y tempo. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
@@ -1126,8 +1157,8 @@ piano-mentor-ai/
 | `desing/main_page.ai` | Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado). | Fuente de diseño de la página inicial; implementar en Next.js según este diseño. |
 | `desing/main_page_box.jpg` | Cajas de referencia de la main page (encabezado, controles, piano virtual, lateral del mentor y zona de subida) usadas para derivar el árbol de componentes. | Fuente estructural de B-006.4; el estilo final lo marca main_page_desing.jpg. |
 | `desing/main_page_desing.jpg` | Render estilizado de referencia de la main page (cabecera, player, piano C1–C6 y panel del mentor). | Solo idea visual para B-006.4; simplicidad primero, el CSS full vendrá después. En código el rótulo se escribe 'Progress' (el diseño pone 'Progess'). |
-| `frontend/assets/piano_virtual_88_pressed.svg` | Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada. | Asset del teclado virtual para el frontend; manipular por id para resaltado y pressed. |
-| `frontend/src/app/page.module.css` | Layout de dos columnas de la página inicial (zona principal + lateral). | B-006.4; simplicidad primero. |
+| `frontend/public/assets/piano_virtual_88_pressed.svg` | Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada. | Asset del teclado virtual; SVGR lo convierte en el componente inline. Vive en public/ para poder servirse también por HTTP. |
+| `frontend/src/app/page.module.css` | Layout de dos columnas de la página inicial (zona principal + lateral). | B-006.4; la regla .main pasó a PlaybackArea.module.css con B-007.3. |
 | `frontend/src/components/AppHeader/AppHeader.tsx` | Encabezado principal: compone logo, navegación, estado MIDI y avatar. | B-006.4; armazón estático. |
 | `frontend/src/components/AppHeader/AppHeader.module.css` | Estilos del encabezado principal. | B-006.4; simplicidad primero. |
 | `frontend/src/components/AppHeader/AppHeader.types.ts` | Props del encabezado (midiConnected, userInitial). | B-006.4. |
@@ -1143,30 +1174,33 @@ piano-mentor-ai/
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.tsx` | Avatar de usuario con inicial. | B-006.4; sin autenticación todavía (B-029). |
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.module.css` | Estilos del avatar. | B-006.4; simplicidad primero. |
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.types.ts` | Props del avatar (initial). | B-006.4. |
-| `frontend/src/components/PlayerBar/PlayerBar.tsx` | Franja del reproductor: pieza, controles, tempo y progreso. | B-006.4; el transporte se enchufa en B-007. |
+| `frontend/src/components/PlaybackArea/PlaybackArea.tsx` | Columna principal: nace el transporte (usePlayback), carga la pieza demo y reparte player a PlayerBar y PianoStage. | B-007.3; client component para no arrastrar AppHeader ni MentorPanel al bundle de cliente (page.tsx sigue siendo servidor). |
+| `frontend/src/components/PlaybackArea/PlaybackArea.module.css` | Estilos de la columna principal (reproductor + piano). | B-007.3; la regla .main baja aquí desde page.module.css. |
+| `frontend/src/components/PlaybackArea/PlaybackArea.types.ts` | Props de la columna (octaves, reenviadas a PianoStage). | B-007.3. |
+| `frontend/src/components/PlayerBar/PlayerBar.tsx` | Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real y progreso redondeado. | B-007.3; B-006.4 la dejó solo HTML/CSS. El título de la pieza y el compás siguen de mentira (B-008/B-012). |
 | `frontend/src/components/PlayerBar/PlayerBar.module.css` | Estilos de la franja del reproductor. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PlayerBar/PlayerBar.types.ts` | Props de la franja (título, arreglo, tempo, compás, progreso). | B-006.4. |
+| `frontend/src/components/PlayerBar/PlayerBar.types.ts` | Props de la franja (player, título, arreglo, compás). | B-007.3; tempo y progreso se derivan del transporte, no se pasan por props. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.tsx` | Portada y título de la pieza en reproducción. | B-006.4; armazón estático. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.module.css` | Estilos de la información de la pieza. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.types.ts` | Props de información (title, subtitle). | B-006.4. |
-| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.tsx` | Botones de transporte: reenvían callbacks sin lógica propia. | B-006.4; B-007 los conecta al usePlayback de B-006.2. |
+| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.tsx` | Botones de transporte: reenvían callbacks sin lógica propia; el play alterna entre ▶ y ⏸ según isPlaying. | B-006.4; cableados desde PlayerBar al transporte con B-007.3. |
 | `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.module.css` | Estilos de los botones de transporte. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.types.ts` | Callbacks de transporte (onRewind/onPlay/onStop/onForward). | B-006.4. |
-| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx` | Tempo en BPM y compás en reproducción. | B-006.4; armazón estático. |
+| `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.types.ts` | Callbacks de transporte (onRewind/onTogglePlay/onStop/onForward) e isPlaying. | B-006.4; ya enchufados al usePlayback de B-006.2. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx` | Tempo en BPM y compás en reproducción. | B-006.4; el tempo es real (BPM × factor) desde B-007.3 y el compás espera a B-008. |
 | `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.module.css` | Estilos de tempo y compás. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.types.ts` | Props de tempo y compás (tempoBpm, measure). | B-006.4. |
-| `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.tsx` | Barra de progreso con porcentaje y rol progressbar. | B-006.4; armazón estático. |
+| `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.tsx` | Barra de progreso con porcentaje y rol progressbar. | B-006.4; recibe el porcentaje ya redondeado que calcula PlayerBar. |
 | `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.module.css` | Estilos de la barra de progreso. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.types.ts` | Props de progreso (value 0–100). | B-006.4. |
-| `frontend/src/components/PianoStage/PianoStage.tsx` | Contenedor del piano: cuadrícula de notas + teclado. | B-006.4; armazón estático. |
+| `frontend/src/components/PianoStage/PianoStage.tsx` | Vista del escenario: deriva el schedule del transporte y lo reparte a la cuadrícula y al teclado. | B-007.3; el transporte nace en PlaybackArea y llega por props. |
 | `frontend/src/components/PianoStage/PianoStage.module.css` | Estilos del contenedor del piano. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PianoStage/PianoStage.types.ts` | Props del escenario (octaves). | B-006.4. |
-| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.tsx` | Cuadrícula placeholder donde caerán las notas, con etiquetas C1–C3. | B-006.4; la animación llega con B-007. |
-| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.module.css` | Estilos de la cuadrícula de notas. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.types.ts` | Props de la cuadrícula (octaves). | B-006.4. |
-| `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Teclado cableado (B-007.2): SVG real + transporte con pieza demo + teclado del PC. | B-007.4 elimina el PianoKeyboard temporal ya sin referenciar. |
+| `frontend/src/components/PianoStage/PianoStage.types.ts` | Props del escenario (player, octaves). | B-007.3. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.tsx` | Cuadrícula con las notas cayendo: una columna por tecla blanca visible y bloques movidos por un rAF local, sin re-render por frame. | B-007.3; alinea líneas y bloques con key-geometry (desfase residual 0.15 px), se congela en pausa y se limpia en stop. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.module.css` | Estilos de la cuadrícula: líneas verticales por tecla, carriles horizontales fijos y capa de bloques que recorta lo que aún no ha entrado. | B-007.3; simplicidad primero. |
+| `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.types.ts` | Props de la cuadrícula (octaves, schedule, status, horizon_s, getPosition). | B-007.3; el rango no llega por props sino del almacén compartido. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Teclado cableado (B-007.2): resaltado sonando/esperada derivado del schedule y teclado del PC; recibe el transporte por props. | B-007.3 sacó el transporte y la pieza de aquí; B-007.4 elimina el PianoKeyboard temporal. |
 | `frontend/src/components/PianoStage/Keyboard/Keyboard.module.css` | Estilos del envoltorio del teclado. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del envoltorio (children opcional). | B-006.4. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del teclado (player, schedule, children opcional). | B-007.3. |
 | `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna del mentor: chat, modos, rendimiento y flujo existente reubicado. | B-006.4; reutiliza MidiUploader y SessionStatus sin modificarlos. |
 | `frontend/src/components/MentorPanel/MentorPanel.module.css` | Estilos de la columna del mentor. | B-006.4; simplicidad primero. |
 | `frontend/src/components/MentorPanel/MentorPanel.types.ts` | Props del panel (weakPoint). | B-006.4. |
@@ -1182,12 +1216,22 @@ piano-mentor-ai/
 | `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.tsx` | Medidor circular reutilizable en SVG puro. | B-006.4; armazón estático. |
 | `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.module.css` | Estilos del medidor circular. | B-006.4; simplicidad primero. |
 | `frontend/src/components/MentorPanel/PerformanceStats/GaugeChart/GaugeChart.types.ts` | Props del medidor (value, label). | B-006.4. |
-| `frontend/src/components/component-tree.test.ts` | Humo del árbol de componentes: todos existen y son funciones. | Criterio de B-006.4; no renderiza (sin DOM en los tests). |
+| `frontend/src/components/component-tree.test.ts` | Humo del árbol de componentes: los 20 existen y son funciones. | Criterio de B-006.4; no renderiza (sin DOM en los tests). Incluye PlaybackArea desde B-007.3. |
 | `frontend/src/components/PianoStage/Keyboard/SvgKeyboard/PianoVirtual88Pressed.tsx` | Teclado de 88 teclas generado con SVGR desde el asset (no editar a mano). | Regenerar con `npm run generate:keyboard`; el envoltorio lo usa por ref. |
 | `frontend/src/components/PianoStage/Keyboard/SvgKeyboard/SvgKeyboard.tsx` | Teclado SVG con ventana C1–C6 y resaltado sonando/esperada/tocada (client component). | B-007.2 pinta fills por data-key-id restaurando originales. |
 | `frontend/src/components/PianoStage/Keyboard/SvgKeyboard/SvgKeyboard.module.css` | Estilos del marco del teclado SVG. | B-007.1; simplicidad primero. |
 | `frontend/src/components/PianoStage/Keyboard/SvgKeyboard/SvgKeyboard.types.ts` | Props del teclado (fromKey, toKey). | B-007.1. |
-| `frontend/src/lib/pitch.ts` | Mapeo pitch MIDI ↔ id de tecla del asset (pitchToKeyId, keyIdToPitch, isKeyInRange). | B-007.1; puro y testeable con barrido contra el asset. |
-| `frontend/src/lib/pitch.test.ts` | Tests del mapeo pitch ↔ id: bordes, inversa, rango y cobertura total del asset. | Criterio de B-007.1; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/pitch.ts` | Mapeo pitch MIDI ↔ id de tecla del asset (pitchToKeyId, keyIdToPitch, isKeyInRange, countWhiteKeys). | B-007.1/B-007.3; puro y testeable con barrido contra el asset. |
+| `frontend/src/lib/pitch.test.ts` | Tests del mapeo pitch ↔ id: bordes, inversa, rango, cobertura total del asset y teclas blancas. | Criterio de B-007.1; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/visible-range.ts` | Rango de octavas visible (fromKey/toKey) según el ancho del contenedor, con escala de 6 rangos y techo en MAX_WHITE_KEY_PX. | B-007.2; puro y testeable; cuenta las teclas blancas con countWhiteKeys para no duplicar números. |
+| `frontend/src/lib/visible-range.test.ts` | Tests de resolveVisibleRange: contracción estrecha, rango base, expansión y techo A0–C8. | Criterio de B-007.2; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/useResponsiveRange.ts` | Hook que mide el contenedor con ResizeObserver y publica el rango resuelto en el almacén compartido. | B-007.2/B-007.3; devuelve solo el ref, el rango lo leen el teclado y la cuadrícula. |
+| `frontend/src/lib/visible-range-store.ts` | Almacén compartido del rango visible (publish/subscribe/get): el evento que dispara el teclado y escucha la cuadrícula. | B-007.3; singleton en memoria, no notifica si el rango no cambia. |
+| `frontend/src/lib/visible-range-store.test.ts` | Tests del almacén: notificación al cambiar, silencio si no cambia y baja de suscriptores. | Criterio de B-007.3; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/useVisibleRange.ts` | Hook suscrito al rango visible con useSyncExternalStore y snapshot de servidor. | B-007.3; seguro con SSR de Next.js (en el servidor pinta el rango por defecto). |
+| `frontend/public/assets/icons/Learn.svg` | Icono de la pestaña Learn de la navegación principal. | B-006.4; Next lo sirve desde public/ como /assets/icons/Learn.svg. |
+| `frontend/public/assets/icons/library.svg` | Icono de la pestaña Library de la navegación principal. | B-006.4; cuidado: MainNav pide Library.svg y el fichero es library.svg (falla en Linux/Docker). |
+| `frontend/public/assets/icons/lock.svg` | Icono de candado de las pestañas bloqueadas (Progress y Settings). | B-006.4; cuidado: MainNav pide Lock.svg y el fichero es lock.svg (falla en Linux/Docker). |
+| `frontend/public/assets/icons/Logo.svg` | Logo en SVG servido desde public/. | B-006.4; hoy no lo referencia ningún componente del front. |
 
 _Para añadir un archivo nuevo: agrega su fila en `architecture/files.csv` y ejecuta `python architecture/generate_architecture.py`._

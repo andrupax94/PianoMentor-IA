@@ -15,6 +15,7 @@ import { BrandLogo } from "./AppHeader/BrandLogo/BrandLogo";
 import { MainNav } from "./AppHeader/MainNav/MainNav";
 import { MidiStatus } from "./AppHeader/MidiStatus/MidiStatus";
 import { UserAvatar } from "./AppHeader/UserAvatar/UserAvatar";
+import { PlaybackArea } from "./PlaybackArea/PlaybackArea";
 import { PlayerBar } from "./PlayerBar/PlayerBar";
 import { PlaybackControls } from "./PlayerBar/PlaybackControls/PlaybackControls";
 import { ProgressBar } from "./PlayerBar/ProgressBar/ProgressBar";
@@ -36,6 +37,7 @@ const TREE = {
   MainNav,
   MidiStatus,
   UserAvatar,
+  PlaybackArea,
   PlayerBar,
   PlaybackControls,
   ProgressBar,
@@ -53,8 +55,8 @@ const TREE = {
 };
 
 describe("component tree", () => {
-  it("expone los 19 componentes del armazón", () => {
-    expect(Object.keys(TREE)).toHaveLength(19);
+  it("expone los 20 componentes del armazón", () => {
+    expect(Object.keys(TREE)).toHaveLength(20);
     for (const [name, component] of Object.entries(TREE)) {
       expect(typeof component, name).toBe("function");
     }

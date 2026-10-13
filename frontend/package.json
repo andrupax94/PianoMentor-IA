@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "generate:keyboard": "svgr --typescript --ref --out-dir src/components/PianoStage/Keyboard/SvgKeyboard assets/piano_virtual_88_pressed.svg"
+    "generate:keyboard": "svgr --typescript --ref --out-dir src/components/PianoStage/Keyboard/SvgKeyboard public/assets/piano_virtual_88_pressed.svg"
   },
   "dependencies": {
     "next": "^16.4.0",

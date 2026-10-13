@@ -29,3 +29,17 @@ export function isKeyInRange(id: string, fromId: string, toId: string): boolean 
   if (pitch === null || from === null || to === null) return false;
   return pitch >= Math.min(from, to) && pitch <= Math.max(from, to);
 }
+
+/** Teclas blancas del rango [fromId, toId], bordes incluidos (0 si el id no vale). */
+export function countWhiteKeys(fromId: string, toId: string): number {
+  const from = keyIdToPitch(fromId);
+  const to = keyIdToPitch(toId);
+  if (from === null || to === null) return 0;
+  const lowest = Math.min(from, to);
+  const highest = Math.max(from, to);
+  let count = 0;
+  for (let pitch = lowest; pitch <= highest; pitch += 1) {
+    if (!pitchToKeyId(pitch).includes("#")) count += 1;
+  }
+  return count;
+}

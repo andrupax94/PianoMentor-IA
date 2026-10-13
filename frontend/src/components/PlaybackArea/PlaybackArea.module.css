@@ -1,0 +1,10 @@
+/* description: Layout de la columna principal (reproductor + piano). */
+/* context: B-007.3; la regla vivía en page.module.css como .main y baja aquí: esta
+   columna ya tiene dueño, que es quien reparte el transporte. */
+
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}

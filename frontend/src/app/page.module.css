@@ -1,16 +1,10 @@
 /* description: Layout de dos columnas de la página inicial. */
-/* context: B-006.4; simplicidad primero. */
+/* context: B-006.4; simplicidad primero. La columna izquierda (.main) pasa a
+   PlaybackArea en B-007.3, al ser esa columna la que se hace cargo del transporte. */
 
 .layout {
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 24px;
   align-items: start;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
 }

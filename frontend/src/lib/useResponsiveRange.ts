@@ -1,24 +1,25 @@
-// description: Hook que devuelve el rango de octavas (fromKey/toKey) según el ancho del contenedor.
-// context: B-007.2; usa ResizeObserver para recalcular al redimensionar. El SvgKeyboard
-// ya recalcula la deformación de las letras cuando cambian fromKey/toKey.
+// description: Hook que mide el contenedor y publica el rango de octavas visible.
+// context: B-007.2; usa ResizeObserver para recalcular al redimensionar. El rango se
+// publica en el almacén compartido: el SvgKeyboard lo recibe por props y el
+// NoteFallGrid se suscribe con useVisibleRange.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-import { DEFAULT_RANGE, resolveVisibleRange } from "./visible-range";
+import { resolveVisibleRange } from "./visible-range";
+import { publishVisibleRange } from "./visible-range-store";
 
 export function useResponsiveRange<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
-  const [range, setRange] = useState(DEFAULT_RANGE);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const apply = () => setRange(resolveVisibleRange(node.clientWidth));
+    const apply = () => publishVisibleRange(resolveVisibleRange(node.clientWidth));
     apply();
     const observer = new ResizeObserver(apply);
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
-  return { ref, fromKey: range.fromKey, toKey: range.toKey };
+  return { ref };
 }

@@ -1,13 +1,60 @@
 /* description: Estilos de la cuadrícula de notas. */
-/* context: B-006.4; simplicidad primero. */
+/* context: B-007.3; las líneas verticales siguen las teclas visibles del teclado
+   y los bloques de nota los coloca el bucle rAF en línea (posiciones por frame). */
 
 .grid {
+  position: relative;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   min-height: 220px;
   padding: 12px;
   background: #141a26;
+}
+
+/* Fuera de flujo: cubre la caja de contenido (inset = padding del .grid), que
+   coincide con la del teclado, así las líneas caen sobre los límites de tecla. */
+.lines {
+  position: absolute;
+  inset: 12px;
+  display: flex;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.04) 0,
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 44px
+  );
+}
+
+/* Una columna por tecla blanca; border-box deja el ancho exacto por columna. */
+.line {
+  flex: 1 1 0;
+  box-sizing: border-box;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.line:last-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Lienzo de las notas: recorta lo que aún no ha entrado por arriba. */
+.notes {
+  position: absolute;
+  inset: 12px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Bloque de nota; la posición la escribe el rAF (left/width/height/transform). */
+.note {
+  position: absolute;
+  top: 0;
+  border-radius: 4px;
+  background: #62e6c7;
+  will-change: transform;
+  pointer-events: none;
 }
 
 .side {

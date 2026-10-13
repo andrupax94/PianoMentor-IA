@@ -3,7 +3,10 @@
 
 export interface PlaybackControlsProps {
   onRewind?: () => void;
-  onPlay?: () => void;
+  /** Reproducir/pausar: un solo botón que alterna. */
+  onTogglePlay?: () => void;
   onStop?: () => void;
   onForward?: () => void;
+  /** true mientras suena: cambia el icono (▶/⏸) y su etiqueta accesible. */
+  isPlaying?: boolean;
 }

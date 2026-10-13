@@ -28,6 +28,9 @@ function createAudioContext(): AudioContext {
   return new Ctor();
 }
 
+/** Manejo del transporte que reparte PianoStage a sus dos hijos. */
+export type PlaybackHandle = ReturnType<typeof usePlayback>;
+
 /**
  * Transporte de reproducción para un componente: expone el snapshot
  * (status, position_s, tempoFactor, duration_s) y las acciones.
@@ -45,6 +48,15 @@ export function usePlayback(tickMs = 25) {
   const sync = useCallback(() => {
     if (engineRef.current) setSnapshot(engineRef.current.snapshot());
   }, []);
+
+  /**
+   * Posición viva del motor, sin pasar por estado de React. La usa la cascada
+   * de notas para animar por frame sin re-renderizar el árbol.
+   */
+  const getPosition = useCallback(
+    () => engineRef.current?.snapshot().position_s ?? 0,
+    [],
+  );
 
   const ensureEngine = useCallback((): PlaybackEngine => {
     if (!engineRef.current) {
@@ -146,5 +158,17 @@ export function usePlayback(tickMs = 25) {
     };
   }, []);
 
-  return { ...snapshot, notes, load, play, pause, stop, seek, setTempoFactor, auditionOn, auditionOff };
+  return {
+    ...snapshot,
+    notes,
+    load,
+    play,
+    pause,
+    stop,
+    seek,
+    setTempoFactor,
+    auditionOn,
+    auditionOff,
+    getPosition,
+  };
 }
