@@ -508,7 +508,8 @@ piano-mentor-ai/
 | `/backend/scripts/validate_midi_corpus.py` | Comprueba el corpus de piezas del MVP. |
 | `/frontend/public/` | Recursos estáticos servidos directamente por Next.js. |
 | `/frontend/public/icons/` | Iconos de la interfaz. |
-| `/frontend/public/audio/` | Audio auxiliar permitido por el diseño, si fuese necesario. |
+| `/frontend/public/audio/piano/` | Banco de muestras de piano versionado (120 MP3 + `manifest.json`, 4,7 MB); se regenera con `npm run samples` y su licencia está en `THIRD_PARTY_NOTICES.md`. |
+| `/frontend/scripts/` | Scripts de desarrollo del frontend; hoy el de descarga y trascodificación de las muestras de piano. |
 | `/frontend/src/app/pieces/` | Rutas para listar y consultar piezas. |
 | `/frontend/src/app/pieces/page.tsx` | Página de listado o selección de piezas. |
 | `/frontend/src/app/pieces/[pieceId]/page.tsx` | Página de detalle de una pieza. |

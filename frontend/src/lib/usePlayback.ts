@@ -1,5 +1,6 @@
 // description: Hook React del transporte; viste PlaybackEngine con WebAudio y estado.
-// context: B-006.2; la lógica testeable vive en playback-engine.ts, aquí solo el cableado.
+// context: B-006.2 y B-007.5; la lógica testeable vive en playback-engine.ts, aquí solo el
+// cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -10,15 +11,23 @@ import {
   type PlaybackSnapshot,
 } from "./playback-engine";
 import type { PlayableNote } from "./api-client";
-import { createPolySynth, type PolySynth } from "./synth";
+import { createPianoSampler, type PianoSampler } from "./piano-samples";
+import { createPolySynth } from "./synth";
 
-/** Voz del motor sobre el sintetizador compartido (reutilizado en audición). */
-function createEngineVoice(synth: PolySynth): NoteVoice {
+/** Voz del motor sobre el sampler compartido (reutilizado en audición). */
+function createEngineVoice(sampler: PianoSampler): NoteVoice {
   return {
     scheduleNote: (event, atTime_s) =>
-      synth.scheduleNote(event.pitch, event.velocity, event.duration_s, atTime_s),
-    silence: () => synth.silence(),
+      sampler.scheduleNote(event.pitch, event.velocity, event.duration_s, atTime_s),
+    silence: () => sampler.silence(),
   };
+}
+
+/** Ejecuta en el primer hueco del navegador, con recambio si no existe la API. */
+function runWhenIdle(task: () => void): void {
+  const requestIdle =
+    window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 400));
+  requestIdle(() => task());
 }
 
 function createAudioContext(): AudioContext {
@@ -41,7 +50,7 @@ export function usePlayback(tickMs = 25) {
   const [notes, setNotes] = useState<PlayableNote[]>([]);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
-  const synthRef = useRef<PolySynth | null>(null);
+  const samplerRef = useRef<PianoSampler | null>(null);
   const statusRef = useRef<PlaybackSnapshot["status"]>("stopped");
   statusRef.current = snapshot.status;
 
@@ -64,12 +73,27 @@ export function usePlayback(tickMs = 25) {
       ctxRef.current = ctx;
       const master = ctx.createGain();
       master.gain.value = 0.9;
-      master.connect(ctx.destination);
-      const synth = createPolySynth(ctx, master);
-      synthRef.current = synth;
+      // Un acorde de muestras pica más fuerte que una onda simple: el limitador
+      // evita el clip sin bajar el volumen de las notas sueltas.
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -6;
+      limiter.knee.value = 12;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.25;
+      master.connect(limiter);
+      limiter.connect(ctx.destination);
+      // La voz de reserva suena mientras no hay muestra decodificada: nunca silencio.
+      const sampler = createPianoSampler(ctx, master, {
+        fallback: createPolySynth(ctx, master),
+      });
+      samplerRef.current = sampler;
+      // Capa 0 (ventana visible) ya; el resto del teclado en el primer hueco libre.
+      void sampler.preload("hq");
+      runWhenIdle(() => void sampler.preload("lq"));
       engineRef.current = new PlaybackEngine(
         { now: () => ctx.currentTime },
-        createEngineVoice(synth),
+        createEngineVoice(sampler),
       );
     }
     return engineRef.current;
@@ -126,14 +150,18 @@ export function usePlayback(tickMs = 25) {
   const auditionOn = useCallback(
     (pitch: number, velocity: number) => {
       ensureEngine();
-      synthRef.current?.noteOn(pitch, velocity);
+      // Política de autoplay: si el contexto arrancó suspendido, este gesto lo desbloquea.
+      if (ctxRef.current?.state === "suspended") {
+        void ctxRef.current.resume().catch(() => undefined);
+      }
+      samplerRef.current?.noteOn(pitch, velocity);
     },
     [ensureEngine],
   );
 
   /** Suelta una tecla del PC. */
   const auditionOff = useCallback((pitch: number) => {
-    synthRef.current?.noteOff(pitch);
+    samplerRef.current?.noteOff(pitch);
   }, []);
 
   // Mientras suena, un intervalo avanza el motor y refresca la posición para la UI.
@@ -148,12 +176,12 @@ export function usePlayback(tickMs = 25) {
 
   // Al desmontar: parar todo y cerrar el contexto de audio.
   useEffect(() => {
-    const getCtx = () => ctxRef.current;
     return () => {
       engineRef.current?.stop();
       engineRef.current = null;
-      synthRef.current = null;
-      void getCtx()?.close().catch(() => undefined);
+      samplerRef.current?.silence();
+      samplerRef.current = null;
+      void ctxRef.current?.close().catch(() => undefined);
       ctxRef.current = null;
     };
   }, []);

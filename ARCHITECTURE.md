@@ -508,7 +508,8 @@ piano-mentor-ai/
 | `/backend/scripts/validate_midi_corpus.py` | Comprueba el corpus de piezas del MVP. |
 | `/frontend/public/` | Recursos estáticos servidos directamente por Next.js. |
 | `/frontend/public/icons/` | Iconos de la interfaz. |
-| `/frontend/public/audio/` | Audio auxiliar permitido por el diseño, si fuese necesario. |
+| `/frontend/public/audio/piano/` | Banco de muestras de piano versionado (120 MP3 + `manifest.json`, 4,7 MB); se regenera con `npm run samples` y su licencia está en `THIRD_PARTY_NOTICES.md`. |
+| `/frontend/scripts/` | Scripts de desarrollo del frontend; hoy el de descarga y trascodificación de las muestras de piano. |
 | `/frontend/src/app/pieces/` | Rutas para listar y consultar piezas. |
 | `/frontend/src/app/pieces/page.tsx` | Página de listado o selección de piezas. |
 | `/frontend/src/app/pieces/[pieceId]/page.tsx` | Página de detalle de una pieza. |
@@ -744,7 +745,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-14 17:58 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-14 20:08 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -854,6 +855,16 @@ piano-mentor-ai/
 ├── docs/GETTING_STARTED.md
 ├── docs/TROUBLESHOOTING.md
 ├── frontend/
+├── frontend/.cache/
+├── frontend/.cache/piano-samples/
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/A0v13.ogg
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/A4v8.ogg
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/C4v13.ogg
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/C4v4.ogg
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/C8v13.ogg
+├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis.tar.bz2
 ├── frontend/AGENTS.md
 ├── frontend/Dockerfile
 ├── frontend/next-env.d.ts
@@ -863,11 +874,22 @@ piano-mentor-ai/
 ├── frontend/public/
 ├── frontend/public/assets/
 ├── frontend/public/assets/icons/
+├── frontend/public/assets/icons/bot.svg
+├── frontend/public/assets/icons/eye.svg
+├── frontend/public/assets/icons/info.svg
 ├── frontend/public/assets/icons/Learn.svg
 ├── frontend/public/assets/icons/Library.svg
 ├── frontend/public/assets/icons/Lock.svg
 ├── frontend/public/assets/icons/Logo.svg
+├── frontend/public/assets/icons/metrics.svg
+├── frontend/public/assets/icons/piano.svg
+├── frontend/public/assets/icons/play.svg
 ├── frontend/public/assets/piano_virtual_88_pressed.svg
+├── frontend/public/audio/
+├── frontend/public/audio/piano/
+├── frontend/public/audio/piano/manifest.json
+├── frontend/scripts/
+├── frontend/scripts/fetch-piano-samples.mjs
 ├── frontend/src/
 ├── frontend/src/app/
 ├── frontend/src/app/globals.css
@@ -878,6 +900,9 @@ piano-mentor-ai/
 ├── frontend/src/app/practice/[sessionId]/
 ├── frontend/src/app/practice/[sessionId]/page.tsx
 ├── frontend/src/components/
+├── frontend/src/components/AppFooter/
+├── frontend/src/components/AppFooter/AppFooter.module.css
+├── frontend/src/components/AppFooter/AppFooter.tsx
 ├── frontend/src/components/AppHeader/
 ├── frontend/src/components/AppHeader/AppHeader.module.css
 ├── frontend/src/components/AppHeader/AppHeader.tsx
@@ -966,6 +991,7 @@ piano-mentor-ai/
 ├── frontend/src/lib/.gitkeep
 ├── frontend/src/lib/api-client.test.ts
 ├── frontend/src/lib/api-client.ts
+├── frontend/src/lib/audio-doubles.ts
 ├── frontend/src/lib/falling-notes.test.ts
 ├── frontend/src/lib/falling-notes.ts
 ├── frontend/src/lib/key-geometry.test.ts
@@ -974,12 +1000,17 @@ piano-mentor-ai/
 ├── frontend/src/lib/key-states.ts
 ├── frontend/src/lib/pc-keyboard.test.ts
 ├── frontend/src/lib/pc-keyboard.ts
+├── frontend/src/lib/piano-model.test.ts
+├── frontend/src/lib/piano-model.ts
+├── frontend/src/lib/piano-samples.test.ts
+├── frontend/src/lib/piano-samples.ts
 ├── frontend/src/lib/pitch.test.ts
 ├── frontend/src/lib/pitch.ts
 ├── frontend/src/lib/playback-engine.test.ts
 ├── frontend/src/lib/playback-engine.ts
 ├── frontend/src/lib/playback-schedule.test.ts
 ├── frontend/src/lib/playback-schedule.ts
+├── frontend/src/lib/synth.test.ts
 ├── frontend/src/lib/synth.ts
 ├── frontend/src/lib/useComputerKeyboard.ts
 ├── frontend/src/lib/usePlayback.ts
@@ -1056,6 +1087,7 @@ piano-mentor-ai/
 ├── shared/
 ├── shared/schemas/
 ├── shared/schemas/action.schema.json
+├── THIRD_PARTY_NOTICES.md
 ```
 
 ## Anexo B — Contexto por archivo (`architecture/files.csv`)
@@ -1124,8 +1156,8 @@ piano-mentor-ai/
 | `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/playback-schedule.ts` | Matemática pura de reproducción (B-006.2): schedule ordenado con factor de tempo, ventana de eventos, pitch a Hz y recortes. | Sin DOM ni AudioContext; testeable con números, la ejecuta el motor de transporte. |
 | `frontend/src/lib/playback-engine.ts` | Motor de transporte sin framework (B-006.2): play/pausa/stop/seek y tempo con reloj y voz de audio inyectados. | Determinista con tiempo falso en tests; usePlayback lo viste con React+WebAudio. |
-| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): snapshot, notas, acciones, audición y getPosition (posición viva sin pasar por estado de React). | Capa fina sobre PlaybackEngine y el sintetizador compartido; getPosition lo consume la cascada de B-007.3. |
-| `frontend/src/lib/synth.ts` | Sintetizador polifónico WebAudio compartido (transporte + audición por teclado). | B-007.2; voces triangulares con envolvente, sin estado global. |
+| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): snapshot, notas, acciones, audición y getPosition (posición viva sin pasar por estado de React). | Capa fina sobre PlaybackEngine; en B-007.5 crea el sampler de muestras con su voz de reserva y la cadena master → limitador. getPosition lo consume la cascada de B-007.3. |
+| `frontend/src/lib/synth.ts` | Voz aditiva de reserva (senos con inarmonicidad y envolvente percusiva) compartida por transporte y audición. | B-007.5; suena mientras no hay muestra decodificada y si una falla. Contrato PolySynth intacto; polifonía limitada a 24 voces robando la más vieja. |
 | `frontend/src/lib/pc-keyboard.ts` | Mapa tecla del PC → pitch por e.code (dos filas + flechas de octava, velocity fija). | B-007.2; puro, independiente del layout del teclado. |
 | `frontend/src/lib/pc-keyboard.test.ts` | Tests del mapa de teclado: filas, octavas, layout y límites del piano. | Criterio de B-007.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/useComputerKeyboard.ts` | Hook que captura keydown/keyup (ignora repeticiones y focos de escritura). | B-007.2; emite eventos que B-013 evaluará. |
@@ -1233,5 +1265,15 @@ piano-mentor-ai/
 | `frontend/public/assets/icons/library.svg` | Icono de la pestaña Library de la navegación principal. | B-006.4; cuidado: MainNav pide Library.svg y el fichero es library.svg (falla en Linux/Docker). |
 | `frontend/public/assets/icons/lock.svg` | Icono de candado de las pestañas bloqueadas (Progress y Settings). | B-006.4; cuidado: MainNav pide Lock.svg y el fichero es lock.svg (falla en Linux/Docker). |
 | `frontend/public/assets/icons/Logo.svg` | Logo en SVG servido desde public/. | B-006.4; hoy no lo referencia ningún componente del front. |
+| `THIRD_PARTY_NOTICES.md` | Atribución y licencias de recursos de terceros que viajan con el proyecto (muestras de piano Salamander, CC BY 3.0). | B-007.5; requisito de la licencia: debe acompañar a los MP3 aunque se muevan a un almacén externo. |
+| `frontend/scripts/fetch-piano-samples.mjs` | Script idempotente (`npm run samples`) que descarga el banco Salamander (SHA-1 fijado), extrae 30 teclas x 2 capas y trascodifica a MP3 en dos calidades. | B-007.5; requiere ffmpeg en el PATH; --force regenera; el banco de 78 MB queda en frontend/.cache (ignorado por git). |
+| `frontend/src/lib/piano-model.ts` | Modelo de piano puro: elección de la muestra más cercana, detune en céntimos, mezcla de capas por velocity y voz aditiva de reserva (parciales, pesos y decaimientos). | B-007.5; sin WebAudio ni DOM: toda la matemática del timbre vive aquí para poder testearla. |
+| `frontend/src/lib/piano-model.test.ts` | Tests del modelo: cercanía y empates, tope de detune, cruce de capas con potencia constante, calidades por rango y voz aditiva. | Criterio de B-007.5; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/piano-samples.ts` | Cargador perezoso de muestras (manifiesto, descargas deduplicadas, poda LRU y precarga por capas) y sampler que reproduce MP3 con detune y crossfade, con voz de reserva. | B-007.5; implementa el contrato PolySynth; la base es configurable con NEXT_PUBLIC_AUDIO_BASE_URL. |
+| `frontend/src/lib/piano-samples.test.ts` | Tests del sampler con dobles de WebAudio y fetch: manifiesto caído, semitonaje, mezcla de capas, reserva y poda de memoria. | Criterio de B-007.5; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/synth.test.ts` | Tests de la voz aditiva de reserva: parciales, envolvente, sostenido, silencio y robo de voces al saturar. | Criterio de B-007.5; con AudioContext doble, sin DOM. |
+| `frontend/src/lib/audio-doubles.ts` | Dobles de WebAudio y de fetch para tests (contexto, ganancias, osciladores, fuentes de buffer y rutas falsas). | Solo lo usan los tests de synth.ts y piano-samples.ts; la app no lo importa, así que no entra en el bundle. |
+| `frontend/public/audio/piano/` | 120 MP3 de piano (30 teclas en terceras menores x 2 capas de velocity x 2 calidades, 4,7 MB) generados por `npm run samples`. | B-007.5; HQ para la ventana visible C1–C6 y LQ para el resto; atribución en THIRD_PARTY_NOTICES.md. |
+| `frontend/public/audio/piano/manifest.json` | Manifiesto de las muestras: pitch, capa, calidad, fichero, duración, bytes y SHA-256, más licencia y procedencia del banco. | B-007.5; lo pide piano-samples.ts a /audio/piano/manifest.json; regenerarlo con el script, no a mano. |
 
 _Para añadir un archivo nuevo: agrega su fila en `architecture/files.csv` y ejecuta `python architecture/generate_architecture.py`._

@@ -151,6 +151,23 @@ npm run build
 cd ..
 ```
 
+### Audio del piano (muestras)
+
+El sonido del piano son **muestras reales de un piano de cola** (Salamander Grand Piano, CC BY 3.0) versionadas en `frontend/public/audio/piano/`: **120 MP3 + `manifest.json`, 4,7 MB**. Un clon normal no tiene que hacer nada para oírlas.
+
+Solo hay que regenerarlas si cambias las capas grabadas o las calidades, y para eso hace falta **`ffmpeg` en el `PATH`** (el script lo usa para trascodificar y recortar las colas):
+
+```powershell
+cd frontend
+npm run samples          # idempotente: si todo está al día, sale en milisegundos
+npm run samples -- --force   # regenera los 120 MP3 desde el banco original
+cd ..
+```
+
+El script descarga el banco original de Internet Archive (78 MB de Ogg Vorbis, verificado por SHA‑1), lo deja en `frontend/.cache/piano-samples/` —ignorado por git— y escribe los MP3 y el manifiesto con la atribución. La licencia y la nota de derivación están en [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md); si mueves los MP3 fuera del repo (por ejemplo a un CDN), esa atribución tiene que viajar con ellos.
+
+Para servirlos desde un almacén externo en vez del propio repo basta con `NEXT_PUBLIC_AUDIO_BASE_URL` apuntando a la base remota; mientras el manifiesto no llegue, la voz de reserva de `frontend/src/lib/synth.ts` suena en su lugar y la app nunca queda muda.
+
 ### Flujo web de carga (B-004)
 
 Una vez arrancados los servicios, el primer flujo completo web → API se prueba en <http://localhost:3000>:

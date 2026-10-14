@@ -128,7 +128,9 @@ export function partialFreqs(
   if (!Number.isFinite(f0) || f0 <= 0 || count <= 0) return [];
   const freqs: number[] = [];
   for (let h = 1; h <= count; h += 1) {
-    const freq = f0 * h * Math.sqrt(1 + inharmonicity * h * h);
+    // La fundamental se deja exacta: un piano se afina al fundamental, la
+    // inarmonicidad solo desafina los parciales superiores.
+    const freq = h === 1 ? f0 : f0 * h * Math.sqrt(1 + inharmonicity * h * h);
     if (freq >= nyquist) break;
     freqs.push(freq);
   }

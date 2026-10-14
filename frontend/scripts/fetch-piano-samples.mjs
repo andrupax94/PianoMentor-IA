@@ -38,9 +38,15 @@ const TIERS = {
 
 const NOTE_NAMES = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
 
-/** pitch MIDI → nombre corto (60 → "c4"), como `pitchToKeyId` del frontend. */
+/**
+ * pitch MIDI → nombre corto (60 → "c4"), como `pitchToKeyId` del frontend.
+ * Los bemoles se escriben con "s" ("d#1" → "ds1") porque el "#" rompe la URL:
+ * el navegador lo trataría como fragmento y la petición llegaría truncada.
+ */
 function noteName(pitch) {
-  return `${NOTE_NAMES[((pitch % 12) + 12) % 12]}${Math.floor(pitch / 12) - 1}`;
+  const name = NOTE_NAMES[((pitch % 12) + 12) % 12];
+  const sharp = name.includes("#") ? "s" : "";
+  return `${name.charAt(0)}${sharp}${Math.floor(pitch / 12) - 1}`;
 }
 
 /** Nombre del fichero dentro del banco (24v4.ogg), con la grafía del banco (D#1, F#1, A1). */

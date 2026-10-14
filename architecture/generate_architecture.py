@@ -11,7 +11,8 @@ Uso (desde la raíz del repo):
 Reglas:
 - Lee `architecture/architecture_base.md` (fuente manual, NO la modifica).
 - Lee `architecture/files.csv` (columnas: path,description,context).
-- Genera el filetree real del repo (omite ruido: .git, __pycache__, node_modules, .next, etc.).
+- Genera el filetree real del repo (omite ruido: .git, __pycache__, node_modules, .next, etc.;
+  el banco de muestras de frontend/public/audio/ se refleja solo con su manifiesto).
 - Escribe `ARCHITECTURE.md` = base + Anexo A (filetree) + Anexo B (tabla del CSV).
 - Con --write, inserta `description` y `context` del CSV como comentario de
   cabecera en cada archivo (estilo según extensión: `#`, `//`, `<!-- -->`, `/* */`).
@@ -58,6 +59,11 @@ SKIP_NAMES = {"opencode.exe"}
 
 # Dentro de data/ solo se documentan los archivos versionados (el resto es volátil).
 DATA_TRACKED_FILES = {".gitkeep", "catalog.json"}
+
+# El banco de muestras son 120 binarios casi idénticos: en el filetree solo se
+# refleja el manifiesto y la carpeta, el detalle está en files.csv.
+ASSET_PREFIX = ("frontend", "public", "audio")
+ASSET_TRACKED_FILES = {"manifest.json"}
 
 # Estilo de comentario por extensión. None = sin sintaxis de comentario (se omite en --write).
 HASH_SUFFIXES = {".py", ".toml", ".yml", ".yaml", ".sh", ".ps1", ".example", ".gitignore", ""}
@@ -198,6 +204,9 @@ def iter_tree_lines() -> list[str]:
         # Omitir contenido volátil de data/ (solo los archivos versionados)
         if parts[0] == "data" and path.is_file() and name not in DATA_TRACKED_FILES:
             continue
+        # El banco de muestras es un lote de binarios: solo se refleja el manifiesto
+        if parts[: len(ASSET_PREFIX)] == ASSET_PREFIX and path.is_file() and name not in ASSET_TRACKED_FILES:
+            continue
         suffix = "/" if path.is_dir() else ""
         entries.append(rel.as_posix() + suffix)
     # Quitar la propia salida generada y directorios vacíos de ruido ya filtrados
@@ -310,8 +319,10 @@ def main() -> None:
 
     # Avisos útiles (no bloquean): CSV vs realidad
     real_files = {e.rstrip("/") for e in tree}
-    csv_paths = {r["path"] for r in rows} - {"ARCHITECTURE.md"}
-    missing = sorted(csv_paths - real_files - {d.rstrip("/") for d in tree})
+    # Normalizar barras finales: una fila de carpeta (`frontend/public/audio/piano/`)
+    # debe compararse con el filetree, que la escribe sin ellas.
+    csv_paths = {r["path"].rstrip("/") for r in rows} - {"ARCHITECTURE.md"}
+    missing = sorted(csv_paths - real_files)
     # Solo avisar de archivos fuente relevantes, no de carpetas genéricas
     relevant_missing = [m for m in missing if not m.startswith("issues/")]
     if relevant_missing:

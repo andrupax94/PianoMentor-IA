@@ -86,7 +86,7 @@
       "pitch": 27,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#1-hard-hq.mp3",
+      "file": "ds1-hard-hq.mp3",
       "duration_s": 6,
       "bytes": 97010,
       "sha256": "900427d35d0f0d9c8c011a2a5bfa231a5dbfa998f8f4e4c448215c4502c0a8a9"
@@ -95,7 +95,7 @@
       "pitch": 27,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#1-hard-lq.mp3",
+      "file": "ds1-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "884d38ba4c9fbedf3d8b4444fc682e424908d96018edf4178aa15e3bf2a0fb72"
@@ -104,7 +104,7 @@
       "pitch": 27,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#1-soft-hq.mp3",
+      "file": "ds1-soft-hq.mp3",
       "duration_s": 6,
       "bytes": 97010,
       "sha256": "b58cfe91150cfc4a3ba498c6257fff4b4c933afc92a7954ed889a29ab2aeca09"
@@ -113,7 +113,7 @@
       "pitch": 27,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#1-soft-lq.mp3",
+      "file": "ds1-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "b16af8d762928c87978a8e63752885b3daec056db7b84354a0f1851c347989d3"
@@ -122,7 +122,7 @@
       "pitch": 30,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#1-hard-hq.mp3",
+      "file": "fs1-hard-hq.mp3",
       "duration_s": 6,
       "bytes": 97010,
       "sha256": "1f8dc8afa483c033df6313e132ed6e2952f3b8f7ab6ee96d897b5d4a02a3d99a"
@@ -131,7 +131,7 @@
       "pitch": 30,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#1-hard-lq.mp3",
+      "file": "fs1-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "f53fd6bb0f1af3a94fa5a8689fe7ce64bc5c078abc1dd67d48cca896e57d829d"
@@ -140,7 +140,7 @@
       "pitch": 30,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#1-soft-hq.mp3",
+      "file": "fs1-soft-hq.mp3",
       "duration_s": 6,
       "bytes": 97010,
       "sha256": "ef8ee926aaba62c7df25098df5026d0e7fe0a1e9b9e27019809da64622c1e617"
@@ -149,7 +149,7 @@
       "pitch": 30,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#1-soft-lq.mp3",
+      "file": "fs1-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "ef2fa027ccfbd2a0b21151cd1409d8930eb90ddde8c50c4047139147ef9a9092"
@@ -230,7 +230,7 @@
       "pitch": 39,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#2-hard-hq.mp3",
+      "file": "ds2-hard-hq.mp3",
       "duration_s": 5.47,
       "bytes": 88651,
       "sha256": "89dc69c057a4978d1c45e9154f54a32ec41eefb9c3aeccae3cc79cb125e63c91"
@@ -239,7 +239,7 @@
       "pitch": 39,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#2-hard-lq.mp3",
+      "file": "ds2-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "e826ddc953d985daefa52beee910343cfcffb1f2f3f4e828c717f59e3df901c8"
@@ -248,7 +248,7 @@
       "pitch": 39,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#2-soft-hq.mp3",
+      "file": "ds2-soft-hq.mp3",
       "duration_s": 5.47,
       "bytes": 88651,
       "sha256": "7f4b157e22ffa5baf69ab2c6e494746fd46a9c1da56d1117c0f4d9fdcc7712e8"
@@ -257,7 +257,7 @@
       "pitch": 39,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#2-soft-lq.mp3",
+      "file": "ds2-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "e56b0f73f44946357d201cd1ca44bcc29fdc48c33b61c51b30d4a411f6e569bf"
@@ -266,7 +266,7 @@
       "pitch": 42,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#2-hard-hq.mp3",
+      "file": "fs2-hard-hq.mp3",
       "duration_s": 5.2,
       "bytes": 84471,
       "sha256": "d0ea9a21abc2fd59d116446896437fdc0888ed7d86f25b8cc86f14e85d16b3d1"
@@ -275,7 +275,7 @@
       "pitch": 42,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#2-hard-lq.mp3",
+      "file": "fs2-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "243a59369d29ffcfda031e66d940ea1ab7609076646717219170889373ed2d31"
@@ -284,7 +284,7 @@
       "pitch": 42,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#2-soft-hq.mp3",
+      "file": "fs2-soft-hq.mp3",
       "duration_s": 5.2,
       "bytes": 84471,
       "sha256": "52855f50eb23e6542ea594cbbb9b45ce3fd9a09229017845ba669c40d5509acd"
@@ -293,7 +293,7 @@
       "pitch": 42,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#2-soft-lq.mp3",
+      "file": "fs2-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "7eb6b218b2a2f6354b7043199e32cbd9fc4b273b4f1e5f12aa95409d46ec3f74"
@@ -374,7 +374,7 @@
       "pitch": 51,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#3-hard-hq.mp3",
+      "file": "ds3-hard-hq.mp3",
       "duration_s": 4.39,
       "bytes": 71515,
       "sha256": "46f51aa0b19254250724992d67828e2c54de49565a1cd7af9efc53e4e279fc6f"
@@ -383,7 +383,7 @@
       "pitch": 51,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#3-hard-lq.mp3",
+      "file": "ds3-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "ce402ce51094c5e7b5f91e9b0506feefc30751bcf84b8e963f98e9658fe18791"
@@ -392,7 +392,7 @@
       "pitch": 51,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#3-soft-hq.mp3",
+      "file": "ds3-soft-hq.mp3",
       "duration_s": 4.39,
       "bytes": 71515,
       "sha256": "28261fe033a97cbca2dc8ec12458f3fdca33b1dd40a7285cb0045af94889bfec"
@@ -401,7 +401,7 @@
       "pitch": 51,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#3-soft-lq.mp3",
+      "file": "ds3-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "422933dc4263caa69cb454b4ba30b235de2ba7802efc5415c60397f861ab1bf8"
@@ -410,7 +410,7 @@
       "pitch": 54,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#3-hard-hq.mp3",
+      "file": "fs3-hard-hq.mp3",
       "duration_s": 4.12,
       "bytes": 66917,
       "sha256": "03ee20f40a001281264eea7bc21b739425d920b81e58f080ee82ef5b58084d77"
@@ -419,7 +419,7 @@
       "pitch": 54,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#3-hard-lq.mp3",
+      "file": "fs3-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "82d772a4f25943048796ab2e05ff1aff510725c41fd13819a03761a6f31d1621"
@@ -428,7 +428,7 @@
       "pitch": 54,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#3-soft-hq.mp3",
+      "file": "fs3-soft-hq.mp3",
       "duration_s": 4.12,
       "bytes": 66917,
       "sha256": "1770d198bd46156f0cada4eb6b4aaea579c6ce476e086f5a31836dc9140e2e13"
@@ -437,7 +437,7 @@
       "pitch": 54,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#3-soft-lq.mp3",
+      "file": "fs3-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "bc110faced8c58d9f710b6adc7c401ddee0d4f0bfad6c0a2af6dbe3bfde3ec10"
@@ -518,7 +518,7 @@
       "pitch": 63,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#4-hard-hq.mp3",
+      "file": "ds4-hard-hq.mp3",
       "duration_s": 3.31,
       "bytes": 53960,
       "sha256": "d9fea5638c65a3e53f6b7eda49e3de149ce9906b2a34782669b1dcdf43bdff35"
@@ -527,7 +527,7 @@
       "pitch": 63,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#4-hard-lq.mp3",
+      "file": "ds4-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "7bc5408371036c715d09c57c7bc9b8ab7e36dcadf9f3256211ed97d0ac45be00"
@@ -536,7 +536,7 @@
       "pitch": 63,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#4-soft-hq.mp3",
+      "file": "ds4-soft-hq.mp3",
       "duration_s": 3.31,
       "bytes": 53960,
       "sha256": "5205ec8cb09cf90032734866754e2a26a1c9cc62a0d4af616fea6eea5c9a4aec"
@@ -545,7 +545,7 @@
       "pitch": 63,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#4-soft-lq.mp3",
+      "file": "ds4-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "5addca852fc4e27aa4a16185f9742b36fc3c77978ad0dfbae5fb3b01a2a4de6c"
@@ -554,7 +554,7 @@
       "pitch": 66,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#4-hard-hq.mp3",
+      "file": "fs4-hard-hq.mp3",
       "duration_s": 3.04,
       "bytes": 49781,
       "sha256": "2d493573630c1d0e403932beaeb361079f9ae49181bf4b15646aab7fa78eb783"
@@ -563,7 +563,7 @@
       "pitch": 66,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#4-hard-lq.mp3",
+      "file": "fs4-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "8edd44067224b06b1a792ac75f825e5310cfceb3c84091d0679b2dcc4a098369"
@@ -572,7 +572,7 @@
       "pitch": 66,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#4-soft-hq.mp3",
+      "file": "fs4-soft-hq.mp3",
       "duration_s": 3.04,
       "bytes": 49781,
       "sha256": "746f43b9d17171f4b8bce0ca6ae35233f019878cf451a5ade1323afd7876a97e"
@@ -581,7 +581,7 @@
       "pitch": 66,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#4-soft-lq.mp3",
+      "file": "fs4-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "2970b23805571d3fd014726bfa186ad829b90c7f603a173b8fc2175a6e18ffa5"
@@ -662,7 +662,7 @@
       "pitch": 75,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#5-hard-hq.mp3",
+      "file": "ds5-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "9c8d7d308b63451067889e10adcb1856c31e437cc320596d5ce607606f9d4c82"
@@ -671,7 +671,7 @@
       "pitch": 75,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#5-hard-lq.mp3",
+      "file": "ds5-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "13ab530b0774888624b04a6ceb57c2b492de6d79323d53a5e7f220209592ec31"
@@ -680,7 +680,7 @@
       "pitch": 75,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#5-soft-hq.mp3",
+      "file": "ds5-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "f8cfd85c2369144ae4ac7289436b2f5a81e500dc6e2c3223bc603a28a610b6a2"
@@ -689,7 +689,7 @@
       "pitch": 75,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#5-soft-lq.mp3",
+      "file": "ds5-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "80859c8d4d4879201da6dc05c0d858c057f4d2046d800aabc56a8031cdff0f41"
@@ -698,7 +698,7 @@
       "pitch": 78,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#5-hard-hq.mp3",
+      "file": "fs5-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "15d30ae804e12f34b7bb86e0decade76791a74273cfa6c90f3f3cc9c7d31d014"
@@ -707,7 +707,7 @@
       "pitch": 78,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#5-hard-lq.mp3",
+      "file": "fs5-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "0d82a0b61f65f5f687677f4c07c63aed8e3491268438f348c55073fa1b4ae362"
@@ -716,7 +716,7 @@
       "pitch": 78,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#5-soft-hq.mp3",
+      "file": "fs5-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "0e47f8de2ce0e8320c23cf6bd5680cfe358d4c684d99574c6a3739449d6959c7"
@@ -725,7 +725,7 @@
       "pitch": 78,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#5-soft-lq.mp3",
+      "file": "fs5-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "15651ddfbc5befeefc838628dbef24068fa7fc3452164d3fa3891bae1734989f"
@@ -806,7 +806,7 @@
       "pitch": 87,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#6-hard-hq.mp3",
+      "file": "ds6-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "7c084322281cfb6faa4e0830185255e6f1664ebe450a6253cc2099848237dfb6"
@@ -815,7 +815,7 @@
       "pitch": 87,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#6-hard-lq.mp3",
+      "file": "ds6-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "4ff75d273704d0e294f9cd724d84f68f38d15062ec41c5057c137ec7f433b619"
@@ -824,7 +824,7 @@
       "pitch": 87,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#6-soft-hq.mp3",
+      "file": "ds6-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "4f229757cd7ae6520cf8402133cb89f9e1e8580155505b0c544f2fd084b2431b"
@@ -833,7 +833,7 @@
       "pitch": 87,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#6-soft-lq.mp3",
+      "file": "ds6-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "0d851c4aa2f3fca19174bf6d5d5943cfb14ecb6d409e0ef6debb8814e1e61d5f"
@@ -842,7 +842,7 @@
       "pitch": 90,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#6-hard-hq.mp3",
+      "file": "fs6-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "97602f465a831828754c9f5e2ebc93ac89643ed5cfdc6a737a4e5e97cb073254"
@@ -851,7 +851,7 @@
       "pitch": 90,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#6-hard-lq.mp3",
+      "file": "fs6-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "a0b5aa7209b4d1073808dfdbbf99d2eb16f009770ba5af2a7ba0c566c56d5cbd"
@@ -860,7 +860,7 @@
       "pitch": 90,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#6-soft-hq.mp3",
+      "file": "fs6-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "5d9efa2366a96315fd09ab46b2ebbed0882321be485604615b51790a64052b63"
@@ -869,7 +869,7 @@
       "pitch": 90,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#6-soft-lq.mp3",
+      "file": "fs6-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "b69034aab98902136f5a69ab2235941208ae9ea81d636dbb0cceb79113a1d6b1"
@@ -950,7 +950,7 @@
       "pitch": 99,
       "layer": "hard",
       "tier": "hq",
-      "file": "d#7-hard-hq.mp3",
+      "file": "ds7-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "9cb213845651b6b506266dd13ff896193692042f38c6f5152e92a90e526a36a2"
@@ -959,7 +959,7 @@
       "pitch": 99,
       "layer": "hard",
       "tier": "lq",
-      "file": "d#7-hard-lq.mp3",
+      "file": "ds7-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "94aa1e38d010b82a7dcef3fb8351bc36559e01dd00f97d2d1dbbbd01047177cf"
@@ -968,7 +968,7 @@
       "pitch": 99,
       "layer": "soft",
       "tier": "hq",
-      "file": "d#7-soft-hq.mp3",
+      "file": "ds7-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "712ed5f17aef6a5eae6972f9cd5e66591c15fa52aad9248126f49c65b9ee36e2"
@@ -977,7 +977,7 @@
       "pitch": 99,
       "layer": "soft",
       "tier": "lq",
-      "file": "d#7-soft-lq.mp3",
+      "file": "ds7-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "b729e0eef2ff7d79ea64f7a856c18b1d66a028f669e748e537cab47e5f02b0c6"
@@ -986,7 +986,7 @@
       "pitch": 102,
       "layer": "hard",
       "tier": "hq",
-      "file": "f#7-hard-hq.mp3",
+      "file": "fs7-hard-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "52ef98e1504e493daa453705a36d7dd9a7e396365754ab6f6de04c131be06b41"
@@ -995,7 +995,7 @@
       "pitch": 102,
       "layer": "hard",
       "tier": "lq",
-      "file": "f#7-hard-lq.mp3",
+      "file": "fs7-hard-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "1e812e9a4382fba6dd2a17e02f202cd98a1d05204fc19d6df75afa64bced46b6"
@@ -1004,7 +1004,7 @@
       "pitch": 102,
       "layer": "soft",
       "tier": "hq",
-      "file": "f#7-soft-hq.mp3",
+      "file": "fs7-soft-hq.mp3",
       "duration_s": 2.5,
       "bytes": 41004,
       "sha256": "28a0f8252f09a677a03f83b23a20653d74cdbb5985f1b5ac9cb90e412d923d1d"
@@ -1013,7 +1013,7 @@
       "pitch": 102,
       "layer": "soft",
       "tier": "lq",
-      "file": "f#7-soft-lq.mp3",
+      "file": "fs7-soft-lq.mp3",
       "duration_s": 2.5,
       "bytes": 20524,
       "sha256": "f963e022e021968402b942ef9bfb39f584346877731c3809f9f27f73cbab20d8"
