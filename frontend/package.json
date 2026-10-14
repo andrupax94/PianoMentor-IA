@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
+    "samples": "node scripts/fetch-piano-samples.mjs",
     "generate:keyboard": "svgr --typescript --ref --out-dir src/components/PianoStage/Keyboard/SvgKeyboard public/assets/piano_virtual_88_pressed.svg"
   },
   "dependencies": {

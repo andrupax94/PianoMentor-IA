@@ -73,3 +73,7 @@ opencode.exe
 frontend/tsconfig.json
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
+
+# Banco de muestras de piano descargado (Salamander, ~78 MB, regenerable con `npm run samples`).
+# Los MP3 derivados de frontend/public/audio/piano/ sí se versionan; atribución en THIRD_PARTY_NOTICES.md.
+frontend/.cache/
