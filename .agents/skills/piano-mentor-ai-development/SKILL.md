@@ -198,6 +198,16 @@ POST /sessions/{session_id}/agent-step
 
 Versionar o documentar cualquier cambio incompatible.
 
+## Verificación: el agente no ejecuta Docker
+
+El usuario valida los despliegues Docker; el agente no debe correr `docker`, `docker compose` ni comandos equivalentes (`build`, `up`, `exec`, `logs`, `ps`, healthchecks). El entorno local ya tiene las dependencias instaladas y es la vía de validación del agente:
+
+- Frontend: `npm test -- --run` y `npm run build` dentro de `frontend/`.
+- Backend: `python -m pytest -q` y `python -m compileall src tests` dentro de `backend/`.
+- Arquitectura: `python architecture/generate_architecture.py` (y `--write --dry-run` para previsualizar cabeceras).
+
+Cuando una Issue pida verificación en Docker (por ejemplo, reproducir una pieza del corpus y adjuntar una captura), ese criterio queda **pendiente para el usuario**: el agente deja el código listo, ejecuta las validaciones locales y prepara un resumen con lo que hay que comprobar en el navegador, pero no arranca ni inspecciona contenedores.
+
 ## Pruebas mínimas
 
 Antes de considerar terminado un cambio, ejecutar las pruebas disponibles y comprobar:
@@ -211,7 +221,7 @@ Antes de considerar terminado un cambio, ejecutar las pruebas disponibles y comp
 - detención y pausa sin reproducción indefinida;
 - funcionamiento con el LLM deshabilitado;
 - endpoints de carga, sesión y estado;
-- arranque reproducible con Docker.
+- arranque reproducible con Docker (criterio que ejecuta el usuario, no el agente).
 
 ## Privacidad y fuentes musicales
 
@@ -226,5 +236,5 @@ Tratar los MIDI cargados como privados. No subir audio si no es necesario. No ej
 - [ ] Las acciones están validadas y limitadas.
 - [ ] El control del piano es visible y reversible.
 - [ ] Se añadieron o actualizaron tests.
-- [ ] Se verificó el arranque local o Docker afectado.
+- [ ] Se ejecutaron las validaciones locales afectadas (tests y build); Docker queda para el usuario.
 - [ ] Se documentaron decisiones de arquitectura.

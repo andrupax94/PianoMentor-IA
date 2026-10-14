@@ -1,8 +1,8 @@
 "use client";
 // description: Teclado del escenario (SVG real + transporte + teclado del PC).
-// context: B-007.3; el transporte vive en PianoStage y llega por props, porque el
+// context: B-007.4; el transporte vive en PianoStage y llega por props, porque el
 // NoteFallGrid (su hermano) necesita la misma posición y el mismo schedule. El
-// PianoKeyboard temporal se elimina en B-007.4.
+// PianoKeyboard temporal se retiró aquí: este SvgKeyboard es el teclado real.
 
 import { useMemo, useState } from "react";
 
@@ -16,7 +16,7 @@ import { SvgKeyboard } from "./SvgKeyboard/SvgKeyboard";
 import styles from "./Keyboard.module.css";
 import type { KeyboardProps } from "./Keyboard.types";
 
-export function Keyboard({ player, schedule, children }: KeyboardProps) {
+export function Keyboard({ player, schedule }: KeyboardProps) {
   const [playedIds, setPlayedIds] = useState<string[]>([]);
   const { auditionOn, auditionOff, position_s, status } = player;
 
@@ -48,9 +48,7 @@ export function Keyboard({ player, schedule, children }: KeyboardProps) {
 
   return (
     <div ref={keyboardRef} className={styles.keyboard}>
-      {children ?? (
-        <SvgKeyboard activeIds={active} expectedIds={expected} labels={labels} fromKey={fromKey} toKey={toKey} />
-      )}
+      <SvgKeyboard activeIds={active} expectedIds={expected} labels={labels} fromKey={fromKey} toKey={toKey} />
     </div>
   );
 }

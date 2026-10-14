@@ -72,23 +72,3 @@ button {
     padding: 12px 16px;
     font-weight: 700;
 }
-
-.keyboard {
-    display: flex;
-    gap: 3px;
-    align-items: flex-start;
-    overflow-x: auto;
-    padding: 24px 0;
-}
-
-.key {
-    min-width: 42px;
-    height: 150px;
-    background: #f5f7fa;
-    color: #111;
-    border-radius: 0 0 7px 7px;
-    display: grid;
-    align-items: end;
-    justify-content: center;
-    padding-bottom: 12px;
-}

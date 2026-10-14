@@ -116,7 +116,9 @@ piano-mentor-ai/
 │       │           └── page.tsx
 │       ├── components/
 │       │   ├── MidiUploader.tsx
-│       │   ├── PianoKeyboard.tsx
+│       │   ├── PianoStage/
+│       │   │   ├── NoteFallGrid/
+│       │   │   └── Keyboard/
 │       │   ├── PracticeSession.tsx
 │       │   └── SessionStatus.tsx
 │       └── lib/
@@ -180,7 +182,7 @@ piano-mentor-ai/
 | `/frontend/src/app/globals.css` | Estilos globales de la aplicación. |
 | `/frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. |
 | `/frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI. |
-| `/frontend/src/components/PianoKeyboard.tsx` | Piano virtual básico y resaltado de notas. |
+| `/frontend/src/components/PianoStage/` | Escenario del piano: cuadrícula de notas cayendo y teclado SVG real (B-007). |
 | `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica; se incorporará con B-012. |
 | `/frontend/src/components/SessionStatus.tsx` | Estado actual, tempo, compás y control del piano. |
 | `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI; se incorporará con B-004. |
@@ -199,7 +201,7 @@ piano-mentor-ai/
 | `practice.py` | Gestionar sesiones y estado de práctica. | Implementar componentes web. |
 | `agent.py` | Seleccionar y validar acciones estructuradas. | Enviar eventos MIDI directamente desde un LLM. |
 | `api.py` | Traducir HTTP/WebSocket a casos de uso. | Contener algoritmos musicales complejos. |
-| `PianoKeyboard.tsx` | Mostrar el teclado virtual y su estado visual. | Parsear MIDI o calcular timing. |
+| `PianoStage/Keyboard/Keyboard.tsx` | Mostrar el teclado virtual y su estado visual. | Parsear MIDI o calcular timing. |
 
 ## 5. Estructura completa escalable
 

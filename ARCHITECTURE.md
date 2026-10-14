@@ -116,7 +116,9 @@ piano-mentor-ai/
 │       │           └── page.tsx
 │       ├── components/
 │       │   ├── MidiUploader.tsx
-│       │   ├── PianoKeyboard.tsx
+│       │   ├── PianoStage/
+│       │   │   ├── NoteFallGrid/
+│       │   │   └── Keyboard/
 │       │   ├── PracticeSession.tsx
 │       │   └── SessionStatus.tsx
 │       └── lib/
@@ -180,7 +182,7 @@ piano-mentor-ai/
 | `/frontend/src/app/globals.css` | Estilos globales de la aplicación. |
 | `/frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. |
 | `/frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI. |
-| `/frontend/src/components/PianoKeyboard.tsx` | Piano virtual básico y resaltado de notas. |
+| `/frontend/src/components/PianoStage/` | Escenario del piano: cuadrícula de notas cayendo y teclado SVG real (B-007). |
 | `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica; se incorporará con B-012. |
 | `/frontend/src/components/SessionStatus.tsx` | Estado actual, tempo, compás y control del piano. |
 | `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI; se incorporará con B-004. |
@@ -199,7 +201,7 @@ piano-mentor-ai/
 | `practice.py` | Gestionar sesiones y estado de práctica. | Implementar componentes web. |
 | `agent.py` | Seleccionar y validar acciones estructuradas. | Enviar eventos MIDI directamente desde un LLM. |
 | `api.py` | Traducir HTTP/WebSocket a casos de uso. | Contener algoritmos musicales complejos. |
-| `PianoKeyboard.tsx` | Mostrar el teclado virtual y su estado visual. | Parsear MIDI o calcular timing. |
+| `PianoStage/Keyboard/Keyboard.tsx` | Mostrar el teclado virtual y su estado visual. | Parsear MIDI o calcular timing. |
 
 ## 5. Estructura completa escalable
 
@@ -742,7 +744,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-13 19:50 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-14 17:58 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -862,8 +864,8 @@ piano-mentor-ai/
 ├── frontend/public/assets/
 ├── frontend/public/assets/icons/
 ├── frontend/public/assets/icons/Learn.svg
-├── frontend/public/assets/icons/library.svg
-├── frontend/public/assets/icons/lock.svg
+├── frontend/public/assets/icons/Library.svg
+├── frontend/public/assets/icons/Lock.svg
 ├── frontend/public/assets/icons/Logo.svg
 ├── frontend/public/assets/piano_virtual_88_pressed.svg
 ├── frontend/src/
@@ -918,7 +920,6 @@ piano-mentor-ai/
 ├── frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.tsx
 ├── frontend/src/components/MentorPanel/PerformanceStats/PerformanceStats.types.ts
 ├── frontend/src/components/MidiUploader.tsx
-├── frontend/src/components/PianoKeyboard.tsx
 ├── frontend/src/components/PianoStage/
 ├── frontend/src/components/PianoStage/Keyboard/
 ├── frontend/src/components/PianoStage/Keyboard/Keyboard.module.css
@@ -1117,7 +1118,6 @@ piano-mentor-ai/
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación. | Base visual de la web. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. | Vista de tocar, evaluar y ver al agente. |
 | `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados, aviso de pieza reutilizada y metadatos devueltos (incluye tempo y origen). | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
-| `frontend/src/components/PianoKeyboard.tsx` | Piano virtual y resaltado de notas. | Muestra notas esperadas y recibidas; sin parsing MIDI. |
 | `frontend/src/components/SessionStatus.tsx` | Estado actual: tempo, compás y quién controla el piano. | Hace visible practicing/waiting/demonstrating. |
 | `frontend/src/components/PracticeSession.tsx` | Vista principal de práctica (se incorpora con B-012). | Composición de teclado + estado + controles. |
 | `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated) y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
@@ -1198,9 +1198,9 @@ piano-mentor-ai/
 | `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.tsx` | Cuadrícula con las notas cayendo: una columna por tecla blanca visible y bloques movidos por un rAF local, sin re-render por frame. | B-007.3; alinea líneas y bloques con key-geometry (desfase residual 0.15 px), se congela en pausa y se limpia en stop. |
 | `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.module.css` | Estilos de la cuadrícula: líneas verticales por tecla, carriles horizontales fijos y capa de bloques que recorta lo que aún no ha entrado. | B-007.3; simplicidad primero. |
 | `frontend/src/components/PianoStage/NoteFallGrid/NoteFallGrid.types.ts` | Props de la cuadrícula (octaves, schedule, status, horizon_s, getPosition). | B-007.3; el rango no llega por props sino del almacén compartido. |
-| `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Teclado cableado (B-007.2): resaltado sonando/esperada derivado del schedule y teclado del PC; recibe el transporte por props. | B-007.3 sacó el transporte y la pieza de aquí; B-007.4 elimina el PianoKeyboard temporal. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Teclado del escenario: resaltado sonando/esperada derivado del schedule y teclado del PC; recibe el transporte por props y pinta el SvgKeyboard real. | B-007.4 jubiló el PianoKeyboard temporal: sin vía de inyección, el teclado SVG es el único render. |
 | `frontend/src/components/PianoStage/Keyboard/Keyboard.module.css` | Estilos del envoltorio del teclado. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del teclado (player, schedule, children opcional). | B-007.3. |
+| `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del teclado (player, schedule). | B-007.4; se retiró children al eliminar el placeholder. |
 | `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna del mentor: chat, modos, rendimiento y flujo existente reubicado. | B-006.4; reutiliza MidiUploader y SessionStatus sin modificarlos. |
 | `frontend/src/components/MentorPanel/MentorPanel.module.css` | Estilos de la columna del mentor. | B-006.4; simplicidad primero. |
 | `frontend/src/components/MentorPanel/MentorPanel.types.ts` | Props del panel (weakPoint). | B-006.4. |
