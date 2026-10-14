@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 19.34 21.97">
+  <defs>
+    <style>
+      .cls-1 {
+        opacity: .76;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        mask: url(#mask);
+      }
+
+      .cls-4 {
+        fill: #4c75f0;
+      }
+
+      .cls-5 {
+        filter: url(#luminosity-invert);
+      }
+    </style>
+    <filter id="luminosity-invert" x="-2.19" y="-2.79" width="24" height="27" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feColorMatrix result="cm" values="-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 1 0"/>
+    </filter>
+    <mask id="mask" x="-2.19" y="-2.79" width="24" height="27" maskUnits="userSpaceOnUse">
+      <g class="cls-5">
+        <image width="24" height="27" transform="translate(-2.19 -2.79)" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAbCAYAAABm409WAAAACXBIWXMAAAsSAAALEgHS3X78AAAC+ElEQVRIibWWfW+iShSHH4EBJIAGUZN+/2/VNLZWQSyKKC86vN0/7oXsxnZvd7c9yS9DMsnv4cw5czIjoOMbQ/lO8zuAEAIhxJcCtP7DNE0mkwlCCLIs43Q6fS3AsixmsxmWZdG2LZfLhfP5TBRFXweYTCZ4noeu69R1TZ7nLJdLDocD2+327wC6ruO6Lr7v4zgOqqoipeTh4YEoijBNk6enp78D2LaN53l4nodpmnRdx/V6xfd9fN9nuVwShiGr1erPAOPx+KcsNE1DSsl8PmexWLBYLAjDEN/32e12vL6+fh6gaRqmaWLbNtPplOl0immaAEMWnucxm83wPI8wDJnP54RhSBiG/w9QVRXDMLAsa4DYto2iKDRNQ57nuK6L4zjYts1kMsFxHFzXRdO0D7MZAIqiIIRA1/UB4rouQgjatsWyLMbjMbquo+s6hmEghEDTNBRFQdd14jgmTdP3AaPRCFVVh9tsGAamaWIYxlAjRfn34rdtS9M0VFXF7XZDSknTNIxGI6qqoiiKAaD8COilqiqqqqJpGpqmDX/dA3uZpollWT+pr9sdAKDrumH9UU3T0Lbtp9R73B1R13W0bUtd19R1TVVVSCmHPSkleZ6TZRmXy2UYJWmacj6fSZKE4/FIWZbvA3rzqqooy5KyLIdjatuW6/VKmqYkScLb2xv7/X5o0e12y+vr67vtOgD6ohVFQZ7npGmKlBJFUYa5lCQJcRyz3+/ZbDYEQcBmsyGKog+H4gCo65qyLCmKYmg1wzDouo6yLEnTlDiO2e12BEHAy8sLURSxXq/fNf4QkKYpuq5zvV5RVZWqqrhcLsRxTBAErNdrgiDg+fn5l8Z3gNvtRpZlJElC13UYhkHTNJRlyfF4JIoiVqsVj4+PnzK+A0gpybKMOI4py5Ku67jdbpzPZ/b7PYfDgc1m81vmdxmcTieapiGO4wF4Op0IguC3jfsY8d+zxXEcptMpQgiklBRFwfF4/GPjO0A/Evqe/6oYAN8V3/7w+gf7LeJk2ea6cgAAAABJRU5ErkJggg=="/>
+      </g>
+    </mask>
+  </defs>
+  <g id="SSM">
+    <g>
+      <path class="cls-4" d="M0,20.8V1.17C0,.27.97-.29,1.75.16l17,9.82c.78.45.78,1.58,0,2.03L1.75,21.82C.97,22.27,0,21.7,0,20.8Z"/>
+      <g class="cls-3">
+        <g class="cls-1">
+          <path class="cls-2" d="M0,20.8V1.17C0,.27.97-.29,1.75.16l17,9.82c.78.45.78,1.58,0,2.03L1.75,21.82C.97,22.27,0,21.7,0,20.8Z"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

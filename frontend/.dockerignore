@@ -1,0 +1,27 @@
+# description: Exclusiones del contexto de build de la imagen del frontend.
+# context: Sin este fichero, `COPY . .` subía al daemon ~630 MB (node_modules de Windows de
+# 412 MB, .next de 138 MB y la caché del banco de muestras de 75 MB) y pisaba con el árbol
+# de Windows el node_modules de Alpine recién instalado, con binarios nativos inútiles allí.
+
+# Árboles generados: en la imagen manda `npm install` y el volumen anónimo de /app/.next
+node_modules
+.next
+.nx
+.turbo
+out
+build
+*.tsbuildinfo
+
+# Caché local del script de muestras (el banco de 78 MB); los MP3 ya generados sí viajan en public/
+.cache
+
+# Docker y metadatos
+Dockerfile
+.dockerignore
+.git
+.gitignore
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
