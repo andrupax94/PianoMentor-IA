@@ -7,8 +7,7 @@ B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representac
 B-006,Implementar reproducción básica,"Reproducir una pieza o sección con play, pausa, detención y tempo inicial.",P0,Semana 1,MIDI,Alto,L,Backlog,B-005
 B-007,Crear piano virtual básico,"Mostrar teclas, notas esperadas y estado de reproducción en Next.js.",P0,Semana 1,Frontend,Medio,M,Backlog,B-004;B-006
 B-008,"Rejilla de compases: cálculo, compás actual y rangos","Calcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005
-B-009,Preparar soporte básico para polifonía,"Gestionar notas simultáneas y acordes básicos en la representación interna y visual.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005;B-008
-B-010,Definir tratamiento de múltiples tracks,"Documentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.",P0,Semana 2,MIDI,Alto,M,Backlog,B-005;B-008
+B-009,Polifonía, acordes y estrategia de tracks,"Agrupar notas simultáneas en acordes y definir estrategia para múltiples tracks MIDI (merge, filtrar mano, selección). Fusiona antiguo B-010.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005;B-008
 B-011,Capturar teclado del ordenador,"Mapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.",P0,Semana 2,Frontend,Medio,M,Backlog,B-007
 B-012,Crear sesión de práctica y WebSocket,"Crear sesiones asociadas a una pieza y transmitir eventos y estado básico en tiempo real.",P0,Semana 2,Backend,Alto,L,Backlog,B-002;B-011
 B-013,Implementar evaluación determinista,"Comparar notas esperadas y recibidas, calcular precisión, omisiones, extras y timing.",P0,Semana 3,Evaluación,Alto,L,Backlog,B-008;B-009;B-010;B-012

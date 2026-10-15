@@ -54,8 +54,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-006 | P0 | Implementar reproducción básica | 1 |
 | B-007 | P0 | Crear piano virtual básico | 1 |
 | B-008 | P0 | Rejilla de compases: cálculo, compás actual y rangos | 2 |
-| B-009 | P0 | Preparar soporte básico para polifonía | 2 |
-| B-010 | P0 | Definir tratamiento de múltiples tracks | 2 |
+| B-009 | P0 | Polifonía, acordes y estrategia de tracks | 2 |
 | B-011 | P0 | Capturar teclado del ordenador | 2 |
 | B-012 | P0 | Crear sesión de práctica y WebSocket | 2 |
 | B-013 | P0 | Implementar evaluación determinista | 3 |
@@ -160,8 +159,7 @@ web
 **MIDI avanzado**
 
 - Calcular compases de forma inicial.
-- Preparar soporte básico para polifonía y acordes.
-- Definir qué se hace cuando el MIDI contiene varios tracks.
+- Polifonía, acordes y estrategia de tracks (agrupar simultáneas + decidir merge/filtrado/selección).
 - Revisar cambios de tempo y mejorar el cálculo de duración.
 - Definir qué notas son relevantes para una sección.
 - Crear fixtures con varios tracks, silencios y eventos simultáneos.
@@ -194,8 +192,7 @@ pieza MIDI
 **Criterio de cierre**
 
 - [ ] Los compases se calculan de forma inicial.
-- [ ] Se visualizan notas polifónicas básicas.
-- [ ] Está definido el tratamiento de varios tracks.
+- [ ] Polifonía, acordes y estrategia de tracks definidos y probados.
 - [ ] El usuario puede tocar con el teclado del ordenador.
 - [ ] Las notas pulsadas aparecen en la interfaz.
 - [ ] La sesión mantiene su estado básico.
