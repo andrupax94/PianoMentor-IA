@@ -174,6 +174,35 @@ class MeasureGrid:
         """Firma (numerador, denominador) vigente en un instante."""
         return self.signatures[self.measure_at(seconds)]
 
+    def resolve_range(
+        self, start_measure: int, end_measure: int
+    ) -> tuple[float, float]:
+        """Convierte un rango [start_measure, end_measure] a ventana [from_s, to_s].
+
+        - Borde inicial **incluido**, borde final **exclusivo** (el compás `end_measure`
+          termina donde empieza el siguiente; si `end_measure == count`, cierra en `end_seconds`).
+        - Valida: rango invertido, vacío, negativo o fuera de límites → MidiParseError.
+        """
+        if start_measure < 0 or end_measure < 0:
+            raise MidiParseError(
+                "invalid_measure_range",
+                "Los índices de compás no pueden ser negativos",
+            )
+        if start_measure >= end_measure:
+            raise MidiParseError(
+                "invalid_measure_range",
+                "El rango de compases debe tener start_measure < end_measure",
+            )
+        if start_measure >= self.count or end_measure > self.count:
+            raise MidiParseError(
+                "invalid_measure_range",
+                f"Rango fuera de límites: la pieza tiene {self.count} compases "
+                f"(índices 0..{self.count - 1})",
+            )
+        from_s = self.starts_s[start_measure]
+        to_s = self.starts_s[end_measure] if end_measure < self.count else self.end_seconds
+        return (from_s, to_s)
+
 
 def _count_notes(midi: mido.MidiFile) -> int:
     """Cuenta notas reales: `note_on` con velocidad positiva (vel 0 equivale a note_off)."""
@@ -373,6 +402,25 @@ class MidiService:
         midi = _read_midi_file(path)
         return MeasureGrid.build(midi, TempoMap.build(midi))
 
+    def resolve_measure_range(
+        self, path: Path, start_measure: int, end_measure: int
+    ) -> dict[str, object]:
+        """Resuelve un rango de compases a ventana temporal [from_s, to_s] (B-008.2).
+
+        Devuelve dict con: piece_id (nombre archivo), measure_range, window (from_s, to_s),
+        total_measures, status="resolved". Lanza MidiParseError con código estable
+        si el archivo falta, es ilegible o el rango es inválido.
+        """
+        grid = self.measure_grid(path)
+        from_s, to_s = grid.resolve_range(start_measure, end_measure)
+        return {
+            "piece_id": path.name,
+            "measure_range": [start_measure, end_measure],
+            "window": [from_s, to_s],
+            "total_measures": grid.count,
+            "status": "resolved",
+        }
+
     def normalize(self, source: Path | None) -> list[NormalizedNote]:
         """Normaliza un MIDI a la lista estable de notas internas.
 
@@ -403,5 +451,16 @@ class MidiService:
     def play_section(
         self, piece_id: str, start_measure: int, end_measure: int
     ) -> dict[str, object]:
-        """Prepara la reproducción de una sección sin emitir MIDI todavía."""
-        return {"piece_id": piece_id, "range": [start_measure, end_measure], "status": "stub"}
+        """Prepara la reproducción de una sección sin emitir MIDI todavía.
+
+        Nota: este método requiere que el llamador resuelva piece_id a Path.
+        Para uso directo desde API, véase el endpoint /pieces/{id}/notes con
+        from_measure/to_measure o el método resolve_measure_range.
+        """
+        # Mantiene compatibilidad; la implementación real está en resolve_measure_range
+        # y en el endpoint de notas. Aquí se deja como referencia documentada.
+        return {
+            "piece_id": piece_id,
+            "measure_range": [start_measure, end_measure],
+            "status": "use_resolve_measure_range_or_notes_endpoint",
+        }

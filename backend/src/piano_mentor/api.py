@@ -149,19 +149,64 @@ def get_piece_notes(
     piece_id: str,
     from_s: float | None = Query(default=None),
     to_s: float | None = Query(default=None),
+    from_measure: int | None = Query(default=None, ge=0),
+    to_measure: int | None = Query(default=None, ge=0),
 ) -> PieceNotesResponse:
-    # B-006.1: servir la partitura ordenada por tiempo con ventana opcional.
-    # La ventana se valida a mano para responder 400 con código estable en
-    # lugar del 422 genérico del framework.
-    if (
-        (from_s is not None and from_s < 0)
-        or (to_s is not None and to_s < 0)
-        or (from_s is not None and to_s is not None and from_s > to_s)
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail={"code": "invalid_window", "message": "from_s/to_s deben ser >= 0 y from_s <= to_s"},
+    # B-006.1 + B-008.2: servir la partitura con ventana opcional en segundos o compases.
+    # Si se dan from_measure/to_measure, se resuelven a from_s/to_s via MeasureGrid.
+    if from_measure is not None or to_measure is not None:
+        if from_measure is None or to_measure is None:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "invalid_measure_range",
+                    "message": "from_measure y to_measure deben ir juntos",
+                },
+            )
+        if from_measure >= to_measure:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "invalid_measure_range",
+                    "message": "from_measure debe ser < to_measure",
+                },
+            )
+        # Resolver rango de compases a ventana temporal
+        row = find_piece_by_id(piece_id)
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "piece_not_found", "message": f"No existe la pieza: {piece_id}"},
+            )
+        midi_path = (
+            Path(settings.midi_storage_path) / row["midi_path"]
+            if row["midi_path"]
+            else storage.get_path(row["stored_filename"])
         )
+        try:
+            measure_window = midi_service.resolve_measure_range(
+                midi_path, from_measure, to_measure
+            )
+        except MidiParseError as exc:
+            raise HTTPException(
+                status_code=400, detail={"code": exc.code, "message": exc.message}
+            ) from exc
+        from_s = measure_window["window"][0]
+        to_s = measure_window["window"][1]
+    else:
+        # Validación original de from_s/to_s
+        if (
+            (from_s is not None and from_s < 0)
+            or (to_s is not None and to_s < 0)
+            or (from_s is not None and to_s is not None and from_s > to_s)
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "invalid_window",
+                    "message": "from_s/to_s deben ser >= 0 y from_s <= to_s",
+                },
+            )
 
     row = find_piece_by_id(piece_id)
     if row is None:
@@ -170,7 +215,6 @@ def get_piece_notes(
             detail={"code": "piece_not_found", "message": f"No existe la pieza: {piece_id}"},
         )
 
-    # El corpus vive en midi_path relativo al almacén; las subidas usan su id.
     midi_path = (
         Path(settings.midi_storage_path) / row["midi_path"]
         if row["midi_path"]
@@ -189,7 +233,6 @@ def get_piece_notes(
         ) from exc
 
     notes = score["notes"]
-    # sorted() es estable: los empates conservan el orden del archivo.
     ordered = sorted(notes, key=lambda note: note.start_seconds)
     if from_s is not None:
         ordered = [note for note in ordered if note.start_seconds >= from_s]
@@ -203,6 +246,8 @@ def get_piece_notes(
         notes_total=len(notes),
         from_s=from_s,
         to_s=to_s,
+        from_measure=from_measure,
+        to_measure=to_measure,
         notes=[
             NoteResponse(
                 pitch=note.pitch,

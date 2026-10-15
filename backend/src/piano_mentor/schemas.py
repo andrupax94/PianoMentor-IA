@@ -69,7 +69,7 @@ class NoteResponse(BaseModel):
 
 
 class PieceNotesResponse(BaseModel):
-    """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1)."""
+    """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1 + B-008.2)."""
 
     piece_id: str
     tempo: float | None = None
@@ -77,4 +77,6 @@ class PieceNotesResponse(BaseModel):
     notes_total: int = 0
     from_s: float | None = None
     to_s: float | None = None
+    from_measure: int | None = None
+    to_measure: int | None = None
     notes: list[NoteResponse] = []
