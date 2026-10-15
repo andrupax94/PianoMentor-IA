@@ -56,14 +56,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-008 | P0 | Rejilla de compases: cálculo, compás actual y rangos | 2 |
 | B-009 | P0 | Polifonía, acordes y estrategia de tracks | 2 |
 | B-011 | P0 | Capturar teclado del ordenador | 2 |
-| B-012 | P0 | Crear sesión de práctica y WebSocket | 2 |
-| B-013 | P0 | Implementar evaluación determinista | 3 |
-| B-014 | P0 | Mostrar resultados y secciones débiles | 3 |
-| B-015 | P1 | Implementar máquina de estados pedagógica | 4 |
-| B-016 | P1 | Validar acciones del agente | 4 |
-| B-017 | P1 | Implementar demostración y devolución del control | 4 |
-| B-018 | P1 | Integrar Groq y salida estructurada | 4 |
-| B-019 | P1 | Añadir acompañamiento básico | 4 |
+| B-012 | P0 | Agente vertical: sesión, evaluación, estados, acciones, demo, Groq, acompañamiento | 2–4 |
 | B-020 | P0 | Integración final y pruebas end-to-end | 5 |
 | B-021 | P1 | Desplegar backend en Hugging Face Spaces | 5 |
 | B-022 | P1 | Desplegar frontend en Vercel | 5 |
@@ -107,6 +100,9 @@ Estas fechas son una línea base operativa, no una obligación inamovible. Si se
 - Mantener Docker reproducible desde el inicio.
 - Reservar parte de la semana 5 para integración, despliegue, vídeo y LinkedIn; no dejar estos entregables para el último día.
 - Recortar primero acompañamiento avanzado, memoria, Web MIDI físico y feedback largo del LLM si aparece retraso.
+
+Tras la revisión de **B-005** se añadieron **B-028** (duplicados por hash) y **B-029** (control por usuario).  
+En **octubre 2026** se reestructuró el **bloque agente (B-012 a B-019)** en una **vertical única B-012** con 7 sub-issues (.1 Sesión+WS, .2 Evaluación, .3 Estados+reglas, .4 Validación, .5 Demo+control, .6 Groq, .7 Acompañamiento), fusionando las antiguas issues separadas; semana 2–4 ajustadas en consecuencia.
 
 ## 4. Plan por semanas
 
@@ -174,9 +170,7 @@ web
 - Definir el mapeo del teclado del ordenador a notas.
 - Capturar `keydown` y `keyup`, evitando repeticiones accidentales.
 - Mostrar la nota recibida y resaltar la tecla pulsada.
-- Crear una sesión asociada a una pieza y una sección.
-- Guardar temporalmente eventos recibidos.
-- Preparar WebSocket si la latencia visual lo requiere.
+- **Agente vertical (inicio): sesión + WS real, evaluación determinista, máquina de estados, validación de acciones, demo + devolución control, (opcional) Groq + acompañamiento.**
 
 **Entregable**
 
@@ -195,90 +189,56 @@ pieza MIDI
 - [ ] Polifonía, acordes y estrategia de tracks definidos y probados.
 - [ ] El usuario puede tocar con el teclado del ordenador.
 - [ ] Las notas pulsadas aparecen en la interfaz.
-- [ ] La sesión mantiene su estado básico.
+- [ ] Sesión + WS real funcionando (crear, estado, eventos).
+- [ ] Evaluación determinista produciendo scoring.
 - [ ] La reproducción funciona con las estructuras MIDI de prueba.
 
-### Semana 3 — Evaluación determinista y feedback
+### Semana 3 — Continuación agente vertical y feedback UI
 
-**Objetivo:** comparar la interpretación del usuario con las notas esperadas y producir resultados medibles.
+**Objetivo:** avanzar en la vertical del agente (estados, validación, demo) y preparar la UI de resultados.
 
 **Tareas**
 
-- Comparar nota esperada y nota recibida.
-- Detectar nota correcta, incorrecta, omitida y adicional.
-- Definir tolerancia temporal.
-- Calcular precisión de notas, timing y puntuación total.
-- Evaluar notas simultáneas básicas.
-- Detectar errores repetidos e identificar secciones débiles.
-- Mostrar puntuación, errores, nota esperada, nota recibida y compás actual.
-- Mostrar resumen del intento actual.
-- Crear tests de interpretación exacta, adelantada, retrasada, incorrecta, omitida, adicional y de acordes básicos.
-- Probar distintos tempos, compases y tracks.
+- Completar máquina de estados + reglas deterministas (B-012.3).
+- Validación de acciones con límites (B-012.4).
+- Demo + devolución control automática (B-012.5).
+- UI de resultados: puntuación, errores, compás actual, secciones débiles (B-014 → sub-issue de B-012).
 
 **Entregable**
 
 ```text
-crear sesión
-  → tocar con teclado
-  → comparar eventos
-  → calcular puntuación
-  → mostrar errores y timing
-  → identificar sección débil
+agente vertical
+  → estados + reglas deterministas
+  → acciones validadas
+  → demo visible + control vuelve al estudiante
+  → UI muestra puntuación, errores, debilidades
 ```
 
 **Criterio de cierre**
 
-- [ ] Se detectan notas correctas e incorrectas.
-- [ ] Se detectan notas omitidas y adicionales.
-- [ ] Existe una puntuación de timing.
-- [ ] Se identifican debilidades básicas.
+- [ ] Máquina de estados transita y selecciona acción válida.
+- [ ] Acciones rechazadas si violan límites.
+- [ ] Demo visible, duración limitada, control vuelve al estudiante.
+- [ ] UI muestra puntuación, errores, compás actual, debilidades.
 - [ ] La evaluación funciona sin LLM.
-- [ ] Hay tests suficientes para confiar en el evaluador.
 
-### Semana 4 — Agente pedagógico, demostración y LLM
+### Semana 4 — Agente: Groq, acompañamiento e integración
 
-**Objetivo:** completar el flujo pedagógico con acciones visibles, limitadas, validadas y reversibles.
+**Objetivo:** cerrar la vertical del agente con LLM opcional y acompañamiento.
 
 **Tareas**
 
-Implementar inicialmente la máquina de estados:
-
-```text
-START
-  ↓
-OBSERVING
-  ↓
-EVALUATING
-  ↓
-DECIDE_ACTION
-  ├── WAITING_FOR_STUDENT
-  ├── GIVING_HINT
-  ├── DEMONSTRATING
-  └── ACCOMPANYING
-```
-
-- Crear reglas deterministas para errores repetidos, timing bajo, buen desempeño y espera.
-- Implementar `wait`, `give_hint`, `slow_down`, `demonstrate` y `return_control`.
-- Implementar `accompany` si el tiempo lo permite.
-- Validar lista blanca, compases, mano, tempo, repeticiones, duración, pieza y sesión.
-- Seleccionar una sección débil y reproducirla a tempo reducido.
-- Mostrar que la IA está actuando y permitir pausa y detención.
-- Devolver automáticamente el control al estudiante.
-- Crear una interfaz de proveedor LLM desacoplada.
-- Mantener `MockProvider` o proveedor determinista.
-- Conectar Groq y solicitar salida estructurada.
-- Mantener el flujo funcional si Groq falla.
-- Impedir que el LLM controle directamente MIDI.
+- Groq + salida estructurada con fallback determinista (B-012.6).
+- Acompañamiento básico si tiempo (B-012.7).
+- Confirmar que el LLM puede deshabilitarse (MockProvider).
+- Tests de validación, transiciones y evaluación completa.
 
 **Criterio de cierre**
 
-- [ ] El agente puede seleccionar una acción.
-- [ ] El sistema funciona sin LLM.
-- [ ] El LLM puede proponer una acción estructurada.
-- [ ] Las acciones inválidas se rechazan.
-- [ ] La demostración es visible y tiene duración limitada.
-- [ ] El control vuelve al estudiante.
-- [ ] Existen tests de validación y transiciones.
+- [ ] Groq propone acciones estructuradas; fallback a MockProvider si falla.
+- [ ] Acompañamiento básico funcional (o documentado como post-MVP).
+- [ ] Flujo agente completo funciona sin LLM.
+- [ ] Tests de validación, transiciones y evaluación pasan.
 
 ### Semana 5 — Integración, despliegue, vídeo y LinkedIn
 
@@ -394,12 +354,10 @@ Si existe conflicto entre funcionalidades, aplicar este orden:
 3. Compases, polifonía y tracks mínimos
 4. Piano virtual y entrada del teclado
 5. Evaluación de notas y timing
-6. Máquina de estados determinista
-7. Acciones validadas y devolución del control
-8. Integración LLM con fallback
-9. Despliegue público
-10. Vídeo demo y publicación en LinkedIn
-11. Acompañamiento avanzado, Web MIDI, memoria y progreso
+6. Agente vertical (estados, acciones, demo, LLM fallback, acompañamiento)
+7. Despliegue público
+8. Vídeo demo y publicación en LinkedIn
+9. Web MIDI físico, memoria y progreso
 ```
 
 ## 8. Definition of Done por cambio
