@@ -1,8 +1,9 @@
-# description: Motor MIDI determinista: lectura, validación y normalización con Mido.
+# description: Motor MIDI determinista: lectura, validación, normalización y rejilla de compases con Mido.
 # context: Núcleo musical; no decide pedagogía ni responde HTTP.
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import mido
 DEFAULT_BPM = 120.0
 MICROSECONDS_PER_MINUTE = 60_000_000.0
 DEFAULT_TEMPO_US = 500_000  # microsegundos por pulso: 120 BPM por defecto
+DEFAULT_TIME_SIGNATURE = (4, 4)  # numerador/denominador cuando el MIDI no declara firma
 ROUNDING_DECIMALS = 6
 
 
@@ -84,6 +86,95 @@ class TempoMap:
         return round(position, ROUNDING_DECIMALS)
 
 
+@dataclass(frozen=True)
+class MeasureGrid:
+    """Rejilla de compases inmutable: firma y límites en segundos de cada compás (B-008.1).
+
+    La construye el motor desde un TempoMap (la fuente única de conversión) y la
+    consumen la reproducción por rangos y el compás actual del PlayerBar.
+    Sin eventos `time_signature` la pieza se interpreta en 4/4.
+    """
+
+    ticks_per_beat: int
+    starts_ticks: tuple[int, ...]
+    starts_s: tuple[float, ...]
+    signatures: tuple[tuple[int, int], ...]
+    end_seconds: float
+
+    def __post_init__(self) -> None:
+        if not (len(self.starts_ticks) == len(self.starts_s) == len(self.signatures)):
+            raise ValueError(
+                "MeasureGrid necesita starts_ticks, starts_s y signatures con la misma longitud"
+            )
+
+    @classmethod
+    def build(cls, midi: mido.MidiFile, tempo_map: TempoMap) -> MeasureGrid:
+        """Construye la rejilla recorriendo las firmas ordenadas por tick.
+
+        - Sin `time_signature` rige el 4/4 por defecto.
+        - Un cambio de firma se aplica en el primer compás que empieza en su tick
+          o después; nunca parte un compás ya iniciado.
+        - Los límites en segundos salen del TempoMap recibido, nunca de un BPM constante.
+        """
+        events = sorted(_collect_time_signatures(midi).items())
+        end_tick = _track_end_tick(midi)
+        ticks_per_beat = tempo_map.ticks_per_beat
+
+        starts_ticks: list[int] = []
+        signatures: list[tuple[int, int]] = []
+        active = DEFAULT_TIME_SIGNATURE
+        event_index = 0
+        tick = 0
+        while tick < end_tick:
+            while event_index < len(events) and events[event_index][0] <= tick:
+                active = events[event_index][1]
+                event_index += 1
+            length = _measure_ticks(active, ticks_per_beat)
+            if length < 1:
+                raise MidiParseError(
+                    "invalid_time_signature",
+                    f"La firma {active[0]}/{active[1]} no cabe en {ticks_per_beat} ticks por pulso",
+                )
+            starts_ticks.append(tick)
+            signatures.append(active)
+            tick += length
+
+        return cls(
+            ticks_per_beat=ticks_per_beat,
+            starts_ticks=tuple(starts_ticks),
+            starts_s=tuple(tempo_map.tick_to_seconds(t) for t in starts_ticks),
+            signatures=tuple(signatures),
+            end_seconds=tempo_map.tick_to_seconds(end_tick),
+        )
+
+    @property
+    def count(self) -> int:
+        """Número total de compases; 0 si la pieza no ocupa ni un tick."""
+        return len(self.starts_ticks)
+
+    def measure_at(self, seconds: float) -> int:
+        """Compás que contiene un instante; en un borde devuelve el que empieza ahí.
+
+        Instantes negativos se tratan como 0 y los posteriores al final devuelven
+        el último compás (misma tolerancia que TempoMap con los ticks negativos).
+        """
+        if not self.starts_s:
+            raise MidiParseError("measure_grid_empty", "La rejilla no tiene compases")
+        target = max(seconds, 0.0)
+        return max(bisect_right(self.starts_s, target) - 1, 0)
+
+    def bounds_s(self, measure: int) -> tuple[float, float]:
+        """Límites [inicio, fin) de un compás en segundos; el último cierra al final."""
+        if measure < 0 or measure >= self.count:
+            raise IndexError(f"Compás fuera de rango: {measure}")
+        end = self.starts_s[measure + 1] if measure + 1 < self.count else self.end_seconds
+        return (self.starts_s[measure], end)
+
+    def signature_at(self, seconds: float) -> tuple[int, int]:
+        """Firma (numerador, denominador) vigente en un instante."""
+        return self.signatures[self.measure_at(seconds)]
+
+
 def _count_notes(midi: mido.MidiFile) -> int:
     """Cuenta notas reales: `note_on` con velocidad positiva (vel 0 equivale a note_off)."""
     return sum(
@@ -113,6 +204,39 @@ def _duration_seconds(midi: mido.MidiFile) -> float | None:
     except TypeError:
         # Mido no calcula la longitud de los archivos tipo 2 (secuencias independientes).
         return None
+
+
+def _collect_time_signatures(midi: mido.MidiFile) -> dict[int, tuple[int, int]]:
+    """Firmas de compás por tick absoluto; sin eventos devuelve 4/4 en el tick 0.
+
+    Un numerador o denominador menor que 1 rompería el ciclo de compases,
+    así que se rechaza con código estable antes de construir la rejilla.
+    """
+    signatures: dict[int, tuple[int, int]] = {0: DEFAULT_TIME_SIGNATURE}
+    for track in midi.tracks:
+        tick = 0
+        for message in track:
+            tick += message.time
+            if message.type == "time_signature":
+                if message.numerator < 1 or message.denominator < 1:
+                    raise MidiParseError(
+                        "invalid_time_signature",
+                        f"Firma de compás inválida en tick {tick}: "
+                        f"{message.numerator}/{message.denominator}",
+                    )
+                signatures[tick] = (message.numerator, message.denominator)
+    return signatures
+
+
+def _track_end_tick(midi: mido.MidiFile) -> int:
+    """Último tick entre pistas: la rejilla cubre la pieza hasta ese punto."""
+    return max((sum(message.time for message in track) for track in midi.tracks), default=0)
+
+
+def _measure_ticks(signature: tuple[int, int], ticks_per_beat: int) -> int:
+    """Ticks de un compás: numerador × (resolución × 4 / denominador)."""
+    numerator, denominator = signature
+    return (numerator * ticks_per_beat * 4) // denominator
 
 
 def _read_midi_file(path: Path) -> mido.MidiFile:
@@ -238,6 +362,16 @@ class MidiService:
     def tempo_map(self, path: Path) -> TempoMap:
         """Construye el mapa de tempo de un archivo para convertir ticks a segundos."""
         return TempoMap.build(_read_midi_file(path))
+
+    def measure_grid(self, path: Path) -> MeasureGrid:
+        """Construye la rejilla de compases de un archivo (B-008.1).
+
+        Es la noción de compás que consumen la reproducción por rangos y el
+        PlayerBar; lanza MidiParseError con código estable si el archivo
+        falta o es ilegible.
+        """
+        midi = _read_midi_file(path)
+        return MeasureGrid.build(midi, TempoMap.build(midi))
 
     def normalize(self, source: Path | None) -> list[NormalizedNote]:
         """Normaliza un MIDI a la lista estable de notas internas.
