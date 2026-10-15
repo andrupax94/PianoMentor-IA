@@ -6,7 +6,7 @@ B-004,Crear el flujo web inicial,"Permitir seleccionar un MIDI desde Next.js, en
 B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representación interna estable de notas, duración y velocity.",P0,Semana 1,MIDI,Alto,L,Backlog,B-003
 B-006,Implementar reproducción básica,"Reproducir una pieza o sección con play, pausa, detención y tempo inicial.",P0,Semana 1,MIDI,Alto,L,Backlog,B-005
 B-007,Crear piano virtual básico,"Mostrar teclas, notas esperadas y estado de reproducción en Next.js.",P0,Semana 1,Frontend,Medio,M,Backlog,B-004;B-006
-B-008,Calcular compases inicialmente,"Calcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005
+B-008,"Rejilla de compases: cálculo, compás actual y rangos","Calcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005
 B-009,Preparar soporte básico para polifonía,"Gestionar notas simultáneas y acordes básicos en la representación interna y visual.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005;B-008
 B-010,Definir tratamiento de múltiples tracks,"Documentar y aplicar la estrategia inicial para combinar, seleccionar o distinguir tracks MIDI.",P0,Semana 2,MIDI,Alto,M,Backlog,B-005;B-008
 B-011,Capturar teclado del ordenador,"Mapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.",P0,Semana 2,Frontend,Medio,M,Backlog,B-007

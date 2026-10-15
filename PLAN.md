@@ -53,7 +53,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-005 | P0 | Normalizar notas MIDI | 1 |
 | B-006 | P0 | Implementar reproducción básica | 1 |
 | B-007 | P0 | Crear piano virtual básico | 1 |
-| B-008 | P0 | Calcular compases inicialmente | 2 |
+| B-008 | P0 | Rejilla de compases: cálculo, compás actual y rangos | 2 |
 | B-009 | P0 | Preparar soporte básico para polifonía | 2 |
 | B-010 | P0 | Definir tratamiento de múltiples tracks | 2 |
 | B-011 | P0 | Capturar teclado del ordenador | 2 |
