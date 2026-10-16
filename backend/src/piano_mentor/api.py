@@ -2,6 +2,7 @@
 # context: Traduce HTTP/WS a servicios; sin lógica musical compleja.
 
 import sqlite3
+import tempfile
 from pathlib import Path
 
 from fastapi import (
@@ -28,6 +29,7 @@ from .schemas import (
     PieceMeasures,
     PieceMetadata,
     PieceNotesResponse,
+    PiecePreviewResponse,
     PieceResponse,
     PieceSummary,
     SessionCreate,
@@ -171,6 +173,69 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
         extension=extension,
         source="upload",
         metadata=metadata,
+    )
+
+
+@router.post("/pieces/preview", response_model=PiecePreviewResponse)
+async def preview_piece(file: UploadFile = File(...)) -> PiecePreviewResponse:
+    """Lee un MIDI subido a mano para escucharlo sin guardarlo (B-027.3).
+
+    Comparte la validación con POST /pieces, pero es efímero: el archivo se
+    escribe en un directorio temporal que se borra al terminar la lectura y
+    nunca se inserta una fila en `pieces`. La partitura viaja en la respuesta,
+    así que el piano la reproduce en memoria y la Library no la lista.
+    """
+    try:
+        original_name = sanitize_filename(file.filename or "unknown.mid")
+        validate_extension(original_name)
+        content = await file.read()
+        validate_content(content)
+        validate_size(len(content))
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail={"code": exc.code, "message": exc.message}) from exc
+
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / original_name
+        path.write_bytes(content)
+        try:
+            # Una sola lectura sirve para la rejilla y para la partitura, como en /notes.
+            grid = midi_service.measure_grid(path)
+            score = midi_service.score(path)
+        except MidiParseError as exc:
+            raise HTTPException(
+                status_code=400, detail={"code": exc.code, "message": exc.message}
+            ) from exc
+
+    ordered = sorted(score["notes"], key=lambda note: note.start_seconds)
+    # El transporte dura hasta el final de la rejilla; si una nota se prolonga
+    # más allá del último compás, se alarga para no cortarla al reproducir.
+    last_note_end = max(
+        (note.start_seconds + note.duration_seconds for note in ordered),
+        default=0.0,
+    )
+
+    return PiecePreviewResponse(
+        filename=original_name,
+        tempo=score["tempo"],
+        duration_seconds=max(grid.end_seconds, last_note_end),
+        notes_total=len(ordered),
+        measures=PieceMeasures(
+            count=grid.count,
+            starts_s=list(grid.starts_s),
+            signatures=[list(signature) for signature in grid.signatures],
+            end_s=grid.end_seconds,
+        ),
+        notes=[
+            NoteResponse(
+                pitch=note.pitch,
+                start_seconds=note.start_seconds,
+                duration_seconds=note.duration_seconds,
+                velocity=note.velocity,
+                channel=note.channel,
+                track=note.track,
+            )
+            for note in ordered
+        ],
     )
 
 

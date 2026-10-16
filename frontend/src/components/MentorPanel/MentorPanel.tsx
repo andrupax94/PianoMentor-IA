@@ -1,5 +1,5 @@
 // description: Columna derecha completa (chat, modos, rendimiento y flujo existente).
-// context: B-006.4; reutiliza MidiUploader y SessionStatus sin modificarlos.
+// context: B-006.4; reutiliza MidiUploader y SessionStatus.
 
 import { MentorChat } from "./MentorChat/MentorChat";
 import { ModeSelector } from "./ModeSelector/ModeSelector";

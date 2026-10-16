@@ -116,3 +116,19 @@ class PieceNotesResponse(BaseModel):
     to_measure: int | None = None
     measures: PieceMeasures | None = None
     notes: list[NoteResponse] = []
+
+
+class PiecePreviewResponse(BaseModel):
+    """Partitura efímera de un MIDI subido a mano (B-027.3).
+
+    Se lee para escucharla en el piano y no se persiste: ni archivo en el
+    almacén ni fila en `pieces`. Por eso no lleva `piece_id`; el navegador la
+    reproduce en memoria y al recargar se pierde.
+    """
+
+    filename: str
+    tempo: float | None = None
+    duration_seconds: float | None = None
+    notes_total: int = 0
+    measures: PieceMeasures | None = None
+    notes: list[NoteResponse] = []

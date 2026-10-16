@@ -78,6 +78,19 @@ export interface PieceNotesResponse {
   notes: PlayableNote[];
 }
 
+/**
+ * Respuesta de POST /api/v1/pieces/preview, alineada con PiecePreviewResponse (B-027.3).
+ * Partitura efímera: no lleva `piece_id` porque no se persiste en el catálogo.
+ */
+export interface PiecePreviewResponse {
+  filename: string;
+  tempo: number | null;
+  duration_seconds: number | null;
+  notes_total: number;
+  measures: PieceMeasures | null;
+  notes: PlayableNote[];
+}
+
 /** Respuesta de GET /health. */
 export interface HealthResponse {
   status: string;
@@ -169,6 +182,18 @@ export async function uploadPiece(file: File): Promise<PieceResponse> {
   form.append("file", file, file.name);
 
   return request<PieceResponse>("/api/v1/pieces", { method: "POST", body: form });
+}
+
+/**
+ * Prepara un MIDI a mano para escucharlo en el piano sin guardarlo (B-027.3).
+ * El backend lo lee en memoria: no entra en el almacén ni en el catálogo, así que
+ * la Library sigue mostrando solo las piezas del corpus.
+ */
+export async function previewPiece(file: File): Promise<PiecePreviewResponse> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+
+  return request<PiecePreviewResponse>("/api/v1/pieces/preview", { method: "POST", body: form });
 }
 
 /** Pide la partitura ordenada de una pieza, con ventana opcional por segundos. */

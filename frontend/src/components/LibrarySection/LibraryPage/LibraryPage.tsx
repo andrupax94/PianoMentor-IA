@@ -30,7 +30,8 @@ export function LibraryPage() {
 
   useEffect(() => {
     let active = true;
-    getPieceList()
+    // Solo el corpus: lo que se sube a mano suena en el piano y no entra aquí (B-027.3).
+    getPieceList("corpus")
       .then((items) => {
         if (!active) return;
         const loaded = toSongs(items);

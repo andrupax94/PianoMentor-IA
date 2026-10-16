@@ -1,19 +1,24 @@
-// description: Selector y carga de archivos MIDI al backend con metadatos y errores visibles.
-// context: Primer flujo web → API; usa el cliente tipado, nunca fetch directo.
+// description: Selector de un MIDI a mano para reproducirlo en el piano sin guardarlo.
+// context: B-027.3; el backend lo lee en memoria (POST /pieces/preview) y la
+// partitura viaja al piano por el almacén del navegador, nunca por el catálogo.
 
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { ApiError, uploadPiece, type PieceResponse } from "../lib/api-client";
+import { ApiError, previewPiece } from "../lib/api-client";
+import { publishUploadedPiece } from "../lib/piece-store";
 
 const ALLOWED_EXTENSIONS = [".mid", ".midi"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB, espejo orientativo del backend
+/** Página del piano: donde suena lo que se elige aquí. */
+const PIANO_PATH = "/";
 
-type UploadState =
+type LoadState =
   | { kind: "idle" }
-  | { kind: "uploading" }
-  | { kind: "ready"; piece: PieceResponse }
+  | { kind: "loading" }
+  | { kind: "ready"; filename: string; tempo: number | null; duration: number | null; notes: number }
   | { kind: "error"; message: string };
 
 function validateClientSide(file: File): string | null {
@@ -28,14 +33,10 @@ function validateClientSide(file: File): string | null {
   return null;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
 export function MidiUploader() {
-  const [state, setState] = useState<UploadState>({ kind: "idle" });
+  const router = useRouter();
+  const pathname = usePathname();
+  const [state, setState] = useState<LoadState>({ kind: "idle" });
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -55,15 +56,30 @@ export function MidiUploader() {
       return;
     }
 
-    setState({ kind: "uploading" });
+    setState({ kind: "loading" });
     try {
-      const piece = await uploadPiece(file);
-      setState({ kind: "ready", piece });
+      const piece = await previewPiece(file);
+      publishUploadedPiece({
+        filename: piece.filename,
+        tempo: piece.tempo,
+        duration_seconds: piece.duration_seconds,
+        measures: piece.measures,
+        notes: piece.notes,
+      });
+      setState({
+        kind: "ready",
+        filename: piece.filename,
+        tempo: piece.tempo,
+        duration: piece.duration_seconds,
+        notes: piece.notes_total,
+      });
+      // Desde la Library hay que ir al piano; en la página principal ya estamos.
+      if (pathname !== PIANO_PATH) router.push(PIANO_PATH);
     } catch (error) {
       const message =
         error instanceof ApiError
           ? error.message
-          : "No se pudo completar la carga. Inténtalo de nuevo.";
+          : "No se pudo leer el archivo. Inténtalo de nuevo.";
       setState({ kind: "error", message });
     }
   }
@@ -71,18 +87,22 @@ export function MidiUploader() {
   return (
     <section className="panel">
       <h2>Cargar pieza</h2>
-      <p>Selecciona un archivo MIDI para ver sus metadatos.</p>
+      <p>Elige un archivo MIDI para escucharlo en el piano. No se guarda en el catálogo.</p>
       <input
         type="file"
         accept=".mid,.midi"
         aria-label="Archivo MIDI"
         onChange={handleFileChange}
-        disabled={state.kind === "uploading"}
+        disabled={state.kind === "loading"}
       />
 
-      {selectedName && <p>Archivo: <strong>{selectedName}</strong></p>}
+      {selectedName && (
+        <p>
+          Archivo: <strong>{selectedName}</strong>
+        </p>
+      )}
 
-      {state.kind === "uploading" && <p role="status">Subiendo…</p>}
+      {state.kind === "loading" && <p role="status">Leyendo la partitura…</p>}
 
       {state.kind === "error" && (
         <p role="alert" style={{ color: "#ff8b8b" }}>
@@ -93,26 +113,23 @@ export function MidiUploader() {
       {state.kind === "ready" && (
         <div>
           <p role="status">
-            {state.piece.deduplicated
-              ? "Esta pieza ya existía: se ha reutilizado en lugar de duplicarla."
-              : "Carga completada."}
+            Listo: <strong>{state.filename}</strong> está cargada en el piano.
           </p>
           <ul>
-            <li>Nombre: <strong>{state.piece.filename}</strong></li>
-            <li>Tamaño: <strong>{formatBytes(state.piece.size_bytes)}</strong></li>
-            <li>Extensión: <strong>{state.piece.extension}</strong></li>
-            <li>Origen: <strong>{state.piece.source === "corpus" ? "Catálogo" : "Subida"}</strong></li>
-            {state.piece.metadata.tracks !== null && (
-              <li>Pistas: <strong>{state.piece.metadata.tracks}</strong></li>
+            {state.notes > 0 && (
+              <li>
+                Notas: <strong>{state.notes}</strong>
+              </li>
             )}
-            {state.piece.metadata.duration_seconds !== null && (
-              <li>Duración: <strong>{state.piece.metadata.duration_seconds.toFixed(1)} s</strong></li>
+            {state.duration !== null && (
+              <li>
+                Duración: <strong>{state.duration.toFixed(1)} s</strong>
+              </li>
             )}
-            {state.piece.metadata.tempo !== null && (
-              <li>Tempo: <strong>{state.piece.metadata.tempo.toFixed(0)} BPM</strong></li>
-            )}
-            {state.piece.metadata.notes_count !== null && (
-              <li>Notas: <strong>{state.piece.metadata.notes_count}</strong></li>
+            {state.tempo !== null && (
+              <li>
+                Tempo: <strong>{state.tempo.toFixed(0)} BPM</strong>
+              </li>
             )}
           </ul>
         </div>

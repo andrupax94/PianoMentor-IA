@@ -1,5 +1,6 @@
 // description: Panel de detalle de la pieza seleccionada, con carga de MIDI reutilizada (B-027.3).
-// context: Reutiliza MidiUploader sin modificarlo; los botones de Learn siguen pendientes (B-012).
+// context: Reutiliza MidiUploader, que deja la pieza cargada en el piano sin guardarla;
+// los botones de Learn siguen pendientes (B-012).
 
 "use client";
 

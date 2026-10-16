@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, getPieceNotes, uploadPiece } from "./api-client";
+import { ApiError, getPieceNotes, previewPiece, uploadPiece } from "./api-client";
 
 const PIECE_RESPONSE = {
   id: "abc123",
@@ -141,6 +141,65 @@ describe("getPieceNotes", () => {
     await expect(getPieceNotes("xyz")).rejects.toMatchObject({
       code: "piece_not_found",
       status: 404,
+    });
+  });
+});
+
+describe("previewPiece", () => {
+  const PREVIEW_RESPONSE = {
+    filename: "estudio.mid",
+    tempo: 120.0,
+    duration_seconds: 30.5,
+    notes_total: 1,
+    measures: {
+      count: 2,
+      starts_s: [0, 2],
+      signatures: [
+        [4, 4],
+        [4, 4],
+      ],
+      end_s: 30.5,
+    },
+    notes: [
+      { pitch: 64, start_seconds: 0.0, duration_seconds: 1.0, velocity: 90, channel: 0, track: 0 },
+    ],
+  };
+
+  it("envía el archivo y devuelve la partitura efímera sin piece_id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(PREVIEW_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const file = new File([new Uint8Array([1, 2, 3])], "estudio.mid");
+    const preview = await previewPiece(file);
+
+    expect(preview).toEqual(PREVIEW_RESPONSE);
+    expect(preview).not.toHaveProperty("piece_id");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/pieces\/preview$/);
+    expect(init.method).toBe("POST");
+    expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+  });
+
+  it("traduce el rechazo del motor a invalid_midi_content", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          detail: { code: "invalid_midi_content", message: "El contenido no es un MIDI legible" },
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(previewPiece(new File([new Uint8Array([1])], "roto.mid"))).rejects.toMatchObject({
+      code: "invalid_midi_content",
+      status: 400,
     });
   });
 });
