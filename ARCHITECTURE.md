@@ -751,7 +751,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-16 18:15 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-16 18:25 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1134,6 +1134,11 @@ piano-mentor-ai/
 ├── issues/B-008/B-008.2.md
 ├── issues/B-008/B-008.3.md
 ├── issues/B-008/B-008.md
+├── issues/B-009/
+├── issues/B-009/B-009.1.md
+├── issues/B-009/B-009.2.md
+├── issues/B-009/B-009.3.md
+├── issues/B-009/B-009.md
 ├── issues/B-012/
 ├── issues/B-012/B-012.1.md
 ├── issues/B-012/B-012.2.md

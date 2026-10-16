@@ -7,7 +7,7 @@ B-005,Normalizar notas MIDI,"Convertir ticks a tiempo y producir una representac
 B-006,Implementar reproducción básica,"Reproducir una pieza o sección con play, pausa, detención y tempo inicial.",P0,Semana 1,MIDI,Alto,L,Backlog,B-005
 B-007,Crear piano virtual básico,"Mostrar teclas, notas esperadas y estado de reproducción en Next.js.",P0,Semana 1,Frontend,Medio,M,Backlog,B-004;B-006
 B-008,"Rejilla de compases: cálculo, compás actual y rangos","Calcular compases y rangos de práctica a partir de tempo, resolución y signatura disponible.",P0,Semana 2,MIDI,Alto,L,Done,B-005
-B-009,Polifonía, acordes y estrategia de tracks,"Agrupar notas simultáneas en acordes y definir estrategia para múltiples tracks MIDI (merge, filtrar mano, selección). Fusiona antiguo B-010.",P0,Semana 2,MIDI,Alto,L,Backlog,B-005;B-008
+B-009,Polifonía, acordes y estrategia de tracks,"Padre con sub-issues .1 Acordes, .2 Estrategia de pistas y .3 Contrato/UI. Agrupar notas simultáneas en acordes y decidir qué se hace con varias pistas MIDI (merge, filtrar mano, selección). Fusiona el antiguo B-010.",P0,Semana 2,MIDI,Alto,L,In Progress,B-005;B-008
 B-011,Capturar teclado del ordenador,"Mapear keydown y keyup a eventos de nota, evitando repeticiones accidentales.",P0,Semana 2,Frontend,Medio,M,Backlog,B-007
 B-012,"Agente vertical: sesión, evaluación, estados, acciones, demo, Groq, acompañamiento","Padre con sub-issues .1 Sesión+WS, .2 Evaluación, .3 Estados+reglas, .4 Validación, .5 Demo+control, .6 Groq, .7 Acompañamiento. Fusiona B-013 a B-019.",P0,Semana 2,Backend,Alto,L,Backlog,B-002;B-011
 B-020,Integración final y pruebas end-to-end,"Validar el flujo completo local, Docker, errores, secretos, pausa, detención y recuperación.",P0,Semana 5,Calidad,Alto,L,Backlog,B-012
