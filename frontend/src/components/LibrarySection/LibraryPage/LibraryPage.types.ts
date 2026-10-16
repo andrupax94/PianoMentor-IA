@@ -1,7 +1,17 @@
 // description: Tipos de la Library, reexportados desde la lógica pura (B-027.3).
 // context: Los componentes importan de aquí; el modelo vive en src/lib/library.ts.
 
-export type { Difficulty, Song, SongFilter, SongStatus } from "../../../lib/library";
+export type {
+  Difficulty,
+  DifficultyFilter,
+  DurationFilter,
+  LibraryFilters,
+  Song,
+  SongFilter,
+  SongStatus,
+  SortKey,
+  TempoFilter,
+} from "../../../lib/library";
 
 /** Estado del preview propio de la Library, que reutiliza el motor del piano. */
 export interface PreviewState {

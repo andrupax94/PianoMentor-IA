@@ -47,3 +47,41 @@
   border-color: var(--gold);
   color: var(--gold-soft);
 }
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select {
+  height: 46px;
+  padding: 0 38px 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.selectActive {
+  border-color: var(--gold);
+  color: var(--gold-soft);
+}
+
+.caret {
+  position: absolute;
+  right: 16px;
+  color: var(--text-mute);
+  font-size: 10px;
+  pointer-events: none;
+}

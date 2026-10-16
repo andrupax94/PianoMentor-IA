@@ -4,7 +4,18 @@
 import { describe, expect, it } from "vitest";
 
 import type { PieceCatalogItem } from "./api-client";
-import { formatDuration, initialsFromTitle, paginate, toSong, toSongs } from "./library";
+import {
+  EMPTY_FILTERS,
+  formatDuration,
+  initialsFromTitle,
+  matchesFilters,
+  paginate,
+  sortSongs,
+  toSong,
+  toSongs,
+  type LibraryFilters,
+  type Song,
+} from "./library";
 
 const CORPUS_PIECE: PieceCatalogItem = {
   id: "p01",
@@ -72,6 +83,7 @@ describe("toSong", () => {
     expect(song.cover).toBe("/assets/covers/bach.jpg");
     expect(song.difficulty).toBe("beginner");
     expect(song.duration).toBe("0:41");
+    expect(song.durationSeconds).toBe(41.1);
     expect(song.bpm).toBe(120);
   });
 
@@ -92,6 +104,7 @@ describe("toSong", () => {
     expect(song.cover).toBeNull();
     expect(song.difficulty).toBeNull();
     expect(song.duration).toBe("--");
+    expect(song.durationSeconds).toBeNull();
     expect(song.bpm).toBeNull();
   });
 
@@ -118,5 +131,154 @@ describe("paginate", () => {
     expect(paginate(items, 9, 10).page).toBe(2);
     expect(paginate(items, 0, 10).page).toBe(1);
     expect(paginate([], 3, 10)).toEqual({ items: [], page: 1, totalPages: 1 });
+  });
+});
+
+/** Pieza mínima para probar filtros y orden sin pasar por el catálogo. */
+function song(partial: Partial<Song>): Song {
+  return {
+    id: "x",
+    title: "Pieza",
+    subtitle: "",
+    composer: "Anónimo",
+    initials: "P",
+    cover: null,
+    difficulty: null,
+    duration: "--",
+    durationSeconds: null,
+    bpm: null,
+    bestScore: null,
+    status: "new",
+    timing: null,
+    notes: null,
+    ...partial,
+  };
+}
+
+/** Filtros con los que se quiera, partiendo de "sin filtros". */
+function withFilters(patch: Partial<LibraryFilters>): LibraryFilters {
+  return { ...EMPTY_FILTERS, ...patch };
+}
+
+describe("matchesFilters", () => {
+  const bach = song({
+    id: "p01",
+    title: "Minuet in G major",
+    composer: "Johann Sebastian Bach",
+    difficulty: "beginner",
+    durationSeconds: 41.1,
+    bpm: 140,
+  });
+
+  it("deja pasar todo con los filtros vacíos", () => {
+    expect(matchesFilters(bach, EMPTY_FILTERS)).toBe(true);
+  });
+
+  it("busca por título y compositor sin distinguir mayúsculas", () => {
+    expect(matchesFilters(bach, withFilters({ query: "minuet" }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ query: "BACH" }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ query: "  minuet " }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ query: "chopin" }))).toBe(false);
+  });
+
+  it("filtra por dificultad", () => {
+    expect(matchesFilters(bach, withFilters({ difficulty: "beginner" }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ difficulty: "advanced" }))).toBe(false);
+  });
+
+  it("reparte la duración en corta, media y larga", () => {
+    expect(matchesFilters(bach, withFilters({ duration: "short" }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ duration: "medium" }))).toBe(false);
+
+    const medium = song({ durationSeconds: 120 });
+    expect(matchesFilters(medium, withFilters({ duration: "medium" }))).toBe(true);
+    expect(matchesFilters(medium, withFilters({ duration: "short" }))).toBe(false);
+
+    const long = song({ durationSeconds: 240 });
+    expect(matchesFilters(long, withFilters({ duration: "long" }))).toBe(true);
+    expect(matchesFilters(long, withFilters({ duration: "medium" }))).toBe(false);
+  });
+
+  it("reparte el tempo en lento, medio y rápido", () => {
+    expect(matchesFilters(bach, withFilters({ tempo: "fast" }))).toBe(true);
+    expect(matchesFilters(bach, withFilters({ tempo: "slow" }))).toBe(false);
+    expect(matchesFilters(song({ bpm: 60 }), withFilters({ tempo: "slow" }))).toBe(true);
+    expect(matchesFilters(song({ bpm: 100 }), withFilters({ tempo: "medium" }))).toBe(true);
+  });
+
+  it("excluye de los tramos las piezas sin duración o sin tempo", () => {
+    const unknown = song({ durationSeconds: null, bpm: null });
+
+    expect(matchesFilters(unknown, withFilters({ duration: "short" }))).toBe(false);
+    expect(matchesFilters(unknown, withFilters({ tempo: "slow" }))).toBe(false);
+    // Sin filtrar, sí pasa.
+    expect(matchesFilters(unknown, EMPTY_FILTERS)).toBe(true);
+  });
+
+  it("combina estado, dificultad y búsqueda", () => {
+    const mastered = song({ status: "mastered", difficulty: "advanced", title: "Nocturno" });
+
+    expect(
+      matchesFilters(mastered, withFilters({ status: "mastered", difficulty: "advanced" })),
+    ).toBe(true);
+    expect(
+      matchesFilters(mastered, withFilters({ status: "in-progress", difficulty: "advanced" })),
+    ).toBe(false);
+    expect(matchesFilters(mastered, withFilters({ query: "noctur" }))).toBe(true);
+  });
+});
+
+describe("sortSongs", () => {
+  const zeta = song({
+    id: "a",
+    title: "Zeta",
+    composer: "Bach",
+    difficulty: "advanced",
+    durationSeconds: 300,
+  });
+  const alfa = song({
+    id: "b",
+    title: "Alfa",
+    composer: "Chopin",
+    difficulty: "beginner",
+    durationSeconds: 60,
+  });
+  const media = song({ id: "c", title: "Media", composer: "Bach", difficulty: null });
+
+  it("no toca el orden del catálogo en default", () => {
+    expect(sortSongs([zeta, alfa, media], "default").map((s) => s.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("ordena por título", () => {
+    expect(sortSongs([zeta, alfa, media], "title").map((s) => s.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("ordena por compositor y desempata por título", () => {
+    expect(sortSongs([zeta, alfa, media], "composer").map((s) => s.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("ordena por dificultad dejando los huecos al final", () => {
+    expect(sortSongs([zeta, alfa, media], "difficulty").map((s) => s.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("ordena por duración en las dos direcciones, con los huecos al final", () => {
+    expect(sortSongs([zeta, alfa, media], "duration-asc").map((s) => s.id)).toEqual([
+      "b",
+      "a",
+      "c",
+    ]);
+    expect(sortSongs([zeta, alfa, media], "duration-desc").map((s) => s.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("no muta la lista original", () => {
+    const songs = [zeta, alfa, media];
+
+    sortSongs(songs, "title");
+
+    expect(songs.map((s) => s.id)).toEqual(["a", "b", "c"]);
   });
 });

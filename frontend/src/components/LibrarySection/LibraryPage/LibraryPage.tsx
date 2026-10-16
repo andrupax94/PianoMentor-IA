@@ -1,5 +1,5 @@
-// description: Lista de piezas del catálogo con búsqueda, filtro y panel de detalle (B-027.3).
-// context: Cliente; los datos llegan de GET /api/v1/pieces y se adaptan en src/lib/library.ts.
+// description: Lista de piezas del catálogo con búsqueda, filtros (dificultad, duración, tempo), orden y panel de detalle (B-027.3/B-027.4).
+// context: Cliente; los datos llegan de GET /api/v1/pieces y la vista (filtrar y ordenar) es pura en src/lib/library.ts.
 // El play de cada fila suena aquí mismo con el motor del piano (src/lib/usePlayback),
 // sin navegar a Learn: el transporte de esta página es propio y muere al desmontarla.
 
@@ -8,7 +8,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getPieceList, getPieceNotes, type PieceNotesResponse } from "../../../lib/api-client";
-import { paginate, toSongs, type Song } from "../../../lib/library";
+import {
+  EMPTY_FILTERS,
+  matchesFilters,
+  paginate,
+  sortSongs,
+  toSongs,
+  type LibraryFilters,
+  type Song,
+  type SortKey,
+} from "../../../lib/library";
 import { previewStep } from "../../../lib/library-preview";
 import { usePlayback } from "../../../lib/usePlayback";
 
@@ -16,7 +25,6 @@ import { LibraryToolbar } from "../LibraryToolbar/LibraryToolbar";
 import { SongDetailPanel } from "../SongDetailPanel/SongDetailPanel";
 import { SongTable } from "../SongTable/SongTable";
 import { TablePagination } from "../TablePagination/TablePagination";
-import type { SongFilter } from "./LibraryPage.types";
 import styles from "./LibraryPage.module.css";
 
 /** Piezas por página en la tabla. */
@@ -27,8 +35,8 @@ type LoadState = "loading" | "ready" | "error";
 export function LibraryPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<LoadState>("loading");
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<SongFilter>("all");
+  const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<SortKey>("default");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
@@ -60,20 +68,21 @@ export function LibraryPage() {
     };
   }, []);
 
-  const visibleSongs = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return songs.filter((song) => {
-      const matchesFilter = filter === "all" || song.status === filter;
-      const matchesQuery =
-        !q || song.title.toLowerCase().includes(q) || song.composer.toLowerCase().includes(q);
-      return matchesFilter && matchesQuery;
-    });
-  }, [songs, query, filter]);
+  const visibleSongs = useMemo(
+    () => sortSongs(songs.filter((song) => matchesFilters(song, filters)), sort),
+    [songs, filters, sort],
+  );
 
-  // Cambiar la búsqueda o el filtro devuelve a la primera página.
+  /** Aplica un cambio parcial de filtros sin pisar el resto. */
+  const handleFiltersChange = useCallback(
+    (patch: Partial<LibraryFilters>) => setFilters((current) => ({ ...current, ...patch })),
+    [],
+  );
+
+  // Cambiar cualquier filtro o el orden devuelve a la primera página.
   useEffect(() => {
     setPage(1);
-  }, [query, filter]);
+  }, [filters, sort]);
 
   /** Play/pausa de una fila: reproduce la pieza en la propia Library. */
   const handlePreview = useCallback(
@@ -128,10 +137,10 @@ export function LibraryPage() {
         </p>
 
         <LibraryToolbar
-          query={query}
-          filter={filter}
-          onQueryChange={setQuery}
-          onFilterChange={setFilter}
+          filters={filters}
+          sort={sort}
+          onFiltersChange={handleFiltersChange}
+          onSortChange={setSort}
         />
 
         {state === "loading" && (
