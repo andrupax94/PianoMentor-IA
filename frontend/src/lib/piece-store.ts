@@ -1,12 +1,13 @@
-// description: Almacén de la pieza MIDI subida a mano para escucharla en el piano (B-027.3).
-// context: El subidor la publica y PlaybackArea se suscribe, igual que el rango
-// visible del teclado. Vive solo en memoria del navegador: al recargar se pierde
+// description: Almacén de la pieza que debe sonar en el piano (B-027.3).
+// context: El subidor y la Library publican y PlaybackArea se suscribe, igual que el
+// rango visible del teclado. Vive solo en memoria del navegador: al recargar se pierde
 // y vuelve la pieza demo, porque nada de esto se persiste.
 
 import type { PieceMeasures, PlayableNote } from "./api-client";
 
-/** Partitura efímera que el piano reproduce sin pasar por el catálogo. */
-export interface UploadedPiece {
+/** Partitura efímera subida a mano: viaja entera, sin tocar el catálogo. */
+export interface UploadedScore {
+  kind: "upload";
   /** Nombre del archivo elegido, para mostrarlo en la interfaz. */
   filename: string;
   /** Tempo inicial del MIDI en BPM; null si el motor no lo sirve. */
@@ -18,16 +19,34 @@ export interface UploadedPiece {
   notes: PlayableNote[];
 }
 
-let current: UploadedPiece | null = null;
+/** Pieza del catálogo elegida desde la Library: la partitura la pide el piano. */
+export interface CatalogScore {
+  kind: "catalog";
+  /** Id en el catálogo; el piano pide sus notas con GET /pieces/{id}/notes. */
+  id: string;
+  /** Título con el que la barra del reproductor anuncia la pieza. */
+  title: string;
+}
+
+/** Pieza que el piano debe cargar. Las interfaces completas van en el catálogo. */
+export type PianoPiece = (UploadedScore | CatalogScore) & {
+  /**
+   * true cuando la pieza llega "para sonar": el piano la carga y arranca solo.
+   * Con false (u omitido) queda cargada y espera al botón de reproducir.
+   */
+  autoPlay?: boolean;
+};
+
+let current: PianoPiece | null = null;
 const listeners = new Set<() => void>();
 
-/** Pieza vigente; null mientras no se haya subido ninguna. Referencia estable entre publicaciones. */
-export function getUploadedPiece(): UploadedPiece | null {
+/** Pieza vigente; null mientras no se haya elegido ninguna. Referencia estable entre publicaciones. */
+export function getPianoPiece(): PianoPiece | null {
   return current;
 }
 
 /** Se suscribe a cambios; devuelve la función de baja. */
-export function subscribeUploadedPiece(listener: () => void): () => void {
+export function subscribePianoPiece(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
@@ -35,7 +54,7 @@ export function subscribeUploadedPiece(listener: () => void): () => void {
 }
 
 /** Publica la pieza a reproducir; con null se vuelve a la pieza demo. */
-export function publishUploadedPiece(piece: UploadedPiece | null): void {
+export function publishPianoPiece(piece: PianoPiece | null): void {
   if (piece === current) return;
   current = piece;
   listeners.forEach((listener) => listener());

@@ -1,55 +1,70 @@
-// description: Tests del almacén de la pieza subida a mano.
-// context: B-027.3; es el canal efímero entre el subidor y el piano.
+// description: Tests del almacén de la pieza que suena en el piano.
+// context: B-027.3; es el canal efímero entre el subidor/Library y el piano.
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { UploadedPiece } from "./piece-store";
-import { getUploadedPiece, publishUploadedPiece, subscribeUploadedPiece } from "./piece-store";
+import type { PianoPiece } from "./piece-store";
+import { getPianoPiece, publishPianoPiece, subscribePianoPiece } from "./piece-store";
 
-const PIECE: UploadedPiece = {
+const UPLOAD: PianoPiece = {
+  kind: "upload",
   filename: "estudio.mid",
   tempo: 120,
   duration_seconds: 30,
   measures: { count: 8, starts_s: [0, 4], signatures: [[4, 4], [4, 4]], end_s: 30 },
   notes: [{ pitch: 60, start_seconds: 0, duration_seconds: 1, velocity: 80, channel: 0, track: 0 }],
+  autoPlay: true,
+};
+
+const CATALOG: PianoPiece = {
+  kind: "catalog",
+  id: "p01",
+  title: "Sonata Claro de Luna",
+  autoPlay: true,
 };
 
 describe("piece-store", () => {
   // El almacén es un singleton: cada test parte del mismo estado.
   beforeEach(() => {
-    publishUploadedPiece(null);
+    publishPianoPiece(null);
   });
 
   it("empieza sin pieza: manda la demo", () => {
-    expect(getUploadedPiece()).toBeNull();
+    expect(getPianoPiece()).toBeNull();
   });
 
-  it("notifica a los suscriptores cuando llega una pieza", () => {
-    const seen: (UploadedPiece | null)[] = [];
-    const unsubscribe = subscribeUploadedPiece(() => seen.push(getUploadedPiece()));
+  it("notifica a los suscriptores cuando llega una pieza subida", () => {
+    const seen: (PianoPiece | null)[] = [];
+    const unsubscribe = subscribePianoPiece(() => seen.push(getPianoPiece()));
 
-    publishUploadedPiece(PIECE);
+    publishPianoPiece(UPLOAD);
     unsubscribe();
 
-    expect(seen).toEqual([PIECE]);
-    expect(getUploadedPiece()).toEqual(PIECE);
+    expect(seen).toEqual([UPLOAD]);
+    expect(getPianoPiece()).toEqual(UPLOAD);
+  });
+
+  it("también publica una pieza del catálogo elegida en la Library", () => {
+    publishPianoPiece(CATALOG);
+
+    expect(getPianoPiece()).toEqual(CATALOG);
   });
 
   it("vuelve a la demo al publicar null", () => {
-    publishUploadedPiece(PIECE);
-    publishUploadedPiece(null);
+    publishPianoPiece(UPLOAD);
+    publishPianoPiece(null);
 
-    expect(getUploadedPiece()).toBeNull();
+    expect(getPianoPiece()).toBeNull();
   });
 
   it("no notifica si la pieza publicada es la vigente", () => {
-    publishUploadedPiece(PIECE);
+    publishPianoPiece(UPLOAD);
     let calls = 0;
-    const unsubscribe = subscribeUploadedPiece(() => {
+    const unsubscribe = subscribePianoPiece(() => {
       calls += 1;
     });
 
-    publishUploadedPiece(PIECE);
+    publishPianoPiece(UPLOAD);
     unsubscribe();
 
     expect(calls).toBe(0);
@@ -57,14 +72,14 @@ describe("piece-store", () => {
 
   it("deja de notificar tras darse de baja", () => {
     let calls = 0;
-    const unsubscribe = subscribeUploadedPiece(() => {
+    const unsubscribe = subscribePianoPiece(() => {
       calls += 1;
     });
     unsubscribe();
 
-    publishUploadedPiece(PIECE);
+    publishPianoPiece(UPLOAD);
 
     expect(calls).toBe(0);
-    expect(getUploadedPiece()).toEqual(PIECE);
+    expect(getPianoPiece()).toEqual(UPLOAD);
   });
 });

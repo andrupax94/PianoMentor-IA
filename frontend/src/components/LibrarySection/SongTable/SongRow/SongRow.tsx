@@ -1,5 +1,6 @@
-// description: Fila de la tabla de Library: portada, metadatos, puntaje y estado.
-// context: B-027.3; el play por fila sigue pendiente (B-012).
+// description: Fila de la tabla de Library: portada, metadatos, puntaje y transporte.
+// context: B-027.3; el play suena en la propia lista con el motor del piano, y el
+// resto de métricas siguen pendientes de B-012/B-014.
 
 import { DIFFICULTY_LABEL, STATUS_LABEL, type SongRowProps } from "./SongRow.types";
 import styles from "./SongRow.module.css";
@@ -16,8 +17,10 @@ const DIFFICULTY_CLASS = {
   advanced: styles.advanced,
 } as const;
 
-export function SongRow({ song, index, selected, onSelect }: SongRowProps) {
+export function SongRow({ song, index, selected, preview, onSelect, onPlay }: SongRowProps) {
   const score = song.bestScore ?? 0;
+  const playing = preview.id === song.id && preview.playing;
+  const loading = preview.loadingId === song.id;
 
   return (
     <tr className={`${styles.row} ${selected ? styles.selected : ""}`}>
@@ -80,10 +83,24 @@ export function SongRow({ song, index, selected, onSelect }: SongRowProps) {
       </td>
 
       <td className={`${styles.td} ${styles.action}`}>
-        <button type="button" className={styles.play} aria-label={`Practicar ${song.title}`}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
-            <path d="M7 5l12 7-12 7z" />
-          </svg>
+        <button
+          type="button"
+          className={`${styles.play} ${playing ? styles.playing : ""}`}
+          aria-label={playing ? `Pausar ${song.title}` : `Reproducir ${song.title}`}
+          aria-pressed={playing}
+          disabled={loading}
+          onClick={() => onPlay(song)}
+        >
+          {playing ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="6" y="5" width="4" height="14" rx="1" />
+              <rect x="14" y="5" width="4" height="14" rx="1" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+              <path d="M7 5l12 7-12 7z" />
+            </svg>
+          )}
         </button>
       </td>
     </tr>

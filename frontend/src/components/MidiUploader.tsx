@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError, previewPiece } from "../lib/api-client";
-import { publishUploadedPiece } from "../lib/piece-store";
+import { publishPianoPiece } from "../lib/piece-store";
 
 const ALLOWED_EXTENSIONS = [".mid", ".midi"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB, espejo orientativo del backend
@@ -59,12 +59,15 @@ export function MidiUploader() {
     setState({ kind: "loading" });
     try {
       const piece = await previewPiece(file);
-      publishUploadedPiece({
+      publishPianoPiece({
+        kind: "upload",
         filename: piece.filename,
         tempo: piece.tempo,
         duration_seconds: piece.duration_seconds,
         measures: piece.measures,
         notes: piece.notes,
+        // Llega "para sonar": al terminar la navegación el piano la carga y arranca.
+        autoPlay: true,
       });
       setState({
         kind: "ready",

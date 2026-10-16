@@ -4,7 +4,7 @@ import styles from "./SongTable.module.css";
 
 const COLUMNS = ["#", "Canción", "Compositor", "Dificultad", "Duración", "Tempo", "Mejor puntaje", "Estado", ""];
 
-export function SongTable({ songs, selectedId, onSelect }: SongTableProps) {
+export function SongTable({ songs, selectedId, onSelect, preview, onPlay }: SongTableProps) {
   return (
     <div className={styles.wrapper}>
       <table className={styles.table}>
@@ -25,6 +25,8 @@ export function SongTable({ songs, selectedId, onSelect }: SongTableProps) {
               song={song}
               selected={song.id === selectedId}
               onSelect={onSelect}
+              preview={preview}
+              onPlay={onPlay}
             />
           ))}
         </tbody>
