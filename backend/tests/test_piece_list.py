@@ -59,6 +59,7 @@ class TestPieceList:
         assert by_id["p12"]["cover"] == "/assets/covers/chopin.jpg"
         assert by_id["p01"]["composer"] == "Johann Sebastian Bach"
         assert by_id["p01"]["duration_seconds"] is not None
+        assert by_id["p01"]["tempo"] is not None
         assert by_id["p01"]["difficulty"] == "principiante"
 
     def test_order_puts_corpus_before_uploads(

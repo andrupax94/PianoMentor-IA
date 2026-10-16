@@ -11,7 +11,10 @@ from typing import Any
 
 from .config import settings
 from .database import connect, init_db, upsert_piece
+from .midi import MidiService
 from .storage import content_hash
+
+_midi_service = MidiService()
 
 
 class CatalogError(Exception):
@@ -20,6 +23,11 @@ class CatalogError(Exception):
 
 def _catalog_path() -> Path:
     return Path(settings.midi_storage_path) / "catalog.json"
+
+
+def _tempo_bpm(midi_file: Path) -> float:
+    """BPM inicial que el motor determinista calcula del propio MIDI (migración 0002)."""
+    return _midi_service.tempo_map(midi_file).initial_tempo()
 
 
 def _record(entry: dict[str, Any], base_dir: Path) -> dict[str, Any]:
@@ -40,6 +48,7 @@ def _record(entry: dict[str, Any], base_dir: Path) -> dict[str, Any]:
         "tracks": entry.get("tracks"),
         "duration_s": entry.get("duration_s"),
         "notes_count": entry.get("notes"),
+        "tempo": _tempo_bpm(midi_file),
         "license": entry.get("license"),
         "source_url": entry.get("source_url"),
         "difficulty": entry.get("difficulty"),

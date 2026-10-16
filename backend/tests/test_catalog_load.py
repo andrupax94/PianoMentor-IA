@@ -65,6 +65,14 @@ class TestCatalogLoad:
         assert row["difficulty"]
         assert row["title"] == "Minuet in G major"
 
+    def test_tempo_is_computed_from_the_midi(self) -> None:
+        load_catalog(CATALOG_FILE)
+
+        row = _row("p01")
+
+        assert row["tempo"] is not None
+        assert 20 <= row["tempo"] <= 240
+
     def test_referenced_midi_files_exist(self) -> None:
         payload = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
         missing = [
