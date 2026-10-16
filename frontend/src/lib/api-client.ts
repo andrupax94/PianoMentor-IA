@@ -34,6 +34,18 @@ export interface PlayableNote {
   track: number;
 }
 
+/** Rejilla de compases servida por el motor para situar el compás actual (B-008.3). */
+export interface PieceMeasures {
+  /** Número total de compases. */
+  count: number;
+  /** Inicio de cada compás en segundos de partitura (sin escalar por tempo). */
+  starts_s: number[];
+  /** Firma [numerador, denominador] de cada compás, alineada con `starts_s`. */
+  signatures: [number, number][];
+  /** Fin de la pieza en segundos. */
+  end_s: number;
+}
+
 /** Respuesta de GET /api/v1/pieces/{id}/notes, alineada con PieceNotesResponse de Pydantic. */
 export interface PieceNotesResponse {
   piece_id: string;
@@ -42,6 +54,8 @@ export interface PieceNotesResponse {
   notes_total: number;
   from_s: number | null;
   to_s: number | null;
+  /** Rejilla de compases; null si el motor no la sirve. */
+  measures: PieceMeasures | null;
   notes: PlayableNote[];
 }
 

@@ -68,6 +68,20 @@ class NoteResponse(BaseModel):
     track: int
 
 
+class PieceMeasures(BaseModel):
+    """Rejilla de compases servida al front para situar el compás actual (B-008.3).
+
+    `starts_s` son los inicios de cada compás en segundos de partitura (sin
+    escalar por el factor de tempo del transporte); `signatures` lleva la firma
+    [numerador, denominador] vigente en cada compás, alineada con `starts_s`.
+    """
+
+    count: int = 0
+    starts_s: list[float] = []
+    signatures: list[list[int]] = []
+    end_s: float = 0.0
+
+
 class PieceNotesResponse(BaseModel):
     """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1 + B-008.2)."""
 
@@ -79,4 +93,5 @@ class PieceNotesResponse(BaseModel):
     to_s: float | None = None
     from_measure: int | None = None
     to_measure: int | None = None
+    measures: PieceMeasures | None = None
     notes: list[NoteResponse] = []

@@ -94,6 +94,15 @@ describe("getPieceNotes", () => {
     notes_total: 2,
     from_s: 1.0,
     to_s: 5.0,
+    measures: {
+      count: 2,
+      starts_s: [0, 2],
+      signatures: [
+        [4, 4],
+        [4, 4],
+      ],
+      end_s: 4,
+    },
     notes: [
       { pitch: 60, start_seconds: 1.0, duration_seconds: 0.5, velocity: 80, channel: 0, track: 1 },
       { pitch: 62, start_seconds: 2.0, duration_seconds: 0.5, velocity: 80, channel: 0, track: 1 },
@@ -112,6 +121,7 @@ describe("getPieceNotes", () => {
     const score = await getPieceNotes("abc123", { from_s: 1.0, to_s: 5.0 });
 
     expect(score).toEqual(NOTES_RESPONSE);
+    expect(score.measures?.count).toBe(2);
 
     const [url] = fetchMock.mock.calls[0] as [string];
     expect(url).toMatch(/\/api\/v1\/pieces\/abc123\/notes\?/);

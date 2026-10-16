@@ -1,14 +1,16 @@
-// description: Tempo y compás en reproducción.
-// context: B-006.4; armazón estático.
+// description: Tempo, compás actual/total y firma durante la reproducción.
+// context: B-008.3; valores reales del motor, o "–" cuando no hay datos (nunca inventados).
 
+import { formatMeasure, formatSignature } from "../../../lib/measures";
 import styles from "./TempoMeasure.module.css";
 import type { TempoMeasureProps } from "./TempoMeasure.types";
 
-export function TempoMeasure({ tempoBpm = 60, measure = "12/16" }: TempoMeasureProps) {
+export function TempoMeasure({ tempoBpm, measure, measureCount, signature }: TempoMeasureProps) {
   return (
     <div className={styles.tempo}>
-      <p>Tempo: {tempoBpm === null ? "–" : `${tempoBpm} BPM`}</p>
-      <p>Measure: {measure}</p>
+      <p>Tempo: {tempoBpm === null || tempoBpm === undefined ? "–" : `${tempoBpm} BPM`}</p>
+      <p>Compás: {formatMeasure(measure, measureCount)}</p>
+      <p>Firma: {formatSignature(signature)}</p>
     </div>
   );
 }

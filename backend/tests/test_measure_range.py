@@ -241,3 +241,28 @@ def test_notes_endpoint_piece_not_found() -> None:
     resp = client.get("/api/v1/pieces/no-existe/notes?from_measure=0&to_measure=1")
     assert resp.status_code == 404
     assert resp.json()["detail"]["code"] == "piece_not_found"
+
+
+def test_notes_response_includes_measure_grid(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """La respuesta de /notes trae la rejilla: inicios, firmas y total (B-008.3)."""
+    # 3 compases 3/4 (0..4320 ticks) y luego 2 compases 4/4.
+    midi = build_midi(end_tick=3 * 1440 + 2 * 1920, time_signatures=((0, 3, 4), (4320, 4, 4)))
+    midi_bytes = save_midi(midi)
+
+    isolated = LocalPieceStorage(tmp_path)
+    monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
+    monkeypatch.setattr(api, "storage", isolated)
+    stored_name = isolated.save("test.mid", midi_bytes)
+    piece_id = "test-piece-" + stored_name[:8]
+    _insert_piece(piece_id, stored_name, len(midi_bytes))
+
+    client = TestClient(app)
+    resp = client.get(f"/api/v1/pieces/{piece_id}/notes")
+    assert resp.status_code == 200
+    measures = resp.json()["measures"]
+    assert measures["count"] == 5
+    assert measures["starts_s"] == pytest.approx([0.0, 1.5, 3.0, 4.5, 6.5])
+    assert measures["signatures"] == [[3, 4], [3, 4], [3, 4], [4, 4], [4, 4]]
+    assert measures["end_s"] == pytest.approx(8.5)

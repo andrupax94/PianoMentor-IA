@@ -1,9 +1,13 @@
-// description: Props de tempo y compás mostrados.
-// context: B-006.4; el tempo efectivo lo expone el motor de B-006.2/B-006.3.
+// description: Props de tempo, compás actual y firma mostrados.
+// context: B-008.3; sin datos se muestra indicador vacío, nunca un valor inventado.
 
 export interface TempoMeasureProps {
-  /** Tempo en BPM (null = desconocido). */
+  /** Tempo efectivo en BPM (null/undefined = desconocido). */
   tempoBpm?: number | null;
-  /** Compás actual/total. */
-  measure?: string;
+  /** Compás actual, 1-based (null/undefined = desconocido). */
+  measure?: number | null;
+  /** Total de compases (null/undefined = desconocido). */
+  measureCount?: number | null;
+  /** Firma [numerador, denominador] del compás actual (null/undefined = desconocida). */
+  signature?: readonly [number, number] | null;
 }

@@ -31,6 +31,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         load(score.notes, {
           tempo_bpm: score.tempo ?? undefined,
           duration_s: score.duration_seconds ?? undefined,
+          measures: score.measures,
         });
       })
       .catch(() => {

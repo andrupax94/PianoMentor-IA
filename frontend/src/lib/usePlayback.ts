@@ -10,7 +10,7 @@ import {
   type NoteVoice,
   type PlaybackSnapshot,
 } from "./playback-engine";
-import type { PlayableNote } from "./api-client";
+import type { PieceMeasures, PlayableNote } from "./api-client";
 import { createPianoSampler, type PianoSampler } from "./piano-samples";
 import { createPolySynth } from "./synth";
 
@@ -48,6 +48,7 @@ export type PlaybackHandle = ReturnType<typeof usePlayback>;
 export function usePlayback(tickMs = 25) {
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot>(INITIAL_SNAPSHOT);
   const [notes, setNotes] = useState<PlayableNote[]>([]);
+  const [measures, setMeasures] = useState<PieceMeasures | null>(null);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const samplerRef = useRef<PianoSampler | null>(null);
@@ -102,10 +103,16 @@ export function usePlayback(tickMs = 25) {
   const load = useCallback(
     (
       loaded: PlayableNote[],
-      options?: { tempoFactor?: number; duration_s?: number; tempo_bpm?: number },
+      options?: {
+        tempoFactor?: number;
+        duration_s?: number;
+        tempo_bpm?: number;
+        measures?: PieceMeasures | null;
+      },
     ) => {
       ensureEngine().load(loaded, options);
       setNotes(loaded);
+      setMeasures(options?.measures ?? null);
       sync();
     },
     [ensureEngine, sync],
@@ -189,6 +196,7 @@ export function usePlayback(tickMs = 25) {
   return {
     ...snapshot,
     notes,
+    measures,
     load,
     play,
     pause,
