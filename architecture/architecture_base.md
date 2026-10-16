@@ -196,7 +196,7 @@ piano-mentor-ai/
 
 | Módulo | Responsabilidad | No debe hacer |
 |---|---|---|
-| `midi.py` | Leer y normalizar MIDI. | Decidir acciones pedagógicas o responder HTTP directamente. |
+| `midi.py` | Leer, normalizar y analizar MIDI (acordes, pistas y manos). | Decidir acciones pedagógicas o responder HTTP directamente. |
 | `evaluation.py` | Comparar interpretación y calcular métricas. | Renderizar UI o llamar al LLM. |
 | `practice.py` | Gestionar sesiones y estado de práctica. | Implementar componentes web. |
 | `agent.py` | Seleccionar y validar acciones estructuradas. | Enviar eventos MIDI directamente desde un LLM. |

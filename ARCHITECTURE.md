@@ -196,7 +196,7 @@ piano-mentor-ai/
 
 | Módulo | Responsabilidad | No debe hacer |
 |---|---|---|
-| `midi.py` | Leer y normalizar MIDI. | Decidir acciones pedagógicas o responder HTTP directamente. |
+| `midi.py` | Leer, normalizar y analizar MIDI (acordes, pistas y manos). | Decidir acciones pedagógicas o responder HTTP directamente. |
 | `evaluation.py` | Comparar interpretación y calcular métricas. | Renderizar UI o llamar al LLM. |
 | `practice.py` | Gestionar sesiones y estado de práctica. | Implementar componentes web. |
 | `agent.py` | Seleccionar y validar acciones estructuradas. | Enviar eventos MIDI directamente desde un LLM. |
@@ -751,7 +751,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-16 18:34 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-16 18:45 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -791,6 +791,7 @@ piano-mentor-ai/
 ├── backend/pyproject.toml
 ├── backend/scripts/
 ├── backend/scripts/build_midi_fixtures.py
+├── backend/scripts/describe_corpus_tracks.py
 ├── backend/src/
 ├── backend/src/piano_mentor/
 ├── backend/src/piano_mentor/__init__.py
@@ -834,6 +835,7 @@ piano-mentor-ai/
 ├── backend/tests/test_chords.py
 ├── backend/tests/test_database.py
 ├── backend/tests/test_evaluation.py
+├── backend/tests/test_hands.py
 ├── backend/tests/test_health.py
 ├── backend/tests/test_measure_grid.py
 ├── backend/tests/test_measure_range.py
@@ -1190,6 +1192,7 @@ piano-mentor-ai/
 | `backend/Dockerfile` | Imagen reproducible del backend FastAPI. | Despliegue local y base del Space de Hugging Face. |
 | `backend/pyproject.toml` | Dependencias y config Python del backend (FastAPI, Pydantic, Mido, pytest). | Instalar y fijar versiones del backend. |
 | `backend/scripts/build_midi_fixtures.py` | Genera los fixtures MIDI deterministas de backend/tests/fixtures/midi/ (una pista, multi-track, cambio de tempo, sin tempo y corrupto). | Regenerar fixtures de B-005.1 con python backend/scripts/build_midi_fixtures.py; no editar los .mid a mano. |
+| `backend/scripts/describe_corpus_tracks.py` | Tabla regenerable de pistas y manos del corpus: notas, rango, mediana y mano por pista, y distancia entre medianas, solape de rangos y coincidencia con la mano izquierda de referencia por pieza. | Evidencia de B-009.2 que se regenera con python backend/scripts/describe_corpus_tracks.py; la referencia de mano izquierda está puesta a mano leyendo la partitura y el script avisa de las piezas sin referencia. |
 | `backend/src/piano_mentor/__init__.py` | Marca el paquete Python piano_mentor. | Raíz de importaciones del backend. |
 | `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. |
 | `backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno (Settings). | Centraliza puertos, CORS, rutas MIDI y base de datos. |
@@ -1197,7 +1200,7 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API; PieceResponse incluye source (corpus/upload) y deduplicated para la reutilización por hash, y PieceNotesResponse incluye la rejilla de compases PieceMeasures (count, starts_s, signatures, end_s); PieceSummary resume una pieza del catálogo para la lista de la Library (título, compositor, opus, dificultad, licencia, portada, source, duración, tempo, notas, tracks) y PiecePreviewResponse devuelve la partitura efímera de un MIDI a mano (sin piece_id, porque no se persiste). | Contrato tipado entre frontend y backend. |
 | `backend/src/piano_mentor/validators.py` | Validación de uploads MIDI: nombre, extensión, tamaño y contenido. | Rechaza archivos inválidos antes de guardarlos. |
 | `backend/src/piano_mentor/storage.py` | Guardado local de piezas MIDI en filesystem, con delete() para limpiar huérfanos y content_hash() (SHA-256) como base de la deduplicación. | Persistencia MVP de bytes MIDI; delete() lo usa B-005.4 para no dejar archivos huérfanos y content_hash() decide si una subida es nueva. |
-| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales), mapa de tempo inmutable `TempoMap` que convierte ticks a segundos, nota normalizada `NormalizedNote` (pitch, inicio, duración, velocity, canal y pista en segundos), rejilla de compases inmutable `MeasureGrid` (inicios en ticks/segundos, firma por compás, measure_at/bounds_s/resolve_range), agrupación de notas simultáneas en acordes (`Chord` inmutable con ancla temporal y notas ordenadas de grave a agudo, y `group_chords(notes, tolerance_seconds)`) y MidiService.resolve_measure_range/play_section. | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError; TempoMap y NormalizedNote son el contrato de tiempo y de nota, MeasureGrid el de compás y Chord el de acorde, para reproducción (B-006), compases (B-008), polifonía (B-009) y evaluación (B-013). group_chords es puro y determinista: tolerancia de 1 ms por defecto, borde incluido, un acorde puede cruzar canales y pistas y cada nota conserva velocity, canal y pista. |
+| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales), mapa de tempo inmutable `TempoMap` que convierte ticks a segundos, nota normalizada `NormalizedNote` (pitch, inicio, duración, velocity, canal y pista en segundos), rejilla de compases inmutable `MeasureGrid` (inicios en ticks/segundos, firma por compás, measure_at/bounds_s/resolve_range), agrupación de notas simultáneas en acordes (`Chord` inmutable con ancla temporal y notas ordenadas de grave a agudo, y `group_chords(notes, tolerance_seconds)`), análisis de pistas (`hand_by_track`, `describe_tracks`, `TrackInfo` con notas, rango, mediana y mano) y MidiService.resolve_measure_range/play_section. | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError; TempoMap y NormalizedNote son el contrato de tiempo y de nota, MeasureGrid el de compás, Chord el de acorde y Hand el de mano, para reproducción (B-006), compases (B-008), polifonía (B-009) y evaluación (B-013). group_chords es puro y determinista: tolerancia de 1 ms por defecto, borde incluido, un acorde puede cruzar canales y pistas y cada nota conserva velocity, canal y pista. hand_by_track también es puro: decide por mediana de alturas por pista (izquierda la más grave), deja unknown con una sola pista, con pistas intermedias o con empate, y no cambia la salida mezclada por defecto (decisión merge de B-009.2). |
 | `backend/src/piano_mentor/evaluation.py` | Evaluador determinista: notas correctas, omitidas, extras, precisión y timing. | Mide la interpretación sin LLM ni UI. |
 | `backend/src/piano_mentor/practice.py` | Casos de uso de sesión de práctica: crear sesión, estado y eventos. | Coordina pieza + interpretación + estado. |
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
@@ -1209,6 +1212,7 @@ piano-mentor-ai/
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales), conversión ticks→segundos con TempoMap y nota normalizada (emparejamiento, acordes, orden estable y notas sin cerrar). | Confianza en el parsing, el mapa de tempo y el normalizador. |
 | `backend/tests/test_chords.py` | Agrupación en acordes (B-009.1): notas que empiezan juntas, detalle de cada nota (velocity, canal y pista), orden de grave a agudo, bordes de la tolerancia, arpegio que no se agrupa, determinismo e invariancia del corpus. | Confianza en el contrato de acorde que consumirán la evaluación y la UI; lee el catálogo para localizar las piezas reales. |
+| `backend/tests/test_hands.py` | Etiquetado de manos (B-009.2): pista grave como izquierda, pista única, pistas intermedias y empate en unknown, independencia del orden de las pistas y del canal, merge por defecto y solape de rangos en las 15 piezas del corpus. | Confianza en que la mano sale de la altura de la pista y no del canal ni del orden; el corpus se normaliza una vez y queda en caché para que los tests sigan rápidos. |
 | `backend/tests/test_evaluation.py` | Notas correctas, omitidas, adicionales y timing. | Confianza en el evaluador. |
 | `backend/tests/test_agent.py` | Reglas, validación de acciones y devolución del control. | Confianza en el agente determinista. |
 | `backend/tests/test_validators.py` | Extensión, tamaño, nombre y contenido de uploads. | Confianza en el rechazo de archivos malos. |

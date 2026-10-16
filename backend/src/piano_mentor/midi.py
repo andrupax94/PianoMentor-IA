@@ -1,12 +1,14 @@
-# description: Motor MIDI determinista: lectura, validación, normalización, rejilla de compases y acordes con Mido.
+# description: Motor MIDI determinista: lectura, validación, normalización, rejilla de compases, acordes y manos con Mido.
 # context: Núcleo musical; no decide pedagogía ni responde HTTP.
 
 from __future__ import annotations
 
+import statistics
 from bisect import bisect_right
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import mido
 
@@ -16,6 +18,12 @@ DEFAULT_TEMPO_US = 500_000  # microsegundos por pulso: 120 BPM por defecto
 DEFAULT_TIME_SIGNATURE = (4, 4)  # numerador/denominador cuando el MIDI no declara firma
 ROUNDING_DECIMALS = 6
 CHORD_TOLERANCE_SECONDS = 0.001  # 1 ms: notas que empiezan más juntas que esto son el mismo acorde (B-009.1)
+
+# Manos (B-009.2): se derivan de la pista, nunca se inventan cuando no hay con qué comparar.
+HAND_LEFT = "left"
+HAND_RIGHT = "right"
+HAND_UNKNOWN = "unknown"
+Hand = Literal["left", "right", "unknown"]
 
 
 class MidiParseError(Exception):
@@ -279,6 +287,98 @@ def _build_chord(anchor: float, group: Sequence[NormalizedNote]) -> Chord:
     return Chord(
         start_seconds=anchor,
         notes=tuple(sorted(group, key=lambda n: (n.pitch, n.channel, n.track))),
+    )
+
+
+@dataclass(frozen=True)
+class TrackInfo:
+    """Resumen de una pista con notas y la mano que le toca (B-009.2).
+
+    Es la vista que consumen la evidencia del corpus y, más adelante, la UI:
+    cuántas notas trae, por dónde se mueve y con qué mano se toca.
+    """
+
+    track: int
+    hand: Hand
+    note_count: int
+    lowest_pitch: int
+    highest_pitch: int
+    median_pitch: float
+
+
+@dataclass(frozen=True)
+class _TrackStats:
+    """Resumen por pista antes de decidir manos; privado del módulo."""
+
+    track: int
+    note_count: int
+    lowest_pitch: int
+    highest_pitch: int
+    median_pitch: float
+
+
+def _track_stats(notes: Sequence[NormalizedNote]) -> tuple[_TrackStats, ...]:
+    """Resumen por pista con notas, ordenado por número de pista (determinista)."""
+    pitches_by_track: dict[int, list[int]] = {}
+    for note in notes:
+        pitches_by_track.setdefault(note.track, []).append(note.pitch)
+    return tuple(
+        _TrackStats(
+            track=track,
+            note_count=len(pitches),
+            lowest_pitch=min(pitches),
+            highest_pitch=max(pitches),
+            median_pitch=statistics.median(pitches),
+        )
+        for track, pitches in sorted(pitches_by_track.items())
+    )
+
+
+def hand_by_track(notes: Sequence[NormalizedNote]) -> dict[int, Hand]:
+    """Mano de cada pista con notas, decidida por **altura** (B-009.2).
+
+    Reglas:
+    - La pista con la mediana de alturas más grave es la **izquierda** y la más
+      aguda la **derecha**; las pistas intermedias quedan en `unknown`.
+    - Una sola pista con notas → todo `unknown`: no hay contra qué compararla.
+    - Si las pistas extremas empatan en mediana, la decisión es ambigua → `unknown`.
+    - Determinista: los empates de mediana se rompen por número de pista.
+
+    Se decide por **pista** y no nota a nota: en el corpus los rangos de las dos
+    manos se solapan hasta 28 semitonos, así que un umbral fijo de altura
+    etiquetaría mal a la mitad de las notas (ver la evidencia de B-009.2).
+    """
+    stats = sorted(_track_stats(notes), key=lambda s: (s.median_pitch, s.track))
+    if len(stats) < 2:
+        return {stat.track: HAND_UNKNOWN for stat in stats}
+
+    lowest, highest = stats[0], stats[-1]
+    hands: dict[int, Hand] = {stat.track: HAND_UNKNOWN for stat in stats}
+    if lowest.median_pitch == highest.median_pitch:
+        return hands
+    hands[lowest.track] = HAND_LEFT
+    hands[highest.track] = HAND_RIGHT
+    return hands
+
+
+def describe_tracks(notes: Sequence[NormalizedNote]) -> tuple[TrackInfo, ...]:
+    """Describe cada pista con notas (notas, rango, mediana y mano) en orden de pista.
+
+    Acompaña a `hand_by_track`: la mano de una nota concreta es
+    `hands[note.track]`, así que `NormalizedNote` no cambia y la reproducción
+    sigue recibiendo una única lista mezclada (decisión de B-009.2).
+    """
+    hands = hand_by_track(notes)
+    return tuple(
+        TrackInfo(
+            track=stat.track,
+            hand=hands[stat.track],
+            note_count=stat.note_count,
+            lowest_pitch=stat.lowest_pitch,
+            highest_pitch=stat.highest_pitch,
+            median_pitch=stat.median_pitch,
+        )
+        for stat in _track_stats(notes)
     )
 
 
