@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-16T18:59:16.9497583Z",
+  "exportedAtUtc": "2026-10-16T19:14:11.1306877Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1499,7 +1499,7 @@
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBUgnU",
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "In Progress",
       "title": "[B-027.4] Completar los filtros y las métricas de la Library"
     },
     {
