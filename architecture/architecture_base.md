@@ -613,6 +613,8 @@ El frontend debe consumir estos contratos a través de `api-client.ts` y `websoc
 
 `POST /api/v1/pieces/preview` es la **única ruta de carga que no persiste**: valida el MIDI igual que `POST /api/v1/pieces`, lo lee en un directorio temporal y devuelve la partitura para poder escucharla, pero no escribe en el almacén ni en la tabla `pieces`. Así, subir un archivo a mano para probarlo no ensucia el catálogo; lo persistente sigue siendo el corpus del repositorio. La subida persistente (`POST /api/v1/pieces` y `uploadPiece` en el cliente) se conserva en el código aunque hoy la interfaz use la efímera.
 
+`GET /api/v1/pieces/{piece_id}/notes` sirve la partitura ordenada con ventana opcional (`from_s`/`to_s` o `from_measure`/`to_measure` junto con `measures`) y admite dos añadidos de **B-009.3**: `?with_hands=true` pone `hand` (`left`/`right`/`unknown`) en cada nota y añade el resumen `tracks` de la pieza, y `?with_chords=true` añade `chords` con las notas que suenan a la vez. Sin pedirlos, la respuesta es exactamente la anterior: los campos nuevos son opcionales y se excluyen cuando no se piden. La mano se decide sobre **toda la pieza** (una ventana con una sola mano no la vuelve `unknown`) y los acordes sobre **las notas devueltas**, para que ninguno se salga de la ventana. `POST /api/v1/pieces/preview` acepta los mismos dos parámetros.
+
 ## 8. Destino de despliegue inicial
 
 La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:

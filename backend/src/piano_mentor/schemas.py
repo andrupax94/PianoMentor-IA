@@ -3,6 +3,8 @@
 
 from pydantic import BaseModel, Field
 
+from piano_mentor.midi import Hand
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -58,7 +60,11 @@ class EvaluationResponse(BaseModel):
 
 
 class NoteResponse(BaseModel):
-    """Una nota normalizada lista para reproducir (tiempos en segundos)."""
+    """Una nota normalizada lista para reproducir (tiempos en segundos).
+
+    `hand` (B-009.3) solo viaja cuando el cliente pide la información de manos
+    (`?with_hands=true`); sin pedirlo la nota es exactamente la de siempre.
+    """
 
     pitch: int
     start_seconds: float
@@ -66,6 +72,33 @@ class NoteResponse(BaseModel):
     velocity: int
     channel: int
     track: int
+    hand: Hand | None = None
+
+
+class TrackSummary(BaseModel):
+    """Resumen de una pista con notas y la mano que le toca (B-009.2/B-009.3).
+
+    Describe **la pieza completa**, no la ventana pedida: la mano es una
+    propiedad de la pista, así que no cambia porque se pida un compás suelto.
+    """
+
+    track: int
+    hand: Hand
+    note_count: int
+    channels: list[int] = []
+    lowest_pitch: int
+    highest_pitch: int
+    median_pitch: float
+
+
+class ChordSummary(BaseModel):
+    """Notas que suenan a la vez (B-009.1/B-009.3).
+
+    Un acorde puede cruzar manos; la mano de cada nota va en `NoteResponse.hand`.
+    """
+
+    start_seconds: float
+    pitches: list[int] = []
 
 
 class PieceSummary(BaseModel):
@@ -104,7 +137,12 @@ class PieceMeasures(BaseModel):
 
 
 class PieceNotesResponse(BaseModel):
-    """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1 + B-008.2)."""
+    """Partitura servida para reproducción: notas ordenadas por tiempo (B-006.1 + B-008.2).
+
+    `tracks` y `chords` (B-009.3) son opcionales y solo aparecen si el cliente los
+    pide (`?with_hands=true`, `?with_chords=true`); sin pedirlos la respuesta es
+    la de siempre.
+    """
 
     piece_id: str
     tempo: float | None = None
@@ -115,6 +153,8 @@ class PieceNotesResponse(BaseModel):
     from_measure: int | None = None
     to_measure: int | None = None
     measures: PieceMeasures | None = None
+    tracks: list[TrackSummary] | None = None
+    chords: list[ChordSummary] | None = None
     notes: list[NoteResponse] = []
 
 
@@ -123,7 +163,8 @@ class PiecePreviewResponse(BaseModel):
 
     Se lee para escucharla en el piano y no se persiste: ni archivo en el
     almacén ni fila en `pieces`. Por eso no lleva `piece_id`; el navegador la
-    reproduce en memoria y al recargar se pierde.
+    reproduce en memoria y al recargar se pierde. `tracks` y `chords` son
+    opcionales y siguen la misma regla que en `/notes` (B-009.3).
     """
 
     filename: str
@@ -131,4 +172,6 @@ class PiecePreviewResponse(BaseModel):
     duration_seconds: float | None = None
     notes_total: int = 0
     measures: PieceMeasures | None = None
+    tracks: list[TrackSummary] | None = None
+    chords: list[ChordSummary] | None = None
     notes: list[NoteResponse] = []

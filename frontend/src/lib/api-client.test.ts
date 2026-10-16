@@ -129,6 +129,61 @@ describe("getPieceNotes", () => {
     expect(url).toContain("to_s=5");
   });
 
+  it("pide manos y acordes cuando se le piden", async () => {
+    const enriched = {
+      ...NOTES_RESPONSE,
+      tracks: [
+        {
+          track: 1,
+          hand: "right",
+          note_count: 2,
+          channels: [0],
+          lowest_pitch: 60,
+          highest_pitch: 62,
+          median_pitch: 61,
+        },
+      ],
+      chords: [{ start_seconds: 1.0, pitches: [60, 64, 67] }],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(enriched), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const score = await getPieceNotes("abc123", undefined, {
+      withHands: true,
+      withChords: true,
+    });
+
+    expect(score.tracks?.[0].hand).toBe("right");
+    expect(score.chords?.[0].pitches).toEqual([60, 64, 67]);
+    // Los campos nuevos son opcionales: sin pedirlos la nota no trae mano.
+    expect(score.notes[0].hand).toBeUndefined();
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain("with_hands=true");
+    expect(url).toContain("with_chords=true");
+  });
+
+  it("no pide nada extra cuando no se le pide", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(NOTES_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getPieceNotes("abc123");
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).not.toContain("with_hands");
+    expect(url).not.toContain("with_chords");
+  });
+
   it("traduce el 404 de pieza inexistente a piece_not_found", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -184,6 +239,24 @@ describe("previewPiece", () => {
     expect(url).toMatch(/\/api\/v1\/pieces\/preview$/);
     expect(init.method).toBe("POST");
     expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+  });
+
+  it("añade manos y acordes a la petición cuando se le piden", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(PREVIEW_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const file = new File([new Uint8Array([1, 2, 3])], "estudio.mid");
+    await previewPiece(file, { withHands: true, withChords: true });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain("/api/v1/pieces/preview?");
+    expect(url).toContain("with_hands=true");
+    expect(url).toContain("with_chords=true");
   });
 
   it("traduce el rechazo del motor a invalid_midi_content", async () => {

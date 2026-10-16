@@ -117,6 +117,7 @@ def test_describe_tracks_summarises_each_track() -> None:
     assert [info.track for info in tracks] == [1, 2]
     assert [info.hand for info in tracks] == [HAND_RIGHT, HAND_LEFT]
     assert [info.note_count for info in tracks] == [5, 2]
+    assert [list(info.channels) for info in tracks] == [[0], [9]]
     assert [(info.lowest_pitch, info.highest_pitch) for info in tracks] == [(72, 84), (36, 43)]
     assert [info.median_pitch for info in tracks] == pytest.approx([79, 39.5])
 

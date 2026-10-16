@@ -18,11 +18,21 @@ from fastapi import (
 from .agent import AgentService
 from .config import settings
 from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
-from .midi import MidiParseError, MidiService
+from .midi import (
+    HAND_UNKNOWN,
+    Hand,
+    MidiParseError,
+    MidiService,
+    NormalizedNote,
+    describe_tracks,
+    group_chords,
+    hand_by_track,
+)
 from .practice import PracticeService
 from .schemas import (
     ActionRequest,
     ActionResponse,
+    ChordSummary,
     EvaluationResponse,
     HealthResponse,
     NoteResponse,
@@ -34,6 +44,7 @@ from .schemas import (
     PieceSummary,
     SessionCreate,
     SessionResponse,
+    TrackSummary,
 )
 from .storage import LocalPieceStorage, content_hash
 from .validators import (
@@ -87,6 +98,67 @@ def _piece_summary_from_row(row: sqlite3.Row) -> PieceSummary:
         notes_count=row["notes_count"],
         tracks=row["tracks"],
     )
+
+
+def _note_response(note: NormalizedNote, hand: Hand | None = None) -> NoteResponse:
+    """Nota del contrato; `hand` solo se rellena cuando el cliente pide las manos (B-009.3).
+
+    Si no se pide, el campo no se pasa: con `response_model_exclude_unset` la nota
+    viaja exactamente como antes de B-009.3.
+    """
+    payload: dict[str, object] = {
+        "pitch": note.pitch,
+        "start_seconds": note.start_seconds,
+        "duration_seconds": note.duration_seconds,
+        "velocity": note.velocity,
+        "channel": note.channel,
+        "track": note.track,
+    }
+    if hand is not None:
+        payload["hand"] = hand
+    return NoteResponse(**payload)
+
+
+def _polyphony_fields(
+    notes: list[NormalizedNote],
+    piece_notes: list[NormalizedNote],
+    *,
+    with_hands: bool,
+    with_chords: bool,
+) -> dict[str, object]:
+    """Campos de notas (con mano) y, si se piden, pistas y acordes (B-009.3).
+
+    - Las manos se deciden sobre **toda la pieza**: una ventana que solo trae una
+      mano no debe convertirla en `unknown` por falta de contra qué comparar.
+    - Los acordes se calculan sobre las notas devueltas, así que ninguno se sale
+      de la ventana pedida.
+    """
+    hands = hand_by_track(piece_notes) if with_hands else {}
+    fields: dict[str, object] = {
+        "notes": [
+            _note_response(note, hands.get(note.track, HAND_UNKNOWN) if with_hands else None)
+            for note in notes
+        ]
+    }
+    if with_hands:
+        fields["tracks"] = [
+            TrackSummary(
+                track=info.track,
+                hand=info.hand,
+                note_count=info.note_count,
+                channels=list(info.channels),
+                lowest_pitch=info.lowest_pitch,
+                highest_pitch=info.highest_pitch,
+                median_pitch=info.median_pitch,
+            )
+            for info in describe_tracks(piece_notes)
+        ]
+    if with_chords:
+        fields["chords"] = [
+            ChordSummary(start_seconds=chord.start_seconds, pitches=list(chord.pitches))
+            for chord in group_chords(notes)
+        ]
+    return fields
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -182,14 +254,26 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
     )
 
 
-@router.post("/pieces/preview", response_model=PiecePreviewResponse)
-async def preview_piece(file: UploadFile = File(...)) -> PiecePreviewResponse:
+@router.post(
+    "/pieces/preview",
+    response_model=PiecePreviewResponse,
+    response_model_exclude_unset=True,
+)
+async def preview_piece(
+    file: UploadFile = File(...),
+    with_hands: bool = Query(default=False),
+    with_chords: bool = Query(default=False),
+) -> PiecePreviewResponse:
     """Lee un MIDI subido a mano para escucharlo sin guardarlo (B-027.3).
 
     Comparte la validación con POST /pieces, pero es efímero: el archivo se
     escribe en un directorio temporal que se borra al terminar la lectura y
     nunca se inserta una fila en `pieces`. La partitura viaja en la respuesta,
     así que el piano la reproduce en memoria y la Library no la lista.
+
+    Con `?with_hands=true` y `?with_chords=true` añade la mano de cada nota, el
+    resumen de pistas y los acordes (B-009.3); sin pedirlos, la respuesta es la
+    de siempre.
     """
     try:
         original_name = sanitize_filename(file.filename or "unknown.mid")
@@ -231,30 +315,33 @@ async def preview_piece(file: UploadFile = File(...)) -> PiecePreviewResponse:
             signatures=[list(signature) for signature in grid.signatures],
             end_s=grid.end_seconds,
         ),
-        notes=[
-            NoteResponse(
-                pitch=note.pitch,
-                start_seconds=note.start_seconds,
-                duration_seconds=note.duration_seconds,
-                velocity=note.velocity,
-                channel=note.channel,
-                track=note.track,
-            )
-            for note in ordered
-        ],
+        **_polyphony_fields(
+            ordered,
+            ordered,
+            with_hands=with_hands,
+            with_chords=with_chords,
+        ),
     )
 
 
-@router.get("/pieces/{piece_id}/notes", response_model=PieceNotesResponse)
+@router.get(
+    "/pieces/{piece_id}/notes",
+    response_model=PieceNotesResponse,
+    response_model_exclude_unset=True,
+)
 def get_piece_notes(
     piece_id: str,
     from_s: float | None = Query(default=None),
     to_s: float | None = Query(default=None),
     from_measure: int | None = Query(default=None, ge=0),
     to_measure: int | None = Query(default=None, ge=0),
+    with_hands: bool = Query(default=False),
+    with_chords: bool = Query(default=False),
 ) -> PieceNotesResponse:
     # B-006.1 + B-008.2/B-008.3: partitura con ventana opcional (segundos o compases)
     # y la rejilla de compases para que el front sitúe el compás actual.
+    # B-009.3: con with_hands/with_chords añade mano por nota, pistas y acordes;
+    # sin pedirlos, response_model_exclude_unset deja la respuesta como estaba.
     if (from_measure is None) != (to_measure is None):
         raise HTTPException(
             status_code=400,
@@ -343,17 +430,12 @@ def get_piece_notes(
         from_measure=from_measure,
         to_measure=to_measure,
         measures=measures,
-        notes=[
-            NoteResponse(
-                pitch=note.pitch,
-                start_seconds=note.start_seconds,
-                duration_seconds=note.duration_seconds,
-                velocity=note.velocity,
-                channel=note.channel,
-                track=note.track,
-            )
-            for note in ordered
-        ],
+        **_polyphony_fields(
+            ordered,
+            notes,
+            with_hands=with_hands,
+            with_chords=with_chords,
+        ),
     )
 
 

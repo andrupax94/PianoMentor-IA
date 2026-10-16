@@ -43,6 +43,9 @@ export interface PieceCatalogItem {
   tracks: number | null;
 }
 
+/** Mano de una nota, derivada por el motor de la altura de su pista (B-009.2). */
+export type NoteHand = "left" | "right" | "unknown";
+
 /** Una nota normalizada lista para reproducir; tiempos en segundos, alineada con NoteResponse. */
 export interface PlayableNote {
   pitch: number;
@@ -51,6 +54,33 @@ export interface PlayableNote {
   velocity: number;
   channel: number;
   track: number;
+  /** Mano de la pista; solo llega si se pide con `withHands` (B-009.3). */
+  hand?: NoteHand;
+}
+
+/** Resumen de una pista con notas y su mano (B-009.3); describe la pieza completa. */
+export interface TrackSummary {
+  track: number;
+  hand: NoteHand;
+  note_count: number;
+  channels: number[];
+  lowest_pitch: number;
+  highest_pitch: number;
+  median_pitch: number;
+}
+
+/** Notas que suenan a la vez (B-009.1/B-009.3); un acorde puede cruzar manos. */
+export interface ChordSummary {
+  start_seconds: number;
+  pitches: number[];
+}
+
+/** Lo que puede pedir el cliente además de la partitura (B-009.3). */
+export interface PolyphonyOptions {
+  /** Añade `hand` a cada nota y el resumen `tracks`. */
+  withHands?: boolean;
+  /** Añade los `chords` de la partitura devuelta. */
+  withChords?: boolean;
 }
 
 /** Rejilla de compases servida por el motor para situar el compás actual (B-008.3). */
@@ -65,7 +95,10 @@ export interface PieceMeasures {
   end_s: number;
 }
 
-/** Respuesta de GET /api/v1/pieces/{id}/notes, alineada con PieceNotesResponse de Pydantic. */
+/**
+ * Respuesta de GET /api/v1/pieces/{id}/notes, alineada con PieceNotesResponse de Pydantic.
+ * `tracks` y `chords` solo llegan si se piden con `withHands`/`withChords` (B-009.3).
+ */
 export interface PieceNotesResponse {
   piece_id: string;
   tempo: number | null;
@@ -75,6 +108,10 @@ export interface PieceNotesResponse {
   to_s: number | null;
   /** Rejilla de compases; null si el motor no la sirve. */
   measures: PieceMeasures | null;
+  /** Pistas de la pieza con su mano; solo con `withHands`. */
+  tracks?: TrackSummary[];
+  /** Acordes de la partitura devuelta; solo con `withChords`. */
+  chords?: ChordSummary[];
   notes: PlayableNote[];
 }
 
@@ -88,6 +125,10 @@ export interface PiecePreviewResponse {
   duration_seconds: number | null;
   notes_total: number;
   measures: PieceMeasures | null;
+  /** Pistas de la pieza con su mano; solo con `withHands` (B-009.3). */
+  tracks?: TrackSummary[];
+  /** Acordes de la partitura devuelta; solo con `withChords` (B-009.3). */
+  chords?: ChordSummary[];
   notes: PlayableNote[];
 }
 
@@ -191,25 +232,47 @@ export async function uploadPiece(file: File): Promise<PieceResponse> {
 /**
  * Prepara un MIDI a mano para escucharlo en el piano sin guardarlo (B-027.3).
  * El backend lo lee en memoria: no entra en el almacén ni en el catálogo, así que
- * la Library sigue mostrando solo las piezas del corpus.
+ * la Library sigue mostrando solo las piezas del corpus. Con `options` puede
+ * pedirse la mano de cada nota y los acordes (B-009.3).
  */
-export async function previewPiece(file: File): Promise<PiecePreviewResponse> {
+export async function previewPiece(
+  file: File,
+  options: PolyphonyOptions = {},
+): Promise<PiecePreviewResponse> {
   const form = new FormData();
   form.append("file", file, file.name);
 
-  return request<PiecePreviewResponse>("/api/v1/pieces/preview", { method: "POST", body: form });
+  const params = polyphonyParams(options);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return request<PiecePreviewResponse>(`/api/v1/pieces/preview${query}`, {
+    method: "POST",
+    body: form,
+  });
 }
 
-/** Pide la partitura ordenada de una pieza, con ventana opcional por segundos. */
+/**
+ * Pide la partitura ordenada de una pieza, con ventana opcional por segundos.
+ * Con `options` añade la mano de cada nota y/o los acordes (B-009.3).
+ */
 export async function getPieceNotes(
   pieceId: string,
   window?: { from_s?: number; to_s?: number },
+  options: PolyphonyOptions = {},
 ): Promise<PieceNotesResponse> {
   const params = new URLSearchParams();
   if (window?.from_s !== undefined) params.set("from_s", String(window.from_s));
   if (window?.to_s !== undefined) params.set("to_s", String(window.to_s));
+  for (const [key, value] of polyphonyParams(options)) params.set(key, value);
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return request<PieceNotesResponse>(`/api/v1/pieces/${encodeURIComponent(pieceId)}/notes${query}`);
+}
+
+/** Traduce las opciones de polifonía a los parámetros que entiende el backend (B-009.3). */
+function polyphonyParams(options: PolyphonyOptions): URLSearchParams {
+  const params = new URLSearchParams();
+  if (options.withHands) params.set("with_hands", "true");
+  if (options.withChords) params.set("with_chords", "true");
+  return params;
 }
 
 /**

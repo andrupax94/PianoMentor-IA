@@ -301,6 +301,7 @@ class TrackInfo:
     track: int
     hand: Hand
     note_count: int
+    channels: tuple[int, ...]
     lowest_pitch: int
     highest_pitch: int
     median_pitch: float
@@ -312,6 +313,7 @@ class _TrackStats:
 
     track: int
     note_count: int
+    channels: tuple[int, ...]
     lowest_pitch: int
     highest_pitch: int
     median_pitch: float
@@ -320,12 +322,15 @@ class _TrackStats:
 def _track_stats(notes: Sequence[NormalizedNote]) -> tuple[_TrackStats, ...]:
     """Resumen por pista con notas, ordenado por número de pista (determinista)."""
     pitches_by_track: dict[int, list[int]] = {}
+    channels_by_track: dict[int, set[int]] = {}
     for note in notes:
         pitches_by_track.setdefault(note.track, []).append(note.pitch)
+        channels_by_track.setdefault(note.track, set()).add(note.channel)
     return tuple(
         _TrackStats(
             track=track,
             note_count=len(pitches),
+            channels=tuple(sorted(channels_by_track[track])),
             lowest_pitch=min(pitches),
             highest_pitch=max(pitches),
             median_pitch=statistics.median(pitches),
@@ -374,6 +379,7 @@ def describe_tracks(notes: Sequence[NormalizedNote]) -> tuple[TrackInfo, ...]:
             track=stat.track,
             hand=hands[stat.track],
             note_count=stat.note_count,
+            channels=stat.channels,
             lowest_pitch=stat.lowest_pitch,
             highest_pitch=stat.highest_pitch,
             median_pitch=stat.median_pitch,
