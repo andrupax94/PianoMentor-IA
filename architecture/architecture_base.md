@@ -162,7 +162,7 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
 | `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
 | `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
-| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite + sqlite-vec (metadatos de piezas y vectores); se incorporará con B-003. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones con SQLite + sqlite-vec (metadatos de piezas y migraciones SQL versionadas); los vectores quedan pendientes de B-005/B-013. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
 | `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
 | `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
 | `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |

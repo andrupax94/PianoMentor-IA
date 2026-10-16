@@ -162,7 +162,7 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
 | `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
 | `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
-| `/backend/src/piano_mentor/database.py` | Conexión y operaciones iniciales con SQLite + sqlite-vec (metadatos de piezas y vectores); se incorporará con B-003. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones con SQLite + sqlite-vec (metadatos de piezas y migraciones SQL versionadas); los vectores quedan pendientes de B-005/B-013. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
 | `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
 | `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
 | `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |
@@ -753,7 +753,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-16 19:36 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-16 19:40 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1283,7 +1283,7 @@ piano-mentor-ai/
 | `docs/TROUBLESHOOTING.md` | Bitácora viva de problemas, diagnóstico y soluciones. | Consultar ante fallos conocidos. |
 | `issues/B-001/B-001.md` | Resumen y aceptación de la Issue B-001 (estructura monorepo). | alcance de la issue principal; detalle en B-001.N.md. |
 | `issues/B-002/B-002.md` | Resumen y aceptación de la Issue B-002 (contrato y almacenamiento de piezas). | Contrato base de piezas MIDI. |
-| `issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas y vectores. |
+| `issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas; los vectores llegan con B-005/B-013. |
 | `issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
 | `issues/B-006/B-006.md` | Resumen y aceptación de la Issue B-006 (reproducción básica): API de notas, reloj en el navegador, tempo y base de componentes del front. | Transporte play/pausa/stop sin estado en el servidor; detalle en B-006.N.md. |
 | `issues/B-007/B-007.md` | Resumen y aceptación de la Issue B-007 (piano virtual básico): teclado SVG, resaltado sonando/esperada y cascada sincronizada. | Solo visualización, sin entrada de usuario; detalle en B-007.N.md. |
