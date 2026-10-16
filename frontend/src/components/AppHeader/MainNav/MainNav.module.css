@@ -1,5 +1,5 @@
 /* description: Estilos de la navegación principal. */
-/* context: B-006.4; simplicidad primero. */
+/* context: B-006.4; el item es <a> cuando navega y <span> cuando está bloqueado. */
 
 .nav {
   display: flex;
@@ -12,20 +12,24 @@
   border-bottom: 3px solid var(--accent);
 }
 
+.nav>a,
 .nav>span {
   height: 35px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
 }
 
+.nav>a>p,
 .nav>span>p {
   border-bottom-width: 3px;
 }
 
 
-.nav span span {
+.nav>a>span,
+.nav>span>span {
   display: flex;
   justify-self: center;
   align-items: center;

@@ -8,11 +8,11 @@ import { UserAvatar } from "./UserAvatar/UserAvatar";
 import styles from "./AppHeader.module.css";
 import type { AppHeaderProps } from "./AppHeader.types";
 
-export function AppHeader({ midiConnected = true, userInitial = "A" }: AppHeaderProps) {
+export function AppHeader({ midiConnected = true, userInitial = "A", active = "learn" }: AppHeaderProps) {
   return (
     <header className={styles.bar}>
       <BrandLogo />
-      <MainNav />
+      <MainNav active={active} />
       <MidiStatus connected={midiConnected} />
       <UserAvatar initial={userInitial} />
     </header>
