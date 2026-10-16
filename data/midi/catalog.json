@@ -5,6 +5,7 @@
   "pieces": [
     {
       "id": "p01",
+      "cover": "/assets/covers/bach.jpg",
       "title": "Minuet in G major",
       "composer": "Johann Sebastian Bach",
       "opus": "BWV Anh. 114",
@@ -18,6 +19,7 @@
     },
     {
       "id": "p02",
+      "cover": "/assets/covers/bach.jpg",
       "title": "Prelude in C major",
       "composer": "Johann Sebastian Bach",
       "opus": "BWV 846",
@@ -31,6 +33,7 @@
     },
     {
       "id": "p03",
+      "cover": "/assets/covers/bach.jpg",
       "title": "Invention No. 1 in C major",
       "composer": "Johann Sebastian Bach",
       "opus": "BWV 772",
@@ -44,6 +47,7 @@
     },
     {
       "id": "p04",
+      "cover": "/assets/covers/bach.jpg",
       "title": "Invention No. 8 in F major",
       "composer": "Johann Sebastian Bach",
       "opus": "BWV 779",
@@ -57,6 +61,7 @@
     },
     {
       "id": "p05",
+      "cover": "/assets/covers/mozart.jpg",
       "title": "Piano Sonata No. 16, 1st movement",
       "composer": "Wolfgang Amadeus Mozart",
       "opus": "K. 545",
@@ -70,6 +75,7 @@
     },
     {
       "id": "p06",
+      "cover": "/assets/covers/mozart.jpg",
       "title": "Piano Sonata No. 11, Rondo alla Turca",
       "composer": "Wolfgang Amadeus Mozart",
       "opus": "K. 331, 3rd movement",
@@ -83,6 +89,7 @@
     },
     {
       "id": "p07",
+      "cover": "/assets/covers/mozart.jpg",
       "title": "Piano Sonata No. 11, Tema (Andante grazioso)",
       "composer": "Wolfgang Amadeus Mozart",
       "opus": "K. 331, 1st movement",
@@ -96,6 +103,7 @@
     },
     {
       "id": "p08",
+      "cover": "/assets/covers/beethoven.jpg",
       "title": "Piano Sonata Op. 49 No. 1, 1st movement",
       "composer": "Ludwig van Beethoven",
       "opus": "Op. 49 No. 1",
@@ -109,6 +117,7 @@
     },
     {
       "id": "p09",
+      "cover": "/assets/covers/beethoven.jpg",
       "title": "Piano Sonata Op. 49 No. 2, 1st movement",
       "composer": "Ludwig van Beethoven",
       "opus": "Op. 49 No. 2",
@@ -122,6 +131,7 @@
     },
     {
       "id": "p10",
+      "cover": "/assets/covers/beethoven.jpg",
       "title": "Piano Sonata Op. 13 Pathetique, 2nd movement",
       "composer": "Ludwig van Beethoven",
       "opus": "Op. 13",
@@ -135,6 +145,7 @@
     },
     {
       "id": "p11",
+      "cover": "/assets/covers/beethoven.jpg",
       "title": "Piano Sonata Op. 27 No. 2 Moonlight, 1st movement",
       "composer": "Ludwig van Beethoven",
       "opus": "Op. 27 No. 2",
@@ -149,6 +160,7 @@
     },
     {
       "id": "p12",
+      "cover": "/assets/covers/chopin.jpg",
       "title": "Fantaisie-Impromptu",
       "composer": "Frederic Chopin",
       "opus": "Op. 66",
@@ -162,6 +174,7 @@
     },
     {
       "id": "p13",
+      "cover": "/assets/covers/chopin.jpg",
       "title": "Waltz in D-flat major Minute",
       "composer": "Frederic Chopin",
       "opus": "Op. 64 No. 1",
@@ -175,6 +188,7 @@
     },
     {
       "id": "p14",
+      "cover": "/assets/covers/chopin.jpg",
       "title": "Prelude in E minor",
       "composer": "Frederic Chopin",
       "opus": "Op. 28 No. 4",
@@ -188,6 +202,7 @@
     },
     {
       "id": "p15",
+      "cover": "/assets/covers/chopin.jpg",
       "title": "Prelude in A major",
       "composer": "Frederic Chopin",
       "opus": "Op. 28 No. 7",

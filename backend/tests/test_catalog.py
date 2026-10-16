@@ -10,8 +10,20 @@ import mido
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "midi" / "catalog.json"
 MIDI_ROOT = CATALOG_PATH.parent
+COVERS_ROOT = (
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "assets" / "covers"
+)
 
-REQUIRED_FIELDS = {"id", "title", "composer", "file", "source_url", "license", "difficulty"}
+REQUIRED_FIELDS = {
+    "id",
+    "title",
+    "composer",
+    "file",
+    "source_url",
+    "license",
+    "difficulty",
+    "cover",
+}
 ALLOWED_DIFFICULTIES = {"principiante", "intermedio", "avanzado"}
 ALLOWED_LICENSES = {"Public Domain", "CC BY-SA 3.0", "CC BY-SA 2.5"}
 
@@ -65,3 +77,18 @@ def test_catalog_note_counts_match_files() -> None:
     for piece in catalog["pieces"]:
         path = MIDI_ROOT / piece["file"]
         assert piece["notes"] == count_notes(path), f"{piece['id']}: campo notes no coincide"
+
+
+def test_cover_points_to_public_assets() -> None:
+    catalog = load_catalog()
+    for piece in catalog["pieces"]:
+        cover = piece["cover"]
+        assert cover.startswith("/assets/covers/"), f"{piece['id']}: portada fuera de /assets/covers"
+        assert cover.endswith(".jpg"), f"{piece['id']}: la portada no es un .jpg"
+
+
+def test_referenced_covers_exist() -> None:
+    catalog = load_catalog()
+    for piece in catalog["pieces"]:
+        name = Path(piece["cover"]).name
+        assert (COVERS_ROOT / name).is_file(), f"{piece['id']}: no existe la portada {name}"

@@ -68,6 +68,27 @@ class NoteResponse(BaseModel):
     track: int
 
 
+class PieceSummary(BaseModel):
+    """Resumen de una pieza para el selector del catálogo (B-027.3).
+
+    Aplana la fila persistida a los campos que necesita la Library del frontend;
+    `cover` es la ruta pública de la portada (NULL en subidas sin portada).
+    """
+
+    id: str
+    title: str | None = None
+    composer: str | None = None
+    opus: str | None = None
+    difficulty: str | None = None
+    license: str | None = None
+    cover: str | None = None
+    source: str | None = None
+    duration_seconds: float | None = None
+    tempo: float | None = None
+    notes_count: int | None = None
+    tracks: int | None = None
+
+
 class PieceMeasures(BaseModel):
     """Rejilla de compases servida al front para situar el compás actual (B-008.3).
 

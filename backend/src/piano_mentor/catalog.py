@@ -43,6 +43,8 @@ def _record(entry: dict[str, Any], base_dir: Path) -> dict[str, Any]:
         "license": entry.get("license"),
         "source_url": entry.get("source_url"),
         "difficulty": entry.get("difficulty"),
+        # Portada pública de la pieza (retrato PD servido por el frontend).
+        "cover": entry.get("cover"),
         # B-005.4+: hash y procedencia, para que subir un MIDI idéntico a un
         # archivo del corpus reutilice la entrada del catálogo en vez de duplicarla.
         "content_hash": content_hash(midi_file.read_bytes()),

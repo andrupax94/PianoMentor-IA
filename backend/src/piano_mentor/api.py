@@ -16,7 +16,7 @@ from fastapi import (
 
 from .agent import AgentService
 from .config import settings
-from .database import find_existing_piece, find_piece_by_id, save_piece
+from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
 from .midi import MidiParseError, MidiService
 from .practice import PracticeService
 from .schemas import (
@@ -29,6 +29,7 @@ from .schemas import (
     PieceMetadata,
     PieceNotesResponse,
     PieceResponse,
+    PieceSummary,
     SessionCreate,
     SessionResponse,
 )
@@ -68,9 +69,37 @@ def _piece_from_row(row: sqlite3.Row, *, deduplicated: bool) -> PieceResponse:
     )
 
 
+def _piece_summary_from_row(row: sqlite3.Row) -> PieceSummary:
+    """Aplana una fila persistida al resumen del selector de catálogo (B-027.3)."""
+    return PieceSummary(
+        id=row["id"],
+        title=row["title"],
+        composer=row["composer"],
+        opus=row["opus"],
+        difficulty=row["difficulty"],
+        license=row["license"],
+        cover=row["cover"],
+        source=row["source"],
+        duration_seconds=row["duration_s"],
+        tempo=row["tempo"],
+        notes_count=row["notes_count"],
+        tracks=row["tracks"],
+    )
+
+
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", service="piano-mentor-backend")
+
+
+@router.get("/pieces", response_model=list[PieceSummary])
+def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
+    """Lista las piezas disponibles para el selector (B-027.3).
+
+    Sin filtro incluye el corpus y las subidas (corpus primero); `source=corpus`
+    limita al catálogo, que es lo que pide la Library.
+    """
+    return [_piece_summary_from_row(row) for row in find_pieces(source)]
 
 
 @router.post("/pieces", response_model=PieceResponse)

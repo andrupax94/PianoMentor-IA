@@ -77,6 +77,7 @@ PIECE_COLUMNS = (
     "license",
     "source_url",
     "difficulty",
+    "cover",
 )
 
 
@@ -158,6 +159,33 @@ def find_piece_by_id(piece_id: str) -> sqlite3.Row | None:
     try:
         init_db(conn)
         return get_piece(conn, piece_id)
+    finally:
+        conn.close()
+
+
+def list_pieces(
+    conn: sqlite3.Connection, source: str | None = None
+) -> list[sqlite3.Row]:
+    """Lista las piezas persistidas (B-027.3).
+
+    Ordena el corpus antes que las subidas y, dentro de cada grupo, por
+    compositor, opus e id, que es el orden natural del selector del frontend.
+    """
+    sql = "SELECT * FROM pieces"
+    params: tuple[object, ...] = ()
+    if source is not None:
+        sql += " WHERE source = ?"
+        params = (source,)
+    sql += " ORDER BY CASE WHEN source = 'corpus' THEN 0 ELSE 1 END, composer, opus, id"
+    return conn.execute(sql, params).fetchall()
+
+
+def find_pieces(source: str | None = None) -> list[sqlite3.Row]:
+    """Lista las piezas gestionando su propia conexión (B-027.3)."""
+    conn = connect()
+    try:
+        init_db(conn)
+        return list_pieces(conn, source)
     finally:
         conn.close()
 
