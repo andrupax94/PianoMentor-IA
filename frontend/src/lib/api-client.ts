@@ -24,6 +24,25 @@ export interface PieceResponse {
   metadata: PieceMetadata;
 }
 
+/**
+ * Resumen de una pieza del catálogo, alineado con PieceSummary de Pydantic (B-027.3).
+ * `cover` es la ruta pública de la portada; null en las subidas sin portada.
+ */
+export interface PieceCatalogItem {
+  id: string;
+  title: string | null;
+  composer: string | null;
+  opus: string | null;
+  difficulty: string | null;
+  license: string | null;
+  cover: string | null;
+  source: string | null;
+  duration_seconds: number | null;
+  tempo: number | null;
+  notes_count: number | null;
+  tracks: number | null;
+}
+
 /** Una nota normalizada lista para reproducir; tiempos en segundos, alineada con NoteResponse. */
 export interface PlayableNote {
   pitch: number;
@@ -162,6 +181,17 @@ export async function getPieceNotes(
   if (window?.to_s !== undefined) params.set("to_s", String(window.to_s));
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return request<PieceNotesResponse>(`/api/v1/pieces/${encodeURIComponent(pieceId)}/notes${query}`);
+}
+
+/**
+ * Lista las piezas del catálogo en GET /api/v1/pieces (B-027.3).
+ * Sin `source` devuelve corpus y subidas (el corpus primero).
+ */
+export async function getPieceList(
+  source?: "corpus" | "upload",
+): Promise<PieceCatalogItem[]> {
+  const query = source ? `?${new URLSearchParams({ source }).toString()}` : "";
+  return request<PieceCatalogItem[]>(`/api/v1/pieces${query}`);
 }
 
 /** Consulta el healthcheck del backend en GET /health. */

@@ -1,0 +1,45 @@
+/* description: Estilos de la página de Library (B-027.3). */
+/* context: La paleta vive en globals.css; aquí solo la disposición. */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  padding: 28px 32px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px 24px 8px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-mute);
+  font-size: 15px;
+}
+
+.notice {
+  margin: 24px 0;
+  color: var(--text-mute);
+  font-size: 15px;
+}
+
+@media (max-width: 1000px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+}

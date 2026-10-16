@@ -1,15 +1,26 @@
 /* description: Estilos globales de la aplicación. */
 /* context: Base visual de la web. */
 
+/* Paleta del diseño (navy profundo + oro). Los tokens que comparten la página
+   principal y la Library viven aquí; los componentes solo los consumen. */
 :root {
     color-scheme: dark;
-    --bg: #10131a;
+    --bg: #0b1426;
     --bg2: #172338;
-    --panel: #191e29;
+    --panel: #0f1a2e;
+    --panel-soft: #12203a;
+    --line: #1a2a47;
+    --line-strong: #243659;
     --accent: #83a9d2;
-    --text: #eef3f7;
+    --text: #e8eefb;
+    --text-soft: #aeb9d0;
+    --text-mute: #7f8ca6;
+    --gold: #f5a623;
+    --gold-soft: #f5c04a;
+    --blue: #3f78b8;
     --font1: "Gabriola";
-    --font2: "Reem Kufi";
+    /* Manrope llega por next/font en layout.tsx (--font-manrope). */
+    --font2: var(--font-manrope), "Reem Kufi", sans-serif;
     --color1: #fbb22a;
 }
 

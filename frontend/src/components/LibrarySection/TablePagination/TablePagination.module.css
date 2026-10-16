@@ -1,0 +1,25 @@
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--text-mute);
+}
+
+.pages { display: flex; gap: 8px; }
+
+.btn {
+  min-width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--text-soft);
+  font: inherit;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.4; cursor: default; }
+.active { border-color: var(--gold); color: var(--gold-soft); }
