@@ -70,9 +70,9 @@ dist/
 # Skill package/build artifacts
 *.skill
 opencode.exe
-frontend/tsconfig.json
-frontend/tsconfig.tsbuildinfo
-frontend/next-env.d.ts
+
+# frontend/tsconfig.json sí se versiona: es quien define el alias "@/*" de los imports.
+# (next-env.d.ts y *.tsbuildinfo ya quedan fuera por las reglas de Node/Next.)
 
 # Banco de muestras de piano descargado (Salamander, ~78 MB, regenerable con `npm run samples`).
 # Los MP3 derivados de frontend/public/audio/piano/ sí se versionan; atribución en THIRD_PARTY_NOTICES.md.
