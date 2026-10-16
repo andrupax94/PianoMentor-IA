@@ -745,7 +745,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-14 20:08 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-16 16:07 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -827,6 +827,8 @@ piano-mentor-ai/
 ├── backend/tests/test_database.py
 ├── backend/tests/test_evaluation.py
 ├── backend/tests/test_health.py
+├── backend/tests/test_measure_grid.py
+├── backend/tests/test_measure_range.py
 ├── backend/tests/test_midi.py
 ├── backend/tests/test_piece_contract.py
 ├── backend/tests/test_piece_dedup.py
@@ -865,6 +867,7 @@ piano-mentor-ai/
 ├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/C4v4.ogg
 ├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis/ogg/C8v13.ogg
 ├── frontend/.cache/piano-samples/SalamanderGrandPianoV3_OggVorbis.tar.bz2
+├── frontend/.dockerignore
 ├── frontend/AGENTS.md
 ├── frontend/Dockerfile
 ├── frontend/next-env.d.ts
@@ -875,15 +878,22 @@ piano-mentor-ai/
 ├── frontend/public/assets/
 ├── frontend/public/assets/icons/
 ├── frontend/public/assets/icons/bot.svg
+├── frontend/public/assets/icons/cronometer.svg
 ├── frontend/public/assets/icons/eye.svg
+├── frontend/public/assets/icons/firma.svg
 ├── frontend/public/assets/icons/info.svg
 ├── frontend/public/assets/icons/Learn.svg
 ├── frontend/public/assets/icons/Library.svg
 ├── frontend/public/assets/icons/Lock.svg
 ├── frontend/public/assets/icons/Logo.svg
 ├── frontend/public/assets/icons/metrics.svg
+├── frontend/public/assets/icons/metronome.svg
+├── frontend/public/assets/icons/next.svg
+├── frontend/public/assets/icons/pause.svg
 ├── frontend/public/assets/icons/piano.svg
 ├── frontend/public/assets/icons/play.svg
+├── frontend/public/assets/icons/play2.svg
+├── frontend/public/assets/icons/stop.svg
 ├── frontend/public/assets/piano_virtual_88_pressed.svg
 ├── frontend/public/audio/
 ├── frontend/public/audio/piano/
@@ -998,6 +1008,8 @@ piano-mentor-ai/
 ├── frontend/src/lib/key-geometry.ts
 ├── frontend/src/lib/key-states.test.ts
 ├── frontend/src/lib/key-states.ts
+├── frontend/src/lib/measures.test.ts
+├── frontend/src/lib/measures.ts
 ├── frontend/src/lib/pc-keyboard.test.ts
 ├── frontend/src/lib/pc-keyboard.ts
 ├── frontend/src/lib/piano-model.test.ts
@@ -1069,6 +1081,20 @@ piano-mentor-ai/
 ├── issues/B-007/B-007.4.md
 ├── issues/B-007/B-007.5.md
 ├── issues/B-007/B-007.md
+├── issues/B-008/
+├── issues/B-008/B-008.1.md
+├── issues/B-008/B-008.2.md
+├── issues/B-008/B-008.3.md
+├── issues/B-008/B-008.md
+├── issues/B-012/
+├── issues/B-012/B-012.1.md
+├── issues/B-012/B-012.2.md
+├── issues/B-012/B-012.3.md
+├── issues/B-012/B-012.4.md
+├── issues/B-012/B-012.5.md
+├── issues/B-012/B-012.6.md
+├── issues/B-012/B-012.7.md
+├── issues/B-012/B-012.md
 ├── issues/B-027/
 ├── issues/B-027/B-027.1.md
 ├── issues/B-027/B-027.2.md
@@ -1112,11 +1138,11 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/__init__.py` | Marca el paquete Python piano_mentor. | Raíz de importaciones del backend. |
 | `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. |
 | `backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno (Settings). | Centraliza puertos, CORS, rutas MIDI y base de datos. |
-| `backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). POST /pieces deduplica por SHA-256 (devuelve la pieza existente si el contenido ya estaba) e invoca inspect_file (B-005.4) para rellenar metadatos musicales, con 400 + limpieza si el MIDI es ilegible. | Traduce HTTP/WS a servicios; delgado, sin lógica musical compleja. |
-| `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API; PieceResponse incluye source (corpus/upload) y deduplicated para la reutilización por hash. | Contrato tipado entre frontend y backend. |
+| `backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). POST /pieces deduplica por SHA-256 (devuelve la pieza existente si el contenido ya estaba) e invoca inspect_file (B-005.4) para rellenar metadatos musicales, con 400 + limpieza si el MIDI es ilegible. GET /pieces/{id}/notes sirve la partitura con ventana por segundos (from_s/to_s) o por compases (from_measure/to_measure) y la rejilla de compases (measures). | Traduce HTTP/WS a servicios; delgado, sin lógica musical compleja. Construye la rejilla una sola vez para resolver la ventana y servirla al front (B-008.2/B-008.3). |
+| `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API; PieceResponse incluye source (corpus/upload) y deduplicated para la reutilización por hash, y PieceNotesResponse incluye la rejilla de compases PieceMeasures (count, starts_s, signatures, end_s). | Contrato tipado entre frontend y backend. |
 | `backend/src/piano_mentor/validators.py` | Validación de uploads MIDI: nombre, extensión, tamaño y contenido. | Rechaza archivos inválidos antes de guardarlos. |
 | `backend/src/piano_mentor/storage.py` | Guardado local de piezas MIDI en filesystem, con delete() para limpiar huérfanos y content_hash() (SHA-256) como base de la deduplicación. | Persistencia MVP de bytes MIDI; delete() lo usa B-005.4 para no dejar archivos huérfanos y content_hash() decide si una subida es nueva. |
-| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales), mapa de tempo inmutable `TempoMap` que convierte ticks a segundos y nota normalizada `NormalizedNote` (pitch, inicio, duración, velocity, canal y pista en segundos). | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError; TempoMap y NormalizedNote son el contrato de tiempo y de nota para reproducción (B-006), compases (B-008), polifonía (B-009) y evaluación (B-013). |
+| `backend/src/piano_mentor/midi.py` | Motor MIDI determinista: lectura de metadatos con Mido (tracks, tempo inicial, notas, duración y canales), mapa de tempo inmutable `TempoMap` que convierte ticks a segundos, nota normalizada `NormalizedNote` (pitch, inicio, duración, velocity, canal y pista en segundos) y rejilla de compases inmutable `MeasureGrid` (inicios en ticks/segundos, firma por compás, measure_at/bounds_s/resolve_range), con MidiService.resolve_measure_range y play_section. | Núcleo musical; no decide pedagogía ni responde HTTP. Errores con código estable vía MidiParseError; TempoMap y NormalizedNote son el contrato de tiempo y de nota, y MeasureGrid el de compás, para reproducción (B-006), compases (B-008), polifonía (B-009) y evaluación (B-013). |
 | `backend/src/piano_mentor/evaluation.py` | Evaluador determinista: notas correctas, omitidas, extras, precisión y timing. | Mide la interpretación sin LLM ni UI. |
 | `backend/src/piano_mentor/practice.py` | Casos de uso de sesión de práctica: crear sesión, estado y eventos. | Coordina pieza + interpretación + estado. |
 | `backend/src/piano_mentor/agent.py` | Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control). | Fallback obligatorio sin LLM; nunca envía MIDI directo. |
@@ -1141,6 +1167,8 @@ piano-mentor-ai/
 | `backend/tests/conftest.py` | Fixture global que aísla la base de datos de cada test en un directorio temporal. | Evita escribir data/*.db durante pytest. |
 | `backend/tests/test_piece_persistence.py` | Persistencia de POST /pieces: carga válida guardada, inválida sin escrituras y error de BD → 500. | Confianza en la persistencia del endpoint (B-003.2). |
 | `backend/tests/test_catalog_load.py` | Carga del catálogo: 15 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI. | Confianza en el corpus cargado en SQLite (B-003.3). |
+| `backend/tests/test_measure_grid.py` | Rejilla de compases (B-008.1): 4/4 por defecto, cambios de firma y de tempo, measure_at/bounds_s/signature_at y validaciones con código estable. | Confianza en el cálculo de compases del motor. |
+| `backend/tests/test_measure_range.py` | Rango de compases a ventana temporal (B-008.2/B-008.3): resolve_range y validaciones, endpoint /notes con from_measure/to_measure y la rejilla measures servida (con cambio de firma 3/4 -> 4/4). | Confianza en la reproducción por tramos y en la rejilla que consume el PlayerBar. |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
 | `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript). | Instalar y arrancar la web. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |
@@ -1152,11 +1180,11 @@ piano-mentor-ai/
 | `frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI al backend con validación orientativa, estados, aviso de pieza reutilizada y metadatos devueltos (incluye tempo y origen). | Subida con validación y errores visibles; usa el cliente tipado, nunca fetch directo. |
 | `frontend/src/components/SessionStatus.tsx` | Estado actual: tempo, compás y quién controla el piano. | Hace visible practicing/waiting/demonstrating. |
 | `frontend/src/components/PracticeSession.tsx` | Vista principal de práctica (se incorpora con B-012). | Composición de teclado + estado + controles. |
-| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated) y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
-| `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend y caída del servicio. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures) y errores ApiError con código estable. | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. |
+| `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend, caída del servicio y rejilla de compases en la respuesta de notas. | Criterio de B-004.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/playback-schedule.ts` | Matemática pura de reproducción (B-006.2): schedule ordenado con factor de tempo, ventana de eventos, pitch a Hz y recortes. | Sin DOM ni AudioContext; testeable con números, la ejecuta el motor de transporte. |
 | `frontend/src/lib/playback-engine.ts` | Motor de transporte sin framework (B-006.2): play/pausa/stop/seek y tempo con reloj y voz de audio inyectados. | Determinista con tiempo falso en tests; usePlayback lo viste con React+WebAudio. |
-| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): snapshot, notas, acciones, audición y getPosition (posición viva sin pasar por estado de React). | Capa fina sobre PlaybackEngine; en B-007.5 crea el sampler de muestras con su voz de reserva y la cadena master → limitador. getPosition lo consume la cascada de B-007.3. |
+| `frontend/src/lib/usePlayback.ts` | Hook React del transporte (B-006.2): snapshot, notas, rejilla de compases (measures), acciones, audición y getPosition (posición viva sin pasar por estado de React). | Capa fina sobre PlaybackEngine; en B-007.5 crea el sampler de muestras con su voz de reserva y la cadena master → limitador. getPosition lo consume la cascada de B-007.3 y measures lo consume el compás actual de B-008.3. |
 | `frontend/src/lib/synth.ts` | Voz aditiva de reserva (senos con inarmonicidad y envolvente percusiva) compartida por transporte y audición. | B-007.5; suena mientras no hay muestra decodificada y si una falla. Contrato PolySynth intacto; polifonía limitada a 24 voces robando la más vieja. |
 | `frontend/src/lib/pc-keyboard.ts` | Mapa tecla del PC → pitch por e.code (dos filas + flechas de octava, velocity fija). | B-007.2; puro, independiente del layout del teclado. |
 | `frontend/src/lib/pc-keyboard.test.ts` | Tests del mapa de teclado: filas, octavas, layout y límites del piano. | Criterio de B-007.2; se ejecutan con `npm run test` (Vitest). |
@@ -1169,6 +1197,8 @@ piano-mentor-ai/
 | `frontend/src/lib/key-geometry.test.ts` | Tests de la geometría contra el asset real: centros de las 88 teclas, anchos, inset y recuento de blancas. | Criterio de B-007.3; si cambia el SVG de diseño, el barrido falla y avisa. |
 | `frontend/src/lib/playback-schedule.test.ts` | Tests de la matemática de reproducción: escala por factor, orden estable, ventana, pitch y recortes. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/playback-engine.test.ts` | Tests del motor de transporte con reloj falso y voz que graba: programación, pausa, seek, fin y tempo. | Criterio de B-006.2; se ejecutan con `npm run test` (Vitest). |
+| `frontend/src/lib/measures.ts` | Compás actual a partir de la rejilla y la posición del transporte: measureIndexAt (búsqueda binaria sobre starts_s) y formateo de compás y firma. | B-008.3; puro y sin DOM. La posición va escalada por el factor, así que compara position_s × factor con los inicios originales, igual que buildSchedule y la cascada. |
+| `frontend/src/lib/measures.test.ts` | Tests del compás actual con reloj falso: borde de compás, pausa que no avanza, factor de tempo, recorte en extremos y formato con indicador vacío. | Criterio de B-008.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de sesión en tiempo real (se incorpora con B-012). | Actualizaciones de estado de práctica. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
 | `data/midi/catalog.json` | Catálogo versionado de las 15 piezas del corpus: título, compositor, opus, licencia, source_url, dificultad y métricas. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. |
@@ -1206,21 +1236,21 @@ piano-mentor-ai/
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.tsx` | Avatar de usuario con inicial. | B-006.4; sin autenticación todavía (B-029). |
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.module.css` | Estilos del avatar. | B-006.4; simplicidad primero. |
 | `frontend/src/components/AppHeader/UserAvatar/UserAvatar.types.ts` | Props del avatar (initial). | B-006.4. |
-| `frontend/src/components/PlaybackArea/PlaybackArea.tsx` | Columna principal: nace el transporte (usePlayback), carga la pieza demo y reparte player a PlayerBar y PianoStage. | B-007.3; client component para no arrastrar AppHeader ni MentorPanel al bundle de cliente (page.tsx sigue siendo servidor). |
+| `frontend/src/components/PlaybackArea/PlaybackArea.tsx` | Columna principal: nace el transporte (usePlayback), carga la pieza demo con sus notas, tempo, duración y rejilla de compases, y reparte player a PlayerBar y PianoStage. | B-007.3; client component para no arrastrar AppHeader ni MentorPanel al bundle de cliente (page.tsx sigue siendo servidor). |
 | `frontend/src/components/PlaybackArea/PlaybackArea.module.css` | Estilos de la columna principal (reproductor + piano). | B-007.3; la regla .main baja aquí desde page.module.css. |
 | `frontend/src/components/PlaybackArea/PlaybackArea.types.ts` | Props de la columna (octaves, reenviadas a PianoStage). | B-007.3. |
-| `frontend/src/components/PlayerBar/PlayerBar.tsx` | Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real y progreso redondeado. | B-007.3; B-006.4 la dejó solo HTML/CSS. El título de la pieza y el compás siguen de mentira (B-008/B-012). |
+| `frontend/src/components/PlayerBar/PlayerBar.tsx` | Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real, compás actual real (derivado de la rejilla con measureIndexAt) y progreso redondeado. | B-007.3/B-008.3; B-006.4 la dejó solo HTML/CSS. El título de la pieza sigue de mentira hasta B-012. |
 | `frontend/src/components/PlayerBar/PlayerBar.module.css` | Estilos de la franja del reproductor. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PlayerBar/PlayerBar.types.ts` | Props de la franja (player, título, arreglo, compás). | B-007.3; tempo y progreso se derivan del transporte, no se pasan por props. |
+| `frontend/src/components/PlayerBar/PlayerBar.types.ts` | Props de la franja (player, título, arreglo); el compás ya no es una prop, se deriva del transporte. | B-007.3/B-008.3; tempo, compás y progreso se derivan del transporte, no se pasan por props. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.tsx` | Portada y título de la pieza en reproducción. | B-006.4; armazón estático. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.module.css` | Estilos de la información de la pieza. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/SongInfo/SongInfo.types.ts` | Props de información (title, subtitle). | B-006.4. |
 | `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.tsx` | Botones de transporte: reenvían callbacks sin lógica propia; el play alterna entre ▶ y ⏸ según isPlaying. | B-006.4; cableados desde PlayerBar al transporte con B-007.3. |
 | `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.module.css` | Estilos de los botones de transporte. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/PlaybackControls/PlaybackControls.types.ts` | Callbacks de transporte (onRewind/onTogglePlay/onStop/onForward) e isPlaying. | B-006.4; ya enchufados al usePlayback de B-006.2. |
-| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx` | Tempo en BPM y compás en reproducción. | B-006.4; el tempo es real (BPM × factor) desde B-007.3 y el compás espera a B-008. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.tsx` | Tempo efectivo, compás actual/total y firma en reproducción, con indicador vacío (—) cuando falta el dato. | B-008.3; el tempo es real (BPM × factor) desde B-007.3 y el compás real desde B-008.3, sin valores inventados. |
 | `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.module.css` | Estilos de tempo y compás. | B-006.4; simplicidad primero. |
-| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.types.ts` | Props de tempo y compás (tempoBpm, measure). | B-006.4. |
+| `frontend/src/components/PlayerBar/TempoMeasure/TempoMeasure.types.ts` | Props de tempo, compás actual/total y firma (tempoBpm, measure, measureCount, signature). | B-008.3; sin datos se muestra indicador vacío, nunca un valor inventado. |
 | `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.tsx` | Barra de progreso con porcentaje y rol progressbar. | B-006.4; recibe el porcentaje ya redondeado que calcula PlayerBar. |
 | `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.module.css` | Estilos de la barra de progreso. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PlayerBar/ProgressBar/ProgressBar.types.ts` | Props de progreso (value 0–100). | B-006.4. |
@@ -1262,8 +1292,8 @@ piano-mentor-ai/
 | `frontend/src/lib/visible-range-store.test.ts` | Tests del almacén: notificación al cambiar, silencio si no cambia y baja de suscriptores. | Criterio de B-007.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/useVisibleRange.ts` | Hook suscrito al rango visible con useSyncExternalStore y snapshot de servidor. | B-007.3; seguro con SSR de Next.js (en el servidor pinta el rango por defecto). |
 | `frontend/public/assets/icons/Learn.svg` | Icono de la pestaña Learn de la navegación principal. | B-006.4; Next lo sirve desde public/ como /assets/icons/Learn.svg. |
-| `frontend/public/assets/icons/library.svg` | Icono de la pestaña Library de la navegación principal. | B-006.4; cuidado: MainNav pide Library.svg y el fichero es library.svg (falla en Linux/Docker). |
-| `frontend/public/assets/icons/lock.svg` | Icono de candado de las pestañas bloqueadas (Progress y Settings). | B-006.4; cuidado: MainNav pide Lock.svg y el fichero es lock.svg (falla en Linux/Docker). |
+| `frontend/public/assets/icons/Library.svg` | Icono de la pestaña Library de la navegación principal. | B-006.4; MainNav lo pide como Library.svg (mayúscula) en Linux/Docker. |
+| `frontend/public/assets/icons/Lock.svg` | Icono de candado de las pestañas bloqueadas (Progress y Settings). | B-006.4; MainNav lo pide como Lock.svg (mayúscula) en Linux/Docker. |
 | `frontend/public/assets/icons/Logo.svg` | Logo en SVG servido desde public/. | B-006.4; hoy no lo referencia ningún componente del front. |
 | `THIRD_PARTY_NOTICES.md` | Atribución y licencias de recursos de terceros que viajan con el proyecto (muestras de piano Salamander, CC BY 3.0). | B-007.5; requisito de la licencia: debe acompañar a los MP3 aunque se muevan a un almacén externo. |
 | `frontend/scripts/fetch-piano-samples.mjs` | Script idempotente (`npm run samples`) que descarga el banco Salamander (SHA-1 fijado), extrae 30 teclas x 2 capas y trascodifica a MP3 en dos calidades. | B-007.5; requiere ffmpeg en el PATH; --force regenera; el banco de 78 MB queda en frontend/.cache (ignorado por git). |
