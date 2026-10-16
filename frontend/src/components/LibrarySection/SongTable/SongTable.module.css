@@ -19,6 +19,33 @@
   color: var(--text-mute);
 }
 
+/* Cabecera ordenable: mismo texto que .th, pero pulsable y con flecha al activarse. */
+.thButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.thButton:hover {
+  color: var(--text-soft);
+}
+
+.thActive {
+  color: var(--gold-soft);
+}
+
+.arrow {
+  flex: none;
+}
+
 .empty {
   padding: 32px 16px;
   text-align: center;

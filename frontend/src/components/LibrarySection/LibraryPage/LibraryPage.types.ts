@@ -9,7 +9,9 @@ export type {
   Song,
   SongFilter,
   SongStatus,
-  SortKey,
+  SortDirection,
+  SortField,
+  SortState,
   TempoFilter,
 } from "../../../lib/library";
 

@@ -118,14 +118,15 @@ export type DifficultyFilter = Difficulty | "all";
 export type DurationFilter = "all" | "short" | "medium" | "long";
 /** Filtro de tempo por tramos; `all` lo desactiva. */
 export type TempoFilter = "all" | "slow" | "medium" | "fast";
-/** Orden de la lista; `default` conserva el orden del catálogo. */
-export type SortKey =
-  | "default"
-  | "title"
-  | "composer"
-  | "difficulty"
-  | "duration-asc"
-  | "duration-desc";
+/** Campo por el que se puede ordenar la tabla (los criterios de B-012 no tienen campo). */
+export type SortField = "title" | "composer" | "difficulty" | "duration" | "tempo";
+/** Sentido del orden. */
+export type SortDirection = "asc" | "desc";
+/** Orden activo de la tabla; `null` conserva el orden del catálogo. */
+export interface SortState {
+  field: SortField;
+  direction: SortDirection;
+}
 
 /** Estado completo de la vista de la Library: búsqueda, filtros y orden. */
 export interface LibraryFilters {
@@ -199,35 +200,44 @@ function compareNullable(one: number | null, other: number | null, direction: 1 
 const difficultyRank = (song: Song): number | null =>
   song.difficulty === null ? null : DIFFICULTY_ORDER[song.difficulty];
 
-function compareBy(sort: SortKey, a: Song, b: Song): number {
-  switch (sort) {
+function compareBy(sort: SortState, a: Song, b: Song): number {
+  const dir: 1 | -1 = sort.direction === "asc" ? 1 : -1;
+  switch (sort.field) {
     case "title":
-      return compareText(a.title, b.title);
+      return compareText(a.title, b.title) * dir;
     case "composer":
-      return compareText(a.composer, b.composer) || compareText(a.title, b.title);
+      // El compositor manda; los empates se deshacen por título ascendente.
+      return compareText(a.composer, b.composer) * dir || compareText(a.title, b.title);
     case "difficulty":
       return (
-        compareNullable(difficultyRank(a), difficultyRank(b), 1) || compareText(a.title, b.title)
+        compareNullable(difficultyRank(a), difficultyRank(b), dir) || compareText(a.title, b.title)
       );
-    case "duration-asc":
+    case "duration":
       return (
-        compareNullable(a.durationSeconds, b.durationSeconds, 1) || compareText(a.title, b.title)
+        compareNullable(a.durationSeconds, b.durationSeconds, dir) || compareText(a.title, b.title)
       );
-    case "duration-desc":
-      return (
-        compareNullable(a.durationSeconds, b.durationSeconds, -1) || compareText(a.title, b.title)
-      );
-    default:
-      return 0;
+    case "tempo":
+      return compareNullable(a.bpm, b.bpm, dir) || compareText(a.title, b.title);
   }
 }
 
-/** Devuelve una copia ordenada de `songs`; `default` no toca el orden del catálogo. */
-export function sortSongs(songs: Song[], sort: SortKey): Song[] {
+/** Devuelve una copia ordenada de `songs`; `null` no toca el orden del catálogo. */
+export function sortSongs(songs: Song[], sort: SortState | null): Song[] {
   const sorted = [...songs];
-  if (sort !== "default") {
+  if (sort) {
     sorted.sort((a, b) => compareBy(sort, a, b));
   }
   return sorted;
+}
+
+/**
+ * Orden resultante de pulsar la cabecera de una columna: la primera vez ordena
+ * descendente y, si ya era la columna activa, alterna el sentido.
+ */
+export function toggleSort(current: SortState | null, field: SortField): SortState {
+  if (current && current.field === field) {
+    return { field, direction: current.direction === "desc" ? "asc" : "desc" };
+  }
+  return { field, direction: "desc" };
 }
 

@@ -14,9 +14,11 @@ import {
   paginate,
   sortSongs,
   toSongs,
+  toggleSort,
   type LibraryFilters,
   type Song,
-  type SortKey,
+  type SortField,
+  type SortState,
 } from "../../../lib/library";
 import { previewStep } from "../../../lib/library-preview";
 import { usePlayback } from "../../../lib/usePlayback";
@@ -36,7 +38,7 @@ export function LibraryPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<SortKey>("default");
+  const [sort, setSort] = useState<SortState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
@@ -78,6 +80,11 @@ export function LibraryPage() {
     (patch: Partial<LibraryFilters>) => setFilters((current) => ({ ...current, ...patch })),
     [],
   );
+
+  /** Pulsar una cabecera ordenable: cambia de columna o alterna el sentido. */
+  const handleSort = useCallback((field: SortField) => {
+    setSort((current) => toggleSort(current, field));
+  }, []);
 
   // Cambiar cualquier filtro o el orden devuelve a la primera página.
   useEffect(() => {
@@ -163,6 +170,8 @@ export function LibraryPage() {
               onSelect={setSelectedId}
               preview={{ id: previewId, playing: status === "playing", loadingId }}
               onPlay={handlePreview}
+              sort={sort}
+              onSort={handleSort}
             />
 
             {previewError && (

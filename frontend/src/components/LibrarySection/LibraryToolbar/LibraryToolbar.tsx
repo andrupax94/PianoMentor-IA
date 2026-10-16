@@ -4,6 +4,7 @@ import {
   SORT_OPTIONS,
   STATUS_OPTIONS,
   TEMPO_OPTIONS,
+  sortOptionValue,
   type LibraryToolbarProps,
 } from "./LibraryToolbar.types";
 import styles from "./LibraryToolbar.module.css";
@@ -88,7 +89,14 @@ export function LibraryToolbar({ filters, sort, onFiltersChange, onSortChange }:
         options={TEMPO_OPTIONS}
         onChange={(value) => onFiltersChange({ tempo: value })}
       />
-      <Select label="Ordenar por" value={sort} options={SORT_OPTIONS} onChange={onSortChange} />
+      <Select
+        label="Ordenar por"
+        value={sortOptionValue(sort)}
+        options={SORT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+        onChange={(value) =>
+          onSortChange(SORT_OPTIONS.find((option) => option.value === value)?.sort ?? null)
+        }
+      />
     </div>
   );
 }

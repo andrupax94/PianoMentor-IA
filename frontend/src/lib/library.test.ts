@@ -11,6 +11,7 @@ import {
   matchesFilters,
   paginate,
   sortSongs,
+  toggleSort,
   toSong,
   toSongs,
   type LibraryFilters,
@@ -235,6 +236,7 @@ describe("sortSongs", () => {
     composer: "Bach",
     difficulty: "advanced",
     durationSeconds: 300,
+    bpm: 100,
   });
   const alfa = song({
     id: "b",
@@ -242,32 +244,71 @@ describe("sortSongs", () => {
     composer: "Chopin",
     difficulty: "beginner",
     durationSeconds: 60,
+    bpm: 60,
   });
   const media = song({ id: "c", title: "Media", composer: "Bach", difficulty: null });
+  const songs = [zeta, alfa, media];
 
-  it("no toca el orden del catálogo en default", () => {
-    expect(sortSongs([zeta, alfa, media], "default").map((s) => s.id)).toEqual(["a", "b", "c"]);
+  it("no toca el orden del catálogo con null", () => {
+    expect(sortSongs(songs, null).map((s) => s.id)).toEqual(["a", "b", "c"]);
   });
 
-  it("ordena por título", () => {
-    expect(sortSongs([zeta, alfa, media], "title").map((s) => s.id)).toEqual(["b", "c", "a"]);
+  it("ordena por título en ambos sentidos", () => {
+    expect(sortSongs(songs, { field: "title", direction: "asc" }).map((s) => s.id)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
+    expect(sortSongs(songs, { field: "title", direction: "desc" }).map((s) => s.id)).toEqual([
+      "a",
+      "c",
+      "b",
+    ]);
   });
 
-  it("ordena por compositor y desempata por título", () => {
-    expect(sortSongs([zeta, alfa, media], "composer").map((s) => s.id)).toEqual(["c", "a", "b"]);
+  it("ordena por compositor y desempata por título ascendente en los dos sentidos", () => {
+    expect(sortSongs(songs, { field: "composer", direction: "asc" }).map((s) => s.id)).toEqual([
+      "c",
+      "a",
+      "b",
+    ]);
+    expect(sortSongs(songs, { field: "composer", direction: "desc" }).map((s) => s.id)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
   });
 
   it("ordena por dificultad dejando los huecos al final", () => {
-    expect(sortSongs([zeta, alfa, media], "difficulty").map((s) => s.id)).toEqual(["b", "a", "c"]);
-  });
-
-  it("ordena por duración en las dos direcciones, con los huecos al final", () => {
-    expect(sortSongs([zeta, alfa, media], "duration-asc").map((s) => s.id)).toEqual([
+    expect(sortSongs(songs, { field: "difficulty", direction: "asc" }).map((s) => s.id)).toEqual([
       "b",
       "a",
       "c",
     ]);
-    expect(sortSongs([zeta, alfa, media], "duration-desc").map((s) => s.id)).toEqual([
+    expect(sortSongs(songs, { field: "difficulty", direction: "desc" }).map((s) => s.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("ordena por duración y por tempo, con los huecos al final", () => {
+    expect(sortSongs(songs, { field: "duration", direction: "asc" }).map((s) => s.id)).toEqual([
+      "b",
+      "a",
+      "c",
+    ]);
+    expect(sortSongs(songs, { field: "duration", direction: "desc" }).map((s) => s.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(sortSongs(songs, { field: "tempo", direction: "asc" }).map((s) => s.id)).toEqual([
+      "b",
+      "a",
+      "c",
+    ]);
+    expect(sortSongs(songs, { field: "tempo", direction: "desc" }).map((s) => s.id)).toEqual([
       "a",
       "b",
       "c",
@@ -275,10 +316,31 @@ describe("sortSongs", () => {
   });
 
   it("no muta la lista original", () => {
-    const songs = [zeta, alfa, media];
+    const original = [zeta, alfa, media];
 
-    sortSongs(songs, "title");
+    sortSongs(original, { field: "title", direction: "asc" });
 
-    expect(songs.map((s) => s.id)).toEqual(["a", "b", "c"]);
+    expect(original.map((s) => s.id)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("toggleSort", () => {
+  it("ordena descendente la primera vez que se pulsa una columna", () => {
+    expect(toggleSort(null, "title")).toEqual({ field: "title", direction: "desc" });
+  });
+
+  it("alterna el sentido al volver a pulsar la misma columna", () => {
+    const first = toggleSort(null, "duration");
+    const second = toggleSort(first, "duration");
+    const third = toggleSort(second, "duration");
+
+    expect(second).toEqual({ field: "duration", direction: "asc" });
+    expect(third).toEqual({ field: "duration", direction: "desc" });
+  });
+
+  it("empieza descendente al cambiar a otra columna", () => {
+    const current = { field: "title", direction: "asc" } as const;
+
+    expect(toggleSort(current, "composer")).toEqual({ field: "composer", direction: "desc" });
   });
 });
