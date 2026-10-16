@@ -1,11 +1,12 @@
-# description: Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados.
-# context: CLI python -m piano_mentor.catalog; B-003.3 no toca el formato del catálogo.
+# description: Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados; siembra perezosa al listar.
+# context: CLI python -m piano_mentor.catalog para forzar la carga; ensure_catalog_loaded la hace sola cuando la tabla no tiene corpus (B-027.4). B-003.3 no toca el formato del catálogo.
 
 """Carga el catálogo del corpus MIDI en SQLite sin modificar su formato."""
 
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ from .config import settings
 from .database import connect, init_db, upsert_piece
 from .midi import MidiService
 from .storage import content_hash
+
+logger = logging.getLogger(__name__)
 
 _midi_service = MidiService()
 
@@ -85,6 +88,39 @@ def load_catalog(catalog_file: Path | None = None) -> int:
     finally:
         conn.close()
     return len(records)
+
+
+def corpus_loaded() -> bool:
+    """Indica si la base ya tiene alguna pieza del corpus (B-027.4)."""
+    conn = connect()
+    try:
+        init_db(conn)
+        row = conn.execute("SELECT 1 FROM pieces WHERE source = 'corpus' LIMIT 1").fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def ensure_catalog_loaded(catalog_file: Path | None = None) -> int:
+    """Siembra el corpus si la base aún no tiene ninguna pieza suya (B-027.4).
+
+    La base de datos no está versionada, así que un despliegue limpio servía la
+    Library vacía aunque el corpus viajara en el repositorio. `GET /pieces`
+    llama aquí antes de listar: la primera petición encuentra la tabla sin
+    corpus y lo carga; las siguientes no vuelven a leer el catálogo.
+
+    Devuelve las piezas escritas (0 si ya había corpus). Un catálogo ausente o
+    inválido no rompe el listado —se avisa por el log y se deja la base como
+    estaba— para que la Library siga respondiendo aunque falte el corpus en el
+    host (documentado en `docs/GETTING_STARTED.md`).
+    """
+    if corpus_loaded():
+        return 0
+    try:
+        return load_catalog(catalog_file)
+    except CatalogError as exc:
+        logger.warning("No se pudo sembrar el catálogo del corpus: %s", exc)
+        return 0
 
 
 def main() -> None:

@@ -107,7 +107,9 @@ La respuesta esperada es HTTP `200`.
 
 ## 7. Cargar el corpus MIDI en SQLite
 
-La base de datos se crea con su esquema en cuanto arranca el backend, pero las 15 piezas del corpus se cargan con un comando puntual (B-003.3):
+La base de datos se crea con su esquema en cuanto arranca el backend. Las 15 piezas del corpus se siembran **solas** la primera vez que el frontend pide la lista (`GET /api/v1/pieces`), así que un arranque limpio ya muestra la Library sin ningún paso manual (B-027.4). Si el catálogo o los MIDI del corpus no están en el host, el listado sale vacío y el backend lo avisa en el log, pero no falla.
+
+Para **forzar** la carga (o recargarla tras editar `catalog.json`) sigue disponible el comando idempotente de B-003.3:
 
 ```powershell
 docker compose exec backend python -m piano_mentor.catalog

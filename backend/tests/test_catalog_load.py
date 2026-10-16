@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from piano_mentor.catalog import CatalogError, load_catalog
+from piano_mentor.catalog import CatalogError, ensure_catalog_loaded, load_catalog
 from piano_mentor.config import settings
 from piano_mentor.database import connect, init_db
 
@@ -89,3 +89,32 @@ class TestCatalogLoad:
     def test_missing_catalog_raises(self, tmp_path: Path) -> None:
         with pytest.raises(CatalogError):
             load_catalog(tmp_path / "nope.json")
+
+
+class TestEnsureCatalogLoaded:
+    """Siembra perezosa del corpus al listar (B-027.4)."""
+
+    def test_seeds_when_database_has_no_corpus(
+        self, catalog_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(settings, "midi_storage_path", str(catalog_dir))
+
+        assert ensure_catalog_loaded() == 15
+        assert _count_pieces() == 15
+
+    def test_is_noop_when_corpus_is_already_loaded(
+        self, catalog_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(settings, "midi_storage_path", str(catalog_dir))
+        load_catalog(catalog_dir / "catalog.json")
+
+        assert ensure_catalog_loaded() == 0
+        assert _count_pieces() == 15
+
+    def test_missing_catalog_returns_zero_and_writes_nothing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
+
+        assert ensure_catalog_loaded() == 0
+        assert _count_pieces() == 0

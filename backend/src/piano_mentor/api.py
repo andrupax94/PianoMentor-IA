@@ -16,6 +16,7 @@ from fastapi import (
 )
 
 from .agent import AgentService
+from .catalog import ensure_catalog_loaded
 from .config import settings
 from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
 from .midi import (
@@ -172,7 +173,11 @@ def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
 
     Sin filtro incluye el corpus y las subidas (corpus primero); `source=corpus`
     limita al catálogo, que es lo que pide la Library.
+
+    Antes de listar se siembra el corpus si la base está vacía (B-027.4), para
+    que un arranque limpio no sirva la Library vacía.
     """
+    ensure_catalog_loaded()
     return [_piece_summary_from_row(row) for row in find_pieces(source)]
 
 
