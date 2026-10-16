@@ -38,9 +38,9 @@ La aplicación se desarrollará como un **monorepo** con:
 ```text
 Usuario
   ↓
-Next.js: cargar archivo MIDI
+Next.js: elegir una pieza del catálogo (Library) o cargar un archivo MIDI
   ↓ HTTP
-FastAPI: validar y registrar la pieza
+FastAPI: validar la pieza (el corpus ya está registrado; la subida efímera solo se valida y no se registra)
   ↓
 Dominio MIDI: normalizar notas, tempo, tracks y duración
   ↓ HTTP/WebSocket
@@ -593,7 +593,9 @@ La API debe versionarse desde el comienzo:
 
 ```text
 POST /api/v1/pieces
+GET  /api/v1/pieces
 GET  /api/v1/pieces/{piece_id}
+POST /api/v1/pieces/preview
 POST /api/v1/sessions
 GET  /api/v1/sessions/{session_id}
 POST /api/v1/sessions/{session_id}/events
@@ -606,6 +608,10 @@ WS   /api/v1/ws/sessions/{session_id}
 El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
 
 `POST /api/v1/pieces` deduplica por SHA-256 del contenido: si la pieza ya existe (incluido el corpus) devuelve la fila existente con `deduplicated: true` en lugar de crear un archivo o una fila nueva. La procedencia se marca en `source` (`corpus` o `upload`) y `owner_id` (reservado para autenticación; `NULL` = anónimo). Corpus y subidas comparten la tabla `pieces` y se separan por columnas, no por tablas, para no fragmentar las consultas de sesiones y evaluación.
+
+`GET /api/v1/pieces` alimenta el selector de piezas (la Library): devuelve el catálogo ordenado con el corpus primero y admite `?source=corpus|upload` para separar el repertorio incluido de las piezas subidas.
+
+`POST /api/v1/pieces/preview` es la **única ruta de carga que no persiste**: valida el MIDI igual que `POST /api/v1/pieces`, lo lee en un directorio temporal y devuelve la partitura para poder escucharla, pero no escribe en el almacén ni en la tabla `pieces`. Así, subir un archivo a mano para probarlo no ensucia el catálogo; lo persistente sigue siendo el corpus del repositorio. La subida persistente (`POST /api/v1/pieces` y `uploadPiece` en el cliente) se conserva en el código aunque hoy la interfaz use la efímera.
 
 ## 8. Destino de despliegue inicial
 

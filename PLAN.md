@@ -102,7 +102,8 @@ Estas fechas son una línea base operativa, no una obligación inamovible. Si se
 - Recortar primero acompañamiento avanzado, memoria, Web MIDI físico y feedback largo del LLM si aparece retraso.
 
 Tras la revisión de **B-005** se añadieron **B-028** (duplicados por hash) y **B-029** (control por usuario).  
-En **octubre 2026** se reestructuró el **bloque agente (B-012 a B-019)** en una **vertical única B-012** con 7 sub-issues (.1 Sesión+WS, .2 Evaluación, .3 Estados+reglas, .4 Validación, .5 Demo+control, .6 Groq, .7 Acompañamiento), fusionando las antiguas issues separadas; semana 2–4 ajustadas en consecuencia.
+En **octubre 2026** se reestructuró el **bloque agente (B-012 a B-019)** en una **vertical única B-012** con 7 sub-issues (.1 Sesión+WS, .2 Evaluación, .3 Estados+reglas, .4 Validación, .5 Demo+control, .6 Groq, .7 Acompañamiento), fusionando las antiguas issues separadas; semana 2–4 ajustadas en consecuencia.  
+El **corpus B-027** quedó integrado en el frontend en la misma fecha: la página **Library** (`/library`) lista el corpus, permite escucharlo sin salir de la lista y manda la pieza al piano con **Continuar en Learn** (B-027.3). Los **filtros y las métricas de la Library** se apartan a **B-027.4** para no mezclarlos con lo que depende de las evaluaciones (B-012/B-014). B-027 sigue abierto hasta que el corpus se use en la demo final (B-024).
 
 ## 4. Plan por semanas
 
