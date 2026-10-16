@@ -1,9 +1,10 @@
-# description: Motor MIDI determinista: lectura, validación, normalización y rejilla de compases con Mido.
+# description: Motor MIDI determinista: lectura, validación, normalización, rejilla de compases y acordes con Mido.
 # context: Núcleo musical; no decide pedagogía ni responde HTTP.
 
 from __future__ import annotations
 
 from bisect import bisect_right
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,7 @@ MICROSECONDS_PER_MINUTE = 60_000_000.0
 DEFAULT_TEMPO_US = 500_000  # microsegundos por pulso: 120 BPM por defecto
 DEFAULT_TIME_SIGNATURE = (4, 4)  # numerador/denominador cuando el MIDI no declara firma
 ROUNDING_DECIMALS = 6
+CHORD_TOLERANCE_SECONDS = 0.001  # 1 ms: notas que empiezan más juntas que esto son el mismo acorde (B-009.1)
 
 
 class MidiParseError(Exception):
@@ -202,6 +204,82 @@ class MeasureGrid:
         from_s = self.starts_s[start_measure]
         to_s = self.starts_s[end_measure] if end_measure < self.count else self.end_seconds
         return (from_s, to_s)
+
+
+@dataclass(frozen=True)
+class Chord:
+    """Notas que suenan a la vez (B-009.1): la unidad que usarán evaluación y UI.
+
+    `start_seconds` es el **ancla** del grupo (el inicio más temprano de sus notas),
+    y `notes` conserva cada nota con su velocity, canal y pista, para que las capas
+    de arriba puedan separar manos sin perder información.
+    """
+
+    start_seconds: float
+    notes: tuple[NormalizedNote, ...]
+
+    def __post_init__(self) -> None:
+        if not self.notes:
+            raise ValueError("Un acorde necesita al menos una nota")
+
+    @property
+    def size(self) -> int:
+        """Cuántas notas tiene el acorde (1 en una nota suelta)."""
+        return len(self.notes)
+
+    @property
+    def pitches(self) -> tuple[int, ...]:
+        """Alturas de las notas, de grave a agudo y en el mismo orden que `notes`.
+
+        Si la misma altura llega por dos caminos (dos pistas, por ejemplo) aparece
+        dos veces; `notes` conserva el detalle de cada una.
+        """
+        return tuple(note.pitch for note in self.notes)
+
+
+def group_chords(
+    notes: Sequence[NormalizedNote],
+    tolerance_seconds: float = CHORD_TOLERANCE_SECONDS,
+) -> tuple[Chord, ...]:
+    """Agrupa notas por instante de inicio y devuelve los acordes en orden temporal.
+
+    Reglas (B-009.1):
+    - Una nota entra en el acorde abierto si su inicio dista del ancla **como mucho**
+      `tolerance_seconds` (el borde cuenta); una nota suelta es un acorde de una nota.
+    - El acorde se ancla en el inicio más temprano del grupo; sus notas quedan
+      ordenadas por altura, canal y pista (no por el orden de entrada).
+    - Un acorde puede cruzar canales y pistas (las dos manos a la vez); cada nota
+      conserva su canal y su pista.
+    - Es determinista: mismas notas, mismos acordes, en cualquier orden de entrada.
+    - Una tolerancia negativa es un error de programación (no de la pieza) → ValueError.
+    """
+    if tolerance_seconds < 0:
+        raise ValueError("La tolerancia de acorde no puede ser negativa")
+
+    ordered = sorted(notes, key=lambda n: (n.start_seconds, n.pitch, n.channel, n.track))
+    chords: list[Chord] = []
+    group: list[NormalizedNote] = []
+    anchor = 0.0
+
+    for note in ordered:
+        if group and note.start_seconds - anchor > tolerance_seconds:
+            chords.append(_build_chord(anchor, group))
+            group = []
+        if not group:
+            anchor = note.start_seconds
+        group.append(note)
+
+    if group:
+        chords.append(_build_chord(anchor, group))
+    return tuple(chords)
+
+
+def _build_chord(anchor: float, group: Sequence[NormalizedNote]) -> Chord:
+    """Cierra un grupo en un acorde ordenado de grave a agudo."""
+    return Chord(
+        start_seconds=anchor,
+        notes=tuple(sorted(group, key=lambda n: (n.pitch, n.channel, n.track))),
+    )
 
 
 def _count_notes(midi: mido.MidiFile) -> int:
