@@ -106,6 +106,12 @@ def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
 
 @router.post("/pieces", response_model=PieceResponse)
 async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
+    """Sube un MIDI y lo persiste con sus metadatos (B-002.4/B-005.4).
+
+    La interfaz ya no lo usa —subir a mano pasa por /pieces/preview, que no
+    guarda nada—, pero se mantiene a propósito: la subida persistente puede
+    volver a necesitarse.
+    """
     try:
         original_name = sanitize_filename(file.filename or "unknown.mid")
         extension = validate_extension(original_name)

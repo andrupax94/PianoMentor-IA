@@ -176,7 +176,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 }
 
-/** Sube un archivo MIDI a POST /api/v1/pieces como multipart/form-data con el campo `file`. */
+/**
+ * Sube un archivo MIDI a POST /api/v1/pieces como multipart/form-data con el campo `file`.
+ * Hoy la interfaz no lo usa (subir a mano va por `previewPiece`, que no persiste nada),
+ * pero se conserva a propósito: la subida persistente puede volver a necesitarse.
+ */
 export async function uploadPiece(file: File): Promise<PieceResponse> {
   const form = new FormData();
   form.append("file", file, file.name);
