@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-10-16T19:14:11.1306877Z",
+  "exportedAtUtc": "2026-10-16T19:46:25.8755487Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1343,8 +1343,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/67"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhADGfw",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-12",
       "title": "[B-007.5] Motor de sonido realista (sampler Salamander + voz de reserva)"
     },
     {
@@ -1357,8 +1359,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/68"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBFTVM",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-19",
       "title": "[B-008.1] Rejilla de compases en el backend"
     },
     {
@@ -1371,8 +1375,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/69"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBFTaI",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-19",
       "title": "[B-008.2] Reproducir un rango de compases"
     },
     {
@@ -1385,8 +1391,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/70"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBFTec",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Done",
+      "target date": "2026-10-19",
       "title": "[B-008.3] Compás actual en el PlayerBar"
     },
     {
@@ -1399,8 +1407,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/71"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9RA",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.1] Sesión + WebSocket real"
     },
     {
@@ -1413,8 +1423,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/72"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9Ws",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.2] Evaluación determinista"
     },
     {
@@ -1427,8 +1439,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/73"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9do",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.3] Máquina de estados + reglas deterministas"
     },
     {
@@ -1441,8 +1455,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/74"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9iM",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.4] Validación de acciones"
     },
     {
@@ -1455,8 +1471,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/75"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9o4",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.5] Demo + devolución control"
     },
     {
@@ -1469,8 +1487,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/76"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9tw",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.6] Groq + salida estructurada"
     },
     {
@@ -1483,8 +1503,10 @@
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/77"
       },
       "id": "PVTI_lAHOAxy1qM4Bl7PszhBF9yk",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-10-19",
       "title": "[B-012.7] Acompañamiento (si tiempo)"
     },
     {
@@ -1500,6 +1522,7 @@
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "In Progress",
+      "target date": "2026-10-19",
       "title": "[B-027.4] Completar los filtros y las métricas de la Library"
     },
     {
@@ -1549,6 +1572,27 @@
       "status": "Done",
       "target date": "2026-10-19",
       "title": "[B-009.3] Acordes y pistas en el contrato de la API y en la interfaz"
+    },
+    {
+      "content": {
+        "body": "<!-- description: Issue B-030 — pulido del motor de sonido del front (sampler, voz de reserva y transporte). -->\n<!-- context: Nace del pendiente 3 de B-027.4 y del cierre de B-007.5; no reabre B-006.2 ni B-007.5. -->\n\n# [B-030] Pulir el motor de sonido (timbre, sampler y transporte)\n\n**Estado:** abierta (2026-10-16). Recoge las mejoras de pulido que quedaron fuera al cerrar **B-007.5** por decisión del usuario, más la robustez del transporte que también se aparcó. No reabre B-006.2 ni B-007.5.\n\n## Descripción\n\nEl motor de sonido ya suena con un sampler real (Salamander) y una voz aditiva de reserva (B-007.5), y el transporte corre en WebAudio sin tocar el servidor (B-006.2). Funciona, pero quedaron mejoras de **calidad de timbre**, **robustez del sampler** y **fiabilidad del transporte** que no cabían en B-007.5. Esta issue las agrupa para no mezclarlas con la evaluación ni con la UI.\n\nNo cambia contratos: se mantiene la interfaz `PolySynth` (`scheduleNote`/`noteOn`/`noteOff`/`silence`), así que `playback-engine.ts`, `usePlayback.ts` y `Keyboard.tsx` siguen igual.\n\n## Contexto actual (2026-10-16)\n\n- **Sampler** `frontend/src/lib/piano-samples.ts`: carga perezosa por capas, crossfade de las dos capas de velocity, precarga Tier 0 (HQ) y Tier 1 (LQ), voz de reserva cuando una muestra no está decodificada. **No tiene tope de voces.**\n- **Voz de reserva** `frontend/src/lib/piano-model.ts` + `frontend/src/lib/synth.ts`: suma de parciales con inarmonicidad y decaimiento por parcial, tope de 24 voces.\n- **Transporte** `frontend/src/lib/playback-engine.ts` + `frontend/src/lib/usePlayback.ts`: el motor programa el audio **0,1 s** por delante y un intervalo de **25 ms** lo avanza; cadena `master (0,9) → limitador → destino`.\n\n## Alcance\n\n### 1. Sampler (`piano-samples.ts`)\n\n- [ ] **Tope de voces.** Hoy no hay límite de `ActiveSampledVoice`: un acorde denso o un trino sostenido abre un `AudioBufferSourceNode` por nota sin cota. Poner un tope (p. ej. 32–48) robando la voz más antigua, como `MAX_VOICES` en `synth.ts`, sin clics.\n- [ ] **Latencia del primer golpe.** Al arrancar una pieza cuya muestra aún no está decodificada, sus primeras notas caen a la voz de reserva porque la precarga por capas no sabe qué pitches usa la pieza. Priorizar (o precargar) los pitches de la pieza cargada cuando el transporte hace `load()`, para que el primer golpe ya sea de muestra cuando se pueda.\n- [ ] **Nivel estable al juntarse las capas.** `startVoice` normaliza con `1/totalWeight` cuando solo hay una capa decodificada: al llegar la segunda, el nivel puede cambiar. Fijar una normalización estable por capa o suavizar la transición.\n\n### 2. Cruce de capas por velocity (`piano-model.layerMix`)\n\n- [ ] **Cruzar por sonoridad, no solo por potencia.** El cruce actual es de igual potencia (`cos`/`sin`), así que entre las dos capas (velocity 40–100) el nivel percibido queda plano y solo cambia el brillo. Estudiar una curva que además **escale la ganancia con la velocity**: un golpe fuerte debe sonar más fuerte y más brillante que uno suave.\n- [ ] **Igualar el nivel entre muestra y reserva.** Hoy una nota puede alternar entre muestra real y voz de reserva con volúmenes distintos; acercar sus picos percibidos.\n\n### 3. Voz de reserva (`piano-model.ts` + `synth.ts`)\n\n- [ ] **Inarmonicidad por registro.** `INHARMONICITY` es constante (0,0005); un piano real tiene bastante más inarmonicidad en los graves y menos en los agudos. Hacerla función de la fundamental.\n- [ ] **Nyquist real del contexto.** `NYQUIST_HZ` está fijo en 22050; pasar `ctx.sampleRate / 2` para no calcular parciales de más (44,1 kHz) ni quedarse corto (48 kHz).\n- [ ] **Decaimientos medidos.** `partialDecayS` usa una misma ley para todo el teclado; ajustarla con la caída real medida sobre las muestras ya descargadas, si el oído lo nota.\n\n### 4. Transporte (`playback-engine.ts` + `usePlayback.ts`)\n\n- [ ] **Ventana de programación más holgada.** El motor programa solo 0,1 s por delante con un intervalo de 25 ms. Si el hilo principal se bloquea o la pestaña pasa a segundo plano (`setInterval` se estrangula a ~1 s), las notas se amontonan y suenan tarde. Ampliar el horizonte (p. ej. 0,25–0,5 s) y/o programar por delante al arrancar y al hacer `seek`.\n- [ ] **Reanclar el reloj tras un salto o un bloqueo**, para que la posición de la UI y el audio no se separen.\n\n## Fuera de alcance\n\n- Reverb, sala, ecualizador, resonancia y *sustain* por pedal (pedidos aparte en B-007.5 si interesan).\n- Sonido en el servidor o *streaming*.\n- Cambiar la interfaz `PolySynth` o el contrato de la API.\n- Selector de instrumento o varias voces de piano.\n\n## Criterios de aceptación\n\n- [ ] El sampler limita las voces simultáneas sin clics ni cortes audibles.\n- [ ] Reproducir una pieza del corpus no encadena voz de reserva en los primeros golpes una vez disponibles las muestras (comprobable con `stats().reserved`).\n- [ ] El nivel no da un salto cuando se decodifica la segunda capa de velocity.\n- [ ] La dinámica se percibe: una nota fuerte suena más fuerte y más brillante que una suave (lo valida el usuario).\n- [ ] El transporte no pierde ni amontona notas con el hilo ocupado, y la posición de la UI cuadra con el audio.\n- [ ] Tests puros donde apliquen (`piano-model`, `playback-engine`) y `npm test -- --run` + `npm run build` en verde.\n- [ ] La aceptación auditiva final la hace el usuario; el agente no la sustituye.\n\n## Dependencias\n\nAprovecha **B-007.5** (muestras, sampler y voz de reserva) y **B-006.2** (transporte). No reabre ninguna de las dos. Es independiente de la evaluación (B-012).\n\n## Evidencia esperada\n\n- Antes/después de un mismo pasaje (clip o valoración del usuario).\n- Salida de `stats()` con `sampled`/`reserved` antes y después de la precarga por pieza.\n- Tests nuevos de `piano-model` y `playback-engine` y build limpio.\n\r\n\r\n---\r\n\r\n> Documento local: [issues/B-030/B-030.md](../../blob/main/issues/B-030/B-030.md)",
+        "number": 82,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-030] Pulir el motor de sonido del piano",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/82"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhBVrRM",
+      "labels": [
+        "Frontend",
+        "Semana 5",
+        "P2"
+      ],
+      "priority": "P2",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-030] Pulir el motor de sonido del piano"
     }
   ],
   "notes": [
