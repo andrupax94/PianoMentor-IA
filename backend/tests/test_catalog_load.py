@@ -1,5 +1,5 @@
-# description: Carga del catálogo: 15 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI.
-# context: Confianza en el corpus cargado en SQLite (B-003.3).
+# description: Carga del catálogo: 16 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI.
+# context: Confianza en el corpus cargado en SQLite (B-003.3); p16 es la pieza propia de B-012.1.
 
 """Tests de la carga del catálogo del corpus en SQLite."""
 
@@ -17,6 +17,9 @@ from piano_mentor.database import connect, init_db
 
 REPO_DATA_MIDI = Path(__file__).parent.parent.parent / "data" / "midi"
 CATALOG_FILE = REPO_DATA_MIDI / "catalog.json"
+
+# 15 piezas del corpus de terceros (Mutopia) + la pieza de práctica propia (p16).
+CATALOG_PIECES = 16
 
 
 def _count_pieces() -> int:
@@ -46,16 +49,19 @@ def catalog_dir(tmp_path: Path) -> Path:
 
 
 class TestCatalogLoad:
+    def test_catalog_file_has_the_expected_pieces(self) -> None:
+        payload = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
+
+        assert len(payload["pieces"]) == CATALOG_PIECES
+
     def test_loads_all_versioned_pieces(self) -> None:
-        expected = len(json.loads(CATALOG_FILE.read_text(encoding="utf-8"))["pieces"])
-        assert expected == 15
-        assert load_catalog(CATALOG_FILE) == expected
-        assert _count_pieces() == expected
+        assert load_catalog(CATALOG_FILE) == CATALOG_PIECES
+        assert _count_pieces() == CATALOG_PIECES
 
     def test_load_is_idempotent(self) -> None:
         load_catalog(CATALOG_FILE)
         load_catalog(CATALOG_FILE)
-        assert _count_pieces() == 15
+        assert _count_pieces() == CATALOG_PIECES
 
     def test_license_and_source_are_registered(self) -> None:
         load_catalog(CATALOG_FILE)
@@ -64,6 +70,20 @@ class TestCatalogLoad:
         assert row["source_url"].startswith("https://")
         assert row["difficulty"]
         assert row["title"] == "Minuet in G major"
+
+    def test_own_practice_piece_is_registered(self) -> None:
+        """p16 es nuestra (B-012.1): CC0, sin fuente externa y con las cuentas del fixture."""
+        load_catalog(CATALOG_FILE)
+
+        row = _row("p16")
+
+        assert row["source"] == "corpus"
+        assert row["license"] == "CC0-1.0"
+        assert row["source_url"] is None
+        assert row["difficulty"] == "principiante"
+        assert row["notes_count"] == 22
+        assert row["duration_s"] == 8.0
+        assert row["tempo"] == 120.0  # calculado del propio MIDI
 
     def test_tempo_is_computed_from_the_midi(self) -> None:
         load_catalog(CATALOG_FILE)
@@ -99,8 +119,8 @@ class TestEnsureCatalogLoaded:
     ) -> None:
         monkeypatch.setattr(settings, "midi_storage_path", str(catalog_dir))
 
-        assert ensure_catalog_loaded() == 15
-        assert _count_pieces() == 15
+        assert ensure_catalog_loaded() == CATALOG_PIECES
+        assert _count_pieces() == CATALOG_PIECES
 
     def test_is_noop_when_corpus_is_already_loaded(
         self, catalog_dir: Path, monkeypatch: pytest.MonkeyPatch
@@ -109,7 +129,7 @@ class TestEnsureCatalogLoaded:
         load_catalog(catalog_dir / "catalog.json")
 
         assert ensure_catalog_loaded() == 0
-        assert _count_pieces() == 15
+        assert _count_pieces() == CATALOG_PIECES
 
     def test_missing_catalog_returns_zero_and_writes_nothing(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

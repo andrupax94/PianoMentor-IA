@@ -3,7 +3,14 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, getPieceNotes, previewPiece, uploadPiece } from "./api-client";
+import {
+  ApiError,
+  createSession,
+  getPieceNotes,
+  getSessionState,
+  previewPiece,
+  uploadPiece,
+} from "./api-client";
 
 const PIECE_RESPONSE = {
   id: "abc123",
@@ -195,6 +202,86 @@ describe("getPieceNotes", () => {
 
     await expect(getPieceNotes("xyz")).rejects.toMatchObject({
       code: "piece_not_found",
+      status: 404,
+    });
+  });
+});
+
+describe("createSession", () => {
+  const SESSION_RESPONSE = { id: "s-1", piece_id: "p01", status: "idle" };
+
+  it("crea la sesión con el piece_id en el cuerpo", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(SESSION_RESPONSE), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const session = await createSession("p01");
+
+    expect(session).toEqual(SESSION_RESPONSE);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/sessions$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ piece_id: "p01" });
+  });
+
+  it("traduce la pieza inexistente a piece_not_found", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: { code: "piece_not_found", message: "No existe la pieza: x" } }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createSession("x")).rejects.toMatchObject({
+      code: "piece_not_found",
+      status: 404,
+    });
+  });
+});
+
+describe("getSessionState", () => {
+  const STATE = {
+    session_id: "s-1",
+    piece_id: "p01",
+    status: "playing",
+    control: "student",
+    current_measure: null,
+    position_s: 0,
+  };
+
+  it("lee el estado de la sesión", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(STATE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state = await getSessionState("s-1");
+
+    expect(state).toEqual(STATE);
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toMatch(/\/api\/v1\/sessions\/s-1\/state$/);
+  });
+
+  it("traduce la sesión inexistente a session_not_found", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: { code: "session_not_found", message: "No existe la sesión: x" } }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSessionState("x")).rejects.toMatchObject({
+      code: "session_not_found",
       status: 404,
     });
   });

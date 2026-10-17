@@ -73,6 +73,38 @@ def test_inspect_file_is_deterministic() -> None:
     assert service.inspect_file(path) == service.inspect_file(path)
 
 
+def test_practice_phrase_fixture_spec() -> None:
+    """La pieza de práctica (B-012.1) es la frase que documentan los tests.
+
+    4 compases de 4/4 a 120 BPM, 22 notas en 8,0 s y las dos manos separadas por
+    registro (izquierda <= 55, derecha >= 67), que es lo que permite deducir la
+    mano por altura (B-009.2) además de por pista. La toca el catálogo del corpus
+    como `p16` y es el material con el que se prueban la sesión y la evaluación.
+    """
+    service = MidiService()
+    result = service.inspect_file(fixture("practice_phrase.mid"))
+    notes = service.normalize(fixture("practice_phrase.mid"))
+
+    assert result["tracks"] == 3
+    assert result["tempo"] == 120.0
+    assert result["notes_count"] == 22
+    assert result["duration_seconds"] == pytest.approx(8.0)
+    assert result["channels"] == [0, 1]
+
+    left = [note for note in notes if note.pitch <= 55]
+    right = [note for note in notes if note.pitch >= 60]
+    assert len(left) == 8
+    assert len(right) == 14
+    assert len(left) + len(right) == len(notes)
+    assert {note.track for note in left} == {2}
+    assert {note.track for note in right} == {1}
+
+    # Doce ataques en 4 compases: los tiempos 7 y 11 (3,5 s y 5,5 s) quedan en
+    # silencio, que es lo que ejercita la evaluación de huecos (B-012.2).
+    onsets = sorted({note.start_seconds for note in notes})
+    assert onsets == pytest.approx([0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 4.5, 5.0, 6.0, 6.5, 7.0])
+
+
 def test_tempo_map_converts_ticks_with_constant_tempo() -> None:
     tempo_map = MidiService().tempo_map(fixture("single_track.mid"))
     assert tempo_map.ticks_per_beat == 480

@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from piano_mentor import api
 from piano_mentor.catalog import load_catalog
 from piano_mentor.config import settings
 from piano_mentor.database import connect, init_db, insert_piece
@@ -21,8 +20,9 @@ client = TestClient(app)
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 CATALOG_FILE = REPO_ROOT / "data" / "midi" / "catalog.json"
-VALID_FIXTURE = REPO_ROOT / "data" / "midi" / "test_scale.mid"
-CORRUPT_FIXTURE = REPO_ROOT / "backend" / "tests" / "fixtures" / "midi" / "corrupt.mid"
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "midi"
+VALID_FIXTURE = FIXTURES_DIR / "test_scale.mid"
+CORRUPT_FIXTURE = FIXTURES_DIR / "corrupt.mid"
 
 
 def _notes(piece_id: str, **params):
@@ -34,14 +34,6 @@ def _upload(filename: str, content: bytes):
         "/api/v1/pieces",
         files={"file": (filename, content, "audio/midi")},
     )
-
-
-@pytest.fixture()
-def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalPieceStorage:
-    """Apunta el storage a un temporal para no escribir en data/midi durante los tests."""
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(api, "storage", isolated)
-    return isolated
 
 
 def _insert_row(piece_id: str, stored_filename: str, size_bytes: int) -> None:

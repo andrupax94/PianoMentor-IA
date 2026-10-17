@@ -1,12 +1,13 @@
-// description: Panel de detalle de la pieza seleccionada, con acceso al piano y carga de MIDI (B-027.3).
+// description: Panel de detalle de la pieza seleccionada, con acceso al piano, la práctica y carga de MIDI (B-027.3).
 // context: "Continuar en Learn" manda la pieza al piano por el almacén del navegador;
-// el subidor reutilizado deja una pieza a mano sin guardarla en el catálogo.
+// "Practicar" abre una sesión real (B-012.1) y lleva a su vista.
 
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ApiError, createSession } from "../../../lib/api-client";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { MidiUploader } from "../../MidiUploader";
 
@@ -21,6 +22,8 @@ const pct = (value: number | null) => (value === null ? "--" : `${value}%`);
 export function SongDetailPanel({ song }: SongDetailPanelProps) {
   const router = useRouter();
   const [showUploader, setShowUploader] = useState(false);
+  const [openingSession, setOpeningSession] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!song) {
     return (
@@ -35,6 +38,20 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
     if (!song) return;
     publishPianoPiece({ kind: "catalog", id: song.id, title: song.title, autoPlay: true });
     router.push(PIANO_PATH);
+  }
+
+  /** Abre una sesión de práctica sobre la pieza y navega a su vista. */
+  async function practice() {
+    if (!song || openingSession) return;
+    setOpeningSession(true);
+    setError(null);
+    try {
+      const session = await createSession(song.id);
+      router.push(`/practice/${session.id}`);
+    } catch (failure: unknown) {
+      setError(failure instanceof ApiError ? failure.message : "No se pudo abrir la sesión.");
+      setOpeningSession(false);
+    }
   }
 
   return (
@@ -77,6 +94,21 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
       <button type="button" className={styles.primary} onClick={continueInLearn}>
         Continuar en Learn
       </button>
+
+      <button
+        type="button"
+        className={styles.secondary}
+        onClick={practice}
+        disabled={openingSession}
+      >
+        {openingSession ? "Abriendo sesión…" : "Practicar esta pieza"}
+      </button>
+
+      {error && (
+        <p role="alert" style={{ color: "#ff8b8b" }}>
+          {error}
+        </p>
+      )}
 
       <button
         type="button"

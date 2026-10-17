@@ -196,6 +196,8 @@ POST /sessions/{session_id}/action
 POST /sessions/{session_id}/agent-step
 ```
 
+Lo implementado en B-012.1 se aparta en un punto de esa lista: los eventos MIDI de la interpretación **no** tienen endpoint propio, entran por el WebSocket `WS /api/v1/ws/sessions/{session_id}` en un sobre `{type, ...}` (`state`, `error`; `agent_action` llega en B-012.5) y se persisten en `session_events`. Los códigos estables son `piece_not_found`, `session_not_found`, `invalid_event_payload` y `ws_error`, y un payload inválido no cierra la sesión.
+
 Versionar o documentar cualquier cambio incompatible.
 
 ## Verificación: el agente no ejecuta Docker

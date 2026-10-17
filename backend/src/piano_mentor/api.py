@@ -1,6 +1,7 @@
 # description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). Debe mantenerse delgado.
 # context: Traduce HTTP/WS a servicios; sin lógica musical compleja.
 
+import logging
 import sqlite3
 import tempfile
 from pathlib import Path
@@ -45,6 +46,7 @@ from .schemas import (
     PieceSummary,
     SessionCreate,
     SessionResponse,
+    SessionStateResponse,
     TrackSummary,
 )
 from .storage import LocalPieceStorage, content_hash
@@ -61,6 +63,48 @@ practice_service = PracticeService()
 agent_service = AgentService()
 midi_service = MidiService()
 storage = LocalPieceStorage(Path(settings.midi_storage_path))
+
+logger = logging.getLogger(__name__)
+
+# Códigos de cierre propios del WebSocket de sesión (rango 4000-4999).
+WS_CLOSE_SESSION_NOT_FOUND = 4404
+WS_CLOSE_INTERNAL_ERROR = 1011
+
+# Conexiones WS abiertas por sesión, solo para el broadcast del estado (B-012.1).
+# Vive en la memoria del proceso: el MVP corre con un worker (ver ARCHITECTURE.md).
+_session_sockets: dict[str, set[WebSocket]] = {}
+
+
+def _register_socket(session_id: str, websocket: WebSocket) -> None:
+    _session_sockets.setdefault(session_id, set()).add(websocket)
+
+
+def _unregister_socket(session_id: str, websocket: WebSocket) -> None:
+    sockets = _session_sockets.get(session_id)
+    if not sockets:
+        return
+    sockets.discard(websocket)
+    if not sockets:
+        _session_sockets.pop(session_id, None)
+
+
+async def _broadcast_state(session_id: str, state: dict[str, object]) -> None:
+    """Empuja el estado a todas las conexiones de la sesión, olvidando las caídas."""
+    for websocket in list(_session_sockets.get(session_id, ())):
+        try:
+            await websocket.send_json({"type": "state", **state})
+        except (WebSocketDisconnect, RuntimeError):
+            _unregister_socket(session_id, websocket)
+
+
+def _session_state_or_404(session_id: str) -> dict[str, object]:
+    """Estado de la sesión o 404 con código estable si no existe."""
+    try:
+        return practice_service.get_state(session_id)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404, detail={"code": exc.code, "message": exc.message}
+        ) from exc
 
 
 def _piece_from_row(row: sqlite3.Row, *, deduplicated: bool) -> PieceResponse:
@@ -444,14 +488,20 @@ def get_piece_notes(
     )
 
 
-@router.post("/sessions", response_model=SessionResponse)
+@router.post("/sessions", response_model=SessionResponse, status_code=201)
 def create_session(payload: SessionCreate) -> SessionResponse:
-    return SessionResponse(**practice_service.create_session(payload.piece_id))
+    try:
+        session = practice_service.create_session(payload.piece_id)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404, detail={"code": exc.code, "message": exc.message}
+        ) from exc
+    return SessionResponse(**session)
 
 
-@router.get("/sessions/{session_id}/state")
-def get_session_state(session_id: str) -> dict[str, object]:
-    return practice_service.get_state(session_id)
+@router.get("/sessions/{session_id}/state", response_model=SessionStateResponse)
+def get_session_state(session_id: str) -> SessionStateResponse:
+    return SessionStateResponse(**_session_state_or_404(session_id))
 
 
 @router.post("/sessions/{session_id}/actions", response_model=ActionResponse)
@@ -463,7 +513,7 @@ def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
 
 @router.post("/sessions/{session_id}/agent-step", response_model=ActionResponse)
 def agent_step(session_id: str) -> ActionResponse:
-    decision = agent_service.decide(practice_service.get_state(session_id))
+    decision = agent_service.decide(_session_state_or_404(session_id))
     return ActionResponse(action=decision["action"], status="validated")
 
 
@@ -474,11 +524,55 @@ def evaluate_session(session_id: str) -> EvaluationResponse:
 
 @router.websocket("/ws/sessions/{session_id}")
 async def session_socket(websocket: WebSocket, session_id: str) -> None:
+    """Sesión en tiempo real: estado al entrar y tras cada evento MIDI (B-012.1).
+
+    Los mensajes van envueltos en `type` porque el mismo canal llevará las
+    acciones del agente (`agent_action`) en B-012.5.
+    """
     await websocket.accept()
     try:
-        await websocket.send_json({"session_id": session_id, "status": "connected"})
+        state = practice_service.get_state(session_id)
+    except ValidationError as exc:
+        await websocket.send_json({"type": "error", "code": exc.code, "message": exc.message})
+        await websocket.close(code=WS_CLOSE_SESSION_NOT_FOUND)
+        return
+
+    _register_socket(session_id, websocket)
+    try:
+        await _broadcast_state(session_id, state)
         while True:
-            event = await websocket.receive_json()
-            await websocket.send_json(practice_service.receive_event(session_id, event))
+            try:
+                event = await websocket.receive_json()
+            except ValueError:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "code": "invalid_event_payload",
+                        "message": "El mensaje no es JSON válido",
+                    }
+                )
+                continue
+
+            try:
+                state = practice_service.receive_event(session_id, event)
+            except ValidationError as exc:
+                # Un evento malo no cierra la sesión: se avisa y se sigue escuchando.
+                await websocket.send_json(
+                    {"type": "error", "code": exc.code, "message": exc.message}
+                )
+                continue
+
+            await _broadcast_state(session_id, state)
     except WebSocketDisconnect:
         return
+    except Exception:
+        logger.exception("WebSocket de la sesión %s falló", session_id)
+        try:
+            await websocket.send_json(
+                {"type": "error", "code": "ws_error", "message": "Error interno de la sesión"}
+            )
+            await websocket.close(code=WS_CLOSE_INTERNAL_ERROR)
+        except RuntimeError:
+            pass
+    finally:
+        _unregister_socket(session_id, websocket)

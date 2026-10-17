@@ -5,12 +5,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
-from piano_mentor import api
 from piano_mentor.catalog import load_catalog
 from piano_mentor.config import settings
 from piano_mentor.database import connect, init_db
@@ -21,8 +20,12 @@ client = TestClient(app)
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 CATALOG_FILE = REPO_ROOT / "data" / "midi" / "catalog.json"
-VALID_FIXTURE = REPO_ROOT / "data" / "midi" / "test_scale.mid"
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "midi"
+VALID_FIXTURE = FIXTURES_DIR / "test_scale.mid"
 CORPUS_FILE = REPO_ROOT / "data" / "midi" / "corpus" / "bach_minuet_g.mid"
+
+# Piezas del catálogo: 15 de terceros + la pieza de práctica propia (p16).
+CATALOG_PIECES = len(json.loads(CATALOG_FILE.read_text(encoding="utf-8"))["pieces"])
 
 
 def _upload(filename: str, content: bytes):
@@ -50,17 +53,14 @@ def _row(piece_id: str):
         conn.close()
 
 
-@pytest.fixture()
-def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalPieceStorage:
-    """Apunta el storage a un temporal para no escribir en data/midi durante los tests."""
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(api, "storage", isolated)
-    return isolated
+def _files_on_disk() -> list[Path]:
+    """MIDIs que el test ha dejado en el almacén aislado (la base de datos va aparte).
 
-
-def _files_on_disk(tmp_path: Path) -> list[Path]:
-    """Archivos guardados por el storage, ignorando la base de datos del test."""
-    return [entry for entry in tmp_path.iterdir() if entry.suffix != ".db"]
+    El directorio puede no existir: solo se crea al guardar el primer archivo, y
+    una subida deduplicada no llega a guardar nada.
+    """
+    root = Path(settings.midi_storage_path)
+    return list(root.iterdir()) if root.is_dir() else []
 
 
 class TestDeduplicationByHash:
@@ -99,7 +99,7 @@ class TestDeduplicationByHash:
         _upload("scale.mid", content)
         _upload("scale.mid", content)
 
-        assert len(_files_on_disk(tmp_path)) == 1
+        assert len(_files_on_disk()) == 1
 
     def test_new_upload_records_hash_and_source(
         self, tmp_path: Path, isolated_storage: LocalPieceStorage
@@ -145,9 +145,9 @@ class TestCorpusProvenance:
         assert body["id"] == "p01"
         assert body["source"] == "corpus"
         assert body["deduplicated"] is True
-        # No se crea una fila nueva: siguen siendo las 15 del catálogo.
-        assert _piece_count() == 15
-        assert _files_on_disk(tmp_path) == []
+        # No se crea una fila nueva: siguen siendo las del catálogo.
+        assert _piece_count() == CATALOG_PIECES
+        assert _files_on_disk() == []
 
     def test_upload_identical_to_corpus_keeps_its_title(
         self, tmp_path: Path, isolated_storage: LocalPieceStorage

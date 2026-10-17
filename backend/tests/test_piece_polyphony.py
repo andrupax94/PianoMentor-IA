@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from piano_mentor import api
 from piano_mentor.catalog import load_catalog
 from piano_mentor.config import settings
 from piano_mentor.main import app
@@ -37,14 +36,6 @@ NOTES_KEYS = {
 }
 NOTE_KEYS = {"pitch", "start_seconds", "duration_seconds", "velocity", "channel", "track"}
 PREVIEW_KEYS = {"filename", "tempo", "duration_seconds", "notes_total", "measures", "notes"}
-
-
-@pytest.fixture()
-def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalPieceStorage:
-    """Apunta el storage a un temporal para no escribir en data/midi durante los tests."""
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(api, "storage", isolated)
-    return isolated
 
 
 def _upload_mixed_problems() -> str:

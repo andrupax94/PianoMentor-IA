@@ -9,17 +9,15 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from piano_mentor import api
 from piano_mentor.config import settings
 from piano_mentor.database import connect, get_piece, init_db
 from piano_mentor.main import app
-from piano_mentor.storage import LocalPieceStorage
 
 client = TestClient(app)
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-VALID_FIXTURE = REPO_ROOT / "data" / "midi" / "test_scale.mid"
-CORRUPT_FIXTURE = REPO_ROOT / "backend" / "tests" / "fixtures" / "midi" / "corrupt.mid"
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "midi"
+VALID_FIXTURE = FIXTURES_DIR / "test_scale.mid"
+CORRUPT_FIXTURE = FIXTURES_DIR / "corrupt.mid"
 
 
 def _upload(filename: str, content: bytes):
@@ -30,12 +28,6 @@ def _upload(filename: str, content: bytes):
 
 
 class TestMusicalMetadataInUpload:
-    def _isolated_storage(self, tmp_path: Path, monkeypatch) -> LocalPieceStorage:
-        """Apunta el storage a un directorio temporal para poder contar huérfanos."""
-        isolated = LocalPieceStorage(tmp_path)
-        monkeypatch.setattr(api, "storage", isolated)
-        return isolated
-
     def test_upload_returns_real_musical_metadata(self) -> None:
         response = _upload("test_scale.mid", VALID_FIXTURE.read_bytes())
         assert response.status_code == 200
@@ -61,26 +53,20 @@ class TestMusicalMetadataInUpload:
         assert row["tempo"] == 120.0
         assert row["duration_s"] == 1.5
 
-    def test_unreadable_midi_returns_400_with_stable_code(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
-        self._isolated_storage(tmp_path, monkeypatch)
+    def test_unreadable_midi_returns_400_with_stable_code(self) -> None:
         response = _upload("corrupt.mid", CORRUPT_FIXTURE.read_bytes())
         assert response.status_code == 400
         assert response.json()["detail"]["code"] == "invalid_midi_content"
 
-    def test_unreadable_midi_leaves_no_orphan_file(self, tmp_path: Path, monkeypatch) -> None:
-        self._isolated_storage(tmp_path, monkeypatch)
+    def test_unreadable_midi_leaves_no_orphan_file(self) -> None:
         response = _upload("corrupt.mid", CORRUPT_FIXTURE.read_bytes())
         assert response.status_code == 400
-        # No debe quedar el archivo MIDI que se guardó antes de fallar el parsing.
-        # test.db es la base aislada del test, que la búsqueda de duplicados crea
-        # al inicio; no cuenta como huérfano.
-        leftovers = [entry.name for entry in tmp_path.iterdir() if entry.suffix != ".db"]
-        assert leftovers == []
+        # No debe quedar el MIDI que se guardó antes de fallar el parsing. El
+        # almacén de cada test está aislado y vacío, así que cualquier archivo
+        # que aparezca aquí sería un huérfano.
+        assert list(Path(settings.midi_storage_path).iterdir()) == []
 
-    def test_unreadable_midi_writes_no_database_row(self, tmp_path: Path, monkeypatch) -> None:
-        self._isolated_storage(tmp_path, monkeypatch)
+    def test_unreadable_midi_writes_no_database_row(self) -> None:
         _upload("corrupt.mid", CORRUPT_FIXTURE.read_bytes())
 
         conn = connect(settings.database_url)

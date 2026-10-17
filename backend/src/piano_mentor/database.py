@@ -1,12 +1,13 @@
-# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas e inserción de metadatos de piezas.
-# context: Persistencia de piezas (B-003.2/B-003.3); reutilizable por B-012.
+# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas y sesiones de práctica.
+# context: Persistencia de piezas (B-003.2/B-003.3) y de sesiones y eventos (B-012.1).
 
 """Conexión reutilizable a SQLite con sqlite-vec y migraciones SQL versionadas."""
 
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from pathlib import Path
 
 import sqlite_vec
@@ -30,18 +31,38 @@ def _database_path(database_url: str) -> str:
 
 
 def connect(database_url: str | None = None) -> sqlite3.Connection:
-    """Abre una conexión SQLite con sqlite-vec cargado y filas como `sqlite3.Row`."""
+    """Abre una conexión SQLite con sqlite-vec cargado y filas como `sqlite3.Row`.
+
+    Activa **WAL** para que lectores y escritor no se esperen entre sí (B-012.1:
+    el WebSocket inserta eventos mientras se consulta el estado) y un
+    `busy_timeout` corto como red de seguridad. Si el sistema de archivos no
+    admite WAL (por ejemplo una unidad de red), SQLite devuelve el modo anterior
+    en lugar de fallar, así que el PRAGMA no rompe el arranque.
+    """
     path = _database_path(database_url or settings.database_url)
     if path != ":memory:":
         Path(path).expanduser().parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=3000")
     conn.enable_load_extension(True)
     try:
         sqlite_vec.load(conn)
     finally:
         conn.enable_load_extension(False)
     return conn
+
+
+@contextmanager
+def open_db(database_url: str | None = None) -> Iterator[sqlite3.Connection]:
+    """Abre una conexión con el esquema al día y la cierra al salir del bloque."""
+    conn = connect(database_url)
+    try:
+        init_db(conn)
+        yield conn
+    finally:
+        conn.close()
 
 
 def pending_migrations(conn: sqlite3.Connection) -> list[Path]:
@@ -131,36 +152,23 @@ def find_piece_by_hash(conn: sqlite3.Connection, content_hash: str) -> sqlite3.R
 
 def save_piece(record: Mapping[str, object]) -> None:
     """Persiste metadatos en `DATABASE_URL` creando el esquema si hace falta (B-003.2)."""
-    conn = connect()
-    try:
-        init_db(conn)
+    with open_db() as conn:
         insert_piece(conn, record)
-    finally:
-        conn.close()
 
 
 def find_existing_piece(content_hash: str) -> sqlite3.Row | None:
     """Busca una pieza ya persistida por hash, gestionando su propia conexión.
 
-    Equivalente en gestión de conexión a `save_piece`; es el paso previo a la
-    deduplicación de subidas.
+    Es el paso previo a la deduplicación de subidas.
     """
-    conn = connect()
-    try:
-        init_db(conn)
+    with open_db() as conn:
         return find_piece_by_hash(conn, content_hash)
-    finally:
-        conn.close()
 
 
 def find_piece_by_id(piece_id: str) -> sqlite3.Row | None:
     """Lee una pieza por su id, gestionando su propia conexión (B-006.1)."""
-    conn = connect()
-    try:
-        init_db(conn)
+    with open_db() as conn:
         return get_piece(conn, piece_id)
-    finally:
-        conn.close()
 
 
 def list_pieces(
@@ -182,12 +190,79 @@ def list_pieces(
 
 def find_pieces(source: str | None = None) -> list[sqlite3.Row]:
     """Lista las piezas gestionando su propia conexión (B-027.3)."""
-    conn = connect()
-    try:
-        init_db(conn)
+    with open_db() as conn:
         return list_pieces(conn, source)
-    finally:
-        conn.close()
+
+
+SESSION_COLUMNS = (
+    "id",
+    "piece_id",
+    "status",
+    "control",
+    "current_measure",
+    "position_s",
+    "created_at",
+    "updated_at",
+)
+
+# Campos que el servicio puede cambiar una vez creada la sesión (B-012.1).
+SESSION_UPDATABLE = ("status", "control", "current_measure", "position_s")
+
+SESSION_EVENT_COLUMNS = ("session_id", "type", "pitch", "velocity", "t_s")
+
+
+def insert_session(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Inserta una sesión de práctica; las columnas ausentes quedan NULL."""
+    columns = [name for name in SESSION_COLUMNS if name in record]
+    if "id" not in columns or "piece_id" not in columns:
+        raise ValueError("insert_session requiere al menos 'id' y 'piece_id'")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO sessions ({', '.join(columns)}) VALUES ({placeholders})",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
+def get_session(conn: sqlite3.Connection, session_id: str) -> sqlite3.Row | None:
+    """Lee una sesión por su id."""
+    return conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
+
+
+def update_session_state(conn: sqlite3.Connection, session_id: str, **fields: object) -> None:
+    """Actualiza el estado vivo de una sesión (solo `SESSION_UPDATABLE`)."""
+    invalid = set(fields) - set(SESSION_UPDATABLE)
+    if invalid:
+        raise ValueError(f"Campos de sesión no actualizables: {', '.join(sorted(invalid))}")
+    if not fields:
+        return
+    assignments = ", ".join(f"{name} = ?" for name in fields)
+    conn.execute(
+        f"UPDATE sessions SET {assignments}, updated_at = datetime('now') WHERE id = ?",
+        [*fields.values(), session_id],
+    )
+    conn.commit()
+
+
+def insert_session_event(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Añade un evento MIDI al log de una sesión."""
+    columns = [name for name in SESSION_EVENT_COLUMNS if name in record]
+    if "session_id" not in columns or "type" not in columns:
+        raise ValueError("insert_session_event requiere al menos 'session_id' y 'type'")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO session_events ({', '.join(columns)}) VALUES ({placeholders})",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
+def list_session_events(conn: sqlite3.Connection, session_id: str) -> list[sqlite3.Row]:
+    """Devuelve los eventos de una sesión en orden de llegada."""
+    return conn.execute(
+        "SELECT * FROM session_events WHERE session_id = ? ORDER BY id",
+        (session_id,),
+    ).fetchall()
 
 
 def init_db(conn: sqlite3.Connection) -> list[str]:

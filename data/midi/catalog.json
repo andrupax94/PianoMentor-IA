@@ -213,6 +213,17 @@
       "duration_s": 24.0,
       "notes": 168,
       "tracks": 3
+    },
+    {
+      "id": "p16",
+      "title": "Pieza de práctica",
+      "composer": "PianoMentor AI",
+      "file": "corpus/practice_phrase.mid",
+      "license": "CC0-1.0",
+      "difficulty": "principiante",
+      "duration_s": 8.0,
+      "notes": 22,
+      "tracks": 3
     }
   ]
 }

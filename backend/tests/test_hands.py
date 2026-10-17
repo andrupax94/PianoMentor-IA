@@ -44,6 +44,17 @@ def corpus_notes(piece_id: str) -> tuple[NormalizedNote, ...]:
     return tuple(MidiService().normalize(path))
 
 
+# p16 es la pieza de práctica propia (B-012.1). Las propiedades del repertorio de
+# Mutopia se comprueban solo sobre las 15 piezas de terceros: la nuestra es un
+# ejercicio corto con las manos separadas a propósito (izquierda <= 55, derecha
+# >= 67), así que sus rangos no se pisan y no representa al repertorio real.
+OWN_PIECE_IDS = frozenset({"p16"})
+
+
+def third_party_pieces() -> tuple[tuple[str, Path], ...]:
+    return tuple(piece for piece in corpus_pieces() if piece[0] not in OWN_PIECE_IDS)
+
+
 def note(pitch: int, *, track: int, channel: int = 0) -> NormalizedNote:
     """Nota normalizada de laboratorio: solo importa su altura y su pista."""
     return NormalizedNote(
@@ -129,9 +140,9 @@ def test_describe_tracks_matches_hand_by_track_on_the_corpus() -> None:
         assert {info.track: info.hand for info in describe_tracks(notes)} == hands
 
 
-def test_corpus_pieces_have_one_hand_per_track() -> None:
-    assert len(corpus_pieces()) == 15
-    for piece_id, _ in corpus_pieces():
+def test_third_party_pieces_have_one_hand_per_track() -> None:
+    assert len(third_party_pieces()) == 15
+    for piece_id, _ in third_party_pieces():
         tracks = describe_tracks(corpus_notes(piece_id))
         # La pista 0 es de metadatos: solo las pistas con notas llegan hasta aquí.
         assert [info.track for info in tracks] == [1, 2]
@@ -149,8 +160,9 @@ def test_corpus_track_order_does_not_decide_the_hand() -> None:
 
 
 def test_corpus_hand_ranges_overlap() -> None:
-    # Por qué la mano se decide por pista y no nota a nota: los rangos se pisan.
-    for piece_id, _ in corpus_pieces():
+    # Por qué la mano se decide por pista y no nota a nota: en el repertorio real
+    # los rangos se pisan (la nuestra, p16, no cuenta: es un ejercicio sintético).
+    for piece_id, _ in third_party_pieces():
         tracks = describe_tracks(corpus_notes(piece_id))
         overlap = min(info.highest_pitch for info in tracks) - max(
             info.lowest_pitch for info in tracks

@@ -58,7 +58,7 @@ El control vuelve automáticamente al estudiante.
 
 Desarrollar en cinco semanas una aplicación web de mentoría para piano capaz de cargar, analizar y reproducir piezas MIDI, evaluar la interpretación mediante precisión y timing, y ejecutar intervenciones pedagógicas validadas.
 
-El objetivo de validación del MVP es procesar correctamente al menos el **80 % de un corpus de 15 piezas MIDI de piano** de dominio público o con licencia compatible.
+El objetivo de validación del MVP es procesar correctamente al menos el **80 % de un corpus de 15 piezas MIDI de piano** de dominio público o con licencia compatible. El catálogo incluye además una pieza propia de práctica (`p16`, CC0, 4 compases) con la que se prueban la sesión y la evaluación; no forma parte de ese criterio.
 
 ## 4. Alcance del MVP
 

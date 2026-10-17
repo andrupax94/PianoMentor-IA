@@ -8,7 +8,6 @@ import mido
 import pytest
 from fastapi.testclient import TestClient
 
-from piano_mentor import api
 from piano_mentor.config import settings
 from piano_mentor.database import connect, init_db, insert_piece
 from piano_mentor.main import app
@@ -167,16 +166,13 @@ def test_midi_service_resolve_measure_range_via_path(
 
 
 def test_notes_endpoint_accepts_from_measure_to_measure(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    isolated_storage: LocalPieceStorage,
 ) -> None:
     """GET /pieces/{id}/notes?from_measure=0&to_measure=2 devuelve notas de esos compases."""
     midi = build_midi(end_tick=4 * 1920)
     midi_bytes = save_midi(midi)
 
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
-    monkeypatch.setattr(api, "storage", isolated)
-    stored_name = isolated.save("test.mid", midi_bytes)
+    stored_name = isolated_storage.save("test.mid", midi_bytes)
     piece_id = "test-piece-" + stored_name[:8]
     _insert_piece(piece_id, stored_name, len(midi_bytes))
 
@@ -202,16 +198,13 @@ def test_notes_endpoint_accepts_from_measure_to_measure(
 
 
 def test_notes_endpoint_rejects_invalid_measure_params(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    isolated_storage: LocalPieceStorage,
 ) -> None:
     """GET /pieces/{id}/notes con parámetros de compás inválidos → 400."""
     midi = build_midi(end_tick=4 * 1920)
     midi_bytes = save_midi(midi)
 
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
-    monkeypatch.setattr(api, "storage", isolated)
-    stored_name = isolated.save("test.mid", midi_bytes)
+    stored_name = isolated_storage.save("test.mid", midi_bytes)
     piece_id = "test-piece-" + stored_name[:8]
     _insert_piece(piece_id, stored_name, len(midi_bytes))
 
@@ -243,18 +236,13 @@ def test_notes_endpoint_piece_not_found() -> None:
     assert resp.json()["detail"]["code"] == "piece_not_found"
 
 
-def test_notes_response_includes_measure_grid(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_notes_response_includes_measure_grid(isolated_storage: LocalPieceStorage) -> None:
     """La respuesta de /notes trae la rejilla: inicios, firmas y total (B-008.3)."""
     # 3 compases 3/4 (0..4320 ticks) y luego 2 compases 4/4.
     midi = build_midi(end_tick=3 * 1440 + 2 * 1920, time_signatures=((0, 3, 4), (4320, 4, 4)))
     midi_bytes = save_midi(midi)
 
-    isolated = LocalPieceStorage(tmp_path)
-    monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
-    monkeypatch.setattr(api, "storage", isolated)
-    stored_name = isolated.save("test.mid", midi_bytes)
+    stored_name = isolated_storage.save("test.mid", midi_bytes)
     piece_id = "test-piece-" + stored_name[:8]
     _insert_piece(piece_id, stored_name, len(midi_bytes))
 

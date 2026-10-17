@@ -44,6 +44,11 @@ data/sessions/*
 # El catálogo de metadatos (título, licencia, source_url, dificultad) sí se versiona;
 # los .mid del corpus son de terceros (Mutopia) y no se versionan.
 !data/midi/catalog.json
+# Excepción: la pieza de práctica propia (p16, CC0) sí viaja con el repositorio.
+# Hay que re-incluir la carpeta antes del archivo, porque `data/midi/*` la excluía.
+!data/midi/corpus/
+data/midi/corpus/*
+!data/midi/corpus/practice_phrase.mid
 
 # Logs and runtime files
 *.log

@@ -53,7 +53,7 @@ El objetivo del proyecto fija cinco semanas, un corpus de 15 piezas MIDI y un m�
 
 Conjunto controlado de piezas MIDI que se utiliza para medir el funcionamiento del sistema. Cada pieza debe tener identificador, procedencia, licencia y resultado de procesamiento.
 
-El corpus no representa todas las canciones existentes. Sirve para evaluar de forma reproducible el MVP.
+El corpus no representa todas las canciones existentes. Sirve para evaluar de forma reproducible el MVP. El catálogo guarda aparte una pieza propia de práctica (`p16`, CC0) para las pruebas de sesión y evaluación: no es corpus de validación.
 
 ## Dominio público
 

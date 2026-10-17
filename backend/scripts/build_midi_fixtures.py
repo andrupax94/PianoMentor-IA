@@ -159,6 +159,126 @@ def build_mixed_problems() -> mido.MidiFile:
     return midi
 
 
+def build_test_scale() -> mido.MidiFile:
+    """Escala de tres notas (Do-Re-Mi) sin `set_tempo`: el "MIDI válido" de los tests de /pieces.
+
+    Es el fixture que fijan los números de la carga de piezas: **1 pista, 3 notas,
+    120 BPM por defecto y 1,5 s**. No lleva `set_tempo` a propósito, porque así los
+    tests comprueban que el motor asume 120 BPM cuando el archivo no lo declara.
+    """
+    midi = mido.MidiFile(type=1, ticks_per_beat=TICKS_PER_BEAT)
+    track = _new_track(midi)
+    track.append(mido.Message("program_change", program=0, channel=0, time=0))
+    for note in (60, 62, 64):
+        track.append(mido.Message("note_on", note=note, velocity=64, channel=0, time=0))
+        track.append(
+            mido.Message("note_off", note=note, velocity=64, channel=0, time=TICKS_PER_BEAT)
+        )
+    track.append(mido.MetaMessage("end_of_track", time=0))
+    return midi
+
+
+def _notes_track(channel: int, notes: list[tuple[float, float, int, int]]) -> list[mido.Message]:
+    """Mensajes de una pista a partir de (inicio, fin, altura, velocity) en pulsos.
+
+    Ordena los eventos por instante y, en el mismo instante, cierra antes de
+    abrir: es lo que espera cualquier lector MIDI para una nota repetida.
+    """
+    events: list[tuple[int, int, mido.Message]] = []
+    for start, end, pitch, velocity in notes:
+        events.append(
+            (
+                round(start),
+                1,
+                mido.Message("note_on", note=pitch, velocity=velocity, channel=channel),
+            )
+        )
+        events.append(
+            (round(end), 0, mido.Message("note_off", note=pitch, velocity=0, channel=channel))
+        )
+    events.sort(key=lambda item: (item[0], item[1]))
+
+    messages: list[mido.Message] = []
+    previous = 0
+    for tick, _, message in events:
+        message.time = tick - previous
+        previous = tick
+        messages.append(message)
+    return messages
+
+
+# Frase de práctica: 4 compases de 4/4 a 120 BPM (1 pulsación = 0,5 s), con las
+# dos manos separadas por registro (izquierda <= 55, derecha >= 67) y 22 notas.
+# Es la pieza con la que se prueban la sesión (B-012.1) y la evaluación (B-012.2):
+# tiene acordes (uno de tres notas en la derecha y dos voces en la izquierda), un
+# silencio en el cuarto tiempo del compás 2 y tres niveles de velocity.
+PRACTICE_BEAT = TICKS_PER_BEAT
+
+# (pulsación de inicio, de fin, altura, velocity) relativo al inicio de la pieza.
+PRACTICE_RIGHT_HAND: list[tuple[float, float, int, int]] = [
+    (0, 1, 72, 80),  # C5
+    (1, 2, 74, 80),  # D5
+    (2, 3, 76, 80),  # E5
+    (3, 4, 77, 80),  # F5
+    (4, 6, 79, 100),  # G5, blanca
+    (6, 7, 69, 90),  # A4 ┐
+    (6, 7, 72, 90),  # C5 ├ acorde de tres notas
+    (6, 7, 76, 90),  # E5 ┘  (el tiempo 7 queda en silencio)
+    (8, 9, 76, 80),  # E5
+    (9, 10, 77, 80),  # F5
+    (10, 12, 79, 90),  # G5, blanca
+    (12, 13, 69, 80),  # A4
+    (13, 14, 67, 80),  # G4
+    (14, 16, 72, 95),  # C5, blanca final
+]
+
+PRACTICE_LEFT_HAND: list[tuple[float, float, int, int]] = [
+    (0, 4, 48, 60),  # C3 ┐
+    (0, 4, 55, 60),  # G3 ┘
+    (4, 8, 45, 60),  # A2 ┐
+    (4, 8, 52, 60),  # E3 ┘
+    (8, 12, 41, 65),  # F2 ┐
+    (8, 12, 48, 65),  # C3 ┘
+    (12, 16, 43, 60),  # G2 ┐
+    (12, 16, 50, 60),  # D3 ┘
+]
+
+
+def _practice_ticks(
+    notes: list[tuple[float, float, int, int]],
+) -> list[tuple[float, float, int, int]]:
+    """Convierte las pulsaciones de la frase de práctica en ticks."""
+    return [
+        (start * PRACTICE_BEAT, end * PRACTICE_BEAT, pitch, velocity)
+        for start, end, pitch, velocity in notes
+    ]
+
+
+def build_practice_phrase() -> mido.MidiFile:
+    """Pieza propia de práctica: 4 compases, 22 notas, dos manos y 8,0 s.
+
+    Las notas empiezan en `pulsación * 0,5` segundos (120 BPM). La derecha toca
+    la melodía en el canal 0 y la izquierda los bajos en el canal 1; los rangos
+    no se solapan, así que la mano se puede deducir por altura (B-009.2) además
+    de por pista. El catálogo del corpus la incluye como `p16`.
+    """
+    midi = mido.MidiFile(type=1, ticks_per_beat=TICKS_PER_BEAT)
+
+    meta_track = _new_track(midi)
+    meta_track.append(mido.MetaMessage("set_tempo", tempo=TEMPO_120_BPM, time=0))
+    meta_track.append(mido.MetaMessage("time_signature", numerator=4, denominator=4, time=0))
+    meta_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    right_track = _new_track(midi)
+    right_track.extend(_notes_track(0, _practice_ticks(PRACTICE_RIGHT_HAND)))
+    right_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    left_track = _new_track(midi)
+    left_track.extend(_notes_track(1, _practice_ticks(PRACTICE_LEFT_HAND)))
+    left_track.append(mido.MetaMessage("end_of_track", time=0))
+    return midi
+
+
 MIDI_BUILDERS: dict[str, Callable[[], mido.MidiFile]] = {
     "single_track.mid": build_single_track,
     "multi_track.mid": build_multi_track,
@@ -166,6 +286,8 @@ MIDI_BUILDERS: dict[str, Callable[[], mido.MidiFile]] = {
     "no_tempo.mid": build_no_tempo,
     "unclosed_note.mid": build_unclosed_note,
     "mixed_problems.mid": build_mixed_problems,
+    "test_scale.mid": build_test_scale,
+    "practice_phrase.mid": build_practice_phrase,
 }
 
 BYTE_BUILDERS: dict[str, Callable[[], bytes]] = {

@@ -12,7 +12,7 @@ from piano_mentor.main import app
 
 client = TestClient(app)
 
-FIXTURE_PATH = Path(__file__).parent.parent.parent / "data" / "midi" / "test_scale.mid"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "midi" / "test_scale.mid"
 
 
 class TestHealthRegression:

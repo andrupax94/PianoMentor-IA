@@ -138,6 +138,32 @@ export interface HealthResponse {
   service: string;
 }
 
+/** Estados por los que pasa una sesión de práctica (B-012.1). */
+export type SessionStatus = "idle" | "playing" | "paused";
+
+/** Quién tiene el piano: el estudiante o el agente (B-012.1). */
+export type SessionControl = "student" | "agent";
+
+/** Respuesta de POST /api/v1/sessions, alineada con SessionResponse (B-012.1). */
+export interface SessionResponse {
+  id: string;
+  piece_id: string;
+  status: SessionStatus;
+}
+
+/**
+ * Estado vivo de una sesión, alineado con SessionStateResponse (B-012.1).
+ * Es el mismo objeto que el WebSocket empuja envuelto en `{type: "state"}`.
+ */
+export interface SessionState {
+  session_id: string;
+  piece_id: string;
+  status: SessionStatus;
+  control: SessionControl;
+  current_measure: number | null;
+  position_s: number;
+}
+
 const ERROR_CODES = [
   "invalid_extension",
   "invalid_filename",
@@ -148,6 +174,9 @@ const ERROR_CODES = [
   "piece_not_found",
   "piece_file_not_found",
   "invalid_midi_content",
+  "session_not_found",
+  "invalid_event_payload",
+  "ws_error",
   "unexpected_response",
   "network_error",
 ] as const;
@@ -289,4 +318,25 @@ export async function getPieceList(
 /** Consulta el healthcheck del backend en GET /health. */
 export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/health");
+}
+
+/**
+ * Abre una sesión de práctica sobre una pieza en POST /api/v1/sessions (B-012.1).
+ * El backend rechaza con `piece_not_found` si la pieza no existe.
+ */
+export async function createSession(pieceId: string): Promise<SessionResponse> {
+  return request<SessionResponse>("/api/v1/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ piece_id: pieceId }),
+  });
+}
+
+/**
+ * Lee el estado de una sesión en GET /api/v1/sessions/{id}/state (B-012.1).
+ * Es el mismo estado que el WebSocket empuja en tiempo real; sirve para el
+ * primer pintado sin esperar a que abra el socket.
+ */
+export async function getSessionState(sessionId: string): Promise<SessionState> {
+  return request<SessionState>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/state`);
 }

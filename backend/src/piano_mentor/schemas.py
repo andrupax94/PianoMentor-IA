@@ -39,9 +39,27 @@ class SessionCreate(BaseModel):
 
 
 class SessionResponse(BaseModel):
+    """Sesión de práctica recién creada (B-012.1)."""
+
     id: str
     piece_id: str
-    status: str = "created"
+    status: str = "idle"
+
+
+class SessionStateResponse(BaseModel):
+    """Estado vivo de una sesión; es también lo que empuja el WebSocket (B-012.1).
+
+    `status` recorre idle/playing/paused y `control` indica quién tiene el piano
+    (student/agent); `current_measure` y `position_s` sitúan al estudiante en la
+    partitura y los rellenará el transporte de reproducción.
+    """
+
+    session_id: str
+    piece_id: str
+    status: str = "idle"
+    control: str = "student"
+    current_measure: int | None = None
+    position_s: float = 0.0
 
 
 class ActionRequest(BaseModel):

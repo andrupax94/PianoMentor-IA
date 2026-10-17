@@ -1,7 +1,7 @@
-# description: Conexión SQLite, carga de sqlite-vec, esquema pieces e idempotencia de migraciones.
-# context: Confianza en la persistencia de metadatos.
+# description: Conexión SQLite, carga de sqlite-vec, esquema de piezas y sesiones, e idempotencia de migraciones.
+# context: Confianza en la persistencia de metadatos y de sesiones de práctica.
 
-"""Tests de conexión, extensión sqlite-vec y esquema de piezas."""
+"""Tests de conexión, extensión sqlite-vec y esquemas de piezas y sesiones."""
 
 from __future__ import annotations
 
@@ -59,6 +59,23 @@ class TestConnection:
         with pytest.raises(ValueError, match="DATABASE_URL"):
             _database_path("postgresql://localhost/piano")
 
+    def test_enables_wal_and_busy_timeout(self, tmp_path) -> None:
+        """WAL deja leer mientras se escribe y el timeout evita fallos por lock (B-012.1)."""
+        conn = connect(f"sqlite:///{(tmp_path / 'wal.db').as_posix()}")
+        try:
+            assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+            assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == 3000
+        finally:
+            conn.close()
+
+    def test_memory_database_still_opens(self) -> None:
+        """WAL no aplica en memoria; la conexión debe seguir funcionando igual."""
+        conn = connect("sqlite:///:memory:")
+        try:
+            assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == 3000
+        finally:
+            conn.close()
+
 
 class TestSchema:
     def test_pieces_table_created(self, tmp_path) -> None:
@@ -108,18 +125,45 @@ class TestSchema:
         finally:
             conn.close()
 
-    def test_no_session_tables(self, tmp_path) -> None:
+    def test_session_tables_created(self, tmp_path) -> None:
+        """B-012.1 crea el esquema de sesiones y su log de eventos MIDI."""
         conn = connect(f"sqlite:///{(tmp_path / 'sessions.db').as_posix()}")
         try:
             init_db(conn)
-            tables = {
-                row["name"]
-                for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type = 'table'"
-                ).fetchall()
+            sessions = {
+                row["name"] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()
             }
-            assert "sessions" not in tables
-            assert "events" not in tables
+            events = {
+                row["name"] for row in conn.execute("PRAGMA table_info(session_events)").fetchall()
+            }
+            assert {
+                "id",
+                "piece_id",
+                "status",
+                "control",
+                "current_measure",
+                "position_s",
+                "created_at",
+                "updated_at",
+            } <= sessions
+            assert {"id", "session_id", "type", "pitch", "velocity", "t_s"} <= events
+        finally:
+            conn.close()
+
+    def test_session_defaults(self, tmp_path) -> None:
+        """Una sesión nace en idle y bajo control del estudiante."""
+        conn = connect(f"sqlite:///{(tmp_path / 'defaults.db').as_posix()}")
+        try:
+            init_db(conn)
+            conn.execute("INSERT INTO sessions (id, piece_id) VALUES (?, ?)", ("s1", "p01"))
+            conn.commit()
+            row = conn.execute("SELECT * FROM sessions WHERE id = ?", ("s1",)).fetchone()
+            assert row["status"] == "idle"
+            assert row["control"] == "student"
+            assert row["current_measure"] is None
+            assert row["position_s"] == 0
+            assert row["created_at"]
+            assert row["updated_at"] is None
         finally:
             conn.close()
 

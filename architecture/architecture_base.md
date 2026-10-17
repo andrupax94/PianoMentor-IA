@@ -61,7 +61,7 @@ Esta estructura es la recomendada para comenzar. Evita crear demasiadas abstracc
 
 ### 4.1 Árbol del MVP
 
-El árbol siguiente describe la estructura objetivo del MVP de forma acumulativa. La creación de la estructura base de B-001.1 no exige que todos los módulos funcionales ya existan: los archivos de aplicación se incorporan progresivamente junto con sus Issues. En particular, `database.py` (SQLite + sqlite-vec) se incorporará con B-003, los componentes y clientes HTTP iniciales con B-004, y el cliente WebSocket y la vista de práctica con B-012. Hasta entonces, las carpetas pueden no contener esos archivos.
+El árbol siguiente describe la estructura objetivo del MVP de forma acumulativa. La creación de la estructura base de B-001.1 no exige que todos los módulos funcionales ya existan: los archivos de aplicación se incorporan progresivamente junto con sus Issues. En particular, `database.py` (SQLite + sqlite-vec) se incorporó con B-003, los componentes y clientes HTTP iniciales con B-004, y el cliente WebSocket y la vista de práctica con B-012.1. Las tablas de sesiones (`sessions`) y su log de eventos (`session_events`) llegan en la migración 0005.
 
 ```text
 piano-mentor-ai/
@@ -160,18 +160,19 @@ piano-mentor-ai/
 | `/backend/src/piano_mentor/__init__.py` | Marca el paquete Python y puede contener la versión del proyecto. |
 | `/backend/src/piano_mentor/main.py` | Punto de entrada de FastAPI y creación de la aplicación. |
 | `/backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno. |
-| `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket iniciales del MVP. Debe mantenerse delgado. |
-| `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API. |
-| `/backend/src/piano_mentor/database.py` | Conexión y operaciones con SQLite + sqlite-vec (metadatos de piezas y migraciones SQL versionadas); los vectores quedan pendientes de B-005/B-013. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
+| `/backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP, incluidas las de sesión de práctica y el registro en memoria de conexiones WS. Debe mantenerse delgado. |
+| `/backend/src/piano_mentor/schemas.py` | Modelos Pydantic para peticiones y respuestas de la API, con el estado de sesión (`SessionStateResponse`) como contrato. |
+| `/backend/src/piano_mentor/database.py` | Conexión y operaciones con SQLite + sqlite-vec (metadatos de piezas, sesiones y su log de eventos, y migraciones SQL versionadas) en modo WAL con `busy_timeout`; los vectores quedan pendientes de B-005/B-013. Los bytes MIDI siguen en filesystem (`MIDI_STORAGE_PATH`). |
 | `/backend/src/piano_mentor/midi.py` | Lectura, validación y normalización de archivos MIDI. |
 | `/backend/src/piano_mentor/evaluation.py` | Comparación de notas, omisiones, extras, precisión y timing. |
-| `/backend/src/piano_mentor/practice.py` | Creación de sesiones y actualización del estado de práctica. |
+| `/backend/src/piano_mentor/practice.py` | Creación de sesiones, lectura del estado vivo y registro de los eventos MIDI de la interpretación. |
 | `/backend/src/piano_mentor/agent.py` | Reglas deterministas y acciones iniciales del agente. |
 | `/backend/tests/` | Pruebas automáticas del backend. |
 | `/backend/tests/test_health.py` | Comprueba que la API arranca y responde correctamente. |
 | `/backend/tests/test_midi.py` | Pruebas de MIDI válido, inválido y normalización básica. |
 | `/backend/tests/test_evaluation.py` | Pruebas de notas correctas, omitidas, adicionales y timing. |
 | `/backend/tests/test_agent.py` | Pruebas de reglas, validación y devolución del control. |
+| `/backend/tests/test_sessions.py` | Pruebas de sesión de práctica: creación, estado, eventos por WebSocket y broadcast. |
 | `/frontend/` | Aplicación web Next.js/TypeScript. |
 | `/frontend/Dockerfile` | Imagen reproducible para ejecutar el frontend. |
 | `/frontend/package.json` | Dependencias y scripts del frontend. |
@@ -183,10 +184,10 @@ piano-mentor-ai/
 | `/frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta. |
 | `/frontend/src/components/MidiUploader.tsx` | Selector y carga de archivos MIDI. |
 | `/frontend/src/components/PianoStage/` | Escenario del piano: cuadrícula de notas cayendo y teclado SVG real (B-007). |
-| `/frontend/src/components/PracticeSession.tsx` | Vista principal de práctica; se incorporará con B-012. |
-| `/frontend/src/components/SessionStatus.tsx` | Estado actual, tempo, compás y control del piano. |
-| `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI; se incorporará con B-004. |
-| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket para actualizaciones en tiempo real; se incorporará con B-012. |
+| `/frontend/src/components/PracticeSession.tsx` | Vista de una sesión de práctica: teclado del PC, WebSocket y estado en vivo (B-012.1). |
+| `/frontend/src/components/SessionStatus.tsx` | Estado de la sesión: modo, compás, control del piano, conexión y último error. |
+| `/frontend/src/lib/api-client.ts` | Cliente HTTP tipado para comunicarse con FastAPI, incluida la creación y consulta de sesiones (B-012.1). |
+| `/frontend/src/lib/websocket-client.ts` | Cliente WebSocket con reconexión para el estado de la sesión de práctica (B-012.1). |
 | `/data/midi/` | MIDI de prueba o archivos preparados para demostraciones. |
 | `/data/uploads/` | Archivos MIDI cargados localmente durante el desarrollo. |
 | `/data/sessions/` | Datos temporales o exportaciones de sesiones. |
@@ -597,19 +598,20 @@ GET  /api/v1/pieces
 GET  /api/v1/pieces/{piece_id}
 POST /api/v1/pieces/preview
 POST /api/v1/sessions
-GET  /api/v1/sessions/{session_id}
-POST /api/v1/sessions/{session_id}/events
 GET  /api/v1/sessions/{session_id}/state
 POST /api/v1/sessions/{session_id}/actions
 POST /api/v1/sessions/{session_id}/agent-step
+POST /api/v1/sessions/{session_id}/evaluation
 WS   /api/v1/ws/sessions/{session_id}
 ```
+
+Los eventos MIDI de la interpretación no tienen endpoint propio: entran por el WebSocket de la sesión y se persisten en `session_events`. Los mensajes del canal van envueltos en un campo `type` (`state` con el estado vivo y `error` con un `code` estable; B-012.5 añadirá `agent_action`), para que el contrato pueda crecer sin romperse. Un payload inválido se responde con `invalid_event_payload` sin cerrar la sesión, y una sesión inexistente se cierra con el código 4404 después de avisar. El registro de conexiones que sostiene el broadcast vive en la memoria del proceso, así que el MVP se despliega con un solo worker.
 
 El frontend debe consumir estos contratos a través de `api-client.ts` y `websocket-client.ts`, no mediante URLs dispersas dentro de los componentes.
 
 `POST /api/v1/pieces` deduplica por SHA-256 del contenido: si la pieza ya existe (incluido el corpus) devuelve la fila existente con `deduplicated: true` en lugar de crear un archivo o una fila nueva. La procedencia se marca en `source` (`corpus` o `upload`) y `owner_id` (reservado para autenticación; `NULL` = anónimo). Corpus y subidas comparten la tabla `pieces` y se separan por columnas, no por tablas, para no fragmentar las consultas de sesiones y evaluación.
 
-`GET /api/v1/pieces` alimenta el selector de piezas (la Library): devuelve el catálogo ordenado con el corpus primero y admite `?source=corpus|upload` para separar el repertorio incluido de las piezas subidas. Como la base no está versionada, antes de listar siembra el corpus del repositorio cuando no hay ninguna pieza suya (`ensure_catalog_loaded`, B-027.4): un arranque limpio ya sirve la Library en la primera petición y las siguientes no vuelven a leer el catálogo. Si el catálogo o los MIDI del corpus faltan en el host, se avisa por el log y el listado responde vacío en vez de fallar.
+`GET /api/v1/pieces` alimenta el selector de piezas (la Library): devuelve el catálogo ordenado con el corpus primero y admite `?source=corpus|upload` para separar el repertorio incluido de las piezas subidas. El catálogo mezcla las 15 piezas de terceros (Mutopia) con una **pieza propia de práctica** (`p16`, CC0, 4 compases, sin fuente externa ni portada) que aporta material determinista a los tests de sesión y evaluación y que, por eso, es el único `.mid` del corpus que viaja en git. Como la base no está versionada, antes de listar siembra el corpus del repositorio cuando no hay ninguna pieza suya (`ensure_catalog_loaded`, B-027.4): un arranque limpio ya sirve la Library en la primera petición y las siguientes no vuelven a leer el catálogo. Si el catálogo o los MIDI del corpus faltan en el host, se avisa por el log y el listado responde vacío en vez de fallar.
 
 `POST /api/v1/pieces/preview` es la **única ruta de carga que no persiste**: valida el MIDI igual que `POST /api/v1/pieces`, lo lee en un directorio temporal y devuelve la partitura para poder escucharla, pero no escribe en el almacén ni en la tabla `pieces`. Así, subir un archivo a mano para probarlo no ensucia el catálogo; lo persistente sigue siendo el corpus del repositorio. La subida persistente (`POST /api/v1/pieces` y `uploadPiece` en el cliente) se conserva en el código aunque hoy la interfaz use la efímera.
 

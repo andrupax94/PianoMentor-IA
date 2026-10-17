@@ -107,7 +107,7 @@ La respuesta esperada es HTTP `200`.
 
 ## 7. Cargar el corpus MIDI en SQLite
 
-La base de datos se crea con su esquema en cuanto arranca el backend. Las 15 piezas del corpus se siembran **solas** la primera vez que el frontend pide la lista (`GET /api/v1/pieces`), así que un arranque limpio ya muestra la Library sin ningún paso manual (B-027.4). Si el catálogo o los MIDI del corpus no están en el host, el listado sale vacío y el backend lo avisa en el log, pero no falla.
+La base de datos se crea con su esquema en cuanto arranca el backend. Las 16 piezas del catálogo (15 de terceros de Mutopia más la pieza propia de práctica) se siembran **solas** la primera vez que el frontend pide la lista (`GET /api/v1/pieces`), así que un arranque limpio ya muestra la Library sin ningún paso manual (B-027.4). Si el catálogo o los MIDI del corpus no están en el host, el listado sale vacío y el backend lo avisa en el log, pero no falla.
 
 Para **forzar** la carga (o recargarla tras editar `catalog.json`) sigue disponible el comando idempotente de B-003.3:
 
@@ -115,11 +115,11 @@ Para **forzar** la carga (o recargarla tras editar `catalog.json`) sigue disponi
 docker compose exec backend python -m piano_mentor.catalog
 ```
 
-La salida esperada es `Catálogo cargado: 15 piezas en sqlite:////data/piano_mentor.db`.
+La salida esperada es `Catálogo cargado: 16 piezas en sqlite:////data/piano_mentor.db`.
 
 La carga es **idempotente**: repetirla no duplica filas, así que es seguro ejecutarla en cada despliegue.
 
-> Requisito previo: el corpus debe existir en `data/midi/corpus/` junto con `data/midi/catalog.json`. El catálogo está versionado; los `.mid` del corpus no (licencias de terceros), así que en una copia nueva hay que traerlos aparte. Ver "Despliegue en otro host Docker".
+> Requisito previo: el corpus debe existir en `data/midi/corpus/` junto con `data/midi/catalog.json`. El catálogo está versionado; los `.mid` del corpus no (licencias de terceros), así que en una copia nueva hay que traerlos aparte; la única excepción es la pieza propia de práctica (`practice_phrase.mid`), que sí viaja con el repositorio. Ver "Despliegue en otro host Docker".
 
 ### Reconstruir las imágenes al cambiar dependencias
 
@@ -142,6 +142,8 @@ python -m compileall src tests
 python -m pytest -q
 cd ..
 ```
+
+Los tests son **herméticos**: `backend/tests/conftest.py` aísla la base de datos y el almacén MIDI en un directorio temporal de cada test, así que la suite no escribe en `data/`. Importa porque el almacén se configura con una ruta relativa (`MIDI_STORAGE_PATH=./data/midi`), que cambia según el directorio desde el que se lance `pytest` y sin aislar dejaba archivos sueltos fuera del repositorio.
 
 ### Frontend
 
@@ -201,7 +203,7 @@ En un servidor con Docker (VPS, cloud, NAS) el flujo es el mismo, con tres difer
 
 ### 1. El corpus MIDI no viaja con git
 
-`data/midi/catalog.json` (los metadatos: título, licencia, `source_url`, dificultad) **sí está versionado**, pero los `.mid` de `data/midi/corpus/` están excluidos de `.gitignore` por licencias de terceros. Después de clonar, cópialos al host (por `scp`, `rsync` o un volumen externo) antes de ejecutar el comando de carga del paso 7. Sin ellos, el comando devuelve `CatalogError: MIDI referenciado inexistente`. Cada entrada del catálogo incluye `source_url` para re-descargar el archivo original desde Mutopia si hiciera falta.
+`data/midi/catalog.json` (los metadatos: título, licencia, `source_url`, dificultad) **sí está versionado**, pero los `.mid` de `data/midi/corpus/` están excluidos de `.gitignore` por licencias de terceros. Después de clonar, cópialos al host (por `scp`, `rsync` o un volumen externo) antes de ejecutar el comando de carga del paso 7. Sin ellos, el comando devuelve `CatalogError: MIDI referenciado inexistente`. Cada entrada del catálogo incluye `source_url` para re-descargar el archivo original desde Mutopia si hiciera falta. La única excepción es `practice_phrase.mid` (la pieza propia de práctica de `p16`), que sí viaja con el repositorio.
 
 ### 2. Crea el `.env` en el host
 
