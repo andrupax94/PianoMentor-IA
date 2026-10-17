@@ -4,6 +4,7 @@
 .controls {
   display: flex;
   gap: 8px;
+
 }
 
 .controls button {

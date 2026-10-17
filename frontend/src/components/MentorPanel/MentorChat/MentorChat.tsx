@@ -11,7 +11,7 @@ export function MentorChat({
     <section className={styles.chat} aria-label="Chat del mentor">
       <div className={styles.heading}>
         <span className={styles.avatar} aria-hidden="true">
-          🤖
+
         </span>
         <div>
           <strong>PianoMentor Chat</strong>
