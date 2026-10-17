@@ -1,3 +1,6 @@
+// description: Pie de página de la aplicación: logo, año en curso y enlace al GitHub del autor.
+// context: Componente global de layout; se renderiza en cada página para cerrar la aplicación con identidad y contacto.
+
 import Image from "next/image";
 import styles from "./AppFooter.module.css";
 

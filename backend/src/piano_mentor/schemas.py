@@ -193,3 +193,35 @@ class PiecePreviewResponse(BaseModel):
     tracks: list[TrackSummary] | None = None
     chords: list[ChordSummary] | None = None
     notes: list[NoteResponse] = []
+
+
+class ToolCallResult(BaseModel):
+    """Una función invocada por el modelo y el resultado de ejecutarla (B-012.8)."""
+
+    name: str
+    arguments: dict[str, object]
+    rejected: bool = False
+
+
+class ChatMessageRequest(BaseModel):
+    """Petición al chat del agente (B-012.8)."""
+
+    message: str
+    chat_id: str | None = None
+    context: dict[str, object] | None = None
+
+
+class ChatMessageResponse(BaseModel):
+    """Respuesta del chat del agente (B-012.8).
+
+    `reply` es la respuesta natural. `client_action`, cuando no es None, es una
+    orden que el navegador debe ejecutar (reproducir, pausar, abrir práctica…);
+    el backend nunca la ejecuta. `used_tools` detalla qué funciones se llamaron.
+    """
+
+    chat_id: str
+    reply: str
+    provider: str
+    used_fallback: bool
+    client_action: ToolCallResult | None = None
+    used_tools: list[ToolCallResult] = []

@@ -1,0 +1,93 @@
+/* description: Estilos del subcontenedor de pestañas del mentor. */
+/* context: Agrupa Carga pieza, Estado de sesión y Rendimiento en pestañas con icono.
+   Altura fija: el contenedor no crece ni encoge al cambiar de pestaña; el contenido
+   de cada tabpanel hace scroll interno si no cabe. */
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #2b3544;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel-soft);
+  /* Ocupa todo el alto disponible dentro del panel del mentor. */
+  flex: 1;
+  min-height: 0;
+}
+
+.tablist {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #2b3544;
+  background: #141a26;
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-mute);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.tab svg,
+.tab img {
+  width: 20px;
+  height: 20px;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: #1e2a3e;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--accent);
+  background: #1c2738;
+  border-bottom: 3px solid var(--accent);
+  margin-bottom: -1px;
+}
+
+.tabpanels {
+  display: flex;
+  flex-direction: column;
+  /* Ocupa el resto del alto de .tabs para que las pestañas tengan height estable. */
+  flex: 1;
+  min-height: 0;
+}
+
+.tabpanel {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  /* Mismo alto que las demás pestañas; el contenido hace scroll si no cabe. */
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tabpanel h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.tabpanel p,
+.tabpanel ul {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}

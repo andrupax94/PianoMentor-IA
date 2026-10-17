@@ -8,4 +8,7 @@
   border: 1px solid #2b3544;
   border-radius: 16px;
   overflow: hidden;
+  /* Crece para abarcar todo el espacio disponible bajo el transporte. */
+  flex: 1;
+  min-height: 0;
 }

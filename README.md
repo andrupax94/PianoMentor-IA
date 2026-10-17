@@ -75,6 +75,7 @@ El objetivo de validación del MVP es procesar correctamente al menos el **80 % 
 - Máquina de estados pedagógica inicial.
 - Acciones iniciales del agente: `wait`, `give_hint`, `slow_down`, `demonstrate`, `accompany` y `return_control`.
 - Acciones estructuradas y validadas antes de ejecutarse.
+- Chat del agente: órdenes en lenguaje natural sobre las operaciones implementadas (buscar pieza, reproducir, pausar, abrir práctica), con lista blanca de funciones y respuesta explícita cuando la orden no existe.
 - Demostración limitada con devolución automática del control.
 - Ejecución reproducible mediante Docker Compose.
 

@@ -111,6 +111,8 @@ El pulido del sonido que quedó fuera al cerrar **B-007.5** se abrió como **B-0
 
 En **octubre 2026** arranca la **vertical del agente (B-012)** con su primera sub-issue, **B-012.1** (sesión + WebSocket real): la sesión ya vive en SQLite (migración `0005`, tablas `sessions` y `session_events`), `POST /api/v1/sessions` valida la pieza y responde 201, `GET /sessions/{id}/state` sirve el estado vivo y el WS `/api/v1/ws/sessions/{id}` manda el estado al conectar, persiste cada `note_on`/`note_off` y lo difunde a todas las conexiones de la sesión (registro en memoria del proceso, un solo worker documentado en `ARCHITECTURE.md`). Los mensajes van envueltos en un campo `type` (`state`/`error`, con `agent_action` reservado para B-012.5): un payload inválido se avisa con `invalid_event_payload` sin cerrar la sesión y una sesión inexistente cierra con 4404. `connect()` activa **WAL** y un `busy_timeout` de 3 s para que el WebSocket escriba mientras los endpoints leen. El frontend gana `websocket-client.ts` (reconexión con backoff exponencial), `PracticeSession.tsx` y un botón **"Practicar esta pieza"** en el panel de detalle de la Library que abre la sesión y navega a `/practice/{id}`; **"Continuar en Learn" no cambia de significado**, sigue mandando la pieza al piano. La evaluación (B-012.2), las reglas (.3), la validación (.4) y la demo (.5) siguen pendientes.
 
+La misma serie se amplía con **B-012.8** (chat del agente) para que el agente tenga **cara visible** sin esperar a la evaluación: escribe el estudiante, el modelo elige entre una **lista blanca de funciones** que solo hacen cosas ya implementadas (buscar pieza, reproducir, pausar, reanudar, parar, abrir práctica, consultar estado), el backend valida y el **navegador ejecuta** lo que toca al piano. Si la orden no está en la lista, el agente responde que no puede y recuerda qué sí puede, que es la prueba de que no alucina capacidades. Añade **memoria a corto plazo** (ventana rodante de mensajes en SQLite, migración `0006`) y un **panel híbrido**: en la página del piano el chat se queda donde siempre ha estado, dentro del card del mentor, y en el resto de páginas aparece como panel flotante. Usa **LangGraph** solo para el bucle agente↔herramientas (la orquestación de alto nivel que anunciaba la arquitectura; no toca MIDI, ni el reloj, ni la reproducción) y una **cadena de proveedores** Groq → OpenCode → `MockProvider`: el modelo previsto es `openai/gpt-oss-20b` en Groq, y el respaldo garantizado es determinista y sin red, para que la demo no dependa de una clave.
+
 La misma tanda deja dos fixtures MIDI **versionados y regenerables** con `backend/scripts/build_midi_fixtures.py`: la **escala de tres notas** que fijan los números de la carga de piezas (`test_scale.mid`, antes un archivo local ignorado por git del que dependían siete tests) y la **frase de práctica** propia (`practice_phrase.mid`, 4 compases, 22 notas), que el catálogo ofrece como pieza `p16` para probar la sesión desde el navegador.
 
 ## 4. Plan por semanas
@@ -179,7 +181,7 @@ web
 - Definir el mapeo del teclado del ordenador a notas.
 - Capturar `keydown` y `keyup`, evitando repeticiones accidentales.
 - Mostrar la nota recibida y resaltar la tecla pulsada.
-- **Agente vertical (inicio): sesión + WS real, evaluación determinista, máquina de estados, validación de acciones, demo + devolución control, (opcional) Groq + acompañamiento.**
+- **Agente vertical (inicio): sesión + WS real, evaluación determinista, máquina de estados, validación de acciones, demo + devolución control, chat del agente (B-012.8), (opcional) Groq + acompañamiento.**
 
 **Entregable**
 
@@ -199,6 +201,7 @@ pieza MIDI
 - [ ] El usuario puede tocar con el teclado del ordenador.
 - [ ] Las notas pulsadas aparecen en la interfaz.
 - [ ] Sesión + WS real funcionando (crear, estado, eventos).
+- [ ] Chat del agente operando sobre lo implementado: lista blanca de funciones, memoria a corto plazo y panel en la interfaz (B-012.8).
 - [ ] Evaluación determinista produciendo scoring.
 - [ ] La reproducción funciona con las estructuras MIDI de prueba.
 
@@ -314,7 +317,7 @@ Preparar un vídeo de aproximadamente **2 a 4 minutos** que muestre:
 5. Memoria entre sesiones.
 6. Web MIDI físico.
 7. Feedback largo generado por LLM.
-8. LangGraph completo.
+8. LangGraph completo (B-012.8 usa un grafo mínimo, solo para orquestar el chat).
 
 El núcleo que debe sobrevivir es:
 

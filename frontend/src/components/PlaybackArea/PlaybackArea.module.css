@@ -7,4 +7,7 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  /* Ocupa todo el alto disponible para alinearse con el panel del mentor. */
+  flex: 1;
+  min-height: 0;
 }

@@ -424,6 +424,10 @@ Información estructurada de una práctica: pieza, compás, intentos, métricas,
 
 Comportamiento alternativo cuando un componente falla o no está disponible. El fallback del proyecto debe utilizar reglas deterministas si el LLM no responde.
 
+## Memoria a corto plazo
+
+Conversación reciente que se envía al LLM en cada turno, como una ventana rodante de los últimos mensajes, para que recuerde lo dicho hace un momento. No es memoria entre sesiones ni progreso del estudiante.
+
 ## Acción del agente
 
 Dato estructurado que expresa una intervención, por ejemplo `demonstrate` o `give_hint`. No debe ser código ejecutable.

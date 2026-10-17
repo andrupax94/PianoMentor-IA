@@ -1,3 +1,6 @@
+// description: Paginación de la tabla de piezas: contador de elementos y botones anterior/siguiente.
+// context: B-027.4; componente de paginación de la Library.
+
 import type { TablePaginationProps } from "./TablePagination.types";
 import styles from "./TablePagination.module.css";
 

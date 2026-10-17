@@ -1,3 +1,6 @@
+// description: Tabla de piezas de la Library: cabecera de columnas ordenable y una fila por canción.
+// context: B-027.3/B-027.4; recibe el estado del preview y el orden, y los reparte a cada fila SongRow.
+
 import type { SortDirection } from "../LibraryPage/LibraryPage.types";
 import { SongRow } from "./SongRow/SongRow";
 import { SONG_COLUMNS, type SongTableProps } from "./SongTable.types";

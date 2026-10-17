@@ -1,3 +1,6 @@
+// description: Barra de filtros y orden de la Library: búsqueda, estado, dificultad, duración y tempo.
+// context: B-027.3/B-027.4; componentes de filtro de la Library; la lógica de filtro y orden vive en library.ts.
+
 import {
   DIFFICULTY_OPTIONS,
   DURATION_OPTIONS,

@@ -265,6 +265,46 @@ def list_session_events(conn: sqlite3.Connection, session_id: str) -> list[sqlit
     ).fetchall()
 
 
+CHAT_MESSAGE_COLUMNS = ("chat_id", "role", "content", "tool_name")
+
+
+def insert_chat_message(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Añade un mensaje al log de una conversación (B-012.8)."""
+    columns = [name for name in CHAT_MESSAGE_COLUMNS if name in record]
+    if "chat_id" not in columns or "role" not in columns:
+        raise ValueError("insert_chat_message requiere al menos 'chat_id' y 'role'")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO chat_messages ({', '.join(columns)}) VALUES ({placeholders})",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
+def list_chat_messages(conn: sqlite3.Connection, chat_id: str, limit: int = 20) -> list[sqlite3.Row]:
+    """Devuelve los últimos `limit` mensajes de una conversación, más recientes primero."""
+    return conn.execute(
+        "SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?",
+        (chat_id, limit),
+    ).fetchall()
+
+
+def save_chat_message(chat_id: str, role: str, content: str, tool_name: str | None = None) -> None:
+    """Guarda un mensaje de conversación gestionando su propia conexión (B-012.8)."""
+    with open_db() as conn:
+        insert_chat_message(
+            conn,
+            {"chat_id": chat_id, "role": role, "content": content, "tool_name": tool_name},
+        )
+
+
+def get_chat_history(chat_id: str, limit: int = 20) -> list[sqlite3.Row]:
+    """Lee el historial de una conversación en orden cronológico (B-012.8)."""
+    with open_db() as conn:
+        rows = list_chat_messages(conn, chat_id, limit)
+        return list(reversed(rows))
+
+
 def init_db(conn: sqlite3.Connection) -> list[str]:
     """Aplica las migraciones pendientes y devuelve sus versiones aplicadas."""
     applied: list[str] = []

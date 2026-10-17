@@ -18,6 +18,7 @@ from fastapi import (
 
 from .agent import AgentService
 from .catalog import ensure_catalog_loaded
+from .chat import ChatService, get_fallback_provider
 from .config import settings
 from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
 from .midi import (
@@ -34,6 +35,8 @@ from .practice import PracticeService
 from .schemas import (
     ActionRequest,
     ActionResponse,
+    ChatMessageRequest,
+    ChatMessageResponse,
     ChordSummary,
     EvaluationResponse,
     HealthResponse,
@@ -47,6 +50,7 @@ from .schemas import (
     SessionCreate,
     SessionResponse,
     SessionStateResponse,
+    ToolCallResult,
     TrackSummary,
 )
 from .storage import LocalPieceStorage, content_hash
@@ -520,6 +524,37 @@ def agent_step(session_id: str) -> ActionResponse:
 @router.post("/sessions/{session_id}/evaluation", response_model=EvaluationResponse)
 def evaluate_session(session_id: str) -> EvaluationResponse:
     return EvaluationResponse()
+
+
+@router.post("/agent/chat", response_model=ChatMessageResponse)
+def agent_chat(payload: ChatMessageRequest) -> ChatMessageResponse:
+    """Turno de chat del agente: función calling sobre lo ya implementado (B-012.8).
+
+    El backend propone una función de la lista blanca, la valida y, si es de
+    servidor, la ejecuta; si es de navegador, devuelve la intención para que el
+    front la ejecute. Nunca toca MIDI ni el reloj de reproducción.
+    """
+    try:
+        service = ChatService(get_fallback_provider())
+        result = service.run(
+            payload.message,
+            chat_id=payload.chat_id,
+            context=payload.context,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_chat_payload", "message": str(exc)}
+        ) from exc
+    return ChatMessageResponse(
+        chat_id=result.chat_id,
+        reply=result.reply,
+        provider=result.provider,
+        used_fallback=result.used_fallback,
+        client_action=ToolCallResult(**result.client_action)
+        if result.client_action
+        else None,
+        used_tools=[ToolCallResult(**t) for t in result.used_tools],
+    )
 
 
 @router.websocket("/ws/sessions/{session_id}")

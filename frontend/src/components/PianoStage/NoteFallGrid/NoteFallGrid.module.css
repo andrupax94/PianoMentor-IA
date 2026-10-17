@@ -7,7 +7,9 @@
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  min-height: 220px;
+  /* Ocupa el espacio sobrante de PianoStage; el teclado no se alarga. */
+  flex: 1;
+  min-height: 0;
   padding: 12px;
   background: #141a26;
 }
