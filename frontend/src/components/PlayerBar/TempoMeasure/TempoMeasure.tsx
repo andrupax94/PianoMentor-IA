@@ -8,9 +8,22 @@ import type { TempoMeasureProps } from "./TempoMeasure.types";
 export function TempoMeasure({ tempoBpm, measure, measureCount, signature }: TempoMeasureProps) {
   return (
     <div className={styles.tempo}>
-      <p>Tempo: {tempoBpm === null || tempoBpm === undefined ? "–" : `${tempoBpm} BPM`}</p>
-      <p>Compás: {formatMeasure(measure, measureCount)}</p>
-      <p>Firma: {formatSignature(signature)}</p>
-    </div>
+      <p>
+        <span style={{ maskImage: 'url("/assets/icons/metronome.svg")' }}></span>
+        <span>Tempo: </span>
+        {tempoBpm == null ? "–" : `${tempoBpm} BPM`}
+      </p>
+
+      <p>
+        <span style={{ maskImage: 'url("/assets/icons/cronometer.svg")' }}></span>
+        <span>Compás: </span>
+        {formatMeasure(measure, measureCount)}
+      </p>
+
+      <p>
+        <span style={{ maskImage: 'url("/assets/icons/firma.svg")' }}></span>
+        <span>Firma: </span>
+        {formatSignature(signature)}
+      </p></div>
   );
 }

@@ -5,7 +5,7 @@
    principal y la Library viven aquí; los componentes solo los consumen. */
 :root {
     color-scheme: dark;
-    --bg: #0b1426;
+    --bg: #0c1829;
     --bg2: #172338;
     --panel: #0f1a2e;
     --panel-soft: #12203a;
@@ -22,6 +22,26 @@
     /* Manrope llega por next/font en layout.tsx (--font-manrope). */
     --font2: var(--font-manrope), "Reem Kufi", sans-serif;
     --color1: #fbb22a;
+    --gradient1: linear-gradient(45deg,
+            #216091 0%,
+            /* Azul (esquina inferior izquierda) */
+            #3f7ead 25%,
+            /* Azul claro intermedio */
+            #a88a4e 75%,
+            /* Marrón claro intermedio */
+            #a17937 100%
+            /* Marrón dorado (esquina superior derecha) */
+        );
+    --gradient2: linear-gradient(to right,
+            #a8791e 0%,
+            /* Dorado oscuro / bronce (extremo izquierdo) */
+            #c4942e 35%,
+            /* Tono intermedio cálido */
+            #dbaa3b 70%,
+            /* Dorado brillante */
+            #f2cb57 100%
+            /* Amarillo dorado claro (extremo derecho) */
+        );
 }
 
 * {

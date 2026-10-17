@@ -15,7 +15,7 @@ export function PlaybackControls({
   return (
     <div className={styles.controls} role="group" aria-label="Controles de reproducción">
       <button type="button" aria-label="Atrás" onClick={onRewind}>
-        ⏮
+        <span>⏮</span>
       </button>
       {/* El mismo botón pausa mientras suena; la etiqueta dice lo que va a pasar. */}
       <button
@@ -23,13 +23,13 @@ export function PlaybackControls({
         aria-label={isPlaying ? "Pausar" : "Reproducir"}
         onClick={onTogglePlay}
       >
-        {isPlaying ? "⏸" : "▶"}
+        <span> {isPlaying ? "⏸" : "▶"}</span>
       </button>
       <button type="button" aria-label="Detener" onClick={onStop}>
-        ⏹
+        <span> ⏹</span>
       </button>
       <button type="button" aria-label="Adelante" onClick={onForward}>
-        ⏭
+        <span> ⏭</span>
       </button>
     </div>
   );

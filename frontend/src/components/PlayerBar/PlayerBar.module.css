@@ -6,4 +6,12 @@
   align-items: center;
   gap: 24px;
   padding: 12px 0;
+  justify-content: space-between;
+}
+
+.bar>span {
+  height: 50px;
+  width: 4px;
+  background-color: var(--text-soft);
+  border-radius: 10px;
 }

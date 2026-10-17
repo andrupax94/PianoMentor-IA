@@ -1,8 +1,33 @@
 /* description: Estilos de tempo y compás. */
 /* context: B-006.4; simplicidad primero. */
+.tempo {
+  justify-content: center;
+}
 
 .tempo p {
-  margin: 2px 0;
+  margin: 4px 1px;
   font-size: 0.85rem;
   white-space: nowrap;
+  display: flex;
+  color: var(--text-soft);
+  font-weight: bold;
+}
+
+.tempo p>span:nth-child(2) {
+  color: var(--text);
+  margin-right: 2px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tempo p>span:first-child {
+  display: flex;
+  mask-repeat: no-repeat;
+  background-color: white;
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  mask-position: center;
 }

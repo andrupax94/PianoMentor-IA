@@ -7,6 +7,38 @@
 }
 
 .controls button {
-  width: 44px;
-  padding: 10px 0;
+  position: relative;
+  width: 35px;
+  padding: 0px 0;
+  height: 35px;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--gradient1);
+}
+
+.controls button>span {
+  /* 1. Define el gradiente como fondo */
+  background: var(--gradient1);
+  /* 2. Aplica el fondo recortado al texto */
+  -webkit-background-clip: text;
+  background-clip: text;
+  /* 3. Vuelve transparente el color original del texto para que se vea el fondo */
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* Opcional: para que se vea bien en pantallas con zoom o alta resolución */
+  display: inline-block;
+  z-index: 1;
+  font-size: 14px;
+}
+
+.controls button::before {
+  content: "";
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  z-index: 0;
+  background-color: var(--bg);
+  border-radius: 20px;
 }

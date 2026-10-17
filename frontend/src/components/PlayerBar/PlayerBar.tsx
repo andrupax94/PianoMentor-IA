@@ -66,6 +66,7 @@ export function PlayerBar({
         onForward={() => seek(position_s + SKIP_S)}
         isPlaying={isPlaying}
       />
+      <span></span>
       <TempoMeasure
         tempoBpm={tempoBpm}
         measure={measure}
