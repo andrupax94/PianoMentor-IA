@@ -3,7 +3,7 @@
 
 import type { SessionState } from "../lib/api-client";
 import type { ConnectionStatus } from "../lib/websocket-client";
-
+import styles from "./SessionStatus.module.css";
 const STATUS_LABELS: Record<SessionState["status"], string> = {
   idle: "ESPERANDO",
   playing: "TOCANDO",
@@ -35,7 +35,7 @@ export function SessionStatus({
   error = null,
 }: SessionStatusProps) {
   return (
-    <section className="panel">
+    <section className={styles.panel}>
       <h2>Estado de sesión</h2>
 
       {state === null ? (

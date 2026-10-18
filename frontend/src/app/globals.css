@@ -17,6 +17,8 @@
     --text-mute: #7f8ca6;
     --gold: #f5a623;
     --gold-soft: #f5c04a;
+    --gold-usoft: #8f8c7a;
+    --gold-t: #f5bf4a27;
     --blue: #3f78b8;
     --font1: "Gabriola";
     /* Manrope llega por next/font en layout.tsx (--font-manrope). */
@@ -42,6 +44,7 @@
             #f2cb57 100%
             /* Amarillo dorado claro (extremo derecho) */
         );
+    --shadow1: white 0px 0px 50px -40px inset;
 }
 
 * {

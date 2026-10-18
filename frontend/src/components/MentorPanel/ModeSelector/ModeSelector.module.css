@@ -12,8 +12,19 @@
   color: var(--text);
   border: 1px solid #2b3544;
   font-weight: 400;
+  box-shadow: var(--shadow1);
 }
 
 .modes button[aria-pressed="true"] {
   border-color: var(--accent);
 }
+
+.observar {
+  background-color: var(--gold-t) !important;
+  border: solid 3px var(--gold-usoft) !important;
+
+}
+
+.duo {}
+
+.control {}

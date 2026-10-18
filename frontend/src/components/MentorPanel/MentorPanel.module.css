@@ -9,7 +9,6 @@
   padding: 10px;
   border-radius: 10px;
   background-color: var(--bg2);
-  /* Crece para ocupar todo el alto de la columna y alinearse con PianoStage. */
   flex: 1;
   min-height: 0;
 
@@ -21,15 +20,28 @@
 .sessionStatus {
   border: 1px solid #2b3544;
   border-radius: 16px;
-  background: var(--panel-soft);
+  background: var(--bg);
   padding: 14px;
   flex-shrink: 0;
+
 }
 
 .sessionStatus h2 {
+  display: flex;
   margin: 0 0 8px;
   font-size: 1rem;
   color: var(--text);
+}
+
+.sessionStatus h2::before {
+  content: "";
+  mask-image: url("/assets/icons/info.svg");
+  width: 20px;
+  height: 20px;
+  background-color: var(--gold-soft);
+  position: relative;
+  margin-right: 10px;
+  display: flex;
 }
 
 .sessionStatus p,

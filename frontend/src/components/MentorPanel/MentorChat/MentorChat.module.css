@@ -30,14 +30,27 @@
   font-size: 1.8rem;
 }
 
+.chat__title {
+  font-size: 22px;
+}
+
+.chat__title>p {
+  font-size: 12px;
+}
+
+.chat__title>strong>span {
+  color: var(--gold);
+}
+
 /* La burbuja tiene altura fija: así el panel no salta aunque la respuesta
    cambie de longitud. El texto se reduce de lg a sm para caber; si aun así
    desborda (respuestas largas), aparece el scroll en vertical en vez de
    crecer o recortarse. `safe center` centra los mensajes cortos y, al
    desbordar, alinea arriba para poder hacer scroll hasta el principio. */
 .bubble {
-  border: 1px solid #2b3544;
-  border-radius: 12px;
+
+  position: relative;
+  border-radius: 16px;
   padding: 14px 16px;
   height: 116px;
   display: flex;
@@ -51,6 +64,26 @@
   word-break: break-word;
   scrollbar-width: thin;
   scrollbar-color: #3a475a transparent;
+  background-color: var(--bg);
+  color: var(--text-soft);
+  font-weight: 400;
+  font-family: var(--font2);
+  margin-top: 10px;
+  box-shadow: var(--shadow1);
+}
+
+.bubble::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 3px solid transparent;
+  /* Grosor del borde */
+  background: var(--gradient1) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Scrollbar discreta para navegadores con pseudioelemento WebKit/Blink. */
@@ -110,17 +143,43 @@
   font-size: 0.8rem;
 }
 
-.input {
-  border: 1px solid #2b3544;
-  border-radius: 999px;
-  background: transparent;
+.input__container {
+  position: relative;
+  border-radius: 20px;
   color: inherit;
-  padding: 12px 16px;
   font: inherit;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: var(--shadow1);
 }
 
+.input__container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 3px solid transparent;
+  /* Grosor del borde */
+  background: var(--gradient1) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.input {
+  border: none;
+  width: 100%;
+  position: relative;
+  padding: 12px 16px;
+  font: inherit;
+  background: transparent;
+
+}
+
+
 .input:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--gradient1);
   outline-offset: 1px;
 }
 
