@@ -3,7 +3,7 @@
 // `switchMentorTab('rendimiento')` y el contenedor de pestañas del panel del mentor
 // reacciona sin necesidad de compartir props ni contexto React.
 
-export type MentorTabId = "carga" | "sesion" | "rendimiento";
+export type MentorTabId = "carga" | "rendimiento";
 
 export const mentorTabEvents = new EventTarget();
 

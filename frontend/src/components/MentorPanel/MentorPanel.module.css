@@ -14,3 +14,27 @@
   min-height: 0;
 
 }
+
+/* Contenedor del estado de sesión, fuera de las pestañas. Hereda la estética
+   del bloque de pestañas para que el panel no cambie de look. No se encoge:
+   .tabs tiene flex:1 y se llevaría el alto disponible si no se fija este. */
+.sessionStatus {
+  border: 1px solid #2b3544;
+  border-radius: 16px;
+  background: var(--panel-soft);
+  padding: 14px;
+  flex-shrink: 0;
+}
+
+.sessionStatus h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.sessionStatus p,
+.sessionStatus ul {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
