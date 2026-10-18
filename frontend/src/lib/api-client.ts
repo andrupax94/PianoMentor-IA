@@ -177,6 +177,9 @@ const ERROR_CODES = [
   "session_not_found",
   "invalid_event_payload",
   "ws_error",
+  "invalid_chat_payload",
+  "unknown_tool",
+  "tool_failed",
   "unexpected_response",
   "network_error",
 ] as const;
@@ -339,4 +342,67 @@ export async function createSession(pieceId: string): Promise<SessionResponse> {
  */
 export async function getSessionState(sessionId: string): Promise<SessionState> {
   return request<SessionState>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/state`);
+}
+
+// ---------------------------------------------------------------------------
+// Chat del agente (B-012.8)
+// ---------------------------------------------------------------------------
+
+/**
+ * Una función invocada por el modelo, alineada con ToolCallResult de Pydantic.
+ * `rejected` es true cuando el registro la rechazó por estar fuera de la lista
+ * blanca; en ese caso no se ejecutó nada.
+ */
+export interface AgentToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+  rejected?: boolean;
+}
+
+/**
+ * Orden que el navegador debe ejecutar tras un turno del agente, alineada con
+ * ToolCallResult. El backend nunca la ejecuta: solo devuelve la intención
+ * (reproducir, pausar, abrir práctica…), porque el transporte vive aquí.
+ */
+export interface AgentClientAction {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/** Contexto opcional que el front cuenta al agente: dónde está el usuario. */
+export interface AgentChatContext {
+  page?: string;
+  piece_id?: string | null;
+  session_id?: string | null;
+  transport?: string | null;
+}
+
+/** Petición a POST /api/v1/agent/chat, alineada con ChatMessageRequest. */
+export interface AgentChatRequest {
+  message: string;
+  chat_id?: string | null;
+  context?: AgentChatContext | null;
+}
+
+/** Respuesta de POST /api/v1/agent/chat, alineada con ChatMessageResponse. */
+export interface AgentChatResponse {
+  chat_id: string;
+  reply: string;
+  provider: string;
+  used_fallback: boolean;
+  client_action: AgentClientAction | null;
+  used_tools: AgentToolCall[];
+}
+
+/**
+ * Envía un mensaje al chat del agente en POST /api/v1/agent/chat (B-012.8).
+ * El backend valida contra la lista blanca, ejecuta las funciones de servidor
+ * y devuelve `client_action` cuando la orden es del navegador.
+ */
+export async function sendAgentMessage(payload: AgentChatRequest): Promise<AgentChatResponse> {
+  return request<AgentChatResponse>("/api/v1/agent/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
