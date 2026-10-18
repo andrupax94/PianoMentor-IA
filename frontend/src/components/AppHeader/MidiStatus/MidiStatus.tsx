@@ -8,7 +8,7 @@ export function MidiStatus({ connected = false }: MidiStatusProps) {
   return (
     <p className={styles.status} role="status">
       <span className={connected ? styles.on : styles.off} aria-hidden="true" />
-      {!connected ? "MIDI Keyboard connected" : "PC Keyboard connected"}
+      {!connected ? "MIDI Keyboard connected" : "Modo Teclado De PC"}
     </p>
   );
 }

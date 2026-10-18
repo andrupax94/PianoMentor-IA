@@ -2,6 +2,7 @@
 /* context: B-006.4; simplicidad primero. */
 
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -11,4 +12,5 @@
   /* Crece para ocupar todo el alto de la columna y alinearse con PianoStage. */
   flex: 1;
   min-height: 0;
+
 }

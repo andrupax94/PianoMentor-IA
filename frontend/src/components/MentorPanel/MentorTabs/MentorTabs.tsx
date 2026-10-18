@@ -13,7 +13,7 @@ import styles from "./MentorTabs.module.css";
 import type { MentorTabsProps } from "./MentorTabs.types";
 
 const TABS: { id: MentorTabId; label: string; icon: string }[] = [
-  { id: "carga", label: "Carga pieza", icon: "/assets/icons/piano.svg" },
+  { id: "carga", label: "Carga pieza", icon: "/assets/icons/midi.svg" },
   { id: "sesion", label: "Estado de sesión", icon: "/assets/icons/info.svg" },
   { id: "rendimiento", label: "Rendimiento", icon: "/assets/icons/metrics.svg" },
 ];

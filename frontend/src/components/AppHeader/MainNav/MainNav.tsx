@@ -9,10 +9,10 @@ import type { MainNavProps } from "./MainNav.types";
 
 /* `href: null` marca las secciones que aún no tienen pantalla. */
 const ITEMS = [
-  { id: "learn", label: "Learn", icon: "Learn", href: "/" },
-  { id: "library", label: "Library", icon: "Library", href: "/library" },
-  { id: "progress", label: "Progress", icon: "Lock", href: null },
-  { id: "settings", label: "Settings", icon: "Lock", href: null },
+  { id: "learn", label: "Aprender", icon: "Learn", href: "/" },
+  { id: "library", label: "Biblioteca", icon: "Library", href: "/library" },
+  { id: "progress", label: "Progreso", icon: "Lock", href: null },
+  { id: "settings", label: "Opciones", icon: "Lock", href: null },
 ] as const;
 
 export function MainNav({ active = "learn" }: MainNavProps) {

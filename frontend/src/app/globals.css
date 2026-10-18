@@ -87,12 +87,7 @@ h1 {
     margin: 36px 0;
 }
 
-.panel {
-    background: var(--panel);
-    border: 1px solid #2b3544;
-    border-radius: 16px;
-    padding: 24px;
-}
+
 
 button {
     background: var(--accent);

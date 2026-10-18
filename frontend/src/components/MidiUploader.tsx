@@ -9,7 +9,7 @@ import { useState } from "react";
 
 import { ApiError, previewPiece } from "../lib/api-client";
 import { publishPianoPiece } from "../lib/piece-store";
-
+import styles from "./MidiUploader.module.css";
 const ALLOWED_EXTENSIONS = [".mid", ".midi"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB, espejo orientativo del backend
 /** Página del piano: donde suena lo que se elige aquí. */
@@ -88,9 +88,8 @@ export function MidiUploader() {
   }
 
   return (
-    <section className="panel">
-      <h2>Cargar pieza</h2>
-      <p>Elige un archivo MIDI para escucharlo en el piano. No se guarda en el catálogo.</p>
+    <section className={styles.panel}>
+      <p><span></span>Arrastra un archivo MIDI para escucharlo en el piano.</p>
       <input
         type="file"
         accept=".mid,.midi"
