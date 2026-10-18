@@ -30,6 +30,7 @@ import { MentorChat } from "./MentorPanel/MentorChat/MentorChat";
 import { ModeSelector } from "./MentorPanel/ModeSelector/ModeSelector";
 import { PerformanceStats } from "./MentorPanel/PerformanceStats/PerformanceStats";
 import { GaugeChart } from "./MentorPanel/PerformanceStats/GaugeChart/GaugeChart";
+import { AgentDock } from "./AgentDock/AgentDock";
 
 const TREE = {
   AppHeader,
@@ -52,11 +53,12 @@ const TREE = {
   ModeSelector,
   PerformanceStats,
   GaugeChart,
+  AgentDock,
 };
 
 describe("component tree", () => {
-  it("expone los 20 componentes del armazón", () => {
-    expect(Object.keys(TREE)).toHaveLength(20);
+  it("expone los 21 componentes del armazón", () => {
+    expect(Object.keys(TREE)).toHaveLength(21);
     for (const [name, component] of Object.entries(TREE)) {
       expect(typeof component, name).toBe("function");
     }

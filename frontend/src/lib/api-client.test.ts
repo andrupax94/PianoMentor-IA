@@ -9,7 +9,9 @@ import {
   getPieceNotes,
   getSessionState,
   previewPiece,
+  sendAgentMessage,
   uploadPiece,
+  type AgentChatResponse,
 } from "./api-client";
 
 const PIECE_RESPONSE = {
@@ -360,6 +362,96 @@ describe("previewPiece", () => {
     await expect(previewPiece(new File([new Uint8Array([1])], "roto.mid"))).rejects.toMatchObject({
       code: "invalid_midi_content",
       status: 400,
+    });
+  });
+});
+
+describe("sendAgentMessage", () => {
+  const CHAT_RESPONSE: AgentChatResponse = {
+    chat_id: "chat-1",
+    reply: "Cargando el Minueto en Sol en el piano.",
+    provider: "groq",
+    used_fallback: false,
+    client_action: { name: "reproducir_pieza", arguments: { piece_id: "p01" } },
+    used_tools: [{ name: "reproducir_pieza", arguments: { piece_id: "p01" } }],
+  };
+
+  it("envía el mensaje con la conversación y el contexto", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(CHAT_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await sendAgentMessage({
+      message: "reproduce el minueto",
+      chat_id: "chat-0",
+      context: { page: "/" },
+    });
+
+    expect(answer).toEqual(CHAT_RESPONSE);
+    // La orden del navegador viaja entera: el backend no la ejecuta, solo la decide.
+    expect(answer.client_action).toEqual({
+      name: "reproducir_pieza",
+      arguments: { piece_id: "p01" },
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/agent\/chat$/);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(init.body as string)).toEqual({
+      message: "reproduce el minueto",
+      chat_id: "chat-0",
+      context: { page: "/" },
+    });
+  });
+
+  it("devuelve client_action nulo cuando el agente solo conversa", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...CHAT_RESPONSE,
+          reply: "El minueto de Bach se llama Minueto en Sol.",
+          client_action: null,
+          used_tools: [{ name: "buscar_pieza", arguments: { query: "bach" } }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await sendAgentMessage({ message: "¿cómo se llama?", chat_id: null, context: null });
+
+    expect(answer.client_action).toBeNull();
+    expect(answer.used_tools[0].name).toBe("buscar_pieza");
+  });
+
+  it("sin conversación previa no se manda chat_id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(CHAT_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await sendAgentMessage({ message: "hola", context: null });
+
+    // chat_id es opcional: al omitirlo no aparece en el JSON, y el backend
+    // lo trata como primer turno.
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ message: "hola", context: null });
+    expect(JSON.parse(init.body as string)).not.toHaveProperty("chat_id");
+  });
+
+  it("convierte la caída del servicio en un error controlado", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(sendAgentMessage({ message: "hola" })).rejects.toMatchObject({
+      code: "network_error",
     });
   });
 });

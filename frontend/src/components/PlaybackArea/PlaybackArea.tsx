@@ -11,6 +11,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { getPieceNotes } from "../../lib/api-client";
+import { subscribeAgentCommand } from "../../lib/agent-commands";
 import { getPianoPiece, subscribePianoPiece } from "../../lib/piece-store";
 import { usePlayback } from "../../lib/usePlayback";
 import { PlayerBar } from "../PlayerBar/PlayerBar";
@@ -23,10 +24,22 @@ const DEMO_PIECE_ID = "p01";
 
 export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps) {
   const player = usePlayback();
-  const { load, play } = player;
+  const { load, play, pause, stop } = player;
   // La pieza llega por el almacén: quien la elige puede estar en la Library y,
   // tras navegar, el transporte la encuentra ya puesta.
   const piece = useSyncExternalStore(subscribePianoPiece, getPianoPiece, getPianoPiece);
+
+  // El chat manda pausar/reanudar/parar por su propio canal: solo el transporte
+  // puede tocar el reloj, así que el agente no llega al motor de otra forma.
+  useEffect(
+    () =>
+      subscribeAgentCommand(({ command }) => {
+        if (command === "pausar") pause();
+        else if (command === "reanudar") play();
+        else if (command === "parar") stop();
+      }),
+    [pause, play, stop],
+  );
 
   useEffect(() => {
     // Partitura ya en memoria (subida a mano): se carga tal cual, sin backend.

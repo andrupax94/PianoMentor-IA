@@ -1,11 +1,25 @@
 "use client";
 // description: Chat real del agente: burbuja con escritura progresiva, tamaño dinámico y envío con Enter.
-// context: B-012.8 bloque C; el backend propone funciones y valida, el navegador solo muestra la respuesta.
+// context: B-012.8 bloque C; el backend propone funciones y valida, el navegador ejecuta la orden
+// devuelta en client_action (reproducir, pausar, abrir práctica) a través de agent-commands.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { CHAT_TYPING_MS, chatFontSize, typedSlice, typingStep } from "../../../lib/agent-chat";
-import { sendAgentMessage } from "../../../lib/api-client";
+import {
+  CHAT_TYPING_MS,
+  chatFontSize,
+  runChatTurn,
+  typedSlice,
+  typingStep,
+} from "../../../lib/agent-chat";
+import {
+  executeClientAction,
+  publishAgentCommand,
+  fetchPieceTitle,
+} from "../../../lib/agent-commands";
+import { createSession, sendAgentMessage } from "../../../lib/api-client";
+import { publishPianoPiece } from "../../../lib/piece-store";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
 
@@ -42,10 +56,11 @@ function storeChatId(chatId: string): void {
 }
 
 export function MentorChat({
-  exampleMessage = "Aquí hablará tu profesor de piano IA.",
+  exampleMessage = "Hola En que puedo Ayudarte?",
 }: MentorChatProps) {
+  const router = useRouter();
   const [input, setInput] = useState("");
-  /** Respuesta completa del agente, ya recortada al tope de la burbuja. */
+  /** Respuesta completa del agente, sin recortar: la altura la fija el CSS. */
   const [reply, setReply] = useState<string | null>(null);
   /** Caracteres ya revelados por el efecto de escritura. */
   const [visibleChars, setVisibleChars] = useState(0);
@@ -85,23 +100,37 @@ export function MentorChat({
     setBusy(true);
     setError(null);
 
-    try {
-      const respuesta = await sendAgentMessage({
+    // La orden del agente se ejecuta aquí y no en el backend: reproducir publica
+    // en el almacén y navega al piano, y la práctica crea sesión y navega a ella.
+    const outcome = await runChatTurn(
+      {
         message,
-        chat_id: chatIdRef.current,
+        chatId: chatIdRef.current,
         context: typeof window === "undefined" ? null : { page: window.location.pathname },
-      });
-      chatIdRef.current = respuesta.chat_id;
-      storeChatId(respuesta.chat_id);
-      setReply(respuesta.reply);
-    } catch (err) {
-      const detalle = err instanceof Error ? err.message : "No se pudo enviar el mensaje.";
-      setError(detalle);
-      setReply("No he podido contactar con el profesor. Inténtalo de nuevo.");
-    } finally {
-      setBusy(false);
+      },
+      {
+        send: sendAgentMessage,
+        executeAction: (action) =>
+          executeClientAction(action, {
+            publishPiece: publishPianoPiece,
+            publishCommand: publishAgentCommand,
+            createPracticeSession: createSession,
+            navigate: (path) => {
+              void router.push(path);
+            },
+            resolveTitle: fetchPieceTitle,
+          }),
+      },
+    );
+
+    if (outcome.chatId !== null) {
+      chatIdRef.current = outcome.chatId;
+      storeChatId(outcome.chatId);
     }
-  }, [busy, input]);
+    setReply(outcome.reply);
+    setError(outcome.error);
+    setBusy(false);
+  }, [busy, input, router]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -123,8 +152,8 @@ export function MentorChat({
     <section className={styles.chat} aria-label="Chat del mentor">
       <div className={styles.heading}>
         <span className={styles.avatar} aria-hidden="true" />
-        <div>
-          <strong>PianoMentor Chat</strong>
+        <div className={styles.chat__title}>
+          <strong>PianoMentor <span>Chat</span></strong>
           <p>Tu Profesor de piano IA</p>
         </div>
       </div>
@@ -143,17 +172,18 @@ export function MentorChat({
           {error}
         </p>
       )}
-
-      <input
-        className={styles.input}
-        type="text"
-        placeholder="Habla con PianoMentor…"
-        aria-label="Habla con PianoMentor"
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        onKeyDown={onKeyDown}
-        disabled={busy}
-      />
+      <div className={styles.input__container}>
+        <input
+          className={styles.input}
+          type="text"
+          placeholder="Habla con PianoMentor…"
+          aria-label="Habla con PianoMentor"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={onKeyDown}
+          disabled={busy}
+        />
+      </div>
     </section>
   );
 }

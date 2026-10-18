@@ -3,6 +3,7 @@
 
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { AgentDock } from "../components/AgentDock/AgentDock";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -19,7 +20,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={manrope.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* El chat del mentor en la página principal; flotante en el resto. */}
+        <AgentDock />
+      </body>
     </html>
   );
 }

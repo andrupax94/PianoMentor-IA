@@ -1,0 +1,25 @@
+/* description: Chat del agente flotando sobre el contenido de las páginas secundarias.
+   context: B-012.8 bloque C; se oculta en "/" desde el componente, no desde aquí, porque
+   el layout no re-renderiza al navegar. Sobre la Library y la práctica, no sobre el piano. */
+
+.dock {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  z-index: 40;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .dock {
+    right: 12px;
+    bottom: 12px;
+    width: 300px;
+  }
+}
