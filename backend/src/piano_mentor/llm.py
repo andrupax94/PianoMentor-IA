@@ -34,6 +34,24 @@ class LLMProvider(ABC):
         """Devuelve texto y, opcionalmente, una llamada a función del registro."""
 
 
+def _parse_arguments(raw: Any) -> dict[str, Any]:
+    """Normaliza los argumentos de un tool_call a dict, tolerando JSON roto.
+
+    El proveedor los envía como string JSON; una cadena vacía o malformada no
+    debe romper el turno, así que se degrada a argumentos vacíos y la
+    validación de la función se encarga del resto.
+    """
+    if isinstance(raw, dict):
+        return raw
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
 class MockProvider(LLMProvider):
     """Proveedor determinista para tests/CI y red de seguridad si fallan todos los reales.
 
@@ -164,9 +182,12 @@ class OpenAICompatibleProvider(LLMProvider):
             if call.get("type") != "function":
                 continue
             function = call["function"]
+            # El `id` es obligatorio al reenviar el tool_call al proveedor
+            # (dialecto OpenAI): sin él Groq/Gemini devuelven 400.
             tool_call = {
+                "id": call.get("id"),
                 "name": function["name"],
-                "arguments": json.loads(function.get("arguments") or "{}"),
+                "arguments": _parse_arguments(function.get("arguments")),
             }
             break
 

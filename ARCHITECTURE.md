@@ -755,7 +755,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-17 19:25 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-18 15:24 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -802,9 +802,11 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/agent.py
 ├── backend/src/piano_mentor/api.py
 ├── backend/src/piano_mentor/catalog.py
+├── backend/src/piano_mentor/chat.py
 ├── backend/src/piano_mentor/config.py
 ├── backend/src/piano_mentor/database.py
 ├── backend/src/piano_mentor/evaluation.py
+├── backend/src/piano_mentor/llm.py
 ├── backend/src/piano_mentor/main.py
 ├── backend/src/piano_mentor/midi.py
 ├── backend/src/piano_mentor/migrations/
@@ -813,9 +815,11 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/migrations/0003_add_hash_and_provenance.sql
 ├── backend/src/piano_mentor/migrations/0004_add_cover.sql
 ├── backend/src/piano_mentor/migrations/0005_add_sessions.sql
+├── backend/src/piano_mentor/migrations/0006_add_chat_messages.sql
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
 ├── backend/src/piano_mentor/storage.py
+├── backend/src/piano_mentor/tools.py
 ├── backend/src/piano_mentor/validators.py
 ├── backend/src/piano_mentor_backend.egg-info/
 ├── backend/src/piano_mentor_backend.egg-info/dependency_links.txt
@@ -837,6 +841,8 @@ piano-mentor-ai/
 ├── backend/tests/fixtures/midi/test_scale.mid
 ├── backend/tests/fixtures/midi/unclosed_note.mid
 ├── backend/tests/test_agent.py
+├── backend/tests/test_agent_chat.py
+├── backend/tests/test_agent_chat_integration.py
 ├── backend/tests/test_catalog.py
 ├── backend/tests/test_catalog_load.py
 ├── backend/tests/test_chords.py
@@ -907,6 +913,7 @@ piano-mentor-ai/
 ├── frontend/public/assets/icons/bot.svg
 ├── frontend/public/assets/icons/cronometer.svg
 ├── frontend/public/assets/icons/eye.svg
+├── frontend/public/assets/icons/file.svg
 ├── frontend/public/assets/icons/firma.svg
 ├── frontend/public/assets/icons/info.svg
 ├── frontend/public/assets/icons/Learn.svg
@@ -915,6 +922,7 @@ piano-mentor-ai/
 ├── frontend/public/assets/icons/Logo.svg
 ├── frontend/public/assets/icons/metrics.svg
 ├── frontend/public/assets/icons/metronome.svg
+├── frontend/public/assets/icons/midi.svg
 ├── frontend/public/assets/icons/next.svg
 ├── frontend/public/assets/icons/pause.svg
 ├── frontend/public/assets/icons/piano.svg
@@ -996,6 +1004,10 @@ piano-mentor-ai/
 ├── frontend/src/components/MentorPanel/MentorPanel.module.css
 ├── frontend/src/components/MentorPanel/MentorPanel.tsx
 ├── frontend/src/components/MentorPanel/MentorPanel.types.ts
+├── frontend/src/components/MentorPanel/MentorTabs/
+├── frontend/src/components/MentorPanel/MentorTabs/MentorTabs.module.css
+├── frontend/src/components/MentorPanel/MentorTabs/MentorTabs.tsx
+├── frontend/src/components/MentorPanel/MentorTabs/MentorTabs.types.ts
 ├── frontend/src/components/MentorPanel/ModeSelector/
 ├── frontend/src/components/MentorPanel/ModeSelector/ModeSelector.module.css
 ├── frontend/src/components/MentorPanel/ModeSelector/ModeSelector.tsx
@@ -1069,6 +1081,7 @@ piano-mentor-ai/
 ├── frontend/src/lib/library.ts
 ├── frontend/src/lib/measures.test.ts
 ├── frontend/src/lib/measures.ts
+├── frontend/src/lib/mentor-tab-events.ts
 ├── frontend/src/lib/pc-keyboard.test.ts
 ├── frontend/src/lib/pc-keyboard.ts
 ├── frontend/src/lib/piano-model.test.ts
@@ -1226,6 +1239,9 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/migrations/0004_add_cover.sql` | Migración 0004: añade la columna cover (ruta pública de la portada) a pieces. | Portadas del corpus (B-027.3) servidas por el frontend desde /assets/covers; las subidas de usuario quedan sin portada. |
 | `backend/src/piano_mentor/migrations/0005_add_sessions.sql` | Migración 0005: crea sessions (id, piece_id, status, control, current_measure, position_s, created_at, updated_at) y session_events (log append-only con type, pitch, velocity, t_s y received_at), con índices por pieza y por sesión (B-012.1). | sessions guarda el estado vivo y session_events es el log de la interpretación que leerá la evaluación (B-012.2). Sin claves foráneas, como el resto del esquema; t_s es el reloj del estudiante y received_at solo diagnóstico. |
 | `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados; calcula content_hash y marca source='corpus' para que subir un MIDI idéntico reutilice el catálogo. ensure_catalog_loaded siembra el corpus cuando la tabla no tiene ninguna pieza suya (B-027.4). | CLI python -m piano_mentor.catalog para forzar la carga; GET /pieces llama a ensure_catalog_loaded, así que un arranque limpio ya sirve la Library. Un catálogo ausente o inválido se avisa por el log y no rompe el listado. B-003.3 no toca el formato del catálogo. |
+| `backend/src/piano_mentor/tools.py` | Registro de funciones del chat con lista blanca cerrada (B-012.8): define ToolDef (name, description en español, parameters como JSON Schema y side server/client) y REGISTRY con 9 funciones — listar_piezas, buscar_pieza, info_pieza y estado_sesion de servidor; reproducir_pieza, pausar, reanudar, parar y abrir_practica de navegador. Expone list_tools(), tool_names(), execute_tool() y ToolError. | La lista blanca es el criterio de honestidad del agente: lo que no está aquí se rechaza antes de ejecutarse. El reparto side fija la frontera arquitectónica: el backend ejecuta las de servidor (tienen la BD) y solo devuelve la intención de las de navegador, porque el transporte y el audio viven en el navegador (B-012.8 decisión 3). |
+| `backend/src/piano_mentor/llm.py` | Proveedores de LLM del chat (B-012.8): contrato LLMProvider.chat(messages, tools) -> LLMResponse (text, tool_call, provider, used_fallback), MockProvider determinista en español (patrones: pausa, reproduce/pon X, reanuda, para, abre práctica, lista, qué puedes hacer), OpenAICompatibleProvider parametrizado por base_url/api_key/modelo (Groq, Gemini y OpenCode hablan el mismo dialecto) y FallbackProvider que encadena hasta que uno responde. | La elección de proveedor es configuración, no código: misma interfaz, otra base_url y otra clave. El MockProvider es la red de seguridad: sin red ni clave la demo no se cae, y es lo que usa CI. El tool_call conserva el `id` del proveedor porque el bucle de chat.py lo reenvía como tool_call_id; sin ese id Groq/Gemini devuelven 400 (dialecto OpenAI). |
+| `backend/src/piano_mentor/chat.py` | Orquestación de un turno del chat del agente (B-012.8): guarda el mensaje, construye la ventana rodante de memoria con get_chat_history, arma los mensajes (system + contexto + historial + usuario), ejecuta el bucle acotado agente <-> herramientas (MAX_STEPS=3) validando cada función contra la lista blanca, ejecuta las de servidor o devuelve la intención de las de navegador como client_action, y redacción la respuesta final en ChatTurnResult. get_fallback_provider() selecciona el proveedor por settings.llm_provider. | El LLM solo propone; la validación decide; el navegador ejecuta. Los mensajes de tool_call siguen el dialecto OpenAI (assistant con tool_calls anidado id/type/function y arguments como string JSON, tool con tool_call_id) para que Groq y Gemini los acepten. El gating es explícito: llm_provider=mock es hermético aunque el .env tenga claves; groq/gemini montan solo ese proveedor con Mock de seguridad; sin clave se salta al Mock. LangGraph quedó deliberadamente fuera del MVP: el bucle MAX_STEPS ya implementa el grafo de dos nodos sin sumar dependencias pesadas (decisión documentada en la issue B-012.8 bloque B). |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales), conversión ticks→segundos con TempoMap, nota normalizada (emparejamiento, acordes, orden estable y notas sin cerrar) y la especificación de la frase de práctica de B-012.1 (22 notas, 8 s, dos manos separadas por registro). | Confianza en el parsing, el mapa de tempo y el normalizador. |
 | `backend/tests/test_chords.py` | Agrupación en acordes (B-009.1): notas que empiezan juntas, detalle de cada nota (velocity, canal y pista), orden de grave a agudo, bordes de la tolerancia, arpegio que no se agrupa, determinismo e invariancia del corpus. | Confianza en el contrato de acorde que consumirán la evaluación y la UI; lee el catálogo para localizar las piezas reales. |
@@ -1250,6 +1266,8 @@ piano-mentor-ai/
 | `backend/tests/test_measure_grid.py` | Rejilla de compases (B-008.1): 4/4 por defecto, cambios de firma y de tempo, measure_at/bounds_s/signature_at y validaciones con código estable. | Confianza en el cálculo de compases del motor. |
 | `backend/tests/test_measure_range.py` | Rango de compases a ventana temporal (B-008.2/B-008.3): resolve_range y validaciones, endpoint /notes con from_measure/to_measure y la rejilla measures servida (con cambio de firma 3/4 -> 4/4). | Confianza en la reproducción por tramos y en la rejilla que consume el PlayerBar. |
 | `backend/tests/test_sessions.py` | Sesiones de práctica (B-012.1): POST /sessions valida la pieza y la persiste, GET /state devuelve el estado con 404 estable, el WebSocket manda el estado al conectar y tras cada evento, guarda note_on/note_off en session_events, rechaza payloads y JSON inválidos sin cerrar la sesión, cierra con 4404 la sesión inexistente y libera la conexión al desconectar; el broadcast se cubre aparte con varios sockets, aislamiento por sesión y olvido de los caídos. Incluye la frase de práctica entera (44 eventos) y la tabla del test contrastada con el MIDI versionado. | Confianza en el contrato REST y en el push en tiempo real antes de la evaluación (B-012.2) y el agente (B-012.3). |
+| `backend/tests/test_agent_chat.py` | Chat del agente (B-012.8): lista blanca de funciones (solo las registradas, servidores y de navegador), MockProvider determinista, ChatService con memoria en SQLite, rechazo honesto de una función desconocida, devolución de client_action, dialecto OpenAI del bucle de herramientas (tool_call con id/type/function y arguments serializados, tool con tool_call_id) y gating de llm_provider (mock hermético, groq/gemini con Mock de seguridad). | Todo con MockProvider: sin red ni clave, la suite es hermética. Cubre el bug del dialecto OpenAI que rompía cualquier función de servidor con Groq/Gemini real. |
+| `backend/tests/test_agent_chat_integration.py` | Pruebas de integración del proveedor real (B-012.8 bloque B), marcadas como `integration`: Groq elige función de cliente y de servidor con argumentos, responde texto sin función, completa el bucle con ChatService y devuelve client_action; Gemini hace tool calling; la cadena no se rompe si un proveedor cae. Se omiten en la suite normal (addopts -m 'not integration') y se ejecutan con `python -m pytest -q -m integration`. | Única red del backend contra LLM reales; necesita claves reales, así que nunca corre en CI. Verifican el camino exacto (tool_call -> ejecución -> resultado) que el MockProvider oculta. |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
 | `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript). | Instalar y arrancar la web. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |

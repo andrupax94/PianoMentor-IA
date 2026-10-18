@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Any
 
@@ -12,6 +13,58 @@ from .config import settings
 from .database import get_chat_history, save_chat_message
 from .llm import FallbackProvider, LLMProvider, LLMResponse, MockProvider, OpenAICompatibleProvider
 from .tools import REGISTRY, ToolError, execute_tool, list_tools, tool_names
+
+
+def _assistant_tool_call_message(
+    tool_call_id: str, nombre: str, argumentos: dict[str, object]
+) -> dict[str, Any]:
+    """Mensaje assistant que porta un tool_call, en dialecto OpenAI.
+
+    El `id` es obligatorio: el mensaje tool de la respuesta debe referenciarlo
+    con `tool_call_id`, y sin ese id Groq y Gemini rechazan la petición con 400.
+    Los argumentos viajan como string JSON, no como objeto.
+    """
+    return {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "id": tool_call_id,
+                "type": "function",
+                "function": {
+                    "name": nombre,
+                    "arguments": json.dumps(argumentos, ensure_ascii=False, default=str),
+                },
+            }
+        ],
+    }
+
+
+def _tool_result_message(
+    tool_call_id: str, nombre: str, contenido: str
+) -> dict[str, Any]:
+    """Mensaje `role: tool` con el resultado de una función, en dialecto OpenAI.
+
+    Debe llevar `tool_call_id` (y no `name`) para emparejarse con el tool_call
+    del mensaje assistant anterior.
+    """
+    return {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "name": nombre,
+        "content": contenido,
+    }
+
+
+def _tool_call_id(respuesta: LLMResponse, fallback: str) -> str:
+    """Id del tool_call para emparejar assistant <-> tool.
+
+    Los proveedores reales devuelven su `id` en `LLMResponse.tool_call`; se usa
+    si existe. MockProvider y los proveedores de test no lo traen, así que se
+    recurre a un id sintético estable para que el formato siga siendo válido.
+    """
+    devuelto = (respuesta.tool_call or {}).get("id")
+    return str(devuelto) if devuelto else fallback
 
 
 class ChatTurnResult:
@@ -88,6 +141,9 @@ class ChatService:
             tool = {"name": nombre, "arguments": argumentos}
             used_tools.append(tool)
 
+            # Id para emparejar el tool_call con su resultado (dialecto OpenAI).
+            tool_call_id = _tool_call_id(respuesta, f"call_{nombre}")
+
             # Las funciones del navegador no se ejecutan en el backend: se
             # devuelven al front para que él las aplique.
             if REGISTRY.get(nombre).side == "client":
@@ -100,26 +156,14 @@ class ChatService:
             except ToolError as exc:
                 # Error de herramienta: se devuelve al modelo como resultado,
                 # él redacta la explicación final. El turno no se rompe.
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": "",
-                        "tool_calls": [{"name": nombre, "arguments": argumentos}],
-                    }
-                )
-                messages.append({"role": "tool", "name": nombre, "content": str(exc)})
+                messages.append(_assistant_tool_call_message(tool_call_id, nombre, argumentos))
+                messages.append(_tool_result_message(tool_call_id, nombre, str(exc)))
                 continue
 
             # Funciones del servidor: se ejecutan y se devuelven al modelo.
+            messages.append(_assistant_tool_call_message(tool_call_id, nombre, argumentos))
             messages.append(
-                {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [{"name": nombre, "arguments": argumentos}],
-                }
-            )
-            messages.append(
-                {"role": "tool", "name": nombre, "content": self._json_result(resultado)}
+                _tool_result_message(tool_call_id, nombre, self._json_result(resultado))
             )
 
         if final_text is None:
@@ -193,8 +237,6 @@ class ChatService:
 
     @staticmethod
     def _json_result(resultado: dict[str, object]) -> str:
-        import json
-
         return json.dumps(resultado, ensure_ascii=False, default=str)
 
 
@@ -207,34 +249,60 @@ def get_default_provider() -> LLMProvider:
     return MockProvider()
 
 
-def get_fallback_provider() -> FallbackProvider:
-    """Cadena de proveedores reales con MockProvider al final como red de seguridad.
+def _groq_provider() -> OpenAICompatibleProvider:
+    return OpenAICompatibleProvider(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=settings.groq_api_key,
+        model=settings.groq_model,
+        provider_name="groq",
+        timeout_s=settings.llm_timeout_s,
+    )
 
-    Orden: Groq (si hay clave), Gemini (si hay clave), MockProvider (siempre).
-    Elegir proveedor es solo configuración: misma interfaz OpenAI-compatible.
+
+def _gemini_provider() -> OpenAICompatibleProvider:
+    return OpenAICompatibleProvider(
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        api_key=settings.gemini_api_key,
+        model=settings.gemini_model,
+        provider_name="gemini",
+        timeout_s=settings.llm_timeout_s,
+    )
+
+
+def get_fallback_provider() -> LLMProvider:
+    """Selecciona el proveedor según `settings.llm_provider`, con Mock al final.
+
+    El gating es explícito porque debe ser hermético en desarrollo y CI aunque el
+    `.env` tenga claves:
+
+    - `mock`: solo MockProvider. Sin red ni clave, pase lo que pase.
+    - `groq`: Groq → Mock (Mock como red de seguridad si Groq falla).
+    - `gemini`: Gemini → Mock.
+    - cadena completa Groq → Gemini → Mock solo si `llm_provider` trae otro
+      valor explícito (por ejemplo `fallback`). Un valor vacío o desconocido
+      cae en `mock`, que es el más seguro: nunca gasta claves ni red por error.
+
+    Un proveedor real solo entra si hay clave; sin clave se salta y se cae al
+    siguiente, y el último es siempre MockProvider: el turno nunca se rompe.
     """
-    from .config import settings
+    modo = (settings.llm_provider or "mock").strip().lower()
 
-    proveedores: list[LLMProvider] = []
-    if settings.groq_api_key:
-        proveedores.append(
-            OpenAICompatibleProvider(
-                base_url="https://api.groq.com/openai/v1",
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-                provider_name="groq",
-                timeout_s=settings.llm_timeout_s,
-            )
-        )
-    if settings.gemini_api_key:
-        proveedores.append(
-            OpenAICompatibleProvider(
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-                api_key=settings.gemini_api_key,
-                model=settings.gemini_model,
-                provider_name="gemini",
-                timeout_s=settings.llm_timeout_s,
-            )
-        )
-    proveedores.append(MockProvider())
-    return FallbackProvider(proveedores)
+    if modo == "mock":
+        return MockProvider()
+
+    if modo == "groq":
+        cadena: list[LLMProvider] = [_groq_provider()] if settings.groq_api_key else []
+    elif modo == "gemini":
+        cadena = [_gemini_provider()] if settings.gemini_api_key else []
+    else:
+        cadena = []
+        if settings.groq_api_key:
+            cadena.append(_groq_provider())
+        if settings.gemini_api_key:
+            cadena.append(_gemini_provider())
+
+    cadena.append(MockProvider())
+    if len(cadena) == 1:
+        # Solo quedó el Mock: no hay ninguna clave real configurada.
+        return cadena[0]
+    return FallbackProvider(cadena)

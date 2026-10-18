@@ -33,6 +33,12 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+# La suite normal nunca toca red: los tests de integración (marcados
+# `integration`) se deseleccionan por defecto y solo corren con `-m integration`.
+addopts = "-m 'not integration'"
+markers = [
+  "integration: prueba contra un proveedor LLM real; necesita red y clave, se omite en CI",
+]
 
 [tool.ruff]
 line-length = 100
