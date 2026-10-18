@@ -121,55 +121,92 @@ class ChatService:
 
         for _step in range(self.MAX_STEPS):
             respuesta = self.provider.chat(messages, list_tools())
-            if respuesta.tool_call is None:
+
+            if not respuesta.tool_calls:
                 final_text = respuesta.text or ""
                 break
 
-            nombre = str(respuesta.tool_call["name"])
-            argumentos = respuesta.tool_call.get("arguments") or {}
+            # Los modelos reales pueden proponer VARIAS funciones en paralelo en
+            # una misma respuesta. Ejecutamos todas y devolvemos un tool result
+            # por cada una: si descartáramos las demás el modelo las repetiría en
+            # el siguiente paso y agotaría el tope de pasos.
+            llamadas = respuesta.tool_calls
+            mensajes_asistente: list[dict[str, Any]] = []
+            mensajes_resultado: list[dict[str, Any]] = []
+            hay_cliente = False
 
-            if nombre not in tool_names():
-                # Función fuera de la lista blanca: no se ejecuta, se informa.
-                final_text = (
-                    "Eso todavía no sé hacerlo. Puedo usar solo: "
-                    + ", ".join(f"`{n}`" for n in tool_names())
-                    + "."
+            for index, call in enumerate(llamadas):
+                nombre = str(call.get("name") or "")
+                argumentos = call.get("arguments") or {}
+
+                if nombre not in tool_names():
+                    # Función fuera de la lista blanca: no se ejecuta, se informa.
+                    final_text = (
+                        "Eso todavía no sé hacerlo. Puedo usar solo: "
+                        + ", ".join(f"`{n}`" for n in tool_names())
+                        + "."
+                    )
+                    used_tools.append({"name": nombre, "arguments": argumentos, "rejected": True})
+                    hay_cliente = False
+                    llamadas = []
+                    break
+
+                used_tools.append({"name": nombre, "arguments": argumentos})
+
+                # Id para emparejar el tool_call con su resultado (dialecto OpenAI).
+                tool_call_id = str(call.get("id") or f"call_{nombre}_{index}")
+
+                # Las funciones del navegador no se ejecutan en el backend: se
+                # devuelven al front para que él las aplique.
+                if REGISTRY.get(nombre).side == "client":
+                    if client_action is None:
+                        client_action = {"name": nombre, "arguments": argumentos}
+                    final_text = self._redactar_accion(nombre, argumentos, {})
+                    hay_cliente = True
+                    continue
+
+                mensajes_asistente.append(
+                    _assistant_tool_call_message(tool_call_id, nombre, argumentos)
                 )
-                used_tools.append({"name": nombre, "arguments": argumentos, "rejected": True})
+                try:
+                    resultado = execute_tool(nombre, argumentos)
+                except ToolError as exc:
+                    # Error de herramienta: se devuelve al modelo como resultado,
+                    # él redacta la explicación final. El turno no se rompe.
+                    mensajes_resultado.append(_tool_result_message(tool_call_id, nombre, str(exc)))
+                    continue
+
+                # Funciones del servidor: se ejecutan y se devuelven al modelo.
+                mensajes_resultado.append(
+                    _tool_result_message(tool_call_id, nombre, self._json_result(resultado))
+                )
+
+            if final_text is not None and not llamadas:
                 break
 
-            tool = {"name": nombre, "arguments": argumentos}
-            used_tools.append(tool)
+            # Se añaden todos los tool results de la ronda de una vez, para que
+            # el modelo vea el resultado de cada función que pidió.
+            messages.extend(mensajes_asistente)
+            messages.extend(mensajes_resultado)
 
-            # Id para emparejar el tool_call con su resultado (dialecto OpenAI).
-            tool_call_id = _tool_call_id(respuesta, f"call_{nombre}")
-
-            # Las funciones del navegador no se ejecutan en el backend: se
-            # devuelven al front para que él las aplique.
-            if REGISTRY.get(nombre).side == "client":
-                client_action = {"name": nombre, "arguments": argumentos}
-                final_text = self._redactar_accion(nombre, argumentos, {})
+            # Si ya hay una acción de navegador no hace falta seguir iterando:
+            # el objetivo del turno es ejecutarla en el cliente.
+            if hay_cliente:
                 break
-
-            try:
-                resultado = execute_tool(nombre, argumentos)
-            except ToolError as exc:
-                # Error de herramienta: se devuelve al modelo como resultado,
-                # él redacta la explicación final. El turno no se rompe.
-                messages.append(_assistant_tool_call_message(tool_call_id, nombre, argumentos))
-                messages.append(_tool_result_message(tool_call_id, nombre, str(exc)))
-                continue
-
-            # Funciones del servidor: se ejecutan y se devuelven al modelo.
-            messages.append(_assistant_tool_call_message(tool_call_id, nombre, argumentos))
-            messages.append(
-                _tool_result_message(tool_call_id, nombre, self._json_result(resultado))
-            )
 
         if final_text is None:
-            final_text = (
-                "He llegado al límite de pasos. Dime qué necesitas y lo intento de nuevo."
-            )
+            # El modelo encadenó funciones sin llegar a texto final. Una última
+            # llamada sin herramientas le obliga a redactar con lo que tiene, en
+            # vez de mostrarle un mensaje técnico de "tope de pasos".
+            try:
+                respuesta = self.provider.chat(messages, [])
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                respuesta = None
+            if respuesta is not None and respuesta.text:
+                final_text = respuesta.text
+
+        if final_text is None:
+            final_text = "No he podido preparar una respuesta para esa consulta."
             if respuesta is not None:
                 respuesta.used_fallback = True
 

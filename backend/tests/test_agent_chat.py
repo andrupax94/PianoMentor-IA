@@ -264,6 +264,56 @@ def test_tool_result_message_usa_tool_call_id() -> None:
     assert mensaje["tool_call_id"] == "call_abc"
 
 
+def test_llmresponse_transporta_varias_funciones_en_paralelo() -> None:
+    """Los modelos reales mandan varias tool_calls a la vez; no se descartan.
+
+    Antes solo se ejecutaba la primera y el modelo repetía las demás en cada
+    paso, agotando el tope de pasos con un 'límite de pasos' al usuario.
+    """
+    respuesta = LLMResponse(
+        tool_calls=[
+            {"id": "call_1", "name": "listar_piezas", "arguments": {}},
+            {"id": "call_2", "name": "estado_sesion", "arguments": {}},
+        ],
+        provider="falso",
+    )
+    assert len(respuesta.tool_calls) == 2
+    # `tool_call` sigue apuntando a la primera para compatibilidad con una por turno.
+    assert respuesta.tool_call is respuesta.tool_calls[0]
+    assert respuesta.tool_call["name"] == "listar_piezas"
+
+
+def test_bucle_ejecuta_varias_funciones_paralelas_y_responde_texto() -> None:
+    """Un turno con varias funciones en paralelo las ejecuta todas y termina en texto."""
+
+    class ProviderParalelo(LLMProvider):
+        """Primera llamada: dos funciones de servidor en paralelo; después, texto."""
+
+        def __init__(self) -> None:
+            self.primer_llamado = True
+
+        def chat(self, messages, tools):
+            if self.primer_llamado:
+                self.primer_llamado = False
+                return LLMResponse(
+                    text="",
+                    tool_calls=[
+                        {"id": "call_a", "name": "listar_piezas", "arguments": {}},
+                        {"id": "call_b", "name": "estado_sesion", "arguments": {}},
+                    ],
+                    provider="falso",
+                )
+            return LLMResponse(text="Aquí tienes el catálogo y tu sesión.", provider="falso")
+
+    servicio = ChatService(ProviderParalelo())
+    resultado = servicio.run("lista las piezas y dime mi sesión", chat_id="chat-paralelo")
+    assert resultado.reply == "Aquí tienes el catálogo y tu sesión."
+    nombres = {t["name"] for t in resultado.used_tools}
+    assert nombres == {"listar_piezas", "estado_sesion"}
+    # Ambas funciones se ejecutaron sin agotar el tope de pasos.
+    assert resultado.client_action is None
+
+
 def test_tool_call_id_usa_el_id_del_proveedor() -> None:
     """Si el proveedor trae id, se usa; si no, se recurre al sintético."""
     respuesta_con_id = LLMResponse(tool_call={"id": "call_real", "name": "pausar"})

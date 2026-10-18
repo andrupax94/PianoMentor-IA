@@ -31,22 +31,44 @@
 }
 
 /* La burbuja tiene altura fija: así el panel no salta aunque la respuesta
-   cambie de longitud. El texto se centra y el desbordamiento queda oculto;
-   el tope de caracteres de agent-chat.ts garantiza que entre. */
+   cambie de longitud. El texto se reduce de lg a sm para caber; si aun así
+   desborda (respuestas largas), aparece el scroll en vertical en vez de
+   crecer o recortarse. `safe center` centra los mensajes cortos y, al
+   desbordar, alinea arriba para poder hacer scroll hasta el principio. */
 .bubble {
   border: 1px solid #2b3544;
   border-radius: 12px;
   padding: 14px 16px;
-  min-height: 108px;
+  height: 116px;
   display: flex;
   align-items: center;
+  align-items: safe center;
   margin: 0;
   color: var(--text);
   line-height: 1.35;
-  overflow: hidden;
-  /* Se apoya en la parte superior cuando el texto ocupa varias líneas. */
-  align-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
   word-break: break-word;
+  scrollbar-width: thin;
+  scrollbar-color: #3a475a transparent;
+}
+
+/* Scrollbar discreta para navegadores con pseudioelemento WebKit/Blink. */
+.bubble::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bubble::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bubble::-webkit-scrollbar-thumb {
+  background: #3a475a;
+  border-radius: 999px;
+}
+
+.bubble::-webkit-scrollbar-thumb:hover {
+  background: #4a5a70;
 }
 
 /* Tamaño dinámico: mensajes cortos en grande, largos en pequeño. */

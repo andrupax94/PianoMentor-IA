@@ -11,7 +11,13 @@ from typing import Any
 
 
 class LLMResponse:
-    """Resultado de un turno: texto final y, opcionalmente, la función a invocar."""
+    """Resultado de un turno: texto final y, opcionalmente, funciones a invocar.
+
+    Los modelos reales (Groq/Gemini) pueden proponer VARIAS funciones en paralelo
+    en una misma respuesta, así que se transporta la lista completa en
+    `tool_calls`. `tool_call` se mantiene como alias del primero para no romper
+    el contrato de una-función-por-turno de las pruebas y del MockProvider.
+    """
 
     def __init__(
         self,
@@ -19,9 +25,16 @@ class LLMResponse:
         tool_call: dict[str, object] | None = None,
         provider: str = "mock",
         used_fallback: bool = False,
+        tool_calls: list[dict[str, object]] | None = None,
     ) -> None:
         self.text = text
-        self.tool_call = tool_call
+        # Si llega una lista, `tool_call` apunta a la primera para compatibilidad.
+        if tool_calls:
+            self.tool_calls = list(tool_calls)
+            self.tool_call = self.tool_calls[0]
+        else:
+            self.tool_calls = [tool_call] if tool_call else []
+            self.tool_call = tool_call
         self.provider = provider
         self.used_fallback = used_fallback
 
@@ -158,10 +171,13 @@ class OpenAICompatibleProvider(LLMProvider):
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "tools": tools,
-            "tool_choice": "auto",
             "max_tokens": 400,
         }
+        # Sin herramientas (última llamada para forzar texto) se omiten las claves
+        # `tools`/`tool_choice`: algunos proveedores rechazan un `tools: []`.
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -177,23 +193,22 @@ class OpenAICompatibleProvider(LLMProvider):
         choice = data["choices"][0]["message"]
 
         text = choice.get("content")
-        tool_call = None
+        tool_calls: list[dict[str, object]] = []
         for call in choice.get("tool_calls") or []:
             if call.get("type") != "function":
                 continue
             function = call["function"]
             # El `id` es obligatorio al reenviar el tool_call al proveedor
             # (dialecto OpenAI): sin él Groq/Gemini devuelven 400.
-            tool_call = {
+            tool_calls.append({
                 "id": call.get("id"),
                 "name": function["name"],
                 "arguments": _parse_arguments(function.get("arguments")),
-            }
-            break
+            })
 
         return LLMResponse(
             text=text,
-            tool_call=tool_call,
+            tool_calls=tool_calls,
             provider=self.provider_name,
         )
 
