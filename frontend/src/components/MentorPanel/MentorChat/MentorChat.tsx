@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CHAT_TYPING_MS, chatFontSize, clampReply, typedSlice } from "../../../lib/agent-chat";
+import { CHAT_TYPING_MS, chatFontSize, typedSlice, typingStep } from "../../../lib/agent-chat";
 import { sendAgentMessage } from "../../../lib/api-client";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
@@ -58,14 +58,17 @@ export function MentorChat({
     chatIdRef.current = readStoredChatId();
   }, []);
 
-  // Efecto de escritura: revela la respuesta carácter a carácter, como en las
-  // interfaces de IA actuales. Se reinicia solo al llegar una respuesta nueva.
+  // Efecto de escritura: revela la respuesta como en las interfaces de IA
+  // actuales. En respuestas largas avanza en bloques para que la revelación
+  // complete no se alargue en exceso; en cortas, carácter a carácter. Se
+  // reinicia solo al llegar una respuesta nueva.
   useEffect(() => {
     if (reply === null) return;
     setVisibleChars(0);
+    const step = typingStep(reply.length);
     let shown = 0;
     const timer = window.setInterval(() => {
-      shown += 1;
+      shown += step;
       setVisibleChars(shown);
       if (shown >= reply.length) {
         window.clearInterval(timer);
@@ -90,7 +93,7 @@ export function MentorChat({
       });
       chatIdRef.current = respuesta.chat_id;
       storeChatId(respuesta.chat_id);
-      setReply(clampReply(respuesta.reply));
+      setReply(respuesta.reply);
     } catch (err) {
       const detalle = err instanceof Error ? err.message : "No se pudo enviar el mensaje.";
       setError(detalle);

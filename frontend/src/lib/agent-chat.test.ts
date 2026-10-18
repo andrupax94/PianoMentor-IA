@@ -4,11 +4,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CHAT_REPLY_MAX_CHARS,
+  CHAT_TYPING_MAX_MS,
+  CHAT_TYPING_MS,
   chatFontSize,
-  clampReply,
   isTyping,
   typedSlice,
+  typingStep,
 } from "./agent-chat";
 
 describe("chatFontSize", () => {
@@ -30,33 +31,29 @@ describe("chatFontSize", () => {
   });
 });
 
-describe("clampReply", () => {
-  it("deja pasar un texto por debajo del tope", () => {
-    expect(clampReply("Hola")).toBe("Hola");
+describe("typingStep", () => {
+  it("revela carácter a carácter en respuestas cortas", () => {
+    expect(typingStep(10)).toBe(1);
   });
 
-  it("recorta por encima del tope y añade puntos suspensivos", () => {
-    const largo = "y".repeat(200);
-    const recortado = clampReply(largo);
-    expect(recortado.length).toBeLessThanOrEqual(CHAT_REPLY_MAX_CHARS);
-    expect(recortado.endsWith("…")).toBe(true);
+  it("revela en bloques cuando la respuesta es larga", () => {
+    // Una respuesta de 1400 caracteres debe revelarse en bloques para no
+    // exceder la duración máxima del efecto.
+    const paso = typingStep(1400);
+    expect(paso).toBeGreaterThan(1);
+    // El número de pasos no debe superar holgadamente el tope de duración.
+    const pasos = Math.ceil(1400 / paso);
+    const duracionMs = pasos * CHAT_TYPING_MS;
+    expect(duracionMs).toBeLessThanOrEqual(CHAT_TYPING_MAX_MS + CHAT_TYPING_MS);
   });
 
-  it("respeta un tope personalizado", () => {
-    expect(clampReply("abcdef", 4)).toBe("abc…");
+  it("nunca devuelve 0 aunque el texto esté vacío", () => {
+    expect(typingStep(0)).toBe(1);
+    expect(typingStep(-5)).toBe(1);
   });
 
-  it("recorta espacios finales antes de los puntos", () => {
-    // Tras quitar los espacios el texto sigue desbordando, así que sí hay puntos.
-    expect(clampReply("abcdef   ", 4)).toBe("abc…");
-  });
-
-  it("no añade puntos si tras recortar espacios el texto cabe", () => {
-    expect(clampReply("abc   ", 4)).toBe("abc");
-  });
-
-  it("nunca excede el tope ni con un tope de 1", () => {
-    expect(clampReply("abc", 1).length).toBe(1);
+  it("nunca revela más caracteres que el propio largo", () => {
+    expect(typingStep(3)).toBeLessThanOrEqual(3);
   });
 });
 
