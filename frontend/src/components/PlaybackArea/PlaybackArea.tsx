@@ -20,7 +20,11 @@ import styles from "./PlaybackArea.module.css";
 import type { PlaybackAreaProps } from "./PlaybackArea.types";
 
 /** Pieza demo hasta B-008/B-012 (aún no hay sesión con pieza elegida). */
-const DEMO_PIECE_ID = "p01";
+const DEMO_PIECE_ID = "p17";
+
+/** Título de la barra mientras no hay pieza elegida: el de la demo, para que
+ *  lo que se anuncia y lo que suena no puedan desentonar. */
+const DEMO_SONG_TITLE = "Beethoven – Symphony No. 5";
 
 export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps) {
   const player = usePlayback();
@@ -75,9 +79,14 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     };
   }, [load, play, piece]);
 
-  // La barra anuncia el nombre del archivo o el título elegido en la Library.
+  // La barra anuncia la demo, el nombre del archivo subido o el título elegido
+  // en la Library: el título siempre es la pieza que suena, nunca un marcador.
   const songTitle =
-    piece === null ? undefined : piece.kind === "upload" ? piece.filename : piece.title;
+    piece === null
+      ? DEMO_SONG_TITLE
+      : piece.kind === "upload"
+        ? piece.filename
+        : piece.title;
 
   return (
     <div className={styles.area}>

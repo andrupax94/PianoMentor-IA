@@ -224,6 +224,20 @@
       "duration_s": 8.0,
       "notes": 22,
       "tracks": 3
+    },
+    {
+      "id": "p17",
+      "cover": "/assets/covers/beethoven.jpg",
+      "title": "Symphony no. 5, Piano reduction",
+      "composer": "Ludwig van Beethoven",
+      "opus": "Op. 67",
+      "file": "corpus/beethoven_symphony_no5_piano.mid",
+      "source_url": "https://www.mutopiaproject.org/ftp/BeethovenLv/O67/beethoven_fifth_op67/beethoven_fifth_op67.mid",
+      "license": "Public Domain",
+      "difficulty": "avanzado",
+      "duration_s": 280.6,
+      "notes": 4223,
+      "tracks": 3
     }
   ]
 }

@@ -1,8 +1,8 @@
 "use client";
 // description: Franja superior del área izquierda (pieza, controles, tempo, progreso).
 // context: B-007.3/B-008.3; reenvía las acciones del transporte y deriva el compás
-// real de la rejilla servida por el backend. El título de la pieza sigue siendo
-// marcador hasta B-012 (sesión con pieza elegida).
+// real de la rejilla servida por el backend. El título lo aporta PlaybackArea —la
+// demo o la pieza elegida—, así que nunca puede desentonar con lo que suena.
 
 import { measureIndexAt } from "../../lib/measures";
 import { PlaybackControls } from "./PlaybackControls/PlaybackControls";
@@ -17,7 +17,7 @@ const SKIP_S = 5;
 
 export function PlayerBar({
   player,
-  songTitle = "Beethoven – Symphony No. 5",
+  songTitle,
   arrangement = "Piano Arrangement",
 }: PlayerBarProps) {
   const {

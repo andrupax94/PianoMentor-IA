@@ -46,6 +46,7 @@ EXPECTED_LEFT_TRACK: dict[str, int] = {
     "p13": 2,
     "p14": 2,
     "p15": 2,
+    "p17": 2,  # Beethoven, Sinfonía n.º 5 (reducción para piano): la izquierda es la pista del bajo
 }
 
 
