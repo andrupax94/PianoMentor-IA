@@ -755,7 +755,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-19 13:52 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-19 14:13 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -772,6 +772,8 @@ piano-mentor-ai/
 ├── .agents/skills/piano-mentor-ai-development/SKILL.md
 ├── .agents/skills/piano-mentor-architecture/
 ├── .agents/skills/piano-mentor-architecture/SKILL.md
+├── .agents/skills/piano-mentor-css/
+├── .agents/skills/piano-mentor-css/SKILL.md
 ├── .agents/skills/piano-mentor-github-projects/
 ├── .agents/skills/piano-mentor-github-projects/SKILL.md
 ├── .env
@@ -1284,11 +1286,11 @@ piano-mentor-ai/
 | `backend/tests/test_agent_chat.py` | Chat del agente (B-012.8): lista blanca de funciones (solo las registradas, servidores y de navegador), MockProvider determinista, ChatService con memoria en SQLite, rechazo honesto de una función desconocida, devolución de client_action, dialecto OpenAI del bucle de herramientas (tool_call con id/type/function y arguments serializados, tool con tool_call_id, y resolución de varias funciones en paralelo devolviendo un tool result por cada) y gating de llm_provider (mock hermético, groq/gemini con Mock de seguridad). | Todo con MockProvider: sin red ni clave, la suite es hermética. Cubre el bug del dialecto OpenAI que rompía cualquier función de servidor con Groq/Gemini real, y el de las funciones en paralelo que agotaba MAX_STEPS. |
 | `backend/tests/test_agent_chat_integration.py` | Pruebas de integración del proveedor real (B-012.8 bloque B), marcadas como `integration`: Groq elige función de cliente y de servidor con argumentos, responde texto sin función, completa el bucle con ChatService y devuelve client_action; Gemini hace tool calling; la cadena no se rompe si un proveedor cae. Se omiten en la suite normal (addopts -m 'not integration') y se ejecutan con `python -m pytest -q -m integration`. | Única red del backend contra LLM reales; necesita claves reales, así que nunca corre en CI. Verifican el camino exacto (tool_call -> ejecución -> resultado) que el MockProvider oculta. |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
-| `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript). | Instalar y arrancar la web. |
+| `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript, Bootstrap 5.3 solo para su sistema de grid). | Instalar y arrancar la web; Bootstrap no se usa para componentes ni para estilos ya escritos. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |
 | `frontend/tsconfig.json` | Configuración del compilador TypeScript, versionada desde B-027.3 con el alias @/* -> ./src/*. | Tipos estrictos en el frontend. Está en git a propósito: si se ignora, cada clon queda sin paths y los imports con @/ no resuelven. next-env.d.ts y *.tsbuildinfo siguen ignorados. |
 | `frontend/AGENTS.md` | Aviso que next dev escribe y reescribe para agentes (bloque nextjs-agent-rules): leer los docs de la versión instalada antes de tocar código. | Mantenido por Next; borrarlo solo recrea el cambio sin commitear, así que se versiona tal cual. |
-| `frontend/src/app/layout.tsx` | Layout global de la aplicación web. | Envoltorio común de páginas; monta AgentDock, el chat del agente flotante que se oculta en la página principal. |
+| `frontend/src/app/layout.tsx` | Layout global de la aplicación web. | Envoltorio común de páginas: carga el grid de Bootstrap (solo layout, antes de globals), los estilos globales y monta AgentDock. |
 | `frontend/src/app/page.tsx` | Página inicial: armazón AppHeader + PlaybackArea (reproductor y piano) + MentorPanel. | Sigue siendo Server Component: el transporte vive en PlaybackArea y no arrastra el resto al bundle de cliente (B-007.3). |
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación. | Base visual de la web. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Página de una sesión de práctica concreta: monta PracticeSession sobre el sessionId de la ruta (B-012.1). | Vista de tocar y ver el estado en vivo; la evaluación y las acciones del agente llegan en las siguientes iteraciones. |
@@ -1345,6 +1347,7 @@ piano-mentor-ai/
 | `.agents/skills/piano-mentor-add-piece/scripts/cover_from_commons.py` | Busca, verifica y descarga portadas de dominio público desde Wikimedia Commons. | Soporte de la skill piano-mentor-add-piece; consulta la API de Commons y guarda en frontend/public/assets/covers. |
 | `.agents/skills/piano-mentor-ai-development/SKILL.md` | Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. | Cargar al modificar MIDI, evaluación, frontend o agente. |
 | `.agents/skills/piano-mentor-github-projects/SKILL.md` | Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. | Cargar al operar backlog e issues B-xxx. |
+| `.agents/skills/piano-mentor-css/SKILL.md` | Skill de CSS: regla de Bootstrap, módulos, tokens, orden y verificación. | Cargar antes de tocar cualquier fichero .css o un className. |
 | `.github_projects/README.md` | Guía del flujo de GitHub Projects: importar issues, sincronizar campos, exportar respaldo y convenciones del backlog. | Leer antes de operar el backlog; los scripts están en .github_projects/scripts/. |
 | `.github_projects/project-backlog.csv` | Backlog operativo: ID, título, descripción, prioridad, semana, área, riesgo, tamaño, estado y dependencias de cada tarea. | Fuente que consumen import-github-issues.ps1 y sync-github-project.ps1; mantener coherente con PLAN.md. |
 | `.github_projects/project-backup.json` | Respaldo exportado del Project de GitHub con campos y valores reales, incluido el Status por issue. | Generado por export-github-project.ps1; ejecutarlo antes de analizar cambios del Project. |

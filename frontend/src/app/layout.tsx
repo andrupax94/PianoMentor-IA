@@ -1,9 +1,13 @@
 // description: Layout global de la aplicación web.
-// context: Envoltorio común de páginas; carga la tipografía del diseño (Manrope).
+// context: Envoltorio común de páginas: carga el grid de Bootstrap (solo layout, antes de globals), los estilos globales y monta AgentDock.
 
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import { AgentDock } from "../components/AgentDock/AgentDock";
+// Bootstrap reducido a su sistema de grid (contenedores, columnas, display, flex
+// y alineación), sin reboot ni componentes: va antes de globals.css para que los
+// estilos propios ganen en empates. Solo se aplica a código nuevo (skill CSS).
+import "bootstrap/dist/css/bootstrap-grid.css";
 import "./globals.css";
 
 const manrope = Manrope({
