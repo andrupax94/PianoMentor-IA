@@ -755,7 +755,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-19 13:04 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-19 13:52 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -763,6 +763,11 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 piano-mentor-ai/
 ├── .agents/
 ├── .agents/skills/
+├── .agents/skills/piano-mentor-add-piece/
+├── .agents/skills/piano-mentor-add-piece/scripts/
+├── .agents/skills/piano-mentor-add-piece/scripts/analyze_piece.py
+├── .agents/skills/piano-mentor-add-piece/scripts/cover_from_commons.py
+├── .agents/skills/piano-mentor-add-piece/SKILL.md
 ├── .agents/skills/piano-mentor-ai-development/
 ├── .agents/skills/piano-mentor-ai-development/SKILL.md
 ├── .agents/skills/piano-mentor-architecture/
@@ -1335,6 +1340,9 @@ piano-mentor-ai/
 | `issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
 | `issues/B-006/B-006.md` | Resumen y aceptación de la Issue B-006 (reproducción básica): API de notas, reloj en el navegador, tempo y base de componentes del front. | Transporte play/pausa/stop sin estado en el servidor; detalle en B-006.N.md. |
 | `issues/B-007/B-007.md` | Resumen y aceptación de la Issue B-007 (piano virtual básico): teclado SVG, resaltado sonando/esperada y cascada sincronizada. | Solo visualización, sin entrada de usuario; detalle en B-007.N.md. |
+| `.agents/skills/piano-mentor-add-piece/SKILL.md` | Skill de altas de piezas: fuente, MIDI, portada, catálogo, tests y base. | Cargar al añadir una canción nueva al corpus o al elegir pieza por defecto. |
+| `.agents/skills/piano-mentor-add-piece/scripts/analyze_piece.py` | Analiza un MIDI antes de meterlo en el corpus y emite el veredicto de aceptación. | Soporte de la skill piano-mentor-add-piece; se lanza desde la raíz del repo sobre un MIDI candidato. |
+| `.agents/skills/piano-mentor-add-piece/scripts/cover_from_commons.py` | Busca, verifica y descarga portadas de dominio público desde Wikimedia Commons. | Soporte de la skill piano-mentor-add-piece; consulta la API de Commons y guarda en frontend/public/assets/covers. |
 | `.agents/skills/piano-mentor-ai-development/SKILL.md` | Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. | Cargar al modificar MIDI, evaluación, frontend o agente. |
 | `.agents/skills/piano-mentor-github-projects/SKILL.md` | Skill de GitHub Projects: importar issues, sincronizar Priority/Target date y respaldar. | Cargar al operar backlog e issues B-xxx. |
 | `.github_projects/README.md` | Guía del flujo de GitHub Projects: importar issues, sincronizar campos, exportar respaldo y convenciones del backlog. | Leer antes de operar el backlog; los scripts están en .github_projects/scripts/. |
