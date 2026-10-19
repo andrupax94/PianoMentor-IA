@@ -43,6 +43,13 @@ Qué hay dentro de `bootstrap-grid.css` (medido: 1 194 clases, 68,7 kB fuente,
 | Flex | `.flex-row`, `.flex-column`, `.flex-wrap`, `.flex-nowrap`, `.flex-fill`, `.flex-grow-*`, `.flex-shrink-*`, `.order-*` |
 | Grid | `.col`, `.col-{n}`, `.col-{breakpoint}-{n}`, `.offset-*`, `.row-cols-*`, canales `.g-*`, `.gx-*`, `.gy-*`, `.d-grid` |
 
+Y el proyecto añade, en `src/app/grid-fractions.css`, los **medios enteros de
+columna** que el grid no trae: `.col-{n}-5` y `.col-{breakpoint}-{n}-5` con
+`n = 1..11` (1,5 … 11,5 columnas) en las 6 vistas. Mismo contrato (`flex: 0 0
+auto` + ancho en % sobre 12) y mismos puntos de ruptura que Bootstrap, así que
+se combinan con `.row`, `col-{n}` y `offset-*` sin más. **No existen sin
+importar ese fichero** y no son de Bootstrap: son nuestra extensión del grid.
+
 **Fuera de regla (no existen en el fichero importado):**
 
 - Componentes: `.btn`, `.card`, `.nav`, `.modal`, `.alert`, `.dropdown`…
@@ -54,7 +61,7 @@ Qué hay dentro de `bootstrap-grid.css` (medido: 1 194 clases, 68,7 kB fuente,
   desbloquearía colores, textos y spacing que esta regla excluye.
 
 **No reconvertir lo existente**: los estilos ya escritos (31 ficheros
-`*.module.css` en `src/components` más `page.module.css`; 33 `.css` en total)
+`*.module.css` en `src/components` más `page.module.css`; 34 `.css` en total)
 conservan sus clases propias. `AppFooter` tiene su `.container` y `SongRow` su `.row` **en sus módulos**
 (a CSS Modules, con nombres hasheados): no colisionan con los de Bootstrap y no
 hay motivo para tocarlos.
@@ -88,12 +95,13 @@ hay motivo para tocarlos.
 
 ```tsx
 import "bootstrap/dist/css/bootstrap-grid.css"; // antes: lo propio gana en empates
+import "./grid-fractions.css"; // medios enteros del grid, pegados a su fuente
 import "./globals.css";
 ```
 
-Ambas en `src/app/layout.tsx`. Los módulos de componente se importan en su
-componente. Si mueves el orden, revisa el build: en producción Next concatena el
-CSS y **el orden puede cambiar respecto a dev**.
+Las tres en `src/app/layout.tsx`, en ese orden. Los módulos de componente se
+importan en su componente. Si mueves el orden, revisa el build: en producción
+Next concatena el CSS y **el orden puede cambiar respecto a dev**.
 
 ## Verificación
 
@@ -115,6 +123,8 @@ $all = (Get-ChildItem .next/static/chunks/*.css | Get-Content -Raw) -join "`n"
     @{ p = '\.d-flex\{';             si = $true  },   # display
     @{ p = '\.align-items-center\{'; si = $true  },   # alineamiento
     @{ p = '\.flex-grow-1\{';        si = $true  },   # flex
+    @{ p = '\.col-1-5\{';            si = $true  },   # fracciones (grid-fractions.css)
+    @{ p = '\.col-xxl-11-5\{';       si = $true  },   # fracciones en la última vista
     @{ p = 'font-family:system-ui';  si = $false },   # reboot (prohibido)
     @{ p = '\.btn\{';                si = $false },   # componentes (prohibido)
     @{ p = '\.bg-primary\{';         si = $false }    # colores (prohibido)
@@ -125,15 +135,16 @@ $all = (Get-ChildItem .next/static/chunks/*.css | Get-Content -Raw) -join "`n"
 }
 ```
 
-Y el orden dentro del chunk: `--bs-gutter-x` (grid) debe aparecer **antes** que
-`--bg:` (globals).
+Y el orden dentro del chunk: `--bs-gutter-x` (grid) y `.col-1-5` (fracciones)
+deben aparecer **antes** que `--bg:` (globals).
 
 ```powershell
 $f = Get-ChildItem .next/static/chunks/*.css |
     Where-Object { (Get-Content $_.FullName -Raw) -match '--bs-gutter-x' } | Select-Object -First 1
 $c = Get-Content $f.FullName -Raw
-"grid@{0}  globals@{1}  ->  {2}" -f $c.IndexOf('--bs-gutter-x'), $c.IndexOf('--bg:'),
-    $(if ($c.IndexOf('--bs-gutter-x') -lt $c.IndexOf('--bg:')) { 'OK (grid antes)' } else { 'FALLA (globals antes)' })
+$g = $c.IndexOf('--bs-gutter-x'); $fr = $c.IndexOf('.col-1-5'); $gl = $c.IndexOf('--bg:')
+"grid@{0}  fracciones@{1}  globals@{2}  ->  {3}" -f $g, $fr, $gl,
+    $(if ($g -lt $fr -and $fr -lt $gl) { 'OK (grid, fracciones, globals)' } else { 'FALLA (orden)' })
 ```
 
 ## Sincronía con la arquitectura

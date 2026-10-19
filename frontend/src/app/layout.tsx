@@ -1,5 +1,5 @@
 // description: Layout global de la aplicación web.
-// context: Envoltorio común de páginas: carga el grid de Bootstrap (solo layout, antes de globals), los estilos globales y monta AgentDock.
+// context: Envoltorio común de páginas: carga el grid de Bootstrap y sus fracciones de medio paso (solo layout, antes de globals), los estilos globales y monta AgentDock.
 
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
@@ -8,6 +8,9 @@ import { AgentDock } from "../components/AgentDock/AgentDock";
 // y alineación), sin reboot ni componentes: va antes de globals.css para que los
 // estilos propios ganen en empates. Solo se aplica a código nuevo (skill CSS).
 import "bootstrap/dist/css/bootstrap-grid.css";
+// Medios enteros de columna (col-1-5, col-md-2-5…) que Bootstrap no trae: se
+// define aquí el mismo contrato de .row y va pegado a su grid, antes de globals.
+import "./grid-fractions.css";
 import "./globals.css";
 
 const manrope = Manrope({
