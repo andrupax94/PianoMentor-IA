@@ -15,9 +15,15 @@ Este README es la fuente de verdad para el **contexto del producto**, sus objeti
 
 La documentación especializada está separada para evitar duplicaciones:
 
-- [Plan de trabajo](PLAN.md): fases, entregables y criterios de aceptación.
-- [Arquitectura](ARCHITECTURE.md): estructura de carpetas, capas, contratos y evolución técnica.
-- [Glosario](GLOSSARY.md): definiciones musicales, técnicas y del proyecto.
+## 1.1. Documentación relacionada
+
+| Documento | Fuente de verdad para |
+|---|---|
+| [PLAN.md](PLAN.md) | Cronograma, entregables, puerta de aceptación y prioridades. |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura de carpetas, responsabilidades, capas, API y evolución técnica. |
+| [GLOSSARY.md](GLOSSARY.md) | Definiciones de conceptos y tecnologías. |
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Instalación, configuración y arranque local reproducible. |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Diagnóstico y soluciones para problemas frecuentes y futuros. |
 
 Antes de modificar el proyecto, leer este README y el documento especializado relacionado con el cambio.
 
@@ -146,14 +152,5 @@ La estructura concreta de archivos y la estrategia de evolución están document
 - Usar para demos composiciones de dominio público, MIDI creados por el proyecto o fuentes con licencia compatible.
 - Registrar la procedencia y licencia de cada pieza cuando sea posible.
 
-## 8. Documentación relacionada
-
-| Documento | Fuente de verdad para |
-|---|---|
-| [PLAN.md](PLAN.md) | Cronograma, entregables, puerta de aceptación y prioridades. |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura de carpetas, responsabilidades, capas, API y evolución técnica. |
-| [GLOSSARY.md](GLOSSARY.md) | Definiciones de conceptos y tecnologías. |
-| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Instalación, configuración y arranque local reproducible. |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Diagnóstico y soluciones para problemas frecuentes y futuros. |
 
 > Si una decisión cambia la arquitectura, actualizar [ARCHITECTURE.md](ARCHITECTURE.md). Si cambia el alcance o el objetivo del producto, actualizar este README. Si cambia el orden de trabajo, actualizar [PLAN.md](PLAN.md).

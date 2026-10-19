@@ -3,28 +3,49 @@
 
 .modes {
   display: flex;
-  gap: 8px;
 }
 
 .modes button {
-  flex: 1;
   background: #191e29;
   color: var(--text);
   border: 1px solid #2b3544;
   font-weight: 400;
+  display: flex;
   box-shadow: var(--shadow1);
+  align-items: center;
+  font-weight: bold;
+  justify-content: center;
+  height: 50px;
+  border-radius: 30px;
 }
 
 .modes button[aria-pressed="true"] {
   border-color: var(--accent);
 }
 
-.observar {
-  background-color: var(--gold-t) !important;
-  border: solid 3px var(--gold-usoft) !important;
+.modes button>span {
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: white;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
 
 }
 
-.duo {}
+.observar {
+  background-color: var(--gold-t) !important;
+  border: solid 3px var(--gold-usoft) !important;
+}
 
-.control {}
+.duo {
+  background-color: var(--line-strong) !important;
+  border: solid 3px var(--text-mute) !important;
+}
+
+.control {
+
+  background-color: var(--bg) !important;
+  border: solid 3px var(--line-strong) !important;
+}

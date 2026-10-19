@@ -21,13 +21,11 @@
   inset: 12px;
   display: flex;
   pointer-events: none;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.04) 0,
-    rgba(255, 255, 255, 0.04) 1px,
-    transparent 1px,
-    transparent 44px
-  );
+  background-image: repeating-linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 44px);
 }
 
 /* Una columna por tecla blanca; border-box deja el ancho exacto por columna. */
@@ -71,4 +69,17 @@
   align-self: center;
   color: #5a6572;
   font-size: 0.9rem;
+}
+
+.final__line {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-self: center;
+  justify-self: center;
+  width: 98%;
+  left: 0;
+  right: 0;
+  background: var(--gradient3);
+  height: 3px;
 }

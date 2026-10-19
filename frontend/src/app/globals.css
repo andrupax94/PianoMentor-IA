@@ -11,6 +11,7 @@
     --panel-soft: #12203a;
     --line: #1a2a47;
     --line-strong: #243659;
+    --line2: #a200ff93;
     --accent: #83a9d2;
     --text: #e8eefb;
     --text-soft: #aeb9d0;
@@ -24,6 +25,7 @@
     /* Manrope llega por next/font en layout.tsx (--font-manrope). */
     --font2: var(--font-manrope), "Reem Kufi", sans-serif;
     --color1: #fbb22a;
+    --color2: #4d0064b7;
     --gradient1: linear-gradient(45deg,
             #216091 0%,
             /* Azul (esquina inferior izquierda) */
@@ -44,6 +46,15 @@
             #f2cb57 100%
             /* Amarillo dorado claro (extremo derecho) */
         );
+
+    --gradient3: linear-gradient(to right,
+            #005b97 0%,
+            #a4d1fd 25%,
+            #005b97 42%,
+            #6e6247 50%,
+            #975d09 58%,
+            #fbcb7e 75%,
+            #975d09 100%);
     --shadow1: white 0px 0px 50px -40px inset;
 }
 

@@ -164,6 +164,8 @@ export function NoteFallGrid({
           <span key={`right-${octave}`}>{octave}</span>
         ))}
       </div>
+      <span className={styles.final__line}></span>
     </div>
+
   );
 }

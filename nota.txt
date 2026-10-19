@@ -3,3 +3,7 @@ funcionalidades
 investigar blueprints
 Qdrant base de datos vectorial
 LangGraf
+transparencia a lo lago del piano pnael.
+quitar corpus que no sean demostrables.
+one hand o two hand en lugar de duo
+mover arquitectue a docs
