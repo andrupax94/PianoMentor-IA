@@ -22,7 +22,7 @@ cargar MIDI
   → devolver el control al estudiante
 ```
 
-El objetivo de validación es procesar correctamente al menos el **80 % de un corpus de 16 piezas MIDI de piano** de dominio público o con licencia compatible. Este objetivo debe revisarse si el corpus real o la complejidad de los archivos amenaza la entrega de la demo. El catálogo añade una pieza propia de práctica (`p16`, CC0) para las pruebas de sesión y evaluación, ajena a ese criterio.
+El objetivo de validación es procesar correctamente al menos el **80 % de un corpus de 17 piezas MIDI de piano** de dominio público o con licencia compatible. Este objetivo debe revisarse si el corpus real o la complejidad de los archivos amenaza la entrega de la demo. El catálogo añade una pieza propia de práctica (`p16`, CC0) para las pruebas de sesión y evaluación, ajena a ese criterio.
 
 El alcance exacto del MVP y lo que queda fuera está definido en [README.md](README.md).
 

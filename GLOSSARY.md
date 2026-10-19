@@ -47,7 +47,7 @@ En PianoMentor AI, el MVP debe priorizar:
 
 Objetivo que es **Specific, Measurable, Achievable, Relevant and Time-bound**: específico, medible, alcanzable, relevante y temporalizado.
 
-El objetivo del proyecto fija cinco semanas, un corpus de 16 piezas MIDI y un mínimo de procesamiento correcto del 80 %.
+El objetivo del proyecto fija cinco semanas, un corpus de 17 piezas MIDI y un mínimo de procesamiento correcto del 80 %.
 
 ## Corpus de validación
 

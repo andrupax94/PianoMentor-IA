@@ -45,7 +45,7 @@ def corpus_notes(piece_id: str) -> tuple[NormalizedNote, ...]:
 
 
 # p16 es la pieza de práctica propia (B-012.1). Las propiedades del repertorio de
-# Mutopia se comprueban solo sobre las 16 piezas de terceros: la nuestra es un
+# Mutopia se comprueban solo sobre las 17 piezas de terceros: la nuestra es un
 # ejercicio corto con las manos separadas a propósito (izquierda <= 55, derecha
 # >= 67), así que sus rangos no se pisan y no representa al repertorio real.
 OWN_PIECE_IDS = frozenset({"p16"})
@@ -141,7 +141,7 @@ def test_describe_tracks_matches_hand_by_track_on_the_corpus() -> None:
 
 
 def test_third_party_pieces_have_one_hand_per_track() -> None:
-    assert len(third_party_pieces()) == 16
+    assert len(third_party_pieces()) == 17
     for piece_id, _ in third_party_pieces():
         tracks = describe_tracks(corpus_notes(piece_id))
         # La pista 0 es de metadatos: solo las pistas con notas llegan hasta aquí.

@@ -107,7 +107,7 @@ La respuesta esperada es HTTP `200`.
 
 ## 7. Cargar el corpus MIDI en SQLite
 
-La base de datos se crea con su esquema en cuanto arranca el backend. Las 17 piezas del catálogo (16 de terceros de Mutopia más la pieza propia de práctica) se siembran **solas** la primera vez que el frontend pide la lista (`GET /api/v1/pieces`), así que un arranque limpio ya muestra la Library sin ningún paso manual (B-027.4). Si el catálogo o los MIDI del corpus no están en el host, el listado sale vacío y el backend lo avisa en el log, pero no falla.
+La base de datos se crea con su esquema en cuanto arranca el backend. Las 18 piezas del catálogo (17 de terceros de Mutopia más la pieza propia de práctica) se siembran **solas** la primera vez que el frontend pide la lista (`GET /api/v1/pieces`), así que un arranque limpio ya muestra la Library sin ningún paso manual (B-027.4). Si el catálogo o los MIDI del corpus no están en el host, el listado sale vacío y el backend lo avisa en el log, pero no falla.
 
 Para **forzar** la carga (o recargarla tras editar `catalog.json`) sigue disponible el comando idempotente de B-003.3:
 
@@ -115,7 +115,7 @@ Para **forzar** la carga (o recargarla tras editar `catalog.json`) sigue disponi
 docker compose exec backend python -m piano_mentor.catalog
 ```
 
-La salida esperada es `Catálogo cargado: 17 piezas en sqlite:////data/piano_mentor.db`.
+La salida esperada es `Catálogo cargado: 18 piezas en sqlite:////data/piano_mentor.db`.
 
 La carga es **idempotente**: repetirla no duplica filas, así que es seguro ejecutarla en cada despliegue.
 

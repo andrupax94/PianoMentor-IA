@@ -22,12 +22,12 @@ del compositor (minusculas, sin espacios):
 
 - `bach.jpg` → p01, p02, p03, p04
 - `mozart.jpg` → p05, p06, p07
-- `beethoven.jpg` → p08, p09, p10, p11, p17
+- `beethoven.jpg` → p08, p09, p10, p11, p17, p18
 - `chopin.jpg` → p12, p13, p14, p15
 
 ## Notas
 
 - Las imagenes conservan su proporcion original; el recorte (por ejemplo a cuadrado)
   queda pendiente del diseno final del selector.
-- La composicion musical de las 16 piezas ya esta en dominio publico; la licencia del
+- La composicion musical de las 17 piezas ya esta en dominio publico; la licencia del
   fichero MIDI concreto se documenta en `data/midi/catalog.json`.

@@ -1,4 +1,4 @@
-# description: Carga del catálogo: 17 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI.
+# description: Carga del catálogo: 18 piezas, idempotencia, licencia/fuente y fallo si falta algún MIDI.
 # context: Confianza en el corpus cargado en SQLite (B-003.3); p16 es la pieza propia de B-012.1.
 
 """Tests de la carga del catálogo del corpus en SQLite."""
@@ -18,8 +18,8 @@ from piano_mentor.database import connect, init_db
 REPO_DATA_MIDI = Path(__file__).parent.parent.parent / "data" / "midi"
 CATALOG_FILE = REPO_DATA_MIDI / "catalog.json"
 
-# 16 piezas del corpus de terceros (Mutopia) + la pieza de práctica propia (p16).
-CATALOG_PIECES = 17
+# 17 piezas del corpus de terceros (Mutopia) + la pieza de práctica propia (p16).
+CATALOG_PIECES = 18
 
 
 def _count_pieces() -> int:

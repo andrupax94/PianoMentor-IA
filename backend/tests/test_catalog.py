@@ -15,10 +15,10 @@ COVERS_ROOT = (
 )
 
 # El catálogo mezcla dos cosas y cada una cumple reglas distintas:
-#  - las 16 piezas de terceros (Mutopia) llevan fuente, licencia y portada;
+#  - las 17 piezas de terceros (Mutopia) llevan fuente, licencia y portada;
 #  - p16 es la pieza de práctica propia (B-012.1, CC0): no viene de fuera ni
 #    tiene retrato que enseñar, así que no declara `source_url` ni `cover`.
-THIRD_PARTY_PIECES = 16
+THIRD_PARTY_PIECES = 17
 OWN_PIECE_IDS = {"p16"}
 TOTAL_PIECES = THIRD_PARTY_PIECES + len(OWN_PIECE_IDS)
 
