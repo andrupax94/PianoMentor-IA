@@ -7,12 +7,13 @@ import type { SongInfoProps } from "./SongInfo.types";
 
 export function SongInfo({
   title,
+  cover = null,
   subtitle = "Piano Arrangement",
 }: SongInfoProps) {
   return (
     <div className={styles.info}>
       <span className={styles.cover} aria-hidden="true">
-        ♫
+        {cover ? <img className={styles.coverImg} src={cover} alt="" /> : "♫"}
       </span>
       <div>
         <strong>{title}</strong>

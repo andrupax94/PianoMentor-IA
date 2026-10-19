@@ -20,6 +20,7 @@ const CATALOG: PianoPiece = {
   kind: "catalog",
   id: "p01",
   title: "Sonata Claro de Luna",
+  cover: "/assets/covers/beethoven.jpg",
   autoPlay: true,
 };
 

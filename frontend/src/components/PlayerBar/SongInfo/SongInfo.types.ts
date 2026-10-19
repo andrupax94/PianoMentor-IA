@@ -4,6 +4,8 @@
 export interface SongInfoProps {
   /** Título de la pieza que suena. */
   title: string;
+  /** Portada pública de esa pieza; null u omitida → glifo de reserva. */
+  cover?: string | null;
   /** Subtítulo (arreglo). */
   subtitle?: string;
 }

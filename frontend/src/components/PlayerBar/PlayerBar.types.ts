@@ -9,6 +9,8 @@ export interface PlayerBarProps {
   player: PlaybackHandle;
   /** Título de la pieza que suena (la demo o la elegida). */
   songTitle: string;
+  /** Portada pública de esa misma pieza; null → SongInfo dibuja su glifo. */
+  songCover: string | null;
   /** Subtítulo (arreglo). */
   arrangement?: string;
 }

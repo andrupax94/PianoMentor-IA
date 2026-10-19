@@ -18,6 +18,7 @@ const SKIP_S = 5;
 export function PlayerBar({
   player,
   songTitle,
+  songCover,
   arrangement = "Piano Arrangement",
 }: PlayerBarProps) {
   const {
@@ -58,7 +59,7 @@ export function PlayerBar({
 
   return (
     <section className={styles.bar} aria-label="Reproductor">
-      <SongInfo title={songTitle} subtitle={arrangement} />
+      <SongInfo title={songTitle} cover={songCover} subtitle={arrangement} />
       <PlaybackControls
         onRewind={() => seek(0)}
         onTogglePlay={togglePlay}

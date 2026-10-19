@@ -13,6 +13,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { getPieceNotes } from "../../lib/api-client";
 import { subscribeAgentCommand } from "../../lib/agent-commands";
 import { getPianoPiece, subscribePianoPiece } from "../../lib/piece-store";
+import type { PianoPiece } from "../../lib/piece-store";
 import { usePlayback } from "../../lib/usePlayback";
 import { PlayerBar } from "../PlayerBar/PlayerBar";
 import { PianoStage } from "../PianoStage/PianoStage";
@@ -25,6 +26,21 @@ const DEMO_PIECE_ID = "p17";
 /** Título de la barra mientras no hay pieza elegida: el de la demo, para que
  *  lo que se anuncia y lo que suena no puedan desentonar. */
 const DEMO_SONG_TITLE = "Beethoven – Symphony No. 5";
+
+/** Portada de la demo: la misma de su ficha en el catálogo (p17). */
+const DEMO_COVER = "/assets/covers/beethoven.jpg";
+
+/**
+ * Portada que acompaña al título en la barra: la de la pieza elegida en la
+ * Library, la de la demo mientras no haya ninguna, o null cuando la pieza no
+ * tiene (subidas): entonces SongInfo pinta su glifo de reserva.
+ * Pura, sin DOM, para poder testearla como shouldShowDock.
+ */
+export function coverForPiece(piece: PianoPiece | null): string | null {
+  if (piece === null) return DEMO_COVER;
+  if (piece.kind === "upload") return null;
+  return piece.cover;
+}
 
 export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps) {
   const player = usePlayback();
@@ -87,10 +103,12 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       : piece.kind === "upload"
         ? piece.filename
         : piece.title;
+  // Y la portada sigue la misma historia (null → SongInfo dibuja su glifo).
+  const songCover = coverForPiece(piece);
 
   return (
     <div className={styles.area}>
-      <PlayerBar player={player} songTitle={songTitle} />
+      <PlayerBar player={player} songTitle={songTitle} songCover={songCover} />
       <PianoStage player={player} octaves={octaves} />
     </div>
   );

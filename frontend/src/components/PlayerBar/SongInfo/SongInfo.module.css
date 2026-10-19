@@ -19,6 +19,7 @@
 }
 
 .cover {
+  position: relative;
   display: grid;
   place-items: center;
   width: 60px;
@@ -26,4 +27,17 @@
   border-radius: 8px;
   background: #2b3544;
   margin-left: 10px;
+  overflow: hidden;
+}
+
+/* La portada llena la casilla: al ir posicionada, su 100% se mide contra los
+   60×60 del contenedor y no contra el área de grid (indefinida, caería a auto
+   y saldría desproporcionada). object-fit recorta centrado como en la Library. */
+.coverImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }

@@ -45,6 +45,14 @@ export function publishAgentCommand(command: AgentTransportCommand): void {
   }
 }
 
+/** Nombre con que la barra del reproductor anuncia una pieza del catálogo. */
+export interface ResolvedPiece {
+  /** Título de la pieza; el propio id cuando el catálogo no trae ninguno. */
+  title: string;
+  /** Ruta pública de la portada; null cuando no la hay. */
+  cover: string | null;
+}
+
 /** Efectos reales que necesita ejecutar una orden; en los tests se sustituyen por fakes. */
 export interface AgentActionDeps {
   /** Manda la pieza al piano (piece-store). */
@@ -55,8 +63,8 @@ export interface AgentActionDeps {
   createPracticeSession: (pieceId: string) => Promise<{ id: string }>;
   /** Navega a una ruta de la aplicación. */
   navigate: (path: string) => void;
-  /** Título visible de una pieza del catálogo; el id como reserva. */
-  resolveTitle: (pieceId: string) => Promise<string>;
+  /** Título y portada de una pieza del catálogo para la barra del reproductor. */
+  resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
 }
 
 /**
@@ -75,13 +83,14 @@ export async function executeClientAction(
 
   if (action.name === "reproducir_pieza") {
     if (pieceId === null) return false;
-    const title = await deps.resolveTitle(pieceId);
+    const info = await deps.resolvePiece(pieceId);
     // auto_play ausente significa «reproduce»: es lo que promete la descripción
     // de la función en la lista blanca.
     deps.publishPiece({
       kind: "catalog",
       id: pieceId,
-      title,
+      title: info.title,
+      cover: info.cover,
       autoPlay: args.auto_play !== false,
     });
     // Si ya se está en /, la publicación basta: PlaybackArea está suscrito.
@@ -114,16 +123,18 @@ export async function executeClientAction(
 }
 
 /**
- * Título de una pieza del catálogo para la barra del reproductor.
- * `client_action` solo trae el id, así que se va al catálogo; si no está
- * (o el catálogo no responde), se devuelve el propio id para que la
- * reproducción no dependa de esta consulta.
+ * Título y portada de una pieza del catálogo para la barra del reproductor.
+ * `client_action` solo trae el id, así que se va al catálogo —una sola
+ * petición trae las dos cosas—; si no está (o el catálogo no responde), el
+ * título es el id y no hay portada, para que la reproducción no dependa
+ * de esta consulta.
  */
-export async function fetchPieceTitle(pieceId: string): Promise<string> {
+export async function fetchPieceInfo(pieceId: string): Promise<ResolvedPiece> {
   try {
     const catalog = await getPieceList();
-    return catalog.find((item) => item.id === pieceId)?.title ?? pieceId;
+    const item = catalog.find((entry) => entry.id === pieceId);
+    return { title: item?.title ?? pieceId, cover: item?.cover ?? null };
   } catch {
-    return pieceId;
+    return { title: pieceId, cover: null };
   }
 }

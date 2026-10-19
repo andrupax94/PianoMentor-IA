@@ -16,7 +16,7 @@ import {
 import {
   executeClientAction,
   publishAgentCommand,
-  fetchPieceTitle,
+  fetchPieceInfo,
 } from "../../../lib/agent-commands";
 import { createSession, sendAgentMessage } from "../../../lib/api-client";
 import { publishPianoPiece } from "../../../lib/piece-store";
@@ -118,7 +118,7 @@ export function MentorChat({
             navigate: (path) => {
               void router.push(path);
             },
-            resolveTitle: fetchPieceTitle,
+            resolvePiece: fetchPieceInfo,
           }),
       },
     );

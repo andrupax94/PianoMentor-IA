@@ -36,7 +36,13 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
   /** Manda la pieza al piano: al llegar se carga sola y arranca en Learn. */
   function continueInLearn() {
     if (!song) return;
-    publishPianoPiece({ kind: "catalog", id: song.id, title: song.title, autoPlay: true });
+    publishPianoPiece({
+      kind: "catalog",
+      id: song.id,
+      title: song.title,
+      cover: song.cover,
+      autoPlay: true,
+    });
     router.push(PIANO_PATH);
   }
 

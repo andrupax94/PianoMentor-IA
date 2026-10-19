@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   executeClientAction,
-  fetchPieceTitle,
+  fetchPieceInfo,
   publishAgentCommand,
   subscribeAgentCommand,
   type AgentActionDeps,
@@ -26,7 +26,10 @@ function makeDeps(overrides: Partial<AgentActionDeps> = {}): AgentActionDeps {
     publishCommand: vi.fn(),
     createPracticeSession: vi.fn(async () => ({ id: "s1" })),
     navigate: vi.fn(),
-    resolveTitle: vi.fn(async () => "Minueto en Sol"),
+    resolvePiece: vi.fn(async () => ({
+      title: "Minueto en Sol",
+      cover: "/assets/covers/bach.jpg",
+    })),
     ...overrides,
   };
 }
@@ -104,7 +107,7 @@ describe("canal de comandos", () => {
 });
 
 describe("executeClientAction", () => {
-  it("reproducir_pieza publica la pieza con su título y va al piano", async () => {
+  it("reproducir_pieza publica la pieza con su título y portada y va al piano", async () => {
     const deps = makeDeps();
 
     const done = await executeClientAction(
@@ -113,11 +116,12 @@ describe("executeClientAction", () => {
     );
 
     expect(done).toBe(true);
-    expect(deps.resolveTitle).toHaveBeenCalledWith("p01");
+    expect(deps.resolvePiece).toHaveBeenCalledWith("p01");
     expect(deps.publishPiece).toHaveBeenCalledWith({
       kind: "catalog",
       id: "p01",
       title: "Minueto en Sol",
+      cover: "/assets/covers/bach.jpg",
       autoPlay: true,
     });
     expect(deps.navigate).toHaveBeenCalledWith("/");
@@ -204,13 +208,13 @@ describe("executeClientAction", () => {
   });
 });
 
-describe("fetchPieceTitle", () => {
+describe("fetchPieceInfo", () => {
   const catalog = [
-    { id: "p01", title: "Minueto en Sol" },
-    { id: "p02", title: null },
+    { id: "p01", title: "Minueto en Sol", cover: "/assets/covers/bach.jpg" },
+    { id: "p02", title: null, cover: null },
   ];
 
-  it("lee el título del catálogo", async () => {
+  it("lee el título y la portada del catálogo", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -221,10 +225,13 @@ describe("fetchPieceTitle", () => {
       ),
     );
 
-    await expect(fetchPieceTitle("p01")).resolves.toBe("Minueto en Sol");
+    await expect(fetchPieceInfo("p01")).resolves.toEqual({
+      title: "Minueto en Sol",
+      cover: "/assets/covers/bach.jpg",
+    });
   });
 
-  it("si el catálogo no trae título, devuelve el id", async () => {
+  it("si el catálogo no trae título ni portada, devuelve el id y null", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -235,12 +242,12 @@ describe("fetchPieceTitle", () => {
       ),
     );
 
-    await expect(fetchPieceTitle("p02")).resolves.toBe("p02");
+    await expect(fetchPieceInfo("p02")).resolves.toEqual({ title: "p02", cover: null });
   });
 
-  it("si la petición falla, devuelve el id y no rompe la reproducción", async () => {
+  it("si la petición falla, devuelve el id sin portada y no rompe la reproducción", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
 
-    await expect(fetchPieceTitle("p01")).resolves.toBe("p01");
+    await expect(fetchPieceInfo("p01")).resolves.toEqual({ title: "p01", cover: null });
   });
 });
