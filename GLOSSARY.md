@@ -378,7 +378,7 @@ Conjunto de técnicas que permiten a un sistema realizar tareas que normalmente 
 
 ## Proveedor LLM
 
-Servicio que ofrece acceso a un modelo de lenguaje. El proveedor inicial previsto es Groq mediante una API compatible con OpenAI.
+Servicio que ofrece acceso a un modelo de lenguaje. El proveedor inicial previsto es Groq mediante una API compatible con OpenAI, con Gemini como respaldo y el `MockProvider` como último eslabón de la cadena.
 
 ## API compatible con OpenAI
 
@@ -387,6 +387,14 @@ Interfaz que utiliza formatos y métodos similares a los de la API de OpenAI. Fa
 ## Groq
 
 Proveedor de inferencia de modelos de lenguaje. En el MVP se utiliza como proveedor inicial detrás de una interfaz desacoplada.
+
+## Gemini
+
+Proveedor de inferencia de modelos de lenguaje de Google. En el chat del agente actúa como respaldo de Groq: si Groq falla o devuelve un turno vacío, la petición continúa hacia Gemini antes de caer en el Mock.
+
+## MockProvider
+
+Proveedor determinista y sin red que cierra la cadena de respaldo y alimenta las pruebas. Responde a patrones de órdenes en español y, como un modelo real, trabaja en dos pasos: propone una función (`buscar_pieza`, `listar_piezas`…), lee su resultado y cierra la orden con la acción del navegador o con una negación honesta. Es el proveedor de CI: garantiza que la demo funciona sin claves ni internet.
 
 ## `openai/gpt-oss-20b`
 
@@ -422,7 +430,7 @@ Información estructurada de una práctica: pieza, compás, intentos, métricas,
 
 ## Fallback
 
-Comportamiento alternativo cuando un componente falla o no está disponible. El fallback del proyecto debe utilizar reglas deterministas si el LLM no responde.
+Comportamiento alternativo cuando un componente falla o no está disponible. En el chat del agente, la cadena es **Groq → Gemini → MockProvider**: cuenta como fallo tanto una excepción (timeout, sin clave, red caída) como un turno vacío (sin texto ni funciones), así que un proveedor que contesta en balde se salta al siguiente. Si nadie contesta, una salvaguarda determinista redacta una respuesta honesta: la burbuja nunca queda en blanco.
 
 ## Memoria a corto plazo
 

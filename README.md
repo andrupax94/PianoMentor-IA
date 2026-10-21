@@ -24,6 +24,7 @@ La documentación especializada está separada para evitar duplicaciones:
 | [GLOSSARY.md](GLOSSARY.md) | Definiciones de conceptos y tecnologías. |
 | [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Instalación, configuración y arranque local reproducible. |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Diagnóstico y soluciones para problemas frecuentes y futuros. |
+| [docs/DEMO_AGENT.md](docs/DEMO_AGENT.md) | Guion de demo del chat del agente: frases, efectos y qué mirar si algo falla. |
 
 Antes de modificar el proyecto, leer este README y el documento especializado relacionado con el cambio.
 
@@ -81,7 +82,7 @@ El objetivo de validación del MVP es procesar correctamente al menos el **80 % 
 - Máquina de estados pedagógica inicial.
 - Acciones iniciales del agente: `wait`, `give_hint`, `slow_down`, `demonstrate`, `accompany` y `return_control`.
 - Acciones estructuradas y validadas antes de ejecutarse.
-- Chat del agente: órdenes en lenguaje natural sobre las operaciones implementadas (buscar pieza, reproducir, pausar, abrir práctica), con lista blanca de funciones y respuesta explícita cuando la orden no existe.
+- Chat del agente: órdenes en lenguaje natural sobre las operaciones implementadas (buscar pieza, reproducir, pausar, reanudar, detener, listar el catálogo y abrir práctica), con lista blanca de funciones, encadenamiento buscar → actuar y respuesta honesta cuando no puede hacerlo; guion de demostración en [docs/DEMO_AGENT.md](docs/DEMO_AGENT.md).
 - Demostración limitada con devolución automática del control.
 - Ejecución reproducible mediante Docker Compose.
 
@@ -129,7 +130,7 @@ Decisiones de infraestructura para el MVP:
 - **Frontend:** Next.js y TypeScript.
 - **Persistencia:** SQLite + sqlite-vec local (metadatos relacionales y búsqueda vectorial).
 - **Archivos MIDI:** filesystem local durante el MVP.
-- **Proveedor LLM inicial:** Groq mediante una API compatible con OpenAI.
+- **Proveedor LLM inicial:** Groq mediante una API compatible con OpenAI, con Gemini como respaldo y, al final de la cadena, un `MockProvider` determinista que garantiza respuesta sin red ni clave (es el modo de CI y el que usa `LLM_PROVIDER=mock`).
 - **Modelo inicial validado:** `openai/gpt-oss-20b`.
 - **Observabilidad:** LangSmith opcional, limitado a tracing de alto nivel.
 - **Contenedores:** Docker y Docker Compose.

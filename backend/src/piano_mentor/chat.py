@@ -161,7 +161,12 @@ class ChatService:
                 if REGISTRY.get(nombre).side == "client":
                     if client_action is None:
                         client_action = {"name": nombre, "arguments": argumentos}
-                    final_text = self._redactar_accion(nombre, argumentos, {})
+                    # Si el proveedor trae su propia redacción se usa (así dice
+                    # el contrato: la respuesta es natural); solo si viene vacía
+                    # se recurre a la frase determinista de respaldo.
+                    final_text = respuesta.text or self._redactar_accion(
+                        nombre, argumentos, {}
+                    )
                     hay_cliente = True
                     continue
 
@@ -194,8 +199,9 @@ class ChatService:
             if hay_cliente:
                 break
 
-        if final_text is None:
-            # El modelo encadenó funciones sin llegar a texto final. Una última
+        if not (final_text or "").strip():
+            # El turno no ha llegado a texto usable: ni el del modelo (que a
+            # veces devuelve un string vacío) ni el de las funciones. Una última
             # llamada sin herramientas le obliga a redactar con lo que tiene, en
             # vez de mostrarle un mensaje técnico de "tope de pasos".
             try:
@@ -205,7 +211,9 @@ class ChatService:
             if respuesta is not None and respuesta.text:
                 final_text = respuesta.text
 
-        if final_text is None:
+        if not (final_text or "").strip():
+            # Ni el reintento ha servido: un turno en silencio no es una
+            # respuesta, así que se explica honestamente (nunca burbuja vacía).
             final_text = "No he podido preparar una respuesta para esa consulta."
             if respuesta is not None:
                 respuesta.used_fallback = True
@@ -313,8 +321,10 @@ def get_fallback_provider() -> LLMProvider:
     `.env` tenga claves:
 
     - `mock`: solo MockProvider. Sin red ni clave, pase lo que pase.
-    - `groq`: Groq → Mock (Mock como red de seguridad si Groq falla).
-    - `gemini`: Gemini → Mock.
+    - `groq`: Groq → Gemini → Mock. Gemini entra solo si tiene clave y actúa de
+      respaldo cuando Groq falla o devuelve el turno vacío; si no, se cae al
+      Mock.
+    - `gemini`: Gemini → Groq → Mock, con los mismos papeles cambiados.
     - cadena completa Groq → Gemini → Mock solo si `llm_provider` trae otro
       valor explícito (por ejemplo `fallback`). Un valor vacío o desconocido
       cae en `mock`, que es el más seguro: nunca gasta claves ni red por error.
@@ -329,8 +339,12 @@ def get_fallback_provider() -> LLMProvider:
 
     if modo == "groq":
         cadena: list[LLMProvider] = [_groq_provider()] if settings.groq_api_key else []
+        if settings.gemini_api_key:
+            cadena.append(_gemini_provider())
     elif modo == "gemini":
         cadena = [_gemini_provider()] if settings.gemini_api_key else []
+        if settings.groq_api_key:
+            cadena.append(_groq_provider())
     else:
         cadena = []
         if settings.groq_api_key:

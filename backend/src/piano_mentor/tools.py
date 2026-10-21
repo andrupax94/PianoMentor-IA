@@ -6,9 +6,40 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from collections.abc import Callable
+from typing import Any
 
 from .database import find_pieces, get_piece, get_session
+
+
+def _sin_acentos(texto: str) -> str:
+    """Minúsculas y sin tildes para comparar «Für» con «fur» y «práctica» con «practica»."""
+    base = unicodedata.normalize("NFD", texto.lower())
+    return "".join(c for c in base if unicodedata.category(c) != "Mn")
+
+
+def _tokeniza(texto: str) -> list[str]:
+    """Trocea una frase de búsqueda en palabras («minueto de bach» → 3 tokens)."""
+    return [token for token in re.split(r"[^a-z0-9]+", texto) if token]
+
+
+def _coincide(token: str, palabras: set[str]) -> bool:
+    """¿Casa `token` con alguna palabra del título o del compositor?
+
+    Igualdad exacta a cualquier longitud y, además, prefijo cuando el lado corto
+    llega a 4 letras: así «minueto» encuentra *Minuet in G major* (mismo pie de
+    palabra, otro idioma) sin caer en falsos positivos como «be» por *Beethoven*.
+    """
+    for palabra in palabras:
+        if token == palabra:
+            return True
+        if min(len(token), len(palabra)) >= 4 and (
+            token.startswith(palabra) or palabra.startswith(token)
+        ):
+            return True
+    return False
 
 
 class ToolError(Exception):
@@ -80,13 +111,17 @@ class ToolRegistry:
         self.register(
             FunctionTool(
                 name="buscar_pieza",
-                description="Busca una pieza por título o compositor y devuelve candidatos ordenados.",
+                description=(
+                    "Busca una pieza por palabras sueltas del título o del compositor "
+                    "(mejor sin artículos ni verbos) y devuelve los candidatos con más "
+                    "coincidencias primero."
+                ),
                 parameters={
                     "type": "object",
                     "properties": {
                         "texto": {
                             "type": "string",
-                            "description": "Título o compositor a buscar",
+                            "description": "Palabras clave a buscar, por ejemplo «minueto bach»",
                         }
                     },
                     "required": ["texto"],
@@ -245,16 +280,33 @@ class ToolRegistry:
         }
 
     def _buscar_pieza(self, arguments: dict[str, object]) -> dict[str, object]:
-        texto = str(arguments.get("texto", "")).strip().lower()
+        """Busca por palabras sueltas, no por la frase entera, y ordena por coincidencias.
+
+        Una orden como «pon el minueto de Bach» viaja ya reducida a «minueto
+        bach» (el proveedor quita verbos y relleno); aquí cada palabra se compara
+        con título y compositor y las piezas que encajan con más palabras
+        quedan primero. El orden de partida es el del catálogo, así que dos
+        piezas empatadas salen siempre en la misma posición: determinismo.
+        """
+        texto = str(arguments.get("texto", "")).strip()
         if not texto:
             raise ToolError("buscar_pieza requiere un texto no vacío")
+        tokens = [t for t in _tokeniza(_sin_acentos(texto)) if len(t) >= 3]
+        if not tokens:
+            return {"piezas": []}
+
+        def puntuacion(row: Any) -> int:
+            campo = set(_tokeniza(_sin_acentos(f"{row['title']} {row['composer']}")))
+            return sum(1 for token in tokens if _coincide(token, campo))
+
         rows = find_pieces()
-        coincidencias = [
-            row
-            for row in rows
-            if texto in str(row["title"] or "").lower()
-            or texto in str(row["composer"] or "").lower()
-        ]
+        # `list.sort` es estable: con la misma puntuación se conserva el orden
+        # del corpus (compositor, opus, id), que es el orden natural del selector.
+        coincidencias = sorted(
+            (row for row in rows if puntuacion(row) > 0),
+            key=puntuacion,
+            reverse=True,
+        )
         return {
             "piezas": [
                 {
