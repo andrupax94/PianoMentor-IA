@@ -1,7 +1,7 @@
-// description: Página de una sesión de práctica concreta.
-// context: B-012.1; monta la vista que envía las notas y pinta el estado en vivo.
+// description: Compatibilidad de la ruta antigua de práctica: redirige a /{sessionId}.
+// context: B-012.1 nació en /practice/{id}; la reposición mueve la práctica a la portada con el id en la URL, y este enlace viejo no se rompe (marcadores, guion de demo, pruebas manuales).
 
-import { PracticeSession } from "../../../components/PracticeSession";
+import { redirect } from "next/navigation";
 
 type PracticePageProps = {
   params: Promise<{ sessionId: string }>;
@@ -9,16 +9,5 @@ type PracticePageProps = {
 
 export default async function PracticePage({ params }: PracticePageProps) {
   const { sessionId } = await params;
-
-  return (
-    <main className="shell">
-      <p className="eyebrow">SESIÓN DE PRÁCTICA</p>
-      <h1>Sesión {sessionId}</h1>
-      <p className="intro">
-        Lo que tocas viaja al servidor por WebSocket y vuelve como estado de la sesión. La
-        evaluación y las acciones del agente llegan en las siguientes iteraciones.
-      </p>
-      <PracticeSession sessionId={sessionId} />
-    </main>
-  );
+  redirect(`/${sessionId}`);
 }

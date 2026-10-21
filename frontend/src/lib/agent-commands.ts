@@ -115,7 +115,9 @@ export async function executeClientAction(
         failure instanceof Error ? failure.message : "No se pudo abrir la sesión de práctica.",
       );
     }
-    deps.navigate(`/practice/${sessionId}`);
+    // La práctica es la portada con el id en la URL: al entrar, PracticeBridge
+    // abre el WebSocket de la sesión y el mini cuadro del mentor la muestra viva.
+    deps.navigate(`/${sessionId}`);
     return true;
   }
 

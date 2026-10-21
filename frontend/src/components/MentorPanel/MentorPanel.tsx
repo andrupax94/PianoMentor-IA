@@ -1,10 +1,10 @@
 // description: Columna derecha completa (chat, modos, pestañas y estado de sesión).
-// context: B-006.4; reutiliza MidiUploader y SessionStatus.
+// context: B-006.4; reutiliza MidiUploader y SessionStatus, enganchado a la sesión viva con SessionStatusLive.
 
 import { MentorChat } from "./MentorChat/MentorChat";
 import { ModeSelector } from "./ModeSelector/ModeSelector";
 import { MentorTabs } from "./MentorTabs/MentorTabs";
-import { SessionStatus } from "../SessionStatus";
+import { SessionStatusLive } from "../SessionStatusLive";
 import styles from "./MentorPanel.module.css";
 import type { MentorPanelProps } from "./MentorPanel.types";
 
@@ -17,7 +17,7 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
           siempre visible debajo, fuera del conmutador de pestañas. */}
       <MentorTabs weakPoint={weakPoint} />
       <div className={styles.sessionStatus}>
-        <SessionStatus />
+        <SessionStatusLive />
       </div>
     </aside>
   );

@@ -15,12 +15,14 @@ describe("shouldShowDock", () => {
     expect(shouldShowDock("/library")).toBe(true);
   });
 
-  it("se ve en una sesión de práctica", () => {
-    expect(shouldShowDock("/practice/s-1")).toBe(true);
+  it("se oculta en una sesión de práctica, que es la portada con el id en la URL", () => {
+    expect(shouldShowDock("/23252e42-a929-4c04-bde7-df2443758119")).toBe(false);
+    expect(shouldShowDock("/23252E42-A929-4C04-BDE7-DF2443758119")).toBe(false);
   });
 
-  it("cualquier ruta desconocida también lo muestra", () => {
+  it("cualquier ruta desconocida que no sea un id también lo muestra", () => {
     expect(shouldShowDock("/otra")).toBe(true);
+    expect(shouldShowDock("/practice/s-1")).toBe(true);
   });
 
   it("sin pathname definido se muestra, para no dejar al usuario sin chat", () => {

@@ -1,0 +1,19 @@
+/* description: Layout de dos columnas de la portada, con o sin sesión de práctica. */
+/* context: B-006.4 / 100% de alto de pantalla; la columna izquierda (.main) pasa a PlaybackArea en B-007.3. Vive en el grupo (home) desde la reposición de la práctica sobre la portada. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+.layout {
+  flex: 1;
+  min-height: 87vh;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  padding: 10px 0px;
+  align-items: stretch;
+}

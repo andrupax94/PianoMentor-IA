@@ -46,14 +46,14 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
     router.push(PIANO_PATH);
   }
 
-  /** Abre una sesión de práctica sobre la pieza y navega a su vista. */
+  /** Abre una sesión de práctica sobre la pieza y navega a la portada con ella activa. */
   async function practice() {
     if (!song || openingSession) return;
     setOpeningSession(true);
     setError(null);
     try {
       const session = await createSession(song.id);
-      router.push(`/practice/${session.id}`);
+      router.push(`/${session.id}`);
     } catch (failure: unknown) {
       setError(failure instanceof ApiError ? failure.message : "No se pudo abrir la sesión.");
       setOpeningSession(false);

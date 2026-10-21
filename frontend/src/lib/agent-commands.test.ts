@@ -170,7 +170,7 @@ describe("executeClientAction", () => {
 
     expect(done).toBe(true);
     expect(deps.createPracticeSession).toHaveBeenCalledWith("p03");
-    expect(deps.navigate).toHaveBeenCalledWith("/practice/s1");
+    expect(deps.navigate).toHaveBeenCalledWith("/s1");
   });
 
   it("abrir_practica avisa si la pieza no existe en el catálogo", async () => {

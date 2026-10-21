@@ -37,7 +37,7 @@ Set-Location frontend
 npm run dev
 ```
 
-Abrir **<http://localhost:3000>** y esperar a la portada (piano a la izquierda, panel del mentor a la derecha). El chat vive en la portada `/`; dentro de `/practice/...` no está.
+Abrir **<http://localhost:3000>** y esperar a la portada (piano a la izquierda, panel del mentor a la derecha). El chat vive en la portada, tanto en `/` como en `/{id}` cuando hay una sesión de práctica abierta (la práctica es esa misma portada); dentro de `/library` no está y ahí aparece como panel flotante.
 
 ### 3. Comprobación previa del backend
 
@@ -61,14 +61,14 @@ Se escribe en el cuadro «Habla con PianoMentor…» de la portada y se pulsa **
 | 4 | `sigue` | `reanudar` | Reanuda el transporte | «Reanudando la reproducción.» y el botón vuelve a **Pausar** |
 | 5 | `detén` | `parar` | Detiene la reproducción | «Deteniendo la reproducción.» |
 | 6 | `lista las piezas` | `listar_piezas` (función de servidor; nada de navegador) | Nada | «Aquí tienes el catálogo de piezas disponibles (id, título, compositor).» |
-| 7 | `abre práctica del minueto de Bach` | `buscar_pieza` → `abrir_practica(p01)` | Crea la sesión con `POST /practice/sessions` y navega a `/practice/{id}` | «Abriendo la sesión de práctica para 'p01'.» y aparece la página **Sesión {uuid}** |
+| 7 | `abre práctica del minueto de Bach` | `buscar_pieza` → `abrir_practica(p01)` | Crea la sesión con `POST /practice/sessions` y navega a `/{id}`, que es la portada con la sesión activa | «Abriendo la sesión de práctica para 'p01'.» y la URL pasa a **`/{uuid}`**: la misma portada, con la sesión viva en el mini cuadro de estado del panel del mentor («conectada») |
 | 8 | `abre práctica` | Sin pieza nombrada no propone acción: `client_action: null` | Nada | «Para abrir una sesión de práctica necesitas indicar la pieza…» (pide el título, no inventa un `piece_id`) |
 | 9 | `enséñame a tocar el violín` | Fuera de la lista de funciones | Nada | «Lo siento, pero no puedo ayudar con eso. Puedo ofrecerte: …» |
 | 10 | `reproduce el bolero de Ravel` | `buscar_pieza("bolero ravel")` → 0 candidatos; `client_action: null` | Nada | «Lo siento, pero no he encontrado una pieza titulada *Bolero* de Ravel en nuestro catálogo…» |
 
 **Memoria**: el chat conserva el `chat_id` en `localStorage`, así que los turnos 3–5 funcionan *dentro* de la conversación iniciada en el 2 («ahora pausa» entiende a qué reproducción te refieres). Tras recargar la página la conversación sigue; el historial guardado es una ventana rodante.
 
-**Un detalle del turno 7**: al navegar a `/practice/...` el panel del mentor desaparece (solo existe en la portada), así que la burbuja vuelve a la bienvenida. Es esperado: la sesión ya está creada y la página de práctica en pantalla es la evidencia.
+**Un detalle del turno 7**: al navegar a `/{id}` la portada no se remonta (comparte layout con `/`), así que el chat conserva la respuesta, el piano sigue donde estaba y lo único nuevo es la sesión en el mini cuadro de estado. La ruta antigua `/practice/{id}` redirige a `/{id}`, por si queda algún marcador viejo.
 
 ## Transcripción real (evidencia)
 
@@ -155,7 +155,7 @@ Antes de dar la demo en público, repasa estos puntos (5 minutos, en este orden)
 - [ ] `¿Qué puedes hacer?` → lista de capacidades y `client_action: null` (Network → respuesta JSON).
 - [ ] `pon el minueto de Bach` → el reproductor muestra **Minuet in G major** y suena (botón en **Pausar**).
 - [ ] `pausa` → el botón vuelve a **Reproducir**.
-- [ ] `abre práctica del minueto de Bach` → aparece `/practice/{uuid}` con la sesión abierta.
+- [ ] `abre práctica del minueto de Bach` → la URL pasa a `/{uuid}` y el mini cuadro de estado muestra la sesión «conectada».
 - [ ] `abre práctica` → pregunta por la pieza, sin acción.
 - [ ] `enséñame a tocar el violín` → negación honesta con la lista de lo que sí sabe hacer.
 - [ ] `reproduce el bolero de Ravel` → «no he encontrado…», sin acción.
