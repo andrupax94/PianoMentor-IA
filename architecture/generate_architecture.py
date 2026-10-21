@@ -12,7 +12,8 @@ Reglas:
 - Lee `architecture/architecture_base.md` (fuente manual, NO la modifica).
 - Lee `architecture/files.csv` (columnas: path,description,context).
 - Genera el filetree real del repo (omite ruido: .git, __pycache__, node_modules, .next, etc.;
-  el banco de muestras de frontend/public/audio/ se refleja solo con su manifiesto).
+  el banco de muestras de frontend/public/audio/ se refleja solo con su manifiesto, y los
+  archivos locales ignorados —SKIP_NAMES, como nota.txt— no entran porque no se clonan).
 - Escribe `ARCHITECTURE.md` = base + Anexo A (filetree) + Anexo B (tabla del CSV).
 - Con --write, inserta `description` y `context` del CSV como comentario de
   cabecera en cada archivo (estilo según extensión: `#`, `//`, `<!-- -->`, `/* */`).
@@ -55,7 +56,9 @@ SKIP_DIRS = {
 }
 
 SKIP_SUFFIXES = {".pyc", ".pyo", ".bak", ".skill"}
-SKIP_NAMES = {"opencode.exe"}
+# Archivos locales que no son parte del proyecto (están en .gitignore): no se
+# documentan aunque existan en disco, porque no los recibirá nadie al clonar.
+SKIP_NAMES = {"opencode.exe", "nota.txt"}
 
 # Dentro de data/ solo se documentan los archivos versionados (el resto es volátil).
 DATA_TRACKED_FILES = {".gitkeep", "catalog.json"}
