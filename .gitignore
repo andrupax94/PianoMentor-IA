@@ -42,13 +42,13 @@ data/sessions/*
 !data/uploads/.gitkeep
 !data/sessions/.gitkeep
 # El catálogo de metadatos (título, licencia, source_url, dificultad) sí se versiona;
-# los .mid del corpus son de terceros (Mutopia) y no se versionan.
+# los .mid del corpus de terceros TAMBIÉN se versionan (política revisada 2026-10):
+# las licencias de las transcripciones (PD, CC0 y CC BY-SA con atribución en
+# catalog.json y CREDITS.md) permiten redistribución, y el despliegue en Render
+# necesita el corpus en el repo para sembrar la Library sin depender de terceros.
 !data/midi/catalog.json
-# Excepción: la pieza de práctica propia (p16, CC0) sí viaja con el repositorio.
 # Hay que re-incluir la carpeta antes del archivo, porque `data/midi/*` la excluía.
 !data/midi/corpus/
-data/midi/corpus/*
-!data/midi/corpus/practice_phrase.mid
 
 # Logs and runtime files
 *.log

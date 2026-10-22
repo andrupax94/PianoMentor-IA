@@ -31,8 +31,11 @@ Proceso real: `p17`, la reducción para piano de la *Sinfonía n.º 5* de Beetho
    `ALLOWED_LICENSES` en `test_catalog.py`: `Public Domain`, `CC BY-SA 3.0`,
    `CC BY-SA 2.5`, `CC0-1.0` (con CC BY-SA, anota la versión y atribuye al
    transcriptor en el `source_note`/comentario).
-3. **Los `.mid` de terceros no se versionan** (`.gitignore`): en git solo viaja
-   `data/midi/catalog.json` con su `source_url`. La portada `.jpg` **sí** se versiona.
+3. **Los `.mid` del corpus sí se versionan** (política revisada 2026-10): las
+   licencias de las transcripciones (Public Domain, CC0 y CC BY-SA con
+   atribución en `catalog.json` y `CREDITS.md`) permiten redistribución, y el
+   despliegue en Render necesita el corpus en el repo para sembrar la Library
+   sin depender de la disponibilidad de Mutopia en cada arranque.
 
 ## Fuentes
 
@@ -194,8 +197,9 @@ Library (la pieza aparece, la portada carga y la barra anuncia el título correc
 
 ## 9. Git
 
-- En el commit solo `catalog.json`, portadas y ficheros propios: los `.mid` de
-  terceros quedan fuera por `.gitignore` (se recuperan desde `source_url`).
+- En el commit van `catalog.json`, portadas, ficheros propios y también los
+  `.mid` del corpus (versionados desde la política revisada de 2026-10:
+  licencias redistribuibles con atribución).
 - Revisa `git status` y deja fuera el trabajo en curso del usuario.
 - Regenera `files.csv`/`ARCHITECTURE.md` justo antes de commitear.
 
