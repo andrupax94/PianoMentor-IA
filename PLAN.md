@@ -58,7 +58,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-011 | P0 | Capturar teclado del ordenador | 2 |
 | B-012 | P0 | Agente vertical: sesión, evaluación, estados, acciones, demo, Groq, acompañamiento | 2–4 |
 | B-020 | P0 | Integración final y pruebas end-to-end | 5 |
-| B-021 | P1 | Desplegar backend en Hugging Face Spaces | 5 |
+| B-021 | P1 | Desplegar backend en Render (Docker; sustituye a Hugging Face Spaces) | 5 |
 | B-022 | P1 | Desplegar frontend en Vercel | 5 |
 | B-023 | P1 | Ejecutar prueba pública end-to-end | 5 |
 | B-024 | P1 | Crear vídeo demo | 5 |
@@ -270,9 +270,9 @@ agente vertical
 
 **Despliegue**
 
-- Desplegar el backend FastAPI en Hugging Face Spaces mediante Docker.
+- Desplegar el backend FastAPI en Render mediante el `Dockerfile` de `backend/` (sustituye a Hugging Face Spaces: el SDK Docker de HF exige plan de pago desde finales de 2025; ver ARCHITECTURE.md §8).
 - Configurar secretos, almacenamiento temporal y `/health`.
-- Verificar endpoints y WebSocket si la plataforma lo permite.
+- Verificar endpoints y WebSocket (el plan gratuito duerme tras 15 min sin tráfico).
 - Desplegar Next.js en Vercel.
 - Configurar `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y CORS.
 - Ejecutar una prueba end-to-end pública desde Vercel hasta el backend.
@@ -351,7 +351,7 @@ Antes de cerrar el MVP, comprobar:
 - [ ] El control vuelve automáticamente al estudiante.
 - [ ] Las acciones del agente son validadas.
 - [ ] El flujo funciona mediante Docker.
-- [ ] El backend está desplegado en Hugging Face o existe una justificación documentada si se pospone.
+- [ ] El backend está desplegado en Render (Docker) o existe una justificación documentada si se pospone.
 - [ ] El frontend está desplegado en Vercel o existe una justificación documentada si se pospone.
 - [ ] El vídeo demo está exportado.
 - [ ] La publicación de LinkedIn está preparada o publicada.

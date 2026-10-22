@@ -619,14 +619,16 @@ El frontend debe consumir estos contratos a través de `api-client.ts` y `websoc
 
 ## 8. Destino de despliegue inicial
 
-La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:
+La estrategia de despliegue separa frontend y backend, manteniendo el monorepo como unidad de desarrollo:
 
 | Componente | Plataforma inicial | Responsabilidad | Requisitos principales |
 |---|---|---|---|
 | Frontend Next.js | [Vercel](https://vercel.com/) | Servir la interfaz web y sus rutas de Next.js. | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y configuración de CORS en el backend. |
-| Backend FastAPI | [Hugging Face Spaces](https://huggingface.co/spaces) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Space con SDK Docker, `Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
-| Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) o volumen persistente del Space | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente; documentar el volumen o limitarlo a demos. |
+| Backend FastAPI | [Render](https://render.com/) (o equivalente con soporte Docker gratis) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Servicio web Docker construido desde `backend/Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
+| Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) en filesystem efímero | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente: el plan gratuito se limita a demos; para persistencia real haría falta PostgreSQL (+ pgvector) o un disco persistente de pago. |
 | Archivos MIDI MVP | Filesystem del backend | Recibir y procesar archivos cargados. | Limitar tamaño, validar extensión/contenido y tratar los archivos como privados. |
+
+**Justificación del cambio de Hugging Face Spaces a Render:** Hugging Face retiró los Spaces con SDK Docker y Gradio del plan gratuito a finales de 2025; crear cualquiera de los dos exige ahora un plan de pago (PRO para cuentas personales), y solo los Spaces estáticos siguen siendo gratuitos. Como el backend necesita un contenedor Docker con FastAPI y WebSocket, se eligió Render, que sí despliega desde `backend/Dockerfile` en su capa gratuita.
 
 ### Flujo entre despliegues
 
@@ -634,18 +636,19 @@ La primera estrategia de despliegue será separar frontend y backend, manteniend
 Navegador
    ↓
 Vercel / Next.js
-   ├── HTTPS → Hugging Face Space / FastAPI
-   └── WSS  → Hugging Face Space / WebSocket de sesión
+   ├── HTTPS → Render / FastAPI
+   └── WSS  → Render / WebSocket de sesión
 ```
 
 La URL pública de Vercel debe configurarse en `CORS_ORIGINS` del backend. El frontend no debe depender de `localhost` en producción; las URLs públicas deben entrar mediante variables de entorno de Vercel.
 
 ### Condiciones antes de producción
 
-- [ ] Confirmar que el Space elegido permite ejecutar el contenedor y exponer FastAPI correctamente.
-- [ ] Configurar secretos en Vercel y Hugging Face, nunca en el repositorio.
+- [ ] Confirmar que el servicio en Render construye el contenedor y expone FastAPI correctamente.
+- [ ] Configurar secretos en Vercel y Render, nunca en el repositorio.
 - [ ] Usar HTTPS y WSS en las URLs públicas.
-- [ ] Verificar si el plan y la configuración del Space mantienen WebSocket y archivos durante la sesión.
+- [ ] Verificar que el WebSocket de sesión mantiene la conexión con las reglas de inactividad de Render (el plan gratuito duerme tras 15 minutos sin tráfico).
+- [ ] Documentar que SQLite y los archivos cargados se pierden al reiniciar el servicio gratuito; aceptarlo solo para la demo o migrar a persistencia real.
 - [ ] Sustituir SQLite (+ sqlite-vec)/filesystem por PostgreSQL (+ pgvector) y almacenamiento de objetos si se requiere persistencia real.
 - [ ] Añadir límites de tamaño, timeout y limpieza de archivos MIDI cargados.
 - [ ] Ejecutar una prueba end-to-end desde la URL pública de Vercel.
@@ -755,7 +758,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-21 19:52 UTC por `architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-22 13:16 UTC por `architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1245,7 +1248,7 @@ piano-mentor-ai/
 | `architecture/architecture_base.md` | Fuente manual de ARCHITECTURE.md: principios, capas, contratos y evolución. Sin filetree. | Editar aquí la arquitectura; el script añade los anexos generados. |
 | `architecture/files.csv` | Único CSV de contexto por archivo: path,description,context para agentes. | Leer para saber qué hace cada archivo; mantener una fila por archivo relevante. |
 | `architecture/generate_architecture.py` | Script que combina base + filetree real + files.csv y escribe ARCHITECTURE.md. | Ejecutar con python tras editar la base o el CSV; no modifica la base. |
-| `backend/Dockerfile` | Imagen reproducible del backend FastAPI. | Despliegue local y base del Space de Hugging Face. |
+| `backend/Dockerfile` | Imagen reproducible del backend FastAPI. | Despliegue local y base del servicio Docker en Render. |
 | `backend/pyproject.toml` | Dependencias y config Python del backend (FastAPI, Pydantic, Mido, pytest). | Instalar y fijar versiones del backend. |
 | `backend/scripts/build_midi_fixtures.py` | Genera los fixtures MIDI deterministas de backend/tests/fixtures/midi/ (una pista, multi-track, cambio de tempo, sin tempo, corrupto, la escala de tres notas de los tests de /pieces y la frase de práctica de B-012.1 con dos manos y acordes). | Regenerar fixtures de B-005.1 con python backend/scripts/build_midi_fixtures.py; no editar los .mid a mano. La frase de práctica se copia además a data/midi/corpus/practice_phrase.mid, que es la pieza p16 del catálogo. |
 | `backend/scripts/describe_corpus_tracks.py` | Tabla regenerable de pistas y manos del corpus: notas, rango, mediana y mano por pista, y distancia entre medianas, solape de rangos y coincidencia con la mano izquierda de referencia por pieza. | Evidencia de B-009.2 que se regenera con python backend/scripts/describe_corpus_tracks.py; la referencia de mano izquierda está puesta a mano leyendo la partitura y el script avisa de las piezas sin referencia. |
@@ -1350,7 +1353,7 @@ piano-mentor-ai/
 | `frontend/src/lib/websocket-client.ts` | Cliente WebSocket de la sesión de práctica (B-012.1): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s}, avisa del estado de conexión y de los mensajes state/error del servidor, y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent y parseServerMessage. | Mismo sobre que el backend, pensado para que B-012.5 añada agent_action sin romperlo; se escribe sin DOM, así que el WebSocket y el temporizador se inyectan en los tests. Un cierre pedido con close() no reconecta. |
 | `frontend/src/lib/websocket-client.test.ts` | Tests del cliente WebSocket con socket falso: composición de la URL (barra final, escapado y variable vacía), backoff exponencial con tope, redondeo del reloj, forma de note_on/note_off, normalización del sobre del servidor, estados de conexión, envío solo con el socket abierto, entrega de estado y errores, reconexión con retardo creciente, reinicio del contador cuando la sesión vuelve a estar viva y ausencia de reconexión al cerrar a propósito. | Criterio de B-012.1; se ejecutan con `npm run test` (Vitest) sin DOM. |
 | `data/midi/.gitkeep` | Mantiene la carpeta de MIDI de demo en git. | Piezas de prueba con licencia compatible. |
-| `data/midi/catalog.json` | Catálogo versionado con las 18 piezas: las 17 de terceros (título, compositor, opus, licencia, source_url, portada, dificultad y métricas) más p16, la pieza propia de práctica (CC0, sin fuente externa ni portada). p17, la reducción para piano de la Sinfonía n.º 5 de Beethoven (Mutopia, Public Domain), es la pieza por defecto que suena en la portada. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. El único .mid del corpus que viaja en git es corpus/practice_phrase.mid; como el resto de terceros, el de p17 no se versiona y se recupera desde su source_url. |
+| `data/midi/catalog.json` | Catálogo versionado con las 18 piezas: las 17 de terceros (título, compositor, opus, licencia, source_url, portada, dificultad y métricas) más p16, la pieza propia de práctica (CC0, sin fuente externa ni portada). p17, la reducción para piano de la Sinfonía n.º 5 de Beethoven (Mutopia, Public Domain), es la pieza por defecto que suena en la portada. | Metadatos cargados por B-003.3; su formato lo define B-027.2 y no lo toca el backend. Desde la política revisada de 2026-10 todo el corpus .mid sí se versiona (licencias redistribuibles con atribución) para que el despliegue en Render sirva la Library completa. |
 | `data/uploads/.gitkeep` | Mantiene la carpeta de uploads locales en git. | MIDI subidos durante el desarrollo (privados). |
 | `data/sessions/.gitkeep` | Mantiene la carpeta de sesiones locales en git. | Datos temporales o exportaciones de sesión. |
 | `shared/schemas/action.schema.json` | Contrato JSON de acciones permitidas del agente. | Valida wait/give_hint/slow_down/demonstrate/accompany/return_control. |

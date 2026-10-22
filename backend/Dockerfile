@@ -1,5 +1,5 @@
 # description: Imagen reproducible del backend FastAPI.
-# context: Despliegue local y base del Space de Hugging Face.
+# context: Despliegue local y base del servicio Docker en Render.
 
 FROM python:3.12-slim
 
@@ -14,5 +14,5 @@ RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir "." \
 COPY tests ./tests
 
 EXPOSE 8000
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
-CMD ["uvicorn", "piano_mentor.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD python -c "import os, urllib.request; urllib.request.urlopen('http://localhost:' + os.environ.get('PORT', '8000') + '/health')"
+CMD ["sh", "-c", "uvicorn piano_mentor.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

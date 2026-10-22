@@ -619,14 +619,16 @@ El frontend debe consumir estos contratos a través de `api-client.ts` y `websoc
 
 ## 8. Destino de despliegue inicial
 
-La primera estrategia de despliegue será separar frontend y backend, manteniendo el monorepo como unidad de desarrollo:
+La estrategia de despliegue separa frontend y backend, manteniendo el monorepo como unidad de desarrollo:
 
 | Componente | Plataforma inicial | Responsabilidad | Requisitos principales |
 |---|---|---|---|
 | Frontend Next.js | [Vercel](https://vercel.com/) | Servir la interfaz web y sus rutas de Next.js. | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y configuración de CORS en el backend. |
-| Backend FastAPI | [Hugging Face Spaces](https://huggingface.co/spaces) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Space con SDK Docker, `Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
-| Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) o volumen persistente del Space | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente; documentar el volumen o limitarlo a demos. |
+| Backend FastAPI | [Render](https://render.com/) (o equivalente con soporte Docker gratis) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Servicio web Docker construido desde `backend/Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
+| Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) en filesystem efímero | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente: el plan gratuito se limita a demos; para persistencia real haría falta PostgreSQL (+ pgvector) o un disco persistente de pago. |
 | Archivos MIDI MVP | Filesystem del backend | Recibir y procesar archivos cargados. | Limitar tamaño, validar extensión/contenido y tratar los archivos como privados. |
+
+**Justificación del cambio de Hugging Face Spaces a Render:** Hugging Face retiró los Spaces con SDK Docker y Gradio del plan gratuito a finales de 2025; crear cualquiera de los dos exige ahora un plan de pago (PRO para cuentas personales), y solo los Spaces estáticos siguen siendo gratuitos. Como el backend necesita un contenedor Docker con FastAPI y WebSocket, se eligió Render, que sí despliega desde `backend/Dockerfile` en su capa gratuita.
 
 ### Flujo entre despliegues
 
@@ -634,18 +636,19 @@ La primera estrategia de despliegue será separar frontend y backend, manteniend
 Navegador
    ↓
 Vercel / Next.js
-   ├── HTTPS → Hugging Face Space / FastAPI
-   └── WSS  → Hugging Face Space / WebSocket de sesión
+   ├── HTTPS → Render / FastAPI
+   └── WSS  → Render / WebSocket de sesión
 ```
 
 La URL pública de Vercel debe configurarse en `CORS_ORIGINS` del backend. El frontend no debe depender de `localhost` en producción; las URLs públicas deben entrar mediante variables de entorno de Vercel.
 
 ### Condiciones antes de producción
 
-- [ ] Confirmar que el Space elegido permite ejecutar el contenedor y exponer FastAPI correctamente.
-- [ ] Configurar secretos en Vercel y Hugging Face, nunca en el repositorio.
+- [ ] Confirmar que el servicio en Render construye el contenedor y expone FastAPI correctamente.
+- [ ] Configurar secretos en Vercel y Render, nunca en el repositorio.
 - [ ] Usar HTTPS y WSS en las URLs públicas.
-- [ ] Verificar si el plan y la configuración del Space mantienen WebSocket y archivos durante la sesión.
+- [ ] Verificar que el WebSocket de sesión mantiene la conexión con las reglas de inactividad de Render (el plan gratuito duerme tras 15 minutos sin tráfico).
+- [ ] Documentar que SQLite y los archivos cargados se pierden al reiniciar el servicio gratuito; aceptarlo solo para la demo o migrar a persistencia real.
 - [ ] Sustituir SQLite (+ sqlite-vec)/filesystem por PostgreSQL (+ pgvector) y almacenamiento de objetos si se requiere persistencia real.
 - [ ] Añadir límites de tamaño, timeout y limpieza de archivos MIDI cargados.
 - [ ] Ejecutar una prueba end-to-end desde la URL pública de Vercel.
