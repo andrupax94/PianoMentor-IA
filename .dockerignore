@@ -1,0 +1,43 @@
+# description: Exclusiones del contexto de build Docker (raíz del repo).
+# context: El backend se construye desde la raíz para hornear data/midi; esto
+#          evita subir secretos, node_modules y artefactos al builder (Render).
+
+# Secretos: nunca deben entrar ni en el contexto ni en la imagen
+.env
+.env.*
+!.env.example
+
+# Control de versiones y tooling local
+.git
+.github_projects
+.agents
+.vscode
+.work
+.pytest_cache
+.ruff_cache
+*.skill
+opencode.exe
+nota.txt
+
+# Frontend y docs: no forman parte de la imagen del backend
+frontend
+docs
+desing
+issues
+shared
+architecture
+docker-compose*.yml
+*.md
+
+# Datos locales que sí se quedan fuera (el corpus de data/midi SÍ se copia)
+data/*.db
+data/*.sqlite*
+data/sessions
+data/uploads
+
+# Python/Node locales
+__pycache__
+*.py[cod]
+.venv
+venv
+node_modules

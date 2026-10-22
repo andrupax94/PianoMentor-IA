@@ -395,6 +395,9 @@ def get_piece_notes(
     # y la rejilla de compases para que el front sitúe el compás actual.
     # B-009.3: con with_hands/with_chords añade mano por nota, pistas y acordes;
     # sin pedirlos, response_model_exclude_unset deja la respuesta como estaba.
+    # Igual que GET /pieces, siembra el corpus si la base está vacía: la portada
+    # pide las notas de la pieza por defecto sin pasar antes por el listado.
+    ensure_catalog_loaded()
     if (from_measure is None) != (to_measure is None):
         raise HTTPException(
             status_code=400,

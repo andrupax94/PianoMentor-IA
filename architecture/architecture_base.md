@@ -624,7 +624,7 @@ La estrategia de despliegue separa frontend y backend, manteniendo el monorepo c
 | Componente | Plataforma inicial | Responsabilidad | Requisitos principales |
 |---|---|---|---|
 | Frontend Next.js | [Vercel](https://vercel.com/) | Servir la interfaz web y sus rutas de Next.js. | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` y configuración de CORS en el backend. |
-| Backend FastAPI | [Render](https://render.com/) (o equivalente con soporte Docker gratis) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Servicio web Docker construido desde `backend/Dockerfile`, variables secretas y almacenamiento adecuado para archivos temporales. |
+| Backend FastAPI | [Render](https://render.com/) (o equivalente con soporte Docker gratis) | Ejecutar la API, sesiones, evaluación y motor MIDI del MVP. | Servicio web Docker construido desde `backend/Dockerfile` con contexto en la raíz del repo (para hornear el corpus `data/midi` versionado en la imagen), variables secretas y almacenamiento adecuado para archivos temporales. |
 | Persistencia MVP | SQLite + sqlite-vec local (metadatos y vectores) en filesystem efímero | Guardar estado básico durante la validación. | No asumir que el filesystem efímero es persistente: el plan gratuito se limita a demos; para persistencia real haría falta PostgreSQL (+ pgvector) o un disco persistente de pago. |
 | Archivos MIDI MVP | Filesystem del backend | Recibir y procesar archivos cargados. | Limitar tamaño, validar extensión/contenido y tratar los archivos como privados. |
 
