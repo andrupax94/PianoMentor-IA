@@ -21,6 +21,7 @@ from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .config import settings
 from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
+from .evaluation import DEFAULT_TOLERANCE_MS, EvaluationService
 from .midi import (
     HAND_UNKNOWN,
     Hand,
@@ -65,10 +66,14 @@ from .validators import (
 router = APIRouter(prefix="/api/v1")
 practice_service = PracticeService()
 agent_service = AgentService()
+evaluation_service = EvaluationService()
 midi_service = MidiService()
 storage = LocalPieceStorage(Path(settings.midi_storage_path))
 
 logger = logging.getLogger(__name__)
+
+# Códigos de la evaluación que significan "no existe el recurso" (B-012.2).
+NOT_FOUND_CODES = {"session_not_found", "piece_not_found", "piece_file_not_found"}
 
 # Códigos de cierre propios del WebSocket de sesión (rango 4000-4999).
 WS_CLOSE_SESSION_NOT_FOUND = 4404
@@ -525,8 +530,36 @@ def agent_step(session_id: str) -> ActionResponse:
 
 
 @router.post("/sessions/{session_id}/evaluation", response_model=EvaluationResponse)
-def evaluate_session(session_id: str) -> EvaluationResponse:
-    return EvaluationResponse()
+def evaluate_session(
+    session_id: str,
+    from_s: float | None = Query(default=None),
+    to_s: float | None = Query(default=None),
+    from_measure: int | None = Query(default=None, ge=0),
+    to_measure: int | None = Query(default=None, ge=0),
+    tolerance_ms: int | None = Query(default=None),
+) -> EvaluationResponse:
+    """Evalúa la interpretación registrada contra la partitura (B-012.2).
+
+    La ventana es opcional y puede pedirse por segundos (`from_s`/`to_s`) o por
+    compases (`from_measure`/`to_measure`), nunca las dos a la vez; la
+    tolerancia por nota (±100 ms por defecto) es configurable para practicar
+    con más o menos margen.
+    """
+    try:
+        result = evaluation_service.evaluate(
+            session_id,
+            from_s=from_s,
+            to_s=to_s,
+            from_measure=from_measure,
+            to_measure=to_measure,
+            tolerance_ms=DEFAULT_TOLERANCE_MS if tolerance_ms is None else tolerance_ms,
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return EvaluationResponse(**result)
 
 
 @router.post("/agent/chat", response_model=ChatMessageResponse)

@@ -71,10 +71,66 @@ class ActionResponse(BaseModel):
     status: str = "validated"
 
 
+class NoteEvaluation(BaseModel):
+    """Una nota esperada (o acorde) y cómo se clasificó al compararla (B-012.2).
+
+    `deviation_ms` es la desviación media de las teclas que sí sonaron: negativa
+    si el estudiante fue rápido, positiva si fue tarde, y None si no sonó nada
+    de lo esperado.
+    """
+
+    start_seconds: float
+    expected_pitches: list[int] = []
+    status: str
+    received_pitches: list[int] = []
+    deviation_ms: float | None = None
+
+
+class ExtraNoteEvaluation(BaseModel):
+    """Un ataque del estudiante que no corresponde a ninguna nota esperada."""
+
+    pitch: int
+    t_s: float
+    status: str = "extra"
+
+
+class EvaluationCounts(BaseModel):
+    """Cuántas unidades cayeron en cada categoría (B-012.2)."""
+
+    correct: int = 0
+    early: int = 0
+    late: int = 0
+    wrong_pitch: int = 0
+    omitted: int = 0
+    extra: int = 0
+
+
 class EvaluationResponse(BaseModel):
+    """Resultado de evaluar la sesión contra su pieza (B-012.2).
+
+    `notes_score`/`timing_score` van de 0 a 1 y son lo que consumen las reglas
+    del agente (B-012.3); `score_total` (0-100) es el número que ve el
+    estudiante. El detalle llega en `notes` (una entrada por nota esperada o
+    acorde) y `extras` (sobras de la interpretación).
+    """
+
+    session_id: str
+    piece_id: str
+    status: str = "computed"
+    tolerance_ms: int = 100
+    from_s: float | None = None
+    to_s: float | None = None
+    expected_total: int = 0
+    received_total: int = 0
+    counts: EvaluationCounts = EvaluationCounts()
     notes_score: float = 0.0
     timing_score: float = 0.0
-    status: str = "stub"
+    accuracy_pct: float = 0.0
+    timing_ms: float = 0.0
+    drift_ms: float = 0.0
+    score_total: float = 0.0
+    notes: list[NoteEvaluation] = []
+    extras: list[ExtraNoteEvaluation] = []
 
 
 class NoteResponse(BaseModel):
