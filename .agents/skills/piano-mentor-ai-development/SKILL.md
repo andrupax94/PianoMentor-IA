@@ -1,6 +1,6 @@
 ---
 name: piano-mentor-ai-development
-description: Desarrollo y mantenimiento de PianoMentor AI, un sistema interactivo de enseñanza de piano basado en MIDI, FastAPI y un agente pedagógico validado. Usar al modificar este proyecto, diseñar módulos, implementar parsing o reproducción MIDI, evaluar interpretaciones, crear la consola retro, integrar el frontend o añadir LangGraph/LLM.
+description: Desarrollo y mantenimiento de PianoMentor AI, un sistema interactivo de enseñanza de piano basado en MIDI, FastAPI y un agente pedagógico validado. Usar al modificar este proyecto, diseñar módulos, implementar parsing o reproducción MIDI, evaluar interpretaciones, integrar el frontend web o añadir LangGraph/LLM.
 license: Complete terms in LICENSE.txt
 ---
 <!-- description: Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. -->
@@ -23,10 +23,11 @@ Mantener PianoMentor AI como un sistema de enseñanza musical interactivo, no co
 7. El sistema debe funcionar sin LLM mediante reglas deterministas.
 8. Añadir o actualizar tests cuando se modifique parsing, timing, evaluación, validación o transiciones de estado.
 9. No ampliar el alcance del MVP sin documentar la razón.
+10. Registrar cada decisión de arquitectura como ADR en `docs/decisions/`; un ADR aceptado no se edita, se sustituye por el siguiente número.
 
 ## Arquitectura recomendada
 
-Organizar el código para que consola y frontend compartan el mismo dominio:
+Organizar el código para que backend, frontend y contratos compartan el mismo dominio:
 
 ```text
 backend/
@@ -39,27 +40,28 @@ backend/
       practice/       sesiones y ejercicios
       agent/          estados, acciones y reglas
     infrastructure/  Mido, SQLite + sqlite-vec, filesystem y proveedores externos
-console/              interfaz TUI retro; sin lógica musical duplicada
-frontend/             Next.js, TypeScript, Tone.js y visualización
+frontend/             Next.js, TypeScript, Web Audio (sampler + voz de reserva) y visualización
 shared/               esquemas compartidos cuando sea necesario
 data/                 MIDI de prueba y fixtures
 ```
 
-Preferir módulos pequeños y contratos explícitos. La consola debe llamar a casos de uso del dominio; no debe importar directamente detalles de Mido para implementar reglas propias.
+Preferir módulos pequeños y contratos explícitos. La interfaz web debe llamar a casos de uso del dominio; no debe importar directamente detalles de Mido para implementar reglas propias.
+
+La estructura por capas de arriba es el objetivo, no el estado actual (2026-10). El repo real es más plano: `backend/src/piano_mentor/` con módulos hermanos (`api.py`, `midi.py`, `evaluation.py`, `practice.py`, `agent.py`, `llm.py`, `chat.py`, `database.py`, `storage.py`, `catalog.py`, `schemas.py`, `tools.py`, `validators.py` y `migrations/`); `frontend/src/` con `app/`, `components/` y `lib/`; `shared/schemas/`; `data/`; `docs/` con `architecture/`, `decisions/`, `issues/` y `design/`; y `ARCHITECTURE.md` generado en la raíz. No crear carpetas de capas vacías: la separación se hace por módulo y por contrato hasta que el tamaño la justifique.
 
 ## Orden de implementación
 
 Seguir este orden salvo una justificación explícita:
 
 1. Leer MIDI y normalizar notas, tracks, tempo y compases.
-2. Implementar reproducción y un piano virtual de consola.
+2. Implementar reproducción y un piano virtual en el navegador.
 3. Capturar eventos del teclado del ordenador.
 4. Comparar notas esperadas y recibidas.
 5. Calcular precisión, timing, notas omitidas y notas extra.
 6. Implementar la máquina de estados sin LLM.
 7. Exponer casos de uso mediante FastAPI.
 8. Añadir Docker y Docker Compose reproducibles.
-9. Crear frontend web con Next.js/TypeScript y Tone.js.
+9. Crear el frontend web con Next.js/TypeScript y Web Audio.
 10. Añadir Web MIDI API si el flujo principal ya es estable.
 11. Integrar LangGraph para orquestación de alto nivel.
 12. Conectar un LLM con salida estructurada y observabilidad.
@@ -142,25 +144,18 @@ Usar Docker desde el inicio para reproducibilidad. Separar dependencias de produ
 - montar datos o fixtures de desarrollo de forma explícita;
 - mantener un healthcheck sencillo.
 
-## Interfaz de consola retro
-
-La primera interfaz puede usar Rich o Textual y debe mostrar como mínimo:
-
-- pieza cargada;
-- tempo y sección actual;
-- modo del agente;
-- teclado de piano estilizado;
-- nota esperada y nota recibida;
-- puntuaciones de notas y timing;
-- quién controla el piano;
-- acción actual y motivo;
-- pausa, detención y devolución de control.
-
-La estética puede inspirarse en paneles retro de teclados Yamaha, pero no copiar marcas, logotipos ni recursos propietarios.
-
 ## Frontend web
 
-Preferir Next.js, TypeScript, Tone.js y Canvas/SVG. Mantener la evaluación local o en un proceso de baja latencia cuando sea necesario. Usar WebSocket para estado de sesión en tiempo real y HTTP para operaciones de piezas, sesiones y acciones.
+Next.js y TypeScript, con Web Audio para el sonido y SVG para el teclado. El sampler de piano (Salamander) se programa contra `AudioContext.currentTime` y conserva una voz sintetizada de reserva; la evaluación vive en el backend y el navegador solo reproduce y pinta. Usar WebSocket para el estado de sesión en tiempo real y HTTP para piezas, sesiones y acciones.
+
+La interfaz debe hacer visible el estado en todo momento:
+
+- pieza cargada, tempo y compás actual;
+- teclado de piano con nota esperada y nota recibida;
+- puntuaciones de notas y timing;
+- quién controla el piano (estudiante o agente);
+- acción actual del agente y su motivo;
+- pausa, detención y devolución de control.
 
 ### Convención de componentes (trío .tsx/.module.css/.types.ts)
 

@@ -5,8 +5,8 @@ Este directorio contiene una exportación operativa del backlog de cinco semanas
 ## Archivos
 
 - `project-backlog.csv`: tareas del backlog con prioridad, semana, área, riesgo, tamaño y dependencias.
-- `scripts/import-github-issues.ps1`: crea o reutiliza Issues, usa `issues/B-xxx/B-xxx.md` como cuerpo cuando existe, los añade al Project y sincroniza `Priority` y `Target date`.
-- `scripts/create-github-subissues.ps1`: crea o reutiliza las Sub-issues documentadas en `issues/B-xxx/B-xxx.N.md`, las vincula a su Issue principal y puede añadirlas al Project.
+- `scripts/import-github-issues.ps1`: crea o reutiliza Issues, usa `docs/issues/B-xxx/B-xxx.md` como cuerpo cuando existe, los añade al Project y sincroniza `Priority` y `Target date`.
+- `scripts/create-github-subissues.ps1`: crea o reutiliza las Sub-issues documentadas en `docs/issues/B-xxx/B-xxx.N.md`, las vincula a su Issue principal y puede añadirlas al Project.
 - `scripts/sync-github-project.ps1`: compara primero con `project-backup.json` y rellena solo `Priority` y `Target date` vacíos o modificados, sin tocar `Status`, `Start date`, Pull Requests ni Sub-issues.
 - `scripts/export-github-project.ps1`: descarga el estado del Project a `project-backup.json` para mantener un respaldo local legible.
 
@@ -43,9 +43,9 @@ Desde la raíz del repositorio:
 
 ## Documentos de Issues y Sub-issues
 
-Los documentos operativos viven en [`/issues`](../issues/), agrupados en una carpeta por Issue principal. Por ejemplo, `issues/B-001/B-001.md` resume la Issue principal y cada `issues/B-001/B-001.N.md` contiene el objetivo, dependencias, criterios y evidencia de una Sub-issue. Si el documento local no existe, el importador no modifica el cuerpo remoto de esa Issue. La lista de Issues, incluyendo `body`, se consulta una sola vez por ejecución, no una vez por tarea.
+Los documentos operativos viven en [`docs/issues`](../docs/issues/), agrupados en una carpeta por Issue principal. Por ejemplo, `docs/issues/B-001/B-001.md` resume la Issue principal y cada `docs/issues/B-001/B-001.N.md` contiene el objetivo, dependencias, criterios y evidencia de una Sub-issue. Si el documento local no existe, el importador no modifica el cuerpo remoto de esa Issue. La lista de Issues, incluyendo `body`, se consulta una sola vez por ejecución, no una vez por tarea.
 
-Por defecto, el importador solo procesa Issues que tienen su documento local. Si falta `issues/B-xxx/B-xxx.md`, la tarea se omite completamente: no ejecuta `issue edit`, `issue create` ni `project item-add` para ella. Para procesar también tareas sin documento —usando el cuerpo genérico del CSV— hay que indicarlo explícitamente con `-IncludeMissingIssueDocs`.
+Por defecto, el importador solo procesa Issues que tienen su documento local. Si falta `docs/issues/B-xxx/B-xxx.md`, la tarea se omite completamente: no ejecuta `issue edit`, `issue create` ni `project item-add` para ella. Para procesar también tareas sin documento —usando el cuerpo genérico del CSV— hay que indicarlo explícitamente con `-IncludeMissingIssueDocs`.
 
 ```powershell
 .\.github_projects\scripts\import-github-issues.ps1 -IncludeMissingIssueDocs
@@ -57,7 +57,7 @@ Para reemplazar explícitamente el cuerpo de las Issues que sí tengan documento
 .\.github_projects\scripts\import-github-issues.ps1 -ForceIssueBodies
 ```
 
-`-ForceIssueBodies` no inventa documentos: las Issues sin `issues/B-xxx/B-xxx.md` se conservan sin modificar.
+`-ForceIssueBodies` no inventa documentos: las Issues sin `docs/issues/B-xxx/B-xxx.md` se conservan sin modificar.
 
 Para previsualizar las Sub-issues de B-001:
 

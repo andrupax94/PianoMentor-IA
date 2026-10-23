@@ -1,8 +1,10 @@
 ---
 name: piano-mentor-ai-development
-description: Desarrollo y mantenimiento de PianoMentor AI, un sistema interactivo de enseñanza de piano basado en MIDI, FastAPI y un agente pedagógico validado. Usar al modificar este proyecto, diseñar módulos, implementar parsing o reproducción MIDI, evaluar interpretaciones, crear la consola retro, integrar el frontend o añadir LangGraph/LLM.
+description: Desarrollo y mantenimiento de PianoMentor AI, un sistema interactivo de enseñanza de piano basado en MIDI, FastAPI y un agente pedagógico validado. Usar al modificar este proyecto, diseñar módulos, implementar parsing o reproducción MIDI, evaluar interpretaciones, integrar el frontend web o añadir LangGraph/LLM.
 license: Complete terms in LICENSE.txt
 ---
+<!-- description: Skill de desarrollo: separación determinista/API/UI/agente, contratos y checklist. -->
+<!-- context: Cargar al modificar MIDI, evaluación, frontend o agente. -->
 
 # PianoMentor AI Development
 
@@ -21,10 +23,11 @@ Mantener PianoMentor AI como un sistema de enseñanza musical interactivo, no co
 7. El sistema debe funcionar sin LLM mediante reglas deterministas.
 8. Añadir o actualizar tests cuando se modifique parsing, timing, evaluación, validación o transiciones de estado.
 9. No ampliar el alcance del MVP sin documentar la razón.
+10. Registrar cada decisión de arquitectura como ADR en `docs/decisions/`; un ADR aceptado no se edita, se sustituye por el siguiente número.
 
 ## Arquitectura recomendada
 
-Organizar el código para que consola y frontend compartan el mismo dominio:
+Organizar el código para que backend, frontend y contratos compartan el mismo dominio:
 
 ```text
 backend/
@@ -36,28 +39,29 @@ backend/
       performance/    comparación, timing y puntuaciones
       practice/       sesiones y ejercicios
       agent/          estados, acciones y reglas
-    infrastructure/  Mido, SQLite, filesystem y proveedores externos
-console/              interfaz TUI retro; sin lógica musical duplicada
-frontend/             Next.js, TypeScript, Tone.js y visualización
+    infrastructure/  Mido, SQLite + sqlite-vec, filesystem y proveedores externos
+frontend/             Next.js, TypeScript, Web Audio (sampler + voz de reserva) y visualización
 shared/               esquemas compartidos cuando sea necesario
 data/                 MIDI de prueba y fixtures
 ```
 
-Preferir módulos pequeños y contratos explícitos. La consola debe llamar a casos de uso del dominio; no debe importar directamente detalles de Mido para implementar reglas propias.
+Preferir módulos pequeños y contratos explícitos. La interfaz web debe llamar a casos de uso del dominio; no debe importar directamente detalles de Mido para implementar reglas propias.
+
+La estructura por capas de arriba es el objetivo, no el estado actual (2026-10). El repo real es más plano: `backend/src/piano_mentor/` con módulos hermanos (`api.py`, `midi.py`, `evaluation.py`, `practice.py`, `agent.py`, `llm.py`, `chat.py`, `database.py`, `storage.py`, `catalog.py`, `schemas.py`, `tools.py`, `validators.py` y `migrations/`); `frontend/src/` con `app/`, `components/` y `lib/`; `shared/schemas/`; `data/`; `docs/` con `architecture/`, `decisions/`, `issues/` y `design/`; y `ARCHITECTURE.md` generado en la raíz. No crear carpetas de capas vacías: la separación se hace por módulo y por contrato hasta que el tamaño la justifique.
 
 ## Orden de implementación
 
 Seguir este orden salvo una justificación explícita:
 
 1. Leer MIDI y normalizar notas, tracks, tempo y compases.
-2. Implementar reproducción y un piano virtual de consola.
+2. Implementar reproducción y un piano virtual en el navegador.
 3. Capturar eventos del teclado del ordenador.
 4. Comparar notas esperadas y recibidas.
 5. Calcular precisión, timing, notas omitidas y notas extra.
 6. Implementar la máquina de estados sin LLM.
 7. Exponer casos de uso mediante FastAPI.
 8. Añadir Docker y Docker Compose reproducibles.
-9. Crear frontend web con Next.js/TypeScript y Tone.js.
+9. Crear el frontend web con Next.js/TypeScript y Web Audio.
 10. Añadir Web MIDI API si el flujo principal ya es estable.
 11. Integrar LangGraph para orquestación de alto nivel.
 12. Conectar un LLM con salida estructurada y observabilidad.
@@ -130,7 +134,7 @@ LangGraph puede sustituir la orquestación posterior, pero no debe manejar cada 
 
 ## Backend y Docker
 
-Usar Python, FastAPI, Pydantic, SQLite durante el MVP, Mido y Pytest. Mantener configuración por variables de entorno y proporcionar `.env.example`.
+Usar Python, FastAPI, Pydantic, SQLite + sqlite-vec durante el MVP, Mido y Pytest. Mantener configuración por variables de entorno y proporcionar `.env.example`.
 
 Usar Docker desde el inicio para reproducibilidad. Separar dependencias de producción y desarrollo cuando sea práctico. En imágenes FastAPI:
 
@@ -140,25 +144,36 @@ Usar Docker desde el inicio para reproducibilidad. Separar dependencias de produ
 - montar datos o fixtures de desarrollo de forma explícita;
 - mantener un healthcheck sencillo.
 
-## Interfaz de consola retro
-
-La primera interfaz puede usar Rich o Textual y debe mostrar como mínimo:
-
-- pieza cargada;
-- tempo y sección actual;
-- modo del agente;
-- teclado de piano estilizado;
-- nota esperada y nota recibida;
-- puntuaciones de notas y timing;
-- quién controla el piano;
-- acción actual y motivo;
-- pausa, detención y devolución de control.
-
-La estética puede inspirarse en paneles retro de teclados Yamaha, pero no copiar marcas, logotipos ni recursos propietarios.
-
 ## Frontend web
 
-Preferir Next.js, TypeScript, Tone.js y Canvas/SVG. Mantener la evaluación local o en un proceso de baja latencia cuando sea necesario. Usar WebSocket para estado de sesión en tiempo real y HTTP para operaciones de piezas, sesiones y acciones.
+Next.js y TypeScript, con Web Audio para el sonido y SVG para el teclado. El sampler de piano (Salamander) se programa contra `AudioContext.currentTime` y conserva una voz sintetizada de reserva; la evaluación vive en el backend y el navegador solo reproduce y pinta. Usar WebSocket para el estado de sesión en tiempo real y HTTP para piezas, sesiones y acciones.
+
+La interfaz debe hacer visible el estado en todo momento:
+
+- pieza cargada, tempo y compás actual;
+- teclado de piano con nota esperada y nota recibida;
+- puntuaciones de notas y timing;
+- quién controla el piano (estudiante o agente);
+- acción actual del agente y su motivo;
+- pausa, detención y devolución de control.
+
+### Convención de componentes (trío .tsx/.module.css/.types.ts)
+
+Cada componente vive en su propia carpeta y se reparte en tres ficheros separados:
+
+```text
+Componente/
+  ├── Componente.tsx         solo JSX y composición (sin lógica de negocio)
+  ├── Componente.module.css  solo estilos del componente (CSS Modules)
+  └── Componente.types.ts    solo props y tipos (interfaces exportadas)
+```
+
+Reglas:
+
+- El `.tsx` no lleva tipos inline (van al `.types.ts`) ni estilos globales (van al `.module.css`).
+- Los subcomponentes son subcarpetas que repiten el mismo trío.
+- Los componentes solo llaman a la API vía `api-client.ts`; nunca `fetch` directo.
+- La lógica testeable (matemática, transporte, validación) vive en `src/lib/`, no en los componentes.
 
 La Web MIDI API requiere contexto seguro y permisos del usuario. Tratarla como capacidad opcional hasta validar la experiencia con teclado del ordenador.
 
@@ -176,7 +191,19 @@ POST /sessions/{session_id}/action
 POST /sessions/{session_id}/agent-step
 ```
 
+Lo implementado en B-012.1 se aparta en un punto de esa lista: los eventos MIDI de la interpretación **no** tienen endpoint propio, entran por el WebSocket `WS /api/v1/ws/sessions/{session_id}` en un sobre `{type, ...}` (`state`, `error`; `agent_action` llega en B-012.5) y se persisten en `session_events`. Los códigos estables son `piece_not_found`, `session_not_found`, `invalid_event_payload` y `ws_error`, y un payload inválido no cierra la sesión.
+
 Versionar o documentar cualquier cambio incompatible.
+
+## Verificación: el agente no ejecuta Docker
+
+El usuario valida los despliegues Docker; el agente no debe correr `docker`, `docker compose` ni comandos equivalentes (`build`, `up`, `exec`, `logs`, `ps`, healthchecks). El entorno local ya tiene las dependencias instaladas y es la vía de validación del agente:
+
+- Frontend: `npm test -- --run` y `npm run build` dentro de `frontend/`.
+- Backend: `python -m pytest -q` y `python -m compileall src tests` dentro de `backend/`.
+- Arquitectura: `python docs/architecture/generate_architecture.py` (y `--write --dry-run` para previsualizar cabeceras).
+
+Cuando una Issue pida verificación en Docker (por ejemplo, reproducir una pieza del corpus y adjuntar una captura), ese criterio queda **pendiente para el usuario**: el agente deja el código listo, ejecuta las validaciones locales y prepara un resumen con lo que hay que comprobar en el navegador, pero no arranca ni inspecciona contenedores.
 
 ## Pruebas mínimas
 
@@ -191,7 +218,7 @@ Antes de considerar terminado un cambio, ejecutar las pruebas disponibles y comp
 - detención y pausa sin reproducción indefinida;
 - funcionamiento con el LLM deshabilitado;
 - endpoints de carga, sesión y estado;
-- arranque reproducible con Docker.
+- arranque reproducible con Docker (criterio que ejecuta el usuario, no el agente).
 
 ## Privacidad y fuentes musicales
 
@@ -206,5 +233,5 @@ Tratar los MIDI cargados como privados. No subir audio si no es necesario. No ej
 - [ ] Las acciones están validadas y limitadas.
 - [ ] El control del piano es visible y reversible.
 - [ ] Se añadieron o actualizaron tests.
-- [ ] Se verificó el arranque local o Docker afectado.
+- [ ] Se ejecutaron las validaciones locales afectadas (tests y build); Docker queda para el usuario.
 - [ ] Se documentaron decisiones de arquitectura.

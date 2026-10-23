@@ -69,13 +69,21 @@ piano-mentor-ai/
 ├── PLAN.md
 ├── GLOSSARY.md
 ├── ARCHITECTURE.md
-├── issues/
-│   └── B-001/
-│       ├── B-001.md
-│       └── B-001.N.md
 ├── docs/
 │   ├── GETTING_STARTED.md
-│   └── TROUBLESHOOTING.md
+│   ├── TROUBLESHOOTING.md
+│   ├── architecture/
+│   │   ├── architecture_base.md
+│   │   ├── files.csv
+│   │   └── generate_architecture.py
+│   ├── design/
+│   │   ├── main_page.ai
+│   │   ├── main_page_box.jpg
+│   │   └── main_page_desing.jpg
+│   └── issues/
+│       └── B-001/
+│           ├── B-001.md
+│           └── B-001.N.md
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -143,13 +151,15 @@ piano-mentor-ai/
 | `/PLAN.md` | Plan operativo del MVP y entregables por fase o semana. |
 | `/GLOSSARY.md` | Definiciones de términos musicales, técnicos y pedagógicos. |
 | `/ARCHITECTURE.md` | Este documento; describe la evolución arquitectónica del proyecto. |
-| `/issues/` | Documentación operativa agrupada por Issue principal. Cada carpeta contiene el resumen y sus Sub-issues. |
-| `/issues/B-001/` | Documentación agrupada de la Issue B-001 y sus Sub-issues. |
-| `/issues/B-001/B-001.md` | Resumen, alcance, Sub-issues y criterios de aceptación de la Issue principal B-001. |
-| `/issues/B-001/B-001.N.md` | Documento detallado de una Sub-issue de B-001; `N` representa su número secuencial. |
+| `/docs/issues/` | Documentación operativa agrupada por Issue principal. Cada carpeta contiene el resumen y sus Sub-issues. |
+| `/docs/issues/B-001/` | Documentación agrupada de la Issue B-001 y sus Sub-issues. |
+| `/docs/issues/B-001/B-001.md` | Resumen, alcance, Sub-issues y criterios de aceptación de la Issue principal B-001. |
+| `/docs/issues/B-001/B-001.N.md` | Documento detallado de una Sub-issue de B-001; `N` representa su número secuencial. |
 | `/docs/` | Documentación operativa para instalar, arrancar y diagnosticar el proyecto. |
 | `/docs/GETTING_STARTED.md` | Guía reproducible de instalación, configuración, arranque, validaciones y detención local. |
 | `/docs/TROUBLESHOOTING.md` | Bitácora viva de problemas frecuentes, diagnóstico, workarounds y soluciones. |
+| `/docs/architecture/` | Fuente de `ARCHITECTURE.md`: base manual, CSV de contexto por archivo y script generador. |
+| `/docs/design/` | Referencias visuales de la interfaz (Illustrator y renders) usadas para derivar componentes. |
 | `/.env.example` | Plantilla de variables de entorno sin secretos. |
 | `/.gitignore` | Archivos y carpetas que no deben versionarse. |
 | `/docker-compose.yml` | Orquestación local del backend y frontend. |
@@ -216,10 +226,6 @@ piano-mentor-ai/
 ├── PLAN.md
 ├── GLOSSARY.md
 ├── ARCHITECTURE.md
-├── issues/
-│   └── B-001/
-│       ├── B-001.md
-│       └── B-001.N.md
 ├── LICENSE
 ├── .env.example
 ├── .gitignore
@@ -420,12 +426,25 @@ piano-mentor-ai/
 │   └── export_openapi.py
 │
 └── docs/
-    ├── architecture.md
+    ├── architecture/
+    │   ├── architecture_base.md
+    │   ├── files.csv
+    │   └── generate_architecture.py
+    ├── issues/
+    │   └── B-001/
+    │       ├── B-001.md
+    │       └── B-001.N.md
+    ├── design/
+    │   ├── main_page.ai
+    │   ├── main_page_box.jpg
+    │   └── main_page_desing.jpg
     ├── api.md
     ├── decisions/
     │   ├── 0001-monorepo.md
     │   ├── 0002-deterministic-music-engine.md
-    │   └── 0003-web-first-interface.md
+    │   ├── 0003-web-first-interface.md
+    │   ├── 0004-structured-agent-actions.md
+    │   └── 0005-sqlite-vector-storage.md
     └── demos/
         └── first-mvp-flow.md
 ```
@@ -435,10 +454,10 @@ piano-mentor-ai/
 | Archivo o carpeta | Descripción |
 |---|---|
 | `/LICENSE` | Licencia del código, si el proyecto adopta una licencia explícita. |
-| `/issues/` | Documentación operativa versionada agrupada por Issue principal; no sustituye a `PLAN.md`. |
-| `/issues/B-001/` | Carpeta de la Issue B-001, con su resumen y Sub-issues. |
-| `/issues/B-001/B-001.md` | Resumen, alcance y aceptación de la Issue principal B-001. |
-| `/issues/B-001/B-001.N.md` | Descripción, dependencias, validación y criterios de una Sub-issue. |
+| `/docs/issues/` | Documentación operativa versionada agrupada por Issue principal; no sustituye a `PLAN.md`. |
+| `/docs/issues/B-001/` | Carpeta de la Issue B-001, con su resumen y Sub-issues. |
+| `/docs/issues/B-001/B-001.md` | Resumen, alcance y aceptación de la Issue principal B-001. |
+| `/docs/issues/B-001/B-001.N.md` | Descripción, dependencias, validación y criterios de una Sub-issue. |
 | `/Makefile` | Comandos abreviados para instalar, probar, levantar Docker y ejecutar tareas comunes. |
 | `/backend/migrations/` | Migraciones de base de datos gestionadas por Alembic. |
 | `/backend/migrations/env.py` | Configuración del entorno de Alembic. |
@@ -552,11 +571,15 @@ piano-mentor-ai/
 | `/scripts/seed_demo_data.py` | Preparación de datos de demo desde la raíz del monorepo. |
 | `/scripts/validate_midi_corpus.py` | Validación del corpus completo de piezas MIDI. |
 | `/scripts/export_openapi.py` | Exportación del contrato OpenAPI para documentación o clientes. |
-| `/docs/architecture.md` | Documentación técnica más detallada cuando este archivo crezca. |
+| `/docs/architecture/` | Fuente de este documento: base manual, CSV de contexto por archivo y generador. |
+| `/docs/design/` | Referencias visuales de la interfaz (Illustrator y renders) usadas para derivar componentes. |
 | `/docs/api.md` | Referencia de endpoints, payloads y códigos de respuesta. |
+| `/docs/decisions/` | Registros de decisión de arquitectura (ADR): contexto, opciones, decisión y consecuencias. |
 | `/docs/decisions/0001-monorepo.md` | Justificación de usar un monorepo. |
 | `/docs/decisions/0002-deterministic-music-engine.md` | Justificación de separar el motor musical del LLM. |
 | `/docs/decisions/0003-web-first-interface.md` | Decisión de comenzar con una interfaz web y no con consola retro. |
+| `/docs/decisions/0004-structured-agent-actions.md` | Justificación del enum cerrado de acciones del agente y su validación. |
+| `/docs/decisions/0005-sqlite-vector-storage.md` | Justificación de SQLite + sqlite-vec y de su modelo de un solo escritor. |
 | `/docs/demos/first-mvp-flow.md` | Guion reproducible de la primera demostración de extremo a extremo. |
 
 ## 6. Límites entre capas
@@ -727,7 +750,7 @@ Las skills son instrucciones especializadas que el agente puede cargar para trab
 
 | Skill | Propósito |
 |---|---|
-| `piano-mentor-ai-development` | Desarrollo y mantenimiento de PianoMentor AI: diseño de módulos, parsing/reproducción MIDI, evaluación, consola retro, frontend, LangGraph/LLM. |
+| `piano-mentor-ai-development` | Desarrollo y mantenimiento de PianoMentor AI: diseño de módulos, parsing/reproducción MIDI, evaluación, interfaz web (Next.js + Web Audio), LangGraph/LLM. |
 | `piano-mentor-github-projects` | Automatización de GitHub Projects: crear Issues, sincronizar Priority y Target date, exportar respaldo, detectar duplicados, revisar límites de API. |
 | `piano-mentor-architecture` | Regenerar `ARCHITECTURE.md` desde `docs/architecture/architecture_base.md` + `docs/architecture/files.csv` + filetree real. No editar `ARCHITECTURE.md` a mano. |
 | `opencode` | Uso, configuración y troubleshooting de OpenCode: agentes, comandos, skills, herramientas, permisos, MCP, modelos, temas, keybinds, formatters, CLI, TUI, apps. |
@@ -758,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-23 17:50 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-23 18:33 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -881,10 +904,6 @@ piano-mentor-ai/
 ├── data/sessions/.gitkeep
 ├── data/uploads/
 ├── data/uploads/.gitkeep
-├── desing/
-├── desing/main_page.ai
-├── desing/main_page_box.jpg
-├── desing/main_page_desing.jpg
 ├── docker-compose.debug.yml
 ├── docker-compose.yml
 ├── docs/
@@ -892,8 +911,98 @@ piano-mentor-ai/
 ├── docs/architecture/architecture_base.md
 ├── docs/architecture/files.csv
 ├── docs/architecture/generate_architecture.py
+├── docs/decisions/
+├── docs/decisions/0001-monorepo.md
+├── docs/decisions/0002-deterministic-music-engine.md
+├── docs/decisions/0003-web-first-interface.md
+├── docs/decisions/0004-structured-agent-actions.md
+├── docs/decisions/0005-sqlite-vector-storage.md
 ├── docs/DEMO_AGENT.md
+├── docs/design/
+├── docs/design/main_page.ai
+├── docs/design/main_page_box.jpg
+├── docs/design/main_page_desing.jpg
 ├── docs/GETTING_STARTED.md
+├── docs/issues/
+├── docs/issues/B-001/
+├── docs/issues/B-001/B-001.1.md
+├── docs/issues/B-001/B-001.2.md
+├── docs/issues/B-001/B-001.3.md
+├── docs/issues/B-001/B-001.4.md
+├── docs/issues/B-001/B-001.5.md
+├── docs/issues/B-001/B-001.6.md
+├── docs/issues/B-001/B-001.7.md
+├── docs/issues/B-001/B-001.8.md
+├── docs/issues/B-001/B-001.md
+├── docs/issues/B-002/
+├── docs/issues/B-002/B-002.1.md
+├── docs/issues/B-002/B-002.2.md
+├── docs/issues/B-002/B-002.3.md
+├── docs/issues/B-002/B-002.4.md
+├── docs/issues/B-002/B-002.md
+├── docs/issues/B-003/
+├── docs/issues/B-003/B-003.1.md
+├── docs/issues/B-003/B-003.2.md
+├── docs/issues/B-003/B-003.3.md
+├── docs/issues/B-003/B-003.md
+├── docs/issues/B-004/
+├── docs/issues/B-004/B-004.1.md
+├── docs/issues/B-004/B-004.2.md
+├── docs/issues/B-004/B-004.3.md
+├── docs/issues/B-004/B-004.md
+├── docs/issues/B-005/
+├── docs/issues/B-005/B-005.1.md
+├── docs/issues/B-005/B-005.2.md
+├── docs/issues/B-005/B-005.3.md
+├── docs/issues/B-005/B-005.4.md
+├── docs/issues/B-005/B-005.md
+├── docs/issues/B-006/
+├── docs/issues/B-006/B-006.1.md
+├── docs/issues/B-006/B-006.2.md
+├── docs/issues/B-006/B-006.3.md
+├── docs/issues/B-006/B-006.4.md
+├── docs/issues/B-006/B-006.md
+├── docs/issues/B-007/
+├── docs/issues/B-007/B-007.1.md
+├── docs/issues/B-007/B-007.2.md
+├── docs/issues/B-007/B-007.3.md
+├── docs/issues/B-007/B-007.4.md
+├── docs/issues/B-007/B-007.5.md
+├── docs/issues/B-007/B-007.md
+├── docs/issues/B-008/
+├── docs/issues/B-008/B-008.1.md
+├── docs/issues/B-008/B-008.2.md
+├── docs/issues/B-008/B-008.3.md
+├── docs/issues/B-008/B-008.md
+├── docs/issues/B-009/
+├── docs/issues/B-009/B-009.1.md
+├── docs/issues/B-009/B-009.2.md
+├── docs/issues/B-009/B-009.3.md
+├── docs/issues/B-009/B-009.md
+├── docs/issues/B-012/
+├── docs/issues/B-012/B-012.1.md
+├── docs/issues/B-012/B-012.2.md
+├── docs/issues/B-012/B-012.3.md
+├── docs/issues/B-012/B-012.4.md
+├── docs/issues/B-012/B-012.5.md
+├── docs/issues/B-012/B-012.6.md
+├── docs/issues/B-012/B-012.7.md
+├── docs/issues/B-012/B-012.8.md
+├── docs/issues/B-012/B-012.md
+├── docs/issues/B-027/
+├── docs/issues/B-027/B-027.1.md
+├── docs/issues/B-027/B-027.2.md
+├── docs/issues/B-027/B-027.3.md
+├── docs/issues/B-027/B-027.4.md
+├── docs/issues/B-027/B-027.md
+├── docs/issues/B-028/
+├── docs/issues/B-028/B-028.md
+├── docs/issues/B-029/
+├── docs/issues/B-029/B-029.md
+├── docs/issues/B-030/
+├── docs/issues/B-030/B-030.md
+├── docs/issues/U-001/
+├── docs/issues/U-001/U-001.md
 ├── docs/TROUBLESHOOTING.md
 ├── frontend/
 ├── frontend/.cache/
@@ -1144,86 +1253,6 @@ piano-mentor-ai/
 ├── frontend/tsconfig.json
 ├── frontend/tsconfig.tsbuildinfo
 ├── GLOSSARY.md
-├── issues/
-├── issues/B-001/
-├── issues/B-001/B-001.1.md
-├── issues/B-001/B-001.2.md
-├── issues/B-001/B-001.3.md
-├── issues/B-001/B-001.4.md
-├── issues/B-001/B-001.5.md
-├── issues/B-001/B-001.6.md
-├── issues/B-001/B-001.7.md
-├── issues/B-001/B-001.8.md
-├── issues/B-001/B-001.md
-├── issues/B-002/
-├── issues/B-002/B-002.1.md
-├── issues/B-002/B-002.2.md
-├── issues/B-002/B-002.3.md
-├── issues/B-002/B-002.4.md
-├── issues/B-002/B-002.md
-├── issues/B-003/
-├── issues/B-003/B-003.1.md
-├── issues/B-003/B-003.2.md
-├── issues/B-003/B-003.3.md
-├── issues/B-003/B-003.md
-├── issues/B-004/
-├── issues/B-004/B-004.1.md
-├── issues/B-004/B-004.2.md
-├── issues/B-004/B-004.3.md
-├── issues/B-004/B-004.md
-├── issues/B-005/
-├── issues/B-005/B-005.1.md
-├── issues/B-005/B-005.2.md
-├── issues/B-005/B-005.3.md
-├── issues/B-005/B-005.4.md
-├── issues/B-005/B-005.md
-├── issues/B-006/
-├── issues/B-006/B-006.1.md
-├── issues/B-006/B-006.2.md
-├── issues/B-006/B-006.3.md
-├── issues/B-006/B-006.4.md
-├── issues/B-006/B-006.md
-├── issues/B-007/
-├── issues/B-007/B-007.1.md
-├── issues/B-007/B-007.2.md
-├── issues/B-007/B-007.3.md
-├── issues/B-007/B-007.4.md
-├── issues/B-007/B-007.5.md
-├── issues/B-007/B-007.md
-├── issues/B-008/
-├── issues/B-008/B-008.1.md
-├── issues/B-008/B-008.2.md
-├── issues/B-008/B-008.3.md
-├── issues/B-008/B-008.md
-├── issues/B-009/
-├── issues/B-009/B-009.1.md
-├── issues/B-009/B-009.2.md
-├── issues/B-009/B-009.3.md
-├── issues/B-009/B-009.md
-├── issues/B-012/
-├── issues/B-012/B-012.1.md
-├── issues/B-012/B-012.2.md
-├── issues/B-012/B-012.3.md
-├── issues/B-012/B-012.4.md
-├── issues/B-012/B-012.5.md
-├── issues/B-012/B-012.6.md
-├── issues/B-012/B-012.7.md
-├── issues/B-012/B-012.8.md
-├── issues/B-012/B-012.md
-├── issues/B-027/
-├── issues/B-027/B-027.1.md
-├── issues/B-027/B-027.2.md
-├── issues/B-027/B-027.3.md
-├── issues/B-027/B-027.4.md
-├── issues/B-027/B-027.md
-├── issues/B-028/
-├── issues/B-028/B-028.md
-├── issues/B-029/
-├── issues/B-029/B-029.md
-├── issues/B-030/
-├── issues/B-030/B-030.md
-├── issues/U-001/
-├── issues/U-001/U-001.md
 ├── LICENSE
 ├── PLAN.md
 ├── README.md
@@ -1362,12 +1391,17 @@ piano-mentor-ai/
 | `docs/GETTING_STARTED.md` | Guía reproducible de instalación, arranque y validación local. | Primer arranque del proyecto. |
 | `docs/TROUBLESHOOTING.md` | Bitácora viva de problemas, diagnóstico y soluciones. | Consultar ante fallos conocidos. |
 | `docs/DEMO_AGENT.md` | Guion de demo del chat del agente (B-012.8 bloque D): preparación, turno a turno con la client_action del backend y el efecto en el navegador, transcripciones reales con Groq y con el MockProvider, tabla de fallover y checklist de verificación manual. | Fuente de verdad de la demo del agente: qué escribir en el chat, qué debe pasar y qué mirar si algo falla. Las transcripciones son literales de ejecuciones reales, así que cualquier cambio de comportamiento del chat debe reflejarse aquí. |
-| `issues/B-001/B-001.md` | Resumen y aceptación de la Issue B-001 (estructura monorepo). | alcance de la issue principal; detalle en B-001.N.md. |
-| `issues/B-002/B-002.md` | Resumen y aceptación de la Issue B-002 (contrato y almacenamiento de piezas). | Contrato base de piezas MIDI. |
-| `issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas; los vectores llegan con B-005/B-013. |
-| `issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
-| `issues/B-006/B-006.md` | Resumen y aceptación de la Issue B-006 (reproducción básica): API de notas, reloj en el navegador, tempo y base de componentes del front. | Transporte play/pausa/stop sin estado en el servidor; detalle en B-006.N.md. |
-| `issues/B-007/B-007.md` | Resumen y aceptación de la Issue B-007 (piano virtual básico): teclado SVG, resaltado sonando/esperada y cascada sincronizada. | Solo visualización, sin entrada de usuario; detalle en B-007.N.md. |
+| `docs/decisions/0001-monorepo.md` | ADR 0001: un monorepo para backend, frontend, contratos y documentación. | Explica por qué el backend se construye desde la raíz y por qué los contratos viven en shared/. |
+| `docs/decisions/0002-deterministic-music-engine.md` | ADR 0002: el motor musical es determinista y el LLM queda fuera del bucle de notas. | Gobierna B-005, B-008, B-009 y B-012: evaluación, reglas y validación no dependen del proveedor LLM. |
+| `docs/decisions/0003-web-first-interface.md` | ADR 0003: la interfaz principal es web (Next.js + Web Audio), no una app nativa. | Justifica el navegador, el teclado del ordenador como entrada mínima y Web MIDI como mejora posterior. |
+| `docs/decisions/0004-structured-agent-actions.md` | ADR 0004: las acciones del agente son un enum cerrado, validadas en el backend. | Contrato compartido en shared/schemas/action.schema.json; ninguna acción del LLM se ejecuta sin validar. |
+| `docs/decisions/0005-sqlite-vector-storage.md` | ADR 0005: persistencia con SQLite + sqlite-vec en el MVP, con migraciones SQL versionadas. | Explica WAL, busy_timeout, el worker único y por qué no hay Postgres todavía. |
+| `docs/issues/B-001/B-001.md` | Resumen y aceptación de la Issue B-001 (estructura monorepo). | alcance de la issue principal; detalle en B-001.N.md. |
+| `docs/issues/B-002/B-002.md` | Resumen y aceptación de la Issue B-002 (contrato y almacenamiento de piezas). | Contrato base de piezas MIDI. |
+| `docs/issues/B-003/B-003.md` | Resumen y aceptación de la Issue B-003 (carga MIDI con SQLite + sqlite-vec). | Persistencia MVP de piezas; los vectores llegan con B-005/B-013. |
+| `docs/issues/B-005/B-005.md` | Resumen y aceptación de la Issue B-005 (normalizar notas MIDI): parsing, TempoMap, normalizador y metadatos en la carga. | Contrato musical determinista; detalle en B-005.N.md. |
+| `docs/issues/B-006/B-006.md` | Resumen y aceptación de la Issue B-006 (reproducción básica): API de notas, reloj en el navegador, tempo y base de componentes del front. | Transporte play/pausa/stop sin estado en el servidor; detalle en B-006.N.md. |
+| `docs/issues/B-007/B-007.md` | Resumen y aceptación de la Issue B-007 (piano virtual básico): teclado SVG, resaltado sonando/esperada y cascada sincronizada. | Solo visualización, sin entrada de usuario; detalle en B-007.N.md. |
 | `.agents/skills/piano-mentor-add-piece/SKILL.md` | Skill de altas de piezas: fuente, MIDI, portada, catálogo, tests y base. | Cargar al añadir una canción nueva al corpus o al elegir pieza por defecto. |
 | `.agents/skills/piano-mentor-add-piece/scripts/analyze_piece.py` | Analiza un MIDI antes de meterlo en el corpus y emite el veredicto de aceptación. | Soporte de la skill piano-mentor-add-piece; se lanza desde la raíz del repo sobre un MIDI candidato. |
 | `.agents/skills/piano-mentor-add-piece/scripts/cover_from_commons.py` | Busca, verifica y descarga portadas de dominio público desde Wikimedia Commons. | Soporte de la skill piano-mentor-add-piece; consulta la API de Commons y guarda en frontend/public/assets/covers. |
@@ -1378,13 +1412,13 @@ piano-mentor-ai/
 | `.github_projects/project-backlog.csv` | Backlog operativo: ID, título, descripción, prioridad, semana, área, riesgo, tamaño, estado y dependencias de cada tarea. | Fuente que consumen import-github-issues.ps1 y sync-github-project.ps1; mantener coherente con PLAN.md. |
 | `.github_projects/project-backup.json` | Respaldo exportado del Project de GitHub con campos y valores reales, incluido el Status por issue. | Generado por export-github-project.ps1; ejecutarlo antes de analizar cambios del Project. |
 | `.github_projects/scripts/export-github-project.ps1` | Exporta el Project a project-backup.json (o a una instantánea fechada) con campos y elementos. | Paso de respaldo del flujo; nunca imprime tokens. |
-| `.github_projects/scripts/import-github-issues.ps1` | Crea o reutiliza las Issues del backlog (busca por [B-xxx]), usa issues/B-xxx/B-xxx.md como cuerpo, las añade al Project y sincroniza campos. | Paso 1-2; -Preview valida el CSV sin tocar GitHub y omite tareas sin documento local. |
-| `.github_projects/scripts/create-github-subissues.ps1` | Crea o reutiliza las Sub-issues de una Issue padre desde issues/B-xxx/B-xxx.N.md, las vincula con --parent y las añade al Project. | Paso 3; -Preview y -SkipProject evitan llamar a GitHub o al Project. |
+| `.github_projects/scripts/import-github-issues.ps1` | Crea o reutiliza las Issues del backlog (busca por [B-xxx]), usa docs/issues/B-xxx/B-xxx.md como cuerpo, las añade al Project y sincroniza campos. | Paso 1-2; -Preview valida el CSV sin tocar GitHub y omite tareas sin documento local. |
+| `.github_projects/scripts/create-github-subissues.ps1` | Crea o reutiliza las Sub-issues de una Issue padre desde docs/issues/B-xxx/B-xxx.N.md, las vincula con --parent y las añade al Project. | Paso 3; -Preview y -SkipProject evitan llamar a GitHub o al Project. |
 | `.github_projects/scripts/sync-github-project.ps1` | Sincroniza solo Priority y Target date de los elementos del Project. | Paso 4; no toca Status, Start date ni sub-issues, y -Preview muestra los cambios sin aplicarlos. |
 | `.agents/skills/piano-mentor-architecture/SKILL.md` | Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree. | Cargar al documentar archivos o estructura; ejecuta el script. |
-| `desing/main_page.ai` | Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado). | Fuente de diseño de la página inicial; implementar en Next.js según este diseño. |
-| `desing/main_page_box.jpg` | Cajas de referencia de la main page (encabezado, controles, piano virtual, lateral del mentor y zona de subida) usadas para derivar el árbol de componentes. | Fuente estructural de B-006.4; el estilo final lo marca main_page_desing.jpg. |
-| `desing/main_page_desing.jpg` | Render estilizado de referencia de la main page (cabecera, player, piano C1–C6 y panel del mentor). | Solo idea visual para B-006.4; simplicidad primero, el CSS full vendrá después. En código el rótulo se escribe 'Progress' (el diseño pone 'Progess'). |
+| `docs/design/main_page.ai` | Diseño en Illustrator de la main page del frontend (referencia visual, no asset compilado). | Fuente de diseño de la página inicial; implementar en Next.js según este diseño. |
+| `docs/design/main_page_box.jpg` | Cajas de referencia de la main page (encabezado, controles, piano virtual, lateral del mentor y zona de subida) usadas para derivar el árbol de componentes. | Fuente estructural de B-006.4; el estilo final lo marca docs/design/main_page_desing.jpg. |
+| `docs/design/main_page_desing.jpg` | Render estilizado de referencia de la main page (cabecera, player, piano C1–C6 y panel del mentor). | Solo idea visual para B-006.4; simplicidad primero, el CSS full vendrá después. En código el rótulo se escribe 'Progress' (el diseño pone 'Progess'). |
 | `frontend/public/assets/piano_virtual_88_pressed.svg` | Piano virtual de 88 teclas en SVG con ids por tecla y estados de tecla presionada. | Asset del teclado virtual; SVGR lo convierte en el componente inline. Vive en public/ para poder servirse también por HTTP. |
 | `frontend/src/components/AppHeader/AppHeader.tsx` | Encabezado principal: compone logo, navegación, estado MIDI y avatar. | B-006.4; armazón estático. |
 | `frontend/src/components/AppHeader/AppHeader.module.css` | Estilos del encabezado principal. | B-006.4; simplicidad primero. |

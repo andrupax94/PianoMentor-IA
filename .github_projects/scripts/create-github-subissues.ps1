@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^B-\d+$')]
     [string]$ParentId,
-    [string]$IssuesPath = (Join-Path $PSScriptRoot '..\..\issues'),
+    [string]$IssuesPath = (Join-Path $PSScriptRoot '..\..\docs\issues'),
     [string]$Repository = 'andrupax94/PianoMentor-IA',
     [string]$ProjectOwner = 'andrupax94',
     [int]$ProjectNumber = 1,

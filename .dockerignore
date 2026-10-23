@@ -22,8 +22,6 @@ nota.txt
 # Frontend y docs: no forman parte de la imagen del backend
 frontend
 docs
-desing
-issues
 shared
 docker-compose*.yml
 *.md

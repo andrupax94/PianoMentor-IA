@@ -356,7 +356,7 @@ Visualización de notas que descienden hacia el teclado siguiendo el tiempo de r
 
 ## Tone.js
 
-Biblioteca JavaScript orientada a música y audio web. Puede ayudar con transporte, sincronización y síntesis, siempre manteniendo la evaluación dentro de una arquitectura controlada.
+Biblioteca JavaScript de audio para la web. **No se usa en el MVP**: el transporte y el sampler están implementados directamente sobre Web Audio API (`synth.ts`, `piano-samples.ts`). Se cita solo como alternativa si algún día hiciera falta un transporte más rico.
 
 ## Web MIDI API
 

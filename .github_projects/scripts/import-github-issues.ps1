@@ -168,11 +168,11 @@ Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otr
 
 > Fuente: [backlog inicial](../../blob/main/.github_projects/project-backlog.csv)
 "@
-    $issueDocPath = Join-Path (Join-Path (Join-Path $PSScriptRoot '..\..\issues') $item.ID) "$($item.ID).md"
+    $issueDocPath = Join-Path (Join-Path (Join-Path $PSScriptRoot '..\..\docs\issues') $item.ID) "$($item.ID).md"
     $issueDocumentExists = Test-Path $issueDocPath
     if (Test-Path $issueDocPath) {
         $body = Get-Content -LiteralPath $issueDocPath -Raw -Encoding UTF8
-        $body += "`r`n`r`n---`r`n`r`n> Documento local: [issues/$($item.ID)/$($item.ID).md](../../blob/main/issues/$($item.ID)/$($item.ID).md)"
+        $body += "`r`n`r`n---`r`n`r`n> Documento local: [docs/issues/$($item.ID)/$($item.ID).md](../../blob/main/docs/issues/$($item.ID)/$($item.ID).md)"
         Write-Output "$($item.ID): usando documento $issueDocPath"
     }
     else {

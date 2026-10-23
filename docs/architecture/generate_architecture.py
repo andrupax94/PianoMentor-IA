@@ -339,7 +339,7 @@ def main() -> None:
     csv_paths = {r["path"].rstrip("/") for r in rows} - {"ARCHITECTURE.md"}
     missing = sorted(csv_paths - real_files)
     # Solo avisar de archivos fuente relevantes, no de carpetas genéricas
-    relevant_missing = [m for m in missing if not m.startswith("issues/")]
+    relevant_missing = [m for m in missing if not m.startswith("docs/issues/")]
     if relevant_missing:
         print("[WARN] En files.csv pero no existen en disco:")
         for m in relevant_missing:

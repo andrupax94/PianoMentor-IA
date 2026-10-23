@@ -127,7 +127,7 @@ Al cambiar el número de piezas hay que mover todos a la vez:
 | `backend/tests/test_hands.py` | `assert len(third_party_pieces()) == N` y el comentario de la misma función |
 | `backend/scripts/describe_corpus_tracks.py` | `EXPECTED_LEFT_TRACK["pNN"]` con el índice de la pista grave; sin esa entrada el script imprime **no** en la comprobación |
 
-**No** se tocan `issues/**` ni `.github_projects/**`: son el histórico de issues
+**No** se tocan `docs/issues/**` ni `.github_projects/**`: son el histórico de issues
 ya cerradas. En `PLAN.md` solo el objetivo de validación, no las mediciones
 narradas de B-009.
 

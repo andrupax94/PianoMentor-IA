@@ -25,6 +25,10 @@ La documentación especializada está separada para evitar duplicaciones:
 | [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Instalación, configuración y arranque local reproducible. |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Diagnóstico y soluciones para problemas frecuentes y futuros. |
 | [docs/DEMO_AGENT.md](docs/DEMO_AGENT.md) | Guion de demo del chat del agente: frases, efectos y qué mirar si algo falla. |
+| [docs/architecture/](docs/architecture/) | Fuente de ARCHITECTURE.md: base manual, CSV de contexto por archivo y generador. |
+| [docs/issues/](docs/issues/) | Especificación versionada de cada Issue y Sub-issue: alcance, criterios y evidencia. |
+| [docs/design/](docs/design/) | Referencias visuales de la interfaz (Illustrator y renders) usadas para derivar componentes. |
+| [docs/decisions/](docs/decisions/) | ADR: por qué la arquitectura es como es (monorepo, motor determinista, web, acciones, persistencia). |
 
 Antes de modificar el proyecto, leer este README y el documento especializado relacionado con el cambio.
 

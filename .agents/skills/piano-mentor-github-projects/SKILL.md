@@ -53,15 +53,19 @@ Este script:
 4. Añade los Issues al Project y tolera elementos ya presentes.
 5. Ejecuta `sync-github-project.ps1` al finalizar.
 
-Si existe `issues/B-xxx/B-xxx.md`, el importador lo utiliza como cuerpo de la Issue y añade el enlace al archivo versionado. Si no existe, el flujo por defecto omite completamente esa tarea y no ejecuta operaciones de Issue ni Project para ella. Solo usar `-IncludeMissingIssueDocs` para procesar esas tareas con el cuerpo genérico del CSV. Usar `-ForceIssueBodies` únicamente cuando se haya decidido sobrescribir cuerpos con documento local.
+Si existe `docs/issues/B-xxx/B-xxx.md`, el importador lo utiliza como cuerpo de la Issue y añade el enlace al archivo versionado. Si no existe, el flujo por defecto omite completamente esa tarea y no ejecuta operaciones de Issue ni Project para ella. Solo usar `-IncludeMissingIssueDocs` para procesar esas tareas con el cuerpo genérico del CSV. Usar `-ForceIssueBodies` únicamente cuando se haya decidido sobrescribir cuerpos con documento local.
 
 ### 3. Crear Sub-issues desde documentos
 
-Cada Issue principal puede tener un documento `issues/B-xxx/B-xxx.md` y documentos hijos `issues/B-xxx/B-xxx.N.md`. Para previsualizar sin autenticación ni llamadas a GitHub:
+Cada Issue principal puede tener un documento `docs/issues/B-xxx/B-xxx.md` y documentos hijos `docs/issues/B-xxx/B-xxx.N.md`. Para previsualizar sin autenticación ni llamadas a GitHub:
 
 ```powershell
 .\.github_projects\scripts\create-github-subissues.ps1 -ParentId B-001 -Preview
 ```
+
+La carpeta por defecto es `docs/issues/`: `create-github-subissues.ps1` la recibe en `-IssuesPath` y `import-github-issues.ps1` la resuelve desde `$PSScriptRoot`. Si se mueve, hay que actualizar ambas rutas o el importador dejará de encontrar los documentos y omitirá todas las tareas sin avisar de que el problema es la ruta.
+
+El enlace que el importador añade al cuerpo (`docs/issues/...`) es relativo (`../../blob/main/...`) y puede no resolverse en la web de GitHub; el cuerpo y la ruta local sí son correctos. Para un enlace clicable hace falta la URL absoluta del repositorio.
 
 Para crear o reutilizar las Sub-issues, actualizar sus cuerpos, vincularlas al padre y añadirlas al Project:
 
