@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$CsvPath = (Join-Path $PSScriptRoot '..\project-backlog.csv'),
-    [string]$Repository = 'andrupax94/PianoMentor-IA',
+    [string]$Repository = '',
     [string]$ProjectOwner = 'andrupax94',
     [string]$ProjectTitle = '@andrupax94 PianoMentor IA',
     [int]$ProjectNumber = 0,
@@ -96,15 +96,24 @@ if (-not (Get-Command gh.exe -ErrorAction SilentlyContinue)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($Repository)) {
-    $Repository = (git remote get-url origin 2>$null)
+    # Deriva owner/repo del remoto del propio repo. El script vive dentro
+    # (.github_projects/scripts), así que se ancla a la raíz por $PSScriptRoot
+    # en vez del CWD, y funciona aunque se lance desde otra carpeta.
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    $Repository = (git -C $repoRoot remote get-url origin 2>$null)
     if ($Repository -match 'github.com[:/](.+?)(?:\.git)?$') {
         $Repository = $Matches[1]
     }
 }
 
 if ([string]::IsNullOrWhiteSpace($Repository) -or $Repository -notmatch '^[^/]+/[^/]+$') {
-    throw "El repositorio debe tener el formato owner/repo, por ejemplo andrupax94/PianoMentor-IA."
+    throw "El repositorio debe tener el formato owner/repo (p. ej. andrupax94/PianoMentor-IA). Pásalo con -Repository o comprueba el remoto origin."
 }
+
+# URL base de los enlaces del cuerpo, absoluta. Los enlaces relativos en el
+# cuerpo de una Issue se resuelven contra la URL de la issue
+# (github.com/owner/repo/issues/N), donde ../../ se sale del repo y dan 404.
+$BlobBaseUrl = "https://github.com/$Repository/blob/main"
 
 Invoke-Gh @('auth', 'status')
 $items = Import-Csv -LiteralPath $CsvPath
@@ -166,13 +175,13 @@ $($item.Description)
 ## Criterio inicial
 Implementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.
 
-> Fuente: [backlog inicial](../../blob/main/.github_projects/project-backlog.csv)
+> Fuente: [backlog inicial]($BlobBaseUrl/.github_projects/project-backlog.csv)
 "@
     $issueDocPath = Join-Path (Join-Path (Join-Path $PSScriptRoot '..\..\docs\issues') $item.ID) "$($item.ID).md"
     $issueDocumentExists = Test-Path $issueDocPath
     if (Test-Path $issueDocPath) {
         $body = Get-Content -LiteralPath $issueDocPath -Raw -Encoding UTF8
-        $body += "`r`n`r`n---`r`n`r`n> Documento local: [docs/issues/$($item.ID)/$($item.ID).md](../../blob/main/docs/issues/$($item.ID)/$($item.ID).md)"
+        $body += "`r`n`r`n---`r`n`r`n> Documento local: [docs/issues/$($item.ID)/$($item.ID).md]($BlobBaseUrl/docs/issues/$($item.ID)/$($item.ID).md)"
         Write-Output "$($item.ID): usando documento $issueDocPath"
     }
     else {
