@@ -23,6 +23,27 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def isolated_llm(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Aísla la cadena de LLM: la suite normal nunca depende del `.env` ni de la red.
+
+    El `.env` de desarrollo trae `LLM_PROVIDER` y claves reales de Groq y
+    Gemini; sin este aislamiento los tests del chat se ejecutaban contra la
+    cadena de respaldo real (y contra la red) en vez del Mock, que es el
+    proveedor con el que están escritos. El gating se prueba test a test con
+    monkeypatch; aquí se fija el modo hermético por defecto, igual que ya hacen
+    `isolated_database` e `isolated_storage`.
+
+    Las pruebas de integración (`-m integration`) sí quieren las claves reales
+    y se quedan fuera del aislamiento.
+    """
+    if request.node.get_closest_marker("integration"):
+        return
+    monkeypatch.setattr(settings, "llm_provider", "mock")
+    monkeypatch.setattr(settings, "groq_api_key", "")
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+
+
+@pytest.fixture(autouse=True)
 def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalPieceStorage:
     """Apunta el almacén MIDI a un directorio temporal durante cada test.
 
