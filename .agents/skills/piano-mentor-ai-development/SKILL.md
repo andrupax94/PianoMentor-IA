@@ -206,7 +206,7 @@ El usuario valida los despliegues Docker; el agente no debe correr `docker`, `do
 
 - Frontend: `npm test -- --run` y `npm run build` dentro de `frontend/`.
 - Backend: `python -m pytest -q` y `python -m compileall src tests` dentro de `backend/`.
-- Arquitectura: `python architecture/generate_architecture.py` (y `--write --dry-run` para previsualizar cabeceras).
+- Arquitectura: `python docs/architecture/generate_architecture.py` (y `--write --dry-run` para previsualizar cabeceras).
 
 Cuando una Issue pida verificación en Docker (por ejemplo, reproducir una pieza del corpus y adjuntar una captura), ese criterio queda **pendiente para el usuario**: el agente deja el código listo, ejecuta las validaciones locales y prepara un resumen con lo que hay que comprobar en el navegador, pero no arranca ni inspecciona contenedores.
 

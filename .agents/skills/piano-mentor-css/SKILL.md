@@ -73,7 +73,7 @@ hay motivo para tocarlos.
   CSS global, más `page.module.css`).
 - **Cabecera obligatoria** en cada `.css` y en cada `.tsx`:
   `/* description: … */` y `/* context: … */` (en TSX con `//`). Su texto vive en
-  `architecture/files.csv`: es la fuente de verdad y el script `--write` lo reescribe
+  `docs/architecture/files.csv`: es la fuente de verdad y el script `--write` lo reescribe
   desde ahí, así que mantén ambos idénticos.
 - **Tokens, nunca colores sueltos**: la paleta vive en `:root` de `globals.css`
   (`--bg`, `--panel`, `--line`, `--accent`, `--text`, `--text-soft`, `--text-mute`,
@@ -149,10 +149,10 @@ $g = $c.IndexOf('--bs-gutter-x'); $fr = $c.IndexOf('.col-1-5'); $gl = $c.IndexOf
 
 ## Sincronía con la arquitectura
 
-1. Añade o actualiza la fila en `architecture/files.csv` (nuevos `.css`/`.tsx`
+1. Añade o actualiza la fila en `docs/architecture/files.csv` (nuevos `.css`/`.tsx`
    y cambios de `layout.tsx`/`package.json`).
-2. `python architecture/generate_architecture.py` para regenerar `ARCHITECTURE.md`.
-3. `python architecture/generate_architecture.py --write --dry-run` → tu fila debe
+2. `python docs/architecture/generate_architecture.py` para regenerar `ARCHITECTURE.md`.
+3. `python docs/architecture/generate_architecture.py --write --dry-run` → tu fila debe
    dar `[igual]` (si da `escribiría`, tu cabecera no coincide con el CSV).
 
 ## Checklist

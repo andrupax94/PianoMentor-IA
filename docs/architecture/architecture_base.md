@@ -729,7 +729,7 @@ Las skills son instrucciones especializadas que el agente puede cargar para trab
 |---|---|
 | `piano-mentor-ai-development` | Desarrollo y mantenimiento de PianoMentor AI: diseño de módulos, parsing/reproducción MIDI, evaluación, consola retro, frontend, LangGraph/LLM. |
 | `piano-mentor-github-projects` | Automatización de GitHub Projects: crear Issues, sincronizar Priority y Target date, exportar respaldo, detectar duplicados, revisar límites de API. |
-| `piano-mentor-architecture` | Regenerar `ARCHITECTURE.md` desde `architecture/architecture_base.md` + `architecture/files.csv` + filetree real. No editar `ARCHITECTURE.md` a mano. |
+| `piano-mentor-architecture` | Regenerar `ARCHITECTURE.md` desde `docs/architecture/architecture_base.md` + `docs/architecture/files.csv` + filetree real. No editar `ARCHITECTURE.md` a mano. |
 | `opencode` | Uso, configuración y troubleshooting de OpenCode: agentes, comandos, skills, herramientas, permisos, MCP, modelos, temas, keybinds, formatters, CLI, TUI, apps. |
 | `report` | Reporte de issues o bugs de OpenCode con diagnósticos estándar y publicación mediante GitHub CLI. |
 
@@ -741,16 +741,16 @@ Las skills se cargan automáticamente cuando el agente detecta que una tarea coi
 
 | Pieza | Rol | Se edita a mano |
 |---|---|---|
-| `architecture/architecture_base.md` | Contenido manual: principios, capas, contratos, evolución. Es la fuente de verdad arquitectónica. | Sí |
-| `architecture/files.csv` | Contexto por archivo: columnas `path,description,context`. Fuente de verdad del "qué hace cada archivo" para agentes. | Sí |
-| `architecture/generate_architecture.py` | Script que combina base + filetree real + tabla del CSV y escribe `ARCHITECTURE.md`. No toca la base. | Solo si cambia el formato |
+| `docs/architecture/architecture_base.md` | Contenido manual: principios, capas, contratos, evolución. Es la fuente de verdad arquitectónica. | Sí |
+| `docs/architecture/files.csv` | Contexto por archivo: columnas `path,description,context`. Fuente de verdad del "qué hace cada archivo" para agentes. | Sí |
+| `docs/architecture/generate_architecture.py` | Script que combina base + filetree real + tabla del CSV y escribe `ARCHITECTURE.md`. No toca la base. | Solo si cambia el formato |
 | `ARCHITECTURE.md` | Salida final: base + `Anexo A` (filetree real) + `Anexo B` (tabla del CSV). | No |
 
 Flujo de la skill `piano-mentor-architecture`:
 
 ```text
-1. Editar architecture/architecture_base.md y/o architecture/files.csv
-2. Ejecutar: python architecture/generate_architecture.py
+1. Editar docs/architecture/architecture_base.md y/o docs/architecture/files.csv
+2. Ejecutar: python docs/architecture/generate_architecture.py
 3. Revisar el diff de ARCHITECTURE.md generado
 ```
 

@@ -1,6 +1,6 @@
 ---
 name: piano-mentor-architecture
-description: Mantenimiento de la arquitectura de PianoMentor AI. Usar al documentar archivos nuevos, mover módulos, o actualizar ARCHITECTURE.md, architecture_base.md o architecture/files.csv. Regenera ARCHITECTURE.md desde la base + filetree real + CSV.
+description: Mantenimiento de la arquitectura de PianoMentor AI. Usar al documentar archivos nuevos, mover módulos, o actualizar ARCHITECTURE.md, architecture_base.md o docs/architecture/files.csv. Regenera ARCHITECTURE.md desde la base + filetree real + CSV.
 ---
 <!-- description: Skill de arquitectura: regenerar ARCHITECTURE.md desde base + CSV + filetree. -->
 <!-- context: Cargar al documentar archivos o estructura; ejecuta el script. -->
@@ -13,20 +13,20 @@ Mantener `ARCHITECTURE.md` sincronizado con el código real sin reescribirlo a m
 
 ## Fuentes de verdad
 
-- `architecture/architecture_base.md`: contenido manual (principios, capas, contratos, evolución). **Sí se edita.**
-- `architecture/files.csv`: contexto por archivo (`path,description,context`). **Sí se edita.**
-- `architecture/generate_architecture.py`: script generador. Solo se toca si cambia el formato.
-- `ARCHITECTURE.md`: salida generada (base + Anexo A filetree + Anexo B tabla CSV). **No editar a mano.**
+- `docs/architecture/architecture_base.md`: contenido manual (principios, capas, contratos, evolución). **Sí se edita.**
+- `docs/architecture/files.csv`: contexto por archivo (`path,description,context`). **Sí se edita.**
+- `docs/architecture/generate_architecture.py`: script generador. Solo se toca si cambia el formato.
+- `ARCHITECTURE.md`: salida generada en la raíz (base + Anexo A filetree + Anexo B tabla CSV). **No editar a mano.**
 
 ## Flujo obligatorio
 
-1. Leer `architecture/files.csv` para localizar el contexto de cada archivo.
-2. Si el cambio es arquitectónico, editar `architecture/architecture_base.md`, nunca `ARCHITECTURE.md`.
-3. Si se crea, mueve o elimina un archivo relevante, añadir/actualizar su fila en `architecture/files.csv` (`path,description,context` en una línea, sin saltos).
-4. Regenerar desde la raíz del repo:
+1. Leer `docs/architecture/files.csv` para localizar el contexto de cada archivo.
+2. Si el cambio es arquitectónico, editar `docs/architecture/architecture_base.md`, nunca `ARCHITECTURE.md`.
+3. Si se crea, mueve o elimina un archivo relevante, añadir/actualizar su fila en `docs/architecture/files.csv` (`path,description,context` en una línea, sin saltos).
+4. Regenerar (el script localiza la raíz del repo por `.git`; vale desde cualquier carpeta):
 
 ```powershell
-python architecture/generate_architecture.py
+python docs/architecture/generate_architecture.py
 ```
 
 5. Revisar el diff de `ARCHITECTURE.md` (Anexo A y Anexo B) antes de commitear.
@@ -36,8 +36,8 @@ python architecture/generate_architecture.py
 El CSV es la fuente de verdad; con `--write` el script propaga `description` y `context` como comentario de cabecera en cada archivo (estilo según extensión: `#` en Python/Dockerfile/YAML, `//` en TS/JS, `<!-- -->` en Markdown tras el frontmatter, `/* */` en CSS). Reemplaza la cabecera anterior sin duplicar.
 
 ```powershell
-python architecture/generate_architecture.py --write --dry-run  # previsualizar
-python architecture/generate_architecture.py --write            # aplicar + regenerar
+python docs/architecture/generate_architecture.py --write --dry-run  # previsualizar
+python docs/architecture/generate_architecture.py --write            # aplicar + regenerar
 ```
 
 Omitidos automáticamente: `*.json` (rompería contratos), `.gitkeep`, `LICENSE`, `files.csv`, `ARCHITECTURE.md` (generado) y rutas inexistentes. Tras aplicar, ejecutar los tests del área tocada y revisar el diff (debe ser +2 líneas de cabecera por archivo).

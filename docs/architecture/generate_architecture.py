@@ -1,16 +1,16 @@
 # description: Script que combina base + filetree real + files.csv y escribe ARCHITECTURE.md.
-# context: Ejecutar con python tras editar la base o el CSV; no modifica la base.
+# context: Ejecutar con python tras editar la base o el CSV; no modifica la base. Localiza la raíz del repo por .git, así que funciona desde cualquier carpeta.
 
 """Genera ARCHITECTURE.md desde architecture_base.md + filetree real + files.csv.
 
-Uso (desde la raíz del repo):
-    python architecture/generate_architecture.py            # solo regenera ARCHITECTURE.md
-    python architecture/generate_architecture.py --write    # escribe cabeceras en archivos + regenera
-    python architecture/generate_architecture.py --write --dry-run   # previsualiza sin escribir
+Uso (desde cualquier carpeta; el script localiza la raíz del repo):
+    python docs/architecture/generate_architecture.py            # solo regenera ARCHITECTURE.md
+    python docs/architecture/generate_architecture.py --write    # escribe cabeceras en archivos + regenera
+    python docs/architecture/generate_architecture.py --write --dry-run   # previsualiza sin escribir
 
 Reglas:
-- Lee `architecture/architecture_base.md` (fuente manual, NO la modifica).
-- Lee `architecture/files.csv` (columnas: path,description,context).
+- Lee `docs/architecture/architecture_base.md` (fuente manual, NO la modifica).
+- Lee `docs/architecture/files.csv` (columnas: path,description,context).
 - Genera el filetree real del repo (omite ruido: .git, __pycache__, node_modules, .next, etc.;
   el banco de muestras de frontend/public/audio/ se refleja solo con su manifiesto, y los
   archivos locales ignorados —SKIP_NAMES, como nota.txt— no entran porque no se clonan).
@@ -30,9 +30,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+
+
+def _repo_root(start: Path) -> Path:
+    """Sube desde el script hasta el primer ancestro con `.git` (o `AGENTS.md`)."""
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists() or (candidate / "AGENTS.md").is_file():
+            return candidate
+    raise SystemExit(f"[ERROR] No se encontró la raíz del repo desde {start}")
+
+
+ROOT = _repo_root(HERE)
+SCRIPT_REL = Path(__file__).resolve().relative_to(ROOT).as_posix()
 BASE = HERE / "architecture_base.md"
 CSV = HERE / "files.csv"
+CSV_REL = CSV.relative_to(ROOT).as_posix()
 OUT = ROOT / "ARCHITECTURE.md"
 
 SKIP_DIRS = {
@@ -244,7 +256,7 @@ def build_annex(tree: list[str], rows: list[dict[str, str]]) -> str:
     lines = [
         "---",
         "",
-        f"> Anexo generado automáticamente el {stamp} por `architecture/generate_architecture.py`. No editar a mano.",
+        f"> Anexo generado automáticamente el {stamp} por `{SCRIPT_REL}`. No editar a mano.",
         "",
         "## Anexo A — Filetree real del repositorio",
         "",
@@ -254,7 +266,7 @@ def build_annex(tree: list[str], rows: list[dict[str, str]]) -> str:
     lines.extend(f"├── {e}" for e in tree)
     lines.append("```")
     lines.append("")
-    lines.append("## Anexo B — Contexto por archivo (`architecture/files.csv`)")
+    lines.append(f"## Anexo B — Contexto por archivo (`{CSV_REL}`)")
     lines.append("")
     lines.append("| Ruta | Descripción | Contexto para el agente |")
     lines.append("|---|---|---|")
@@ -264,8 +276,8 @@ def build_annex(tree: list[str], rows: list[dict[str, str]]) -> str:
         )
     lines.append("")
     lines.append(
-        "_Para añadir un archivo nuevo: agrega su fila en `architecture/files.csv` "
-        "y ejecuta `python architecture/generate_architecture.py`._"
+        f"_Para añadir un archivo nuevo: agrega su fila en `{CSV_REL}` "
+        f"y ejecuta `python {SCRIPT_REL}`._"
     )
     lines.append("")
     return "\n".join(lines)

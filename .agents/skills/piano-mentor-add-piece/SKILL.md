@@ -178,18 +178,18 @@ print("p17 listada:", "p17" in ids, "| notas:", len(r.json()["notes"]))
 | `README.md` | "corpus de N piezas MIDI de piano" |
 | `PLAN.md` | objetivo de validación (solo ese enunciado) |
 | `GLOSSARY.md` | "un corpus de N piezas MIDI" |
-| `architecture/architecture_base.md` | "las N piezas de terceros…`p16`" |
+| `docs/architecture/architecture_base.md` | "las N piezas de terceros…`p16`" |
 | `docs/GETTING_STARTED.md` | recuento de piezas y la salida esperada del cargador |
 | `frontend/public/assets/covers/CREDITS.md` | tabla y asignación de portadas |
-| `architecture/files.csv` | `description`/`context` de los ficheros tocados |
-| `ARCHITECTURE.md` | **no se edita a mano**: `python architecture/generate_architecture.py` |
+| `docs/architecture/files.csv` | `description`/`context` de los ficheros tocados |
+| `ARCHITECTURE.md` | **no se edita a mano**: `python docs/architecture/generate_architecture.py` |
 
 ## 8. Verificación
 
 ```powershell
 cd backend;  python -m pytest -q          # recuentos, catálogo y manos
 cd frontend; npx tsc --noEmit; npm test; npm run build
-python architecture/generate_architecture.py
+python docs/architecture/generate_architecture.py
 ```
 
 Mínimo: ambas suites en verde, la prueba de humo del paso 5 y un ojo en la
