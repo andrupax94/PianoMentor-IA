@@ -58,7 +58,9 @@ export function MidiUploader() {
 
     setState({ kind: "loading" });
     try {
-      const piece = await previewPiece(file);
+      // Con la mano de cada nota: si no, la subida llegaría sin ella y la
+      // cascada se quedaría en el verde de reserva (D-002.1).
+      const piece = await previewPiece(file, { withHands: true });
       publishPianoPiece({
         kind: "upload",
         filename: piece.filename,

@@ -1,7 +1,7 @@
 // description: Matemática pura de reproducción: schedule de eventos, tempo y pitch.
 // context: Núcleo testeable de B-006.2; sin DOM, sin AudioContext, sin React.
 
-import type { PlayableNote } from "./api-client";
+import type { NoteHand, PlayableNote } from "./api-client";
 
 /** Un evento programable: instante en segundos de partitura y nota a sonar. */
 export interface ScheduledEvent {
@@ -9,6 +9,8 @@ export interface ScheduledEvent {
   pitch: number;
   duration_s: number;
   velocity: number;
+  /** Mano de la pista (B-009.3); solo llega si la partitura se pidió con `with_hands`. */
+  hand?: NoteHand;
 }
 
 /** Límites del factor de tempo (mitad de velocidad… doble velocidad). */
@@ -25,6 +27,7 @@ export function clampTempoFactor(factor: number): number {
  * Convierte las notas en eventos ordenados por tiempo, escalados por el factor.
  * Factor 0.5 = todo dura el doble; factor 2.0 = todo dura la mitad.
  * El orden es estable: los empates conservan el orden de entrada.
+ * La mano viaja con la nota para que la cascada sepa de qué color pintarla (D-002.1).
  */
 export function buildSchedule(notes: PlayableNote[], tempoFactor = 1.0): ScheduledEvent[] {
   const factor = clampTempoFactor(tempoFactor);
@@ -34,6 +37,7 @@ export function buildSchedule(notes: PlayableNote[], tempoFactor = 1.0): Schedul
       pitch: note.pitch,
       duration_s: note.duration_seconds / factor,
       velocity: note.velocity,
+      hand: note.hand,
     }))
     .sort((a, b) => a.time_s - b.time_s);
 }

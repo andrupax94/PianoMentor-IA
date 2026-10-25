@@ -8,8 +8,14 @@ import { fallingNotes } from "./falling-notes";
 import { buildSchedule, type ScheduledEvent } from "./playback-schedule";
 
 /** Nota de prueba: empieza en time_s y dura duration_s (ya escalados). */
-function note(time_s: number, duration_s = 1, pitch = 60, velocity = 90): ScheduledEvent {
-  return { time_s, pitch, duration_s, velocity };
+function note(
+  time_s: number,
+  duration_s = 1,
+  pitch = 60,
+  velocity = 90,
+  hand?: "left" | "right",
+): ScheduledEvent {
+  return { time_s, pitch, duration_s, velocity, hand };
 }
 
 describe("fallingNotes", () => {
@@ -46,6 +52,12 @@ describe("fallingNotes", () => {
     expect(only.duration_s).toBe(2);
     expect(only.velocity).toBe(100);
     expect(only.id).toBe("61@5");
+  });
+
+  it("conserva la mano de la que sale el color del bloque (D-002.1)", () => {
+    expect(fallingNotes([note(5, 1, 60, 90, "left")], 4)[0].hand).toBe("left");
+    expect(fallingNotes([note(5, 1, 64, 90, "right")], 4)[0].hand).toBe("right");
+    expect(fallingNotes([note(5)], 4)[0].hand).toBeUndefined();
   });
 
   it("distingue varias notas a la vez (acorde)", () => {

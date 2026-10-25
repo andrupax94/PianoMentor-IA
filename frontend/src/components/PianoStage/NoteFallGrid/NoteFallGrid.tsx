@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { fallingNotes, type FallingNote } from "../../../lib/falling-notes";
+import { handColor } from "../../../lib/hand-color";
 import { createKeyGeometry, type KeyGeometry } from "../../../lib/key-geometry";
 import { HORIZON_S } from "../../../lib/key-states";
 import { countWhiteKeys } from "../../../lib/pitch";
@@ -46,6 +47,13 @@ function placeNote(
   block.style.height = `${blockHeight}px`;
   block.style.transform = `translateY(${note.progress * layerHeight - blockHeight}px)`;
   block.style.opacity = String(noteOpacity(note.velocity));
+  // El pool reutiliza bloques entre notas distintas: el color solo se reescribe
+  // si cambia la mano, para no tocar el estilo en cada frame (D-002.1).
+  const hand = note.hand ?? "unknown";
+  if (block.dataset.hand !== hand) {
+    block.dataset.hand = hand;
+    block.style.background = handColor(hand);
+  }
 }
 
 export function NoteFallGrid({

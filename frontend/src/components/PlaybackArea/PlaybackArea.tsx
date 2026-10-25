@@ -77,7 +77,8 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     let cancelled = false;
     const pieceId = piece?.kind === "catalog" ? piece.id : DEMO_PIECE_ID;
     const autoPlay = piece?.kind === "catalog" && piece.autoPlay === true;
-    getPieceNotes(pieceId)
+    // Con la mano de cada nota para teñir la cascada por lado (D-002.1).
+    getPieceNotes(pieceId, undefined, { withHands: true })
       .then((score) => {
         if (cancelled) return;
         load(score.notes, {

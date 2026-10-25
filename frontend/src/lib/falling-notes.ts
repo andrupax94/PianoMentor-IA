@@ -5,6 +5,7 @@
 
 import { HORIZON_S } from "./key-states";
 import { pitchToKeyId } from "./pitch";
+import type { NoteHand } from "./api-client";
 import type { ScheduledEvent } from "./playback-schedule";
 
 /** Una nota cayendo hacia el teclado. */
@@ -20,6 +21,8 @@ export interface FallingNote {
   /** Progreso 0 (entra por arriba) → 1 (llega al teclado). */
   progress: number;
   velocity: number;
+  /** Mano de la nota: de aquí sale el color del bloque (D-002.1). */
+  hand?: NoteHand;
 }
 
 /**
@@ -46,6 +49,7 @@ export function fallingNotes(
       duration_s: event.duration_s,
       progress: 1 - remaining_s / horizon_s,
       velocity: event.velocity,
+      hand: event.hand,
     });
   }
   return notes;

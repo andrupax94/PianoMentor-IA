@@ -57,6 +57,16 @@ describe("buildSchedule", () => {
     );
     expect(buildSchedule([note({ start_seconds: 2.0 })], Number.NaN)[0].time_s).toBe(2.0);
   });
+
+  it("propaga la mano de cada nota y la deja sin definir si no venía (D-002.1)", () => {
+    const events = buildSchedule([
+      note({ pitch: 48, hand: "left" }),
+      note({ pitch: 72, hand: "right" }),
+      note(),
+    ]);
+
+    expect(events.map((event) => event.hand)).toEqual(["left", "right", undefined]);
+  });
 });
 
 describe("eventsInWindow", () => {

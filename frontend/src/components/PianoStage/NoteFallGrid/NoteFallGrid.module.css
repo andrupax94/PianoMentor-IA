@@ -1,6 +1,7 @@
 /* description: Estilos de la cuadrícula de notas. */
 /* context: B-007.3; las líneas verticales siguen las teclas visibles del teclado
-   y los bloques de nota los coloca el bucle rAF en línea (posiciones por frame). */
+   y los bloques de nota los coloca el bucle rAF en línea (posiciones por frame).
+   D-002.1: el color de cada bloque lo escribe placeNote() según su mano. */
 
 .grid {
   position: relative;
@@ -48,11 +49,13 @@
 }
 
 /* Bloque de nota; la posición la escribe el rAF (left/width/height/transform). */
+/* El fondo es solo el valor previo a pintar: placeNote() lo sustituye por el
+   token de su mano (--hand-left / --hand-right / --hand-unknown). */
 .note {
   position: absolute;
   top: 0;
   border-radius: 4px;
-  background: #62e6c7;
+  background: var(--hand-unknown);
   will-change: transform;
   pointer-events: none;
 }

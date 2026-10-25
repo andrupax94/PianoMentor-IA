@@ -57,6 +57,13 @@
             #975d09 58%,
             #fbcb7e 75%,
             #975d09 100%);
+
+    /* Barras de la cascada por mano (D-002.1): azules a la izquierda y ámbar a
+       la derecha, tomados de las paradas 25 % y 75 % de --gradient3 para casar
+       con la línea .final__line. Reserva verde = partitura sin mano. */
+    --hand-left: #a4d1fd;
+    --hand-right: #fbcb7e;
+    --hand-unknown: #62e6c7;
     --shadow1: white 0px 0px 50px -40px inset;
 }
 
