@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from "react";
 
-import { expectedKeyIds, HORIZON_S, soundingKeyIds } from "../../../lib/key-states";
+import { soundingKeyIds } from "../../../lib/key-states";
 import { pitchToKeyId } from "../../../lib/pitch";
 import { AUDITION_VELOCITY, pcKeyLabels } from "../../../lib/pc-keyboard";
 import { useComputerKeyboard } from "../../../lib/useComputerKeyboard";
@@ -41,14 +41,14 @@ export function Keyboard({ player, schedule }: KeyboardProps) {
   const { ref: keyboardRef } = useResponsiveRange<HTMLDivElement>();
   const { fromKey, toKey } = useVisibleRange();
 
+  // D-002.4: el teclado ya no avisa de la "nota próxima" (eso lo cuenta la
+  // cascada); solo se marca la tecla que suena o la que se toca a mano.
   const sounding = status === "stopped" ? [] : soundingKeyIds(schedule, position_s);
-  const expected =
-    status === "stopped" ? [] : expectedKeyIds(schedule, position_s, HORIZON_S);
   const active = [...sounding, ...playedIds.filter((id) => !sounding.includes(id))];
 
   return (
     <div ref={keyboardRef} className={styles.keyboard}>
-      <SvgKeyboard activeIds={active} expectedIds={expected} labels={labels} fromKey={fromKey} toKey={toKey} />
+      <SvgKeyboard activeIds={active} labels={labels} fromKey={fromKey} toKey={toKey} />
     </div>
   );
 }
