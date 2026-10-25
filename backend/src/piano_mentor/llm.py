@@ -73,6 +73,8 @@ def _esquema_de_acciones() -> str:
             detalles.append(
                 f'"from_measure"/"to_measure": enteros, to > from, máx {MAX_MEASURES[action]} compases'
             )
+        if action == "return_control":
+            detalles.append("solo cuando `control` = agent; si no, propón `wait`")
         for param, valor in DEFAULT_PARAMS.get(action, {}).items():
             if not any(param in detalle for detalle in detalles):
                 detalles.append(f'"{param}": {valor!r} (opcional)')

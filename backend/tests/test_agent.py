@@ -19,7 +19,12 @@ from piano_mentor.agent import (
     AgentService,
     DecisionContext,
 )
-from piano_mentor.llm import FallbackProvider, MockProvider, OpenAICompatibleProvider
+from piano_mentor.llm import (
+    FallbackProvider,
+    MockProvider,
+    OpenAICompatibleProvider,
+    _esquema_de_acciones,
+)
 from piano_mentor.validators import ValidationError
 
 # --- Helpers ----------------------------------------------------------------
@@ -643,3 +648,24 @@ class TestStructuredOutput:
         )
         assert proposal.provider == "deterministic"
         assert proposal.used_fallback is True
+
+
+class TestEsquemaDeAcciones:
+    """El esquema del prompt refleja los límites reales de validación."""
+
+    def test_contiene_los_limites_reales(self) -> None:
+        texto = _esquema_de_acciones()
+        # slow_down: tempo entre 0.5 y 0.9 (PARAM_RANGES)
+        assert '"tempo_factor": número entre 0.5 y 0.9' in texto
+        # demonstrate: máx 16 compases (MAX_MEASURES)
+        assert "máx 16 compases" in texto
+        # accompany: enum de mano (ENUM_PARAMS)
+        assert '"hand": both | left | right' in texto
+        # todas las acciones de la whitelist aparecen
+        for action in ALLOWED_ACTIONS:
+            assert f"- {action}:" in texto
+
+    def test_return_control_explica_su_condicion(self) -> None:
+        """Evita que el modelo proponga devolver el control sin tenerlo."""
+        assert "return_control" in _esquema_de_acciones()
+        assert "control` = agent" in _esquema_de_acciones()
