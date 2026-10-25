@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^B-\d+$')]
+    [ValidatePattern('^[A-Z]+-\d+$')]
     [string]$ParentId,
     [string]$IssuesPath = (Join-Path $PSScriptRoot '..\..\docs\issues'),
     [string]$Repository = 'andrupax94/PianoMentor-IA',
@@ -30,14 +30,14 @@ function Get-ExistingIssues {
 
 function Get-IssueIdFromTitle {
     param([string]$Title)
-    if ($Title -match '^\[(B-\d+(?:\.\d+)*)\]') { return $Matches[1] }
+    if ($Title -match '^\[([A-Z]+-\d+(?:\.\d+)*)\]') { return $Matches[1] }
     return $null
 }
 
 function Get-DocumentTitle {
     param([string]$Path)
     $firstHeading = Get-Content -LiteralPath $Path -Encoding UTF8 | Where-Object { $_ -match '^#\s+' } | Select-Object -First 1
-    if ($null -eq $firstHeading -or $firstHeading -notmatch '^#\s+\[(B-\d+(?:\.\d+)*)\]\s+(.+)$') {
+    if ($null -eq $firstHeading -or $firstHeading -notmatch '^#\s+\[([A-Z]+-\d+(?:\.\d+)*)\]\s+(.+)$') {
         throw "El documento '$Path' debe comenzar con '# [$ParentId.N] Título'."
     }
     return "[$($Matches[1])] $($Matches[2].Trim())"
@@ -56,7 +56,7 @@ if ($Preview) {
     Write-Output "Preview offline de Sub-issues para [$ParentId]"
     Write-Output "Documentos encontrados: $($documents.Count)"
     foreach ($document in $documents) {
-        $childId = [regex]::Match($document.BaseName, '^(B-\d+\.\d+)$').Groups[1].Value
+        $childId = [regex]::Match($document.BaseName, '^([A-Z]+-\d+\.\d+)$').Groups[1].Value
         $childTitle = Get-DocumentTitle -Path $document.FullName
         Write-Output "$childId`: $childTitle | documento=$($document.Name)"
     }
@@ -74,7 +74,7 @@ Write-Output "Issue principal: [$ParentId] #$($parentIssue.number)"
 Write-Output "Documentos encontrados: $($documents.Count)"
 
 foreach ($document in $documents) {
-    $childId = [regex]::Match($document.BaseName, '^(B-\d+\.\d+)$').Groups[1].Value
+    $childId = [regex]::Match($document.BaseName, '^([A-Z]+-\d+\.\d+)$').Groups[1].Value
     $childTitle = Get-DocumentTitle -Path $document.FullName
     $existing = $existingIssues | Where-Object { (Get-IssueIdFromTitle -Title $_.title) -eq $childId } | Select-Object -First 1
 
