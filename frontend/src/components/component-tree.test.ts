@@ -14,6 +14,8 @@ import { AppHeader } from "./AppHeader/AppHeader";
 import { BrandLogo } from "./AppHeader/BrandLogo/BrandLogo";
 import { MainNav } from "./AppHeader/MainNav/MainNav";
 import { MidiStatus } from "./AppHeader/MidiStatus/MidiStatus";
+import { AuthUserMenu } from "./AppHeader/AuthUserMenu/AuthUserMenu";
+import { AuthSignInModal } from "./AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal";
 import { UserAvatar } from "./AppHeader/UserAvatar/UserAvatar";
 import { PlaybackArea } from "./PlaybackArea/PlaybackArea";
 import { PlayerBar } from "./PlayerBar/PlayerBar";
@@ -37,6 +39,8 @@ const TREE = {
   BrandLogo,
   MainNav,
   MidiStatus,
+  AuthUserMenu,
+  AuthSignInModal,
   UserAvatar,
   PlaybackArea,
   PlayerBar,
@@ -57,8 +61,8 @@ const TREE = {
 };
 
 describe("component tree", () => {
-  it("expone los 21 componentes del armazón", () => {
-    expect(Object.keys(TREE)).toHaveLength(21);
+  it("expone los 23 componentes del armazón", () => {
+    expect(Object.keys(TREE)).toHaveLength(23);
     for (const [name, component] of Object.entries(TREE)) {
       expect(typeof component, name).toBe("function");
     }

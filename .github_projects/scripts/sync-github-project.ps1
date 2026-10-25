@@ -55,8 +55,8 @@ function Get-ProjectItemUrl {
 function Get-ItemId {
     param($Item)
     $title = Get-ProjectItemTitle -Item $Item
-    if ($title -match '\[(B-\d+)\]') { return $Matches[1] }
-    if ($title -match '(?<![A-Za-z0-9])(B-\d+)(?![A-Za-z0-9])') { return $Matches[1] }
+    if ($title -match '\[((?:B|U|D)-\d+)\]') { return $Matches[1] }
+    if ($title -match '(?<![A-Za-z0-9])((?:B|U|D)-\d+)(?![A-Za-z0-9])') { return $Matches[1] }
     return $null
 }
 

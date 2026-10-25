@@ -1,0 +1,130 @@
+/* description: Estilos del mini box de acceso con el fondo oscurecido. */
+/* context: U-005; overlay fijo que cubre la página con un velo suave y una
+   caja centrada, alineada con el amarillo #e8a13e de la cabecera. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 15, 15, 0.45);
+}
+
+.box {
+  position: relative;
+  width: min(320px, calc(100vw - 32px));
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 20px 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: #777777;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #222222;
+}
+
+.title {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font: inherit;
+}
+
+.input:focus {
+  border-color: #e8a13e;
+  outline: none;
+}
+
+.error {
+  margin: 0;
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+.enter {
+  border: none;
+  border-radius: 999px;
+  background: #e8a13e;
+  color: #ffffff;
+  padding: 9px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.enter:hover {
+  background: #d99432;
+}
+
+.enter:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 12px;
+  color: #999999;
+  font-size: 0.8rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e5e5;
+}
+
+.dividerText {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.google {
+  width: 100%;
+  border: 1px solid #dddddd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #333333;
+  padding: 9px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.google:hover {
+  background: #f5f5f5;
+}
+
+.google:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

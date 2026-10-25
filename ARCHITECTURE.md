@@ -824,6 +824,7 @@ piano-mentor-ai/
 ├── backend/pyproject.toml
 ├── backend/scripts/
 ├── backend/scripts/build_midi_fixtures.py
+├── backend/scripts/create_user.py
 ├── backend/scripts/describe_corpus_tracks.py
 ├── backend/src/
 ├── backend/src/piano_mentor/
@@ -847,6 +848,8 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/migrations/0005_add_sessions.sql
 ├── backend/src/piano_mentor/migrations/0006_add_chat_messages.sql
 ├── backend/src/piano_mentor/migrations/0007_create_users.sql
+├── backend/src/piano_mentor/migrations/0008_add_password_and_color.sql
+├── backend/src/piano_mentor/passwords.py
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
 ├── backend/src/piano_mentor/storage.py
@@ -886,6 +889,7 @@ piano-mentor-ai/
 ├── backend/tests/test_measure_grid.py
 ├── backend/tests/test_measure_range.py
 ├── backend/tests/test_midi.py
+├── backend/tests/test_passwords.py
 ├── backend/tests/test_piece_contract.py
 ├── backend/tests/test_piece_dedup.py
 ├── backend/tests/test_piece_list.py
@@ -1103,6 +1107,10 @@ piano-mentor-ai/
 ├── frontend/src/components/AppHeader/AppHeader.tsx
 ├── frontend/src/components/AppHeader/AppHeader.types.ts
 ├── frontend/src/components/AppHeader/AuthUserMenu/
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.module.css
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.tsx
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.types.ts
 ├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css
 ├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.tsx
 ├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.types.ts
@@ -1574,10 +1582,17 @@ piano-mentor-ai/
 | `backend/tests/test_auth.py` | Tests herméticos de identidad: /auth/session (sin header, malformado, token expirado, aud distinto, sin client id, registro y re-registro) y owner_id en POST /pieces. | U-005; clave RSA de juguete y JWKS falsos, la suite nunca toca la red. |
 | `frontend/src/lib/auth.ts` | Instancia de NextAuth (Auth.js v5) con Google: sesión jwt y id_token expuesto en session.accessToken. | U-005 con el ADR 0006; GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y AUTH_SECRET; trustHost detrás de Vercel. |
 | `frontend/src/app/api/auth/[...nextauth]/route.ts` | Handlers GET/POST de Auth.js: signin, callback, session y csrf del flujo de Google. | U-005; la URI de redirección de Google Cloud apunta a /api/auth/callback/google. |
-| `frontend/src/lib/auth-user.ts` | Puente de identidad: normaliza la sesión cruda de Auth.js y la manda a POST /api/v1/auth/session, con upsert idempotente tolerante a fallo del backend. | U-005; lo usa AuthUserMenu y lo cubre auth-user.test.ts. |
-| `frontend/src/lib/auth-user.test.ts` | Tests del puente de identidad: mapeo de sesión con y sin id_token, y syncAuthUser con fetch simulado (correcto, sin sesión y 401). | U-005; Vitest con vi.stubGlobal, igual que api-client.test.ts. |
-| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.tsx` | Menú de usuario de la cabecera (cliente): Entrar con Google y avatar con inicial más Salir; consulta /api/auth/session y registra al usuario en el backend. | U-005; punto visible de la identidad en AppHeader; única pieza cliente de la cabecera. |
-| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css` | Estilos del menú de usuario: píldora de entrar con Google, fila de avatar más Salir y placeholder mientras carga. | U-005; usa el amarillo #e8a13e del avatar estático. |
+| `frontend/src/lib/auth-user.ts` | Puente de identidad: normaliza la sesión cruda de Auth.js (id, nombre, foto y color de burbuja) para la cabecera; el registro en el backend vive en los callbacks de lib/auth.ts, ya no aquí. | U-005; también lo usan la vía de contraseña y el autologin; lo cubre auth-user.test.ts. |
+| `frontend/src/lib/auth-user.test.ts` | Tests del puente de identidad: mapeo de sesión completa (con color), sesión sin color y sin token, y sesión vacía. | U-005; Vitest, igual que api-client.test.ts. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.tsx` | Menú de usuario de la cabecera (cliente): botón «Iniciar sesión» que abre el mini box, avatar con color aleatorio del usuario y Salir; consulta /api/auth/session y activa el autologin (AUTOLOGIN, solo fuera de producción). | U-005 (login simple añadido después); punto visible de la identidad en AppHeader; única pieza cliente de la cabecera. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css` | Estilos del menú de usuario: botón «Iniciar sesión», fila de avatar con color más Salir y placeholder mientras carga. | U-005; usa el amarillo #e8a13e del avatar estático. |
 | `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.types.ts` | Tipos del menú de usuario: AuthUserMenuStatus y AuthUserMenuProps. | U-005; triada de convención con el resto de componentes. |
+| `backend/src/piano_mentor/passwords.py` | Hash unidireccional PBKDF2-SHA256 con sal embebida (formato tipo Django) y color aleatorio de burbuja (#rrggbb con HUE al azar y S/L fijas). | U-005 (login simple); solo biblioteca estándar; lo usan el endpoint /auth/login y el script create_user.py. |
+| `backend/src/piano_mentor/migrations/0008_add_password_and_color.sql` | Columnas nuevas en users: password_hash (NULL para quien solo entra con Google) y bubble_color (fija desde el alta). | U-005; ALTER TABLE simple, sin tocar filas existentes. |
+| `backend/scripts/create_user.py` | Alta manual de usuarios con contraseña: hash PBKDF2 de la contraseña y color de burbuja; idempotente (si existe el correo, solo fija la contraseña). | U-005; único camino hoy para cuentas sin Google (la cuenta admin); se ejecuta desde la raíz: python backend/scripts/create_user.py --email ... --password ... |
+| `backend/tests/test_passwords.py` | Tests del hash (formato, sal distinta por llamada, rechazo de contraseña errónea, sin hash o vacía) y del color (formato #rrggbb y variación). | U-005; suite hermética de biblioteca estándar. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.tsx` | Mini box de acceso sobre el fondo atenuado: usuario o correo, contraseña, Entrar (sign-in Credentials contra /auth/login) y Continuar con Google (flujo de U-005); mensaje de combinación errónea en los fallos. | U-005 (login simple); se abre desde «Iniciar sesión» de AuthUserMenu; Escap y clic fuera lo cierran. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.types.ts` | Props del mini box: open y onClose (lo controla AuthUserMenu). | U-005; triada de convención. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.module.css` | Estilos del mini box: overlay fijo con velo rgba(15,15,15,0.45), caja blanca redondeada, inputs y botón amarillo de la cabecera. | U-005; alineado con #e8a13e de AuthUserMenu. |
 
 _Para añadir un archivo nuevo: agrega su fila en `docs/architecture/files.csv` y ejecuta `python docs/architecture/generate_architecture.py`._

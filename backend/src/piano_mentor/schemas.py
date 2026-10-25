@@ -298,3 +298,52 @@ class ChatMessageResponse(BaseModel):
     used_fallback: bool
     client_action: ToolCallResult | None = None
     used_tools: list[ToolCallResult] = []
+
+
+class AuthUser(BaseModel):
+    """Usuario identificado con lo mínimo que entrega Google (U-005).
+
+    `id` es `google_sub`: el identificador estable de Google que usa
+    `pieces.owner_id` (o el centinela `manual:<email>` para las cuentas
+    creadas sin Google). `bubble_color` es el color del avatar asignado al
+    crear la cuenta; los campos personales adicionales quedan para el futuro.
+    """
+
+    id: str
+    email: str | None = None
+    name: str | None = None
+    picture: str | None = None
+    bubble_color: str | None = None
+
+
+class AuthSessionResponse(BaseModel):
+    """Respuesta de POST /api/v1/auth/session (U-005).
+
+    Confirma el registro (o re-registro idempotente) del usuario identificado
+    por un id_token de Google válido o por un token propio del login.
+    """
+
+    user: AuthUser
+
+
+class AuthLoginRequest(BaseModel):
+    """Cuerpo de POST /api/v1/auth/login (U-005, login simple).
+
+    Con credenciales vacías y `autologin=True` el backend responde con la
+    cuenta ADMIN_EMAIL, siempre que AUTOLOGIN esté activo fuera de producción.
+    """
+
+    email: str = ""
+    password: str = ""
+    autologin: bool = False
+
+
+class AuthLoginResponse(BaseModel):
+    """Respuesta de POST /api/v1/auth/login (U-005): usuario y token propio.
+
+    `access_token` es el JWT HS256 emitido por el backend; viaja como
+    `Authorization: Bearer` en las peticiones siguientes.
+    """
+
+    user: AuthUser
+    access_token: str

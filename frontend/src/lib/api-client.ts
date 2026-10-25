@@ -1,5 +1,5 @@
-// description: Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback).
-// context: Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. La subida persistente se conserva a propósito, aunque hoy la interfaz use previewPiece. Los campos de B-009.3 son opcionales en los tipos y no los pide ningún componente todavía: el uso visible (manos, acordes) es de B-012. Los códigos session_not_found, invalid_event_payload y ws_error se reconocen como errores estables, al igual que invalid_chat_payload, unknown_tool y tool_failed del chat.
+// description: Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso, ahora con id_token opcional de Google para owner_id); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback); desde U-005 añade registerAuthSession (POST /auth/session) con AuthUser/AuthSessionResponse y los códigos auth_*, y loginWithPassword (POST /auth/login) para el login simple con contraseña (AuthLoginResponse con access_token).
+// context: Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. La subida persistente se conserva a propósito, aunque hoy la interfaz use previewPiece. Los campos de B-009.3 son opcionales en los tipos y no los pide ningún componente todavía: el uso visible (manos, acordes) es de B-012. Los códigos session_not_found, invalid_event_payload y ws_error se reconocen como errores estables, al igual que invalid_chat_payload, unknown_tool y tool_failed del chat; los auth_* de identidad llegan con U-005.
 
 /** Metadatos de una pieza MIDI; los campos pueden ser nulos hasta que B-005 los rellene. */
 export interface PieceMetadata {
@@ -177,6 +177,11 @@ const ERROR_CODES = [
   "session_not_found",
   "invalid_event_payload",
   "ws_error",
+  "auth_missing_header",
+  "auth_invalid_header",
+  "auth_not_configured",
+  "auth_invalid_token",
+  "auth_invalid_credentials",
   "invalid_chat_payload",
   "unknown_tool",
   "tool_failed",
@@ -254,11 +259,76 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
  * Hoy la interfaz no lo usa (subir a mano va por `previewPiece`, que no persiste nada),
  * pero se conserva a propósito: la subida persistente puede volver a necesitarse.
  */
-export async function uploadPiece(file: File): Promise<PieceResponse> {
+export async function uploadPiece(file: File, accessToken?: string): Promise<PieceResponse> {
   const form = new FormData();
   form.append("file", file, file.name);
 
-  return request<PieceResponse>("/api/v1/pieces", { method: "POST", body: form });
+  // U-005: con id_token de Google la pieza queda asociada a su dueño.
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  return request<PieceResponse>("/api/v1/pieces", { method: "POST", body: form, headers });
+}
+
+// ---------------------------------------------------------------------------
+// Identidad con Google (U-005)
+// ---------------------------------------------------------------------------
+
+/** Respuesta de POST /api/v1/auth/session, alineada con AuthSessionResponse de Pydantic. */
+export interface AuthSessionResponse {
+  user: AuthUser;
+}
+
+/** Usuario identificado por el backend; `id` es el `google_sub` de Google. */
+export interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  picture: string | null;
+  /** Color del avatar asignado al crear la cuenta (formato #rrggbb). */
+  bubble_color: string | null;
+}
+
+/** Respuesta de POST /api/v1/auth/login, alineada con AuthLoginResponse de Pydantic. */
+export interface AuthLoginResponse {
+  user: AuthUser;
+  /** JWT propio del backend; viaja como `Authorization: Bearer` en lo que sigue. */
+  access_token: string;
+}
+
+/**
+ * Registra (o re-registra, idempotente) al usuario dueño de un id_token de
+ * Google en POST /api/v1/auth/session (U-005). Usa los códigos de error
+ * auth_missing_header, auth_invalid_header, auth_invalid_token y
+ * auth_not_configured, además de los comunes.
+ */
+export async function registerAuthSession(idToken: string): Promise<AuthUser> {
+  const response = await request<AuthSessionResponse>("/api/v1/auth/session", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  return response.user;
+}
+
+/**
+ * Login simple con cuenta y contraseña (U-005): POST /api/v1/auth/login.
+ * Devuelve el usuario (con su color de burbuja) y el token del backend.
+ * Con `autologin` y credenciales vacías, el backend entra en la cuenta
+ * ADMIN_EMAIL solo si AUTOLOGIN está activo fuera de producción.
+ * El error con credenciales erróneas, correo desconocido o cuenta de
+ * Google sin contraseña es siempre auth_invalid_credentials (401), con el
+ * típico mensaje de combinación incorrecta.
+ */
+export async function loginWithPassword(
+  email: string,
+  password: string,
+  autologin = false,
+): Promise<AuthLoginResponse> {
+  return request<AuthLoginResponse>("/api/v1/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, autologin }),
+  });
 }
 
 /**

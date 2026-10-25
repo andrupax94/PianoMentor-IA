@@ -1,5 +1,5 @@
-# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas y sesiones de práctica.
-# context: Persistencia de piezas (B-003.2/B-003.3) y de sesiones y eventos (B-012.1).
+# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas, sesiones de práctica y usuarios (U-005).
+# context: Persistencia de piezas (B-003.2/B-003.3), de sesiones y eventos (B-012.1) y de usuarios (auth con Google y contraseña).
 
 """Conexión reutilizable a SQLite con sqlite-vec y migraciones SQL versionadas."""
 
@@ -13,6 +13,7 @@ from pathlib import Path
 import sqlite_vec
 
 from .config import settings
+from .passwords import random_bubble_color
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 SQLITE_PREFIX = "sqlite:///"
@@ -169,6 +170,126 @@ def find_piece_by_id(piece_id: str) -> sqlite3.Row | None:
     """Lee una pieza por su id, gestionando su propia conexión (B-006.1)."""
     with open_db() as conn:
         return get_piece(conn, piece_id)
+
+
+def _user_row(conn: sqlite3.Connection, google_sub: str) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM users WHERE google_sub = ?", (google_sub,)).fetchone()
+
+
+def find_user_by_google_sub(
+    conn: sqlite3.Connection, google_sub: str
+) -> sqlite3.Row | None:
+    """Lee un usuario por su identificador estable de Google (U-005)."""
+    return _user_row(conn, google_sub)
+
+
+def find_user_by_email(conn: sqlite3.Connection, email: str) -> sqlite3.Row | None:
+    """Lee un usuario por su correo, sin distinguir mayúsculas (U-005)."""
+    if not email or not email.strip():
+        return None
+    return conn.execute(
+        "SELECT * FROM users WHERE lower(email) = lower(?)", (email.strip(),)
+    ).fetchone()
+
+
+def new_user_google(
+    conn: sqlite3.Connection, google_sub: str, email: str | None, name: str | None, picture: str | None
+) -> sqlite3.Row:
+    """Inserta un usuario nuevo con color de burbuja aleatorio (U-005)."""
+    conn.execute(
+        "INSERT INTO users (google_sub, email, name, picture, bubble_color) VALUES (?, ?, ?, ?, ?)",
+        (google_sub, email, name, picture, random_bubble_color()),
+    )
+    conn.commit()
+    return _user_row(conn, google_sub)  # type: ignore[return-value]
+
+
+def upsert_user(
+    conn: sqlite3.Connection, record: Mapping[str, object]
+) -> sqlite3.Row:
+    """Inserta o actualiza el usuario del id_token de Google (U-005).
+
+    Tres casos:
+    - `google_sub` ya conocido: actualiza lo que Google puede haber cambiado
+      (email, nombre, foto); `created_at`, el `id` interno y `bubble_color`
+      quedan intactos.
+    - Correo ya registrado sin ese `google_sub` (cuenta manual con contraseña
+      o correo que llegó antes por otro camino): vincula el sub de Google a la
+      fila existente y refresca el perfil, sin duplicar ni tocar el color.
+    - Resto: fila nueva con `bubble_color` asignado al azar.
+    """
+    sub = str(record.get("google_sub") or "")
+    if not sub:
+        raise ValueError("upsert_user requiere el campo 'google_sub'")
+    email = record.get("email")
+
+    existing = _user_row(conn, sub)
+    if existing:
+        conn.execute(
+            "UPDATE users SET email = COALESCE(?, email), name = COALESCE(?, name), "
+            "picture = COALESCE(?, picture), updated_at = datetime('now') "
+            "WHERE google_sub = ?",
+            (email, record.get("name"), record.get("picture"), sub),
+        )
+        conn.commit()
+        return _user_row(conn, sub)  # type: ignore[return-value]
+
+    if email:
+        by_email = find_user_by_email(conn, str(email))
+        if by_email:
+            conn.execute(
+                "UPDATE users SET google_sub = ?, name = COALESCE(?, name), "
+                "picture = COALESCE(?, picture), updated_at = datetime('now') "
+                "WHERE google_sub = ?",
+                (sub, record.get("name"), record.get("picture"), by_email["google_sub"]),
+            )
+            conn.commit()
+            return _user_row(conn, sub)  # type: ignore[return-value]
+
+    return new_user_google(conn, sub, email, record.get("name"), record.get("picture"))
+
+
+def upsert_manual_user(
+    conn: sqlite3.Connection, record: Mapping[str, object]
+) -> sqlite3.Row:
+    """Inserta o actualiza al usuario con contraseña de la vía manual (U-005).
+
+    Es la variante para las cuentas creadas sin Google (scripts, administrador):
+    `google_sub` queda con el centinela `manual:<email en minúsculas>` hasta
+    que el usuario vincule una cuenta de Google por correo. Si ya existe una
+    fila con ese correo (Google, por ejemplo), solo le fija la contraseña.
+    """
+    email = str(record.get("email") or "").strip().lower()
+    if not email:
+        raise ValueError("upsert_manual_user requiere el campo 'email'")
+    password_hash = record.get("password_hash")
+    if not password_hash:
+        raise ValueError("upsert_manual_user requiere 'password_hash'")
+    sub = f"manual:{email}"
+
+    existing = _user_row(conn, sub)
+    if not existing:
+        by_email = find_user_by_email(conn, email)
+        if by_email:
+            sub = str(by_email["google_sub"])
+            existing = by_email
+
+    if existing:
+        conn.execute(
+            "UPDATE users SET password_hash = ?, name = COALESCE(?, name), "
+            "updated_at = datetime('now') WHERE google_sub = ?",
+            (password_hash, record.get("name"), sub),
+        )
+        conn.commit()
+        return _user_row(conn, sub)  # type: ignore[return-value]
+
+    conn.execute(
+        "INSERT INTO users (google_sub, email, name, password_hash, bubble_color) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (sub, email, record.get("name"), password_hash, random_bubble_color()),
+    )
+    conn.commit()
+    return _user_row(conn, sub)  # type: ignore[return-value]
 
 
 def list_pieces(

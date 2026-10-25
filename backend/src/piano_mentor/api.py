@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import (
     APIRouter,
     File,
+    Header,
     HTTPException,
     Query,
     UploadFile,
@@ -17,10 +18,25 @@ from fastapi import (
 )
 
 from .agent import AgentService, DecisionContext
+from .auth import (
+    AuthTokenError,
+    create_pm_token,
+    verify_google_id_token,
+    verify_pm_token,
+)
 from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .config import settings
-from .database import find_existing_piece, find_piece_by_id, find_pieces, save_piece
+from .database import (
+    find_existing_piece,
+    find_piece_by_id,
+    find_pieces,
+    find_user_by_email,
+    find_user_by_google_sub,
+    open_db,
+    save_piece,
+    upsert_user,
+)
 from .evaluation import DEFAULT_TOLERANCE_MS, EvaluationService
 from .midi import (
     HAND_UNKNOWN,
@@ -32,10 +48,15 @@ from .midi import (
     group_chords,
     hand_by_track,
 )
+from .passwords import verify_password as verify_user_password
 from .practice import PracticeService
 from .schemas import (
     ActionRequest,
     ActionResponse,
+    AuthLoginRequest,
+    AuthLoginResponse,
+    AuthSessionResponse,
+    AuthUser,
     ChatMessageRequest,
     ChatMessageResponse,
     ChordSummary,
@@ -233,6 +254,160 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", service="piano-mentor-backend")
 
 
+# ---------------------------- Identidad (U-005) -----------------------------
+
+
+def _id_token_from_header(authorization: str | None) -> str:
+    """Extrae el id_token de un header `Authorization: Bearer <token>` (U-005)."""
+    if not authorization or not authorization.strip():
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_missing_header", "message": "Falta el token de identidad"},
+        )
+    parts = authorization.strip().split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1].strip():
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_invalid_header", "message": "El header Authorization debe ser 'Bearer <token>'"},
+        )
+    return parts[1].strip()
+
+
+def _auth_user_from_row(row) -> AuthUser:
+    """Construye el AuthUser de la respuesta desde la fila de `users` (U-005)."""
+    return AuthUser(
+        id=str(row["google_sub"]),
+        email=row["email"],
+        name=row["name"],
+        picture=row["picture"],
+        bubble_color=row["bubble_color"],
+    )
+
+
+def _current_user(authorization: str | None):
+    """Valida el token del header y devuelve el usuario persistido (U-005).
+
+    Acepta los dos tokens que el front puede traer: el JWT propio emitido
+    en el login con contraseña (HS256 con AUTH_SECRET) o el id_token de
+    Google (RS256 con sus JWKS). Ambos terminan en la fila de `users`.
+    """
+    token = _id_token_from_header(authorization)
+
+    claims = verify_pm_token(token)
+    if claims is None:
+        try:
+            claims = verify_google_id_token(token)
+        except AuthTokenError as exc:
+            raise HTTPException(
+                status_code=401,
+                detail={"code": str(exc.code), "message": str(exc)},
+            ) from exc
+
+        sub = claims.get("sub")
+        if not sub:
+            raise HTTPException(
+                status_code=401,
+                detail={"code": "auth_invalid_token", "message": "El id_token no trae sub"},
+            )
+
+        with open_db() as conn:
+            row = upsert_user(
+                conn,
+                {
+                    "google_sub": str(sub),
+                    "email": claims.get("email"),
+                    "name": claims.get("name"),
+                    "picture": claims.get("picture"),
+                },
+            )
+        return _auth_user_from_row(row)
+
+    sub = str(claims.get("sub") or "")
+    if not sub:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_invalid_token", "message": "El token no trae sub"},
+        )
+    with open_db() as conn:
+        row = find_user_by_google_sub(conn, sub)
+    if row is None:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_invalid_token", "message": "El usuario del token ya no existe"},
+        )
+    return _auth_user_from_row(row)
+
+
+@router.post("/auth/session", response_model=AuthSessionResponse)
+def auth_session(authorization: str | None = Header(default=None)) -> AuthSessionResponse:
+    """Registra (o re-registra idempotente) al usuario de un token (U-005).
+
+    La llama el frontend tras el login: valida el token, guarda o refresca la
+    fila en `users` y la devuelve con su `bubble_color`. Sin token válido es
+    401: este endpoint no tiene variante anónima.
+    """
+    return AuthSessionResponse(user=_current_user(authorization))
+
+
+INVALID_CREDENTIALS = {
+    "code": "auth_invalid_credentials",
+    "message": "No existe esta combinación de usuario y contraseña.",
+}
+
+
+@router.post("/auth/login", response_model=AuthLoginResponse)
+def auth_login(payload: AuthLoginRequest) -> AuthLoginResponse:
+    """Login simple con cuenta y contraseña (U-005).
+
+    Comprueba el correo y la contraseña del usuario (correo desconocido,
+    contraseña errónea o cuenta sin contraseña asignada responden lo mismo,
+    como se conoce de siempre). El usuario que solo entra con Google y
+    todavía no tiene contraseña no puede entrar por aquí hasta que se la den.
+
+    Con AUTOLOGIN activo (nunca en producción), credenciales vacías y
+    `autologin=True` entran directamente en la cuenta `ADMIN_EMAIL`.
+    """
+    email = payload.email.strip().lower()
+    password = payload.password
+
+    # Autologin: credenciales vacías y AUTOLOGIN activo fuera de producción
+    # inician sesión directamente con la cuenta ADMIN_EMAIL (cuenta admin).
+    use_autologin = (
+        payload.autologin
+        and settings.autologin
+        and settings.environment != "production"
+        and not email
+        and not password
+    )
+    if use_autologin:
+        email = settings.admin_email.strip().lower()
+        if not email:
+            raise HTTPException(
+                status_code=401,
+                detail={**INVALID_CREDENTIALS, "message": "Falta ADMIN_EMAIL para el autologin"},
+            )
+    elif not email or not password:
+        raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
+
+    with open_db() as conn:
+        row = find_user_by_email(conn, email)
+
+    if row is None or (
+        not use_autologin and not verify_user_password(password, row["password_hash"])
+    ):
+        raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
+
+    try:
+        access_token = create_pm_token(str(row["google_sub"]))
+    except AuthTokenError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": str(exc.code), "message": str(exc)},
+        ) from exc
+
+    return AuthLoginResponse(user=_auth_user_from_row(row), access_token=access_token)
+
+
 @router.get("/pieces", response_model=list[PieceSummary])
 def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
     """Lista las piezas disponibles para el selector (B-027.3).
@@ -248,12 +423,18 @@ def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
 
 
 @router.post("/pieces", response_model=PieceResponse)
-async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
+async def upload_piece(
+    file: UploadFile = File(...), authorization: str | None = Header(default=None)
+) -> PieceResponse:
     """Sube un MIDI y lo persiste con sus metadatos (B-002.4/B-005.4).
 
     La interfaz ya no lo usa —subir a mano pasa por /pieces/preview, que no
     guarda nada—, pero se mantiene a propósito: la subida persistente puede
     volver a necesitarse.
+
+    Desde U-005, si el header `Authorization` trae un id_token de Google
+    válido, `owner_id` queda asociado al usuario; sin token sigue siendo
+    `NULL` (anónimo), que es lo que B-029 decidirá qué hacer.
     """
     try:
         original_name = sanitize_filename(file.filename or "unknown.mid")
@@ -291,6 +472,13 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
         notes_count=inspection["notes_count"],
     )
 
+    # U-005: anónimo si no hay header; con header presente e inválido, 401.
+    if authorization and authorization.strip():
+        owner = _current_user(authorization)
+        owner_id: str | None = owner.id
+    else:
+        owner_id = None
+
     try:
         save_piece(
             {
@@ -305,6 +493,7 @@ async def upload_piece(file: UploadFile = File(...)) -> PieceResponse:
                 "notes_count": metadata.notes_count,
                 "content_hash": digest,
                 "source": "upload",
+                "owner_id": owner_id,
             }
         )
     except sqlite3.Error as exc:

@@ -4,7 +4,7 @@
 import { BrandLogo } from "./BrandLogo/BrandLogo";
 import { MainNav } from "./MainNav/MainNav";
 import { MidiStatus } from "./MidiStatus/MidiStatus";
-import { UserAvatar } from "./UserAvatar/UserAvatar";
+import { AuthUserMenu } from "./AuthUserMenu/AuthUserMenu";
 import styles from "./AppHeader.module.css";
 import type { AppHeaderProps } from "./AppHeader.types";
 
@@ -14,7 +14,8 @@ export function AppHeader({ midiConnected = true, userInitial = "A", active = "l
       <BrandLogo />
       <MainNav active={active} />
       <MidiStatus connected={midiConnected} />
-      <UserAvatar initial={userInitial} />
+      {/* U-005: entrada/salida con Google y registro en el backend. */}
+      <AuthUserMenu fallbackInitial={userInitial} />
     </header>
   );
 }

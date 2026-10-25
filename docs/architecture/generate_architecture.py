@@ -71,6 +71,10 @@ SKIP_SUFFIXES = {".pyc", ".pyo", ".bak", ".skill"}
 # Archivos locales que no son parte del proyecto (están en .gitignore): no se
 # documentan aunque existan en disco, porque no los recibirá nadie al clonar.
 SKIP_NAMES = {"opencode.exe", "nota.txt"}
+# Ficheros locales con secretos (.env, .env.local, .env.production…): sus
+# nombres no se documentan aunque existan en disco. La excepción es
+# .env.example, versionado y solo con placeholders.
+SKIP_ENV_EXAMPLE = ".env.example"
 
 # Dentro de data/ solo se documentan los archivos versionados (el resto es volátil).
 DATA_TRACKED_FILES = {".gitkeep", "catalog.json"}
@@ -213,6 +217,8 @@ def iter_tree_lines() -> list[str]:
             continue
         name = path.name
         if name in SKIP_NAMES:
+            continue
+        if path.is_file() and name.startswith(".env") and name != SKIP_ENV_EXAMPLE:
             continue
         if path.is_file() and path.suffix in SKIP_SUFFIXES:
             continue
