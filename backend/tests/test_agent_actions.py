@@ -207,3 +207,18 @@ class TestAgentStepEndpoint:
             f"/api/v1/sessions/{session_id}/actions", json={"action": action}
         )
         assert response.status_code == 200
+
+    def test_playing_session_feeds_the_evaluation(self, session_id: str) -> None:
+        """Con el estudiante tocando mal, el paso propone demostrar (B-012.6)."""
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()  # estado inicial
+            for index in range(6):  # 6 notas fuera de sitio seguidas
+                websocket.send_json(
+                    {"type": "note_on", "pitch": 60, "velocity": 80, "t_s": index * 0.5}
+                )
+                websocket.receive_json()
+
+        response = client.post(f"/api/v1/sessions/{session_id}/agent-step")
+        assert response.status_code == 200
+        assert response.json()["action"] == "demonstrate"
+        assert response.json()["provider"] == "mock"

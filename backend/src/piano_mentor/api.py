@@ -555,16 +555,35 @@ async def execute_action(session_id: str, payload: ActionRequest) -> ActionRespo
     return ActionResponse(action=payload.action, status="validated")
 
 
+def _evaluation_or_none(session_id: str, session_state: dict[str, object]) -> dict[str, object] | None:
+    """Evaluación actual de la sesión para el contexto del agente (B-012.6).
+
+    `None` si la sesión todavía no ha recibido eventos (`idle`): una partitura
+    sin una sola nota no es "precisión 0 %", es ausencia de interpretación, y
+    el agente no debe pedir demostrar nada antes de que el estudiante toque.
+    """
+    if session_state.get("status") == "idle":
+        return None
+    try:
+        return evaluation_service.evaluate(session_id)
+    except ValidationError:
+        return None
+
+
 @router.post("/sessions/{session_id}/agent-step", response_model=ActionResponse)
 def agent_step(session_id: str) -> ActionResponse:
     """Propone la siguiente acción de la sesión (B-012.6).
 
     El proveedor viene de `settings.llm_provider` (con Mock al final de la
-    cadena, B-012.8). Si el LLM falla o la propuesta no pasa la whitelist y
-    los límites, se cae a las reglas deterministas (B-012.3): el paso nunca
-    se rompe.
+    cadena, B-012.8) y el contexto lleva la evaluación de lo que el estudiante
+    ha tocado. Si el LLM falla o la propuesta no pasa la whitelist y los
+    límites, se cae a las reglas deterministas (B-012.3): el paso nunca se rompe.
     """
-    context = DecisionContext(session_state=_session_state_or_404(session_id))
+    session_state = _session_state_or_404(session_id)
+    context = DecisionContext(
+        session_state=session_state,
+        evaluation=_evaluation_or_none(session_id, session_state),
+    )
     proposal = agent_service.propose_action(context, provider=get_fallback_provider())
     return ActionResponse(
         action=proposal.action,
