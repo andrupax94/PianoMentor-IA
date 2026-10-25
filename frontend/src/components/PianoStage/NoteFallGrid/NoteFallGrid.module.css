@@ -1,7 +1,8 @@
 /* description: Estilos de la cuadrícula de notas. */
 /* context: B-007.3; las líneas verticales siguen las teclas visibles del teclado
    y los bloques de nota los coloca el bucle rAF en línea (posiciones por frame).
-   D-002.1: el color de cada bloque lo escribe placeNote() según su mano. */
+   D-002.1: el color de cada bloque lo escribe placeNote() según su mano.
+   D-002.2: la máscara de .notes atenúa las barras por posición (arriba invisible). */
 
 .grid {
   position: relative;
@@ -41,11 +42,27 @@
 }
 
 /* Lienzo de las notas: recorta lo que aún no ha entrado por arriba. */
+/* D-002.2: la máscara va en el contenedor, no en un div encima. .notes y .lines
+   son hermanos, así que la rejilla, las octavas y .final__line no se enteran.
+   Como el gradiente mapea la caja (y no cada bloque), una nota larga se atenúa
+   por tramos de su propio recorrido en pantalla, que es lo que se quiere. */
 .notes {
   position: absolute;
   inset: 12px;
   overflow: hidden;
   pointer-events: none;
+  /* Arriba invisible → opaco al 70 %; el último tramo queda plano para que la
+     nota aterrice a plena opacidad sobre la línea del teclado. */
+  -webkit-mask-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 70%,
+      rgba(0, 0, 0, 1) 100%);
+  mask-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 70%,
+      rgba(0, 0, 0, 1) 100%);
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
 }
 
 /* Bloque de nota; la posición la escribe el rAF (left/width/height/transform). */
