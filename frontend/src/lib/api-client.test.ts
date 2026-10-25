@@ -1,5 +1,5 @@
-// description: Tests del cliente HTTP con fetch simulado: éxito y error 400.
-// context: Criterio de B-004.3; valida el contrato sin tocar el backend.
+// description: Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend, caída del servicio, rejilla de compases en la respuesta de notas, los parámetros opcionales with_hands/with_chords de B-009.3 (con ellos y sin ellos), las sesiones de B-012.1 (createSession con el piece_id en el cuerpo y piece_not_found; getSessionState y session_not_found), el chat de B-012.8 (sendAgentMessage enviando mensaje, chat_id y contexto, devolviendo client_action entero, sin chat_id cuando no hay conversación previa y con network_error si el servicio cae) y el paso del agente de B-012.6 (runAgentStep enviando el POST al endpoint de la sesión, devolviendo la propuesta completa y network_error si el servicio cae).
+// context: Criterio de B-004.3, B-012.1 y B-012.6; se ejecutan con `npm run test` (Vitest).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import {
   getPieceNotes,
   getSessionState,
   previewPiece,
+  runAgentStep,
   sendAgentMessage,
   uploadPiece,
   type AgentChatResponse,
@@ -285,6 +286,46 @@ describe("getSessionState", () => {
     await expect(getSessionState("x")).rejects.toMatchObject({
       code: "session_not_found",
       status: 404,
+    });
+  });
+});
+
+describe("runAgentStep", () => {
+  const STEP = {
+    action: "give_hint",
+    status: "validated",
+    provider: "groq",
+    reason: "El alumno omite varias notas.",
+    used_fallback: false,
+  };
+
+  it("pide el paso del agente por POST al endpoint de la sesión", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(STEP), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const step = await runAgentStep("s-1");
+
+    expect(step).toEqual(STEP);
+    expect(step.used_fallback).toBe(false);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/sessions\/s-1\/agent-step$/);
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeUndefined();
+  });
+
+  it("traduce la caída del backend en network_error controlado", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+    );
+
+    await expect(runAgentStep("s-1")).rejects.toMatchObject({
+      code: "network_error",
     });
   });
 });

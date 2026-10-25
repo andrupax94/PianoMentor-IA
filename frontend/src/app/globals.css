@@ -16,6 +16,8 @@
     --text: #e8eefb;
     --text-soft: #aeb9d0;
     --text-mute: #7f8ca6;
+    /* Avisos y errores accesibles en texto (componentes solo lo consumen). */
+    --error: #ff8b8b;
     --gold: #f5a623;
     --gold-soft: #f5c04a;
     --gold-usoft: #8f8c7a;
