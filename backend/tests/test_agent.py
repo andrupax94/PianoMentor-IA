@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Self
+
 import pytest
 
 from piano_mentor.agent import (
@@ -17,7 +19,7 @@ from piano_mentor.agent import (
     AgentService,
     DecisionContext,
 )
-from piano_mentor.llm import FallbackProvider, MockProvider
+from piano_mentor.llm import FallbackProvider, MockProvider, OpenAICompatibleProvider
 from piano_mentor.validators import ValidationError
 
 # --- Helpers ----------------------------------------------------------------
@@ -536,3 +538,108 @@ class TestProposeAction:
             for provider in (None, MockProvider()):
                 proposal = self.service.propose_action(ctx, provider=provider)
                 assert proposal.action in ALLOWED_ACTIONS
+
+
+# --- Salida estructurada del proveedor real (B-012.6) -------------------------
+
+
+class _FakeResponse:
+    """Respuesta HTTP mínima del proveedor OpenAI-compatible."""
+
+    def __init__(self, content: str) -> None:
+        self._content = content
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, object]:
+        return {"choices": [{"message": {"content": self._content}}]}
+
+
+class _FakeClient:
+    """Cliente httpx de mentira que devuelve siempre el mismo contenido."""
+
+    content: str = ""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        return None
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args: object) -> bool:
+        return False
+
+    def post(self, *args: object, **kwargs: object) -> _FakeResponse:
+        return _FakeResponse(self.content)
+
+
+class TestStructuredOutput:
+    """propose_action() del proveedor real: JSON completo, cortado o inválido."""
+
+    def _provider(self) -> OpenAICompatibleProvider:
+        return OpenAICompatibleProvider(
+            base_url="https://ejemplo.test/v1",
+            api_key="clave-de-mentira",
+            model="modelo-de-mentira",
+            provider_name="groq",
+        )
+
+    def _patch_content(self, monkeypatch: pytest.MonkeyPatch, content: str) -> None:
+        import httpx
+
+        _FakeClient.content = content
+        monkeypatch.setattr(httpx, "Client", _FakeClient)
+
+    def test_valid_json_becomes_a_proposal(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._patch_content(
+            monkeypatch,
+            '{"action": "slow_down", "params": {"tempo_factor": 0.7}, "reason": "va tarde"}',
+        )
+        proposal = self._provider().propose_action({"status": "playing"})
+        assert proposal is not None
+        assert proposal.action == "slow_down"
+        assert proposal.params == {"tempo_factor": 0.7}
+        assert proposal.provider == "groq"
+
+    def test_json_wrapped_in_fence_is_parsed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._patch_content(
+            monkeypatch,
+            '```json\n{"action": "wait", "params": {}, "reason": "todo bien"}\n```',
+        )
+        proposal = self._provider().propose_action({})
+        assert proposal is not None
+        assert proposal.action == "wait"
+
+    def test_truncated_json_falls_back(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Una respuesta cortada por max_tokens no es propuesta: es un fallo."""
+        self._patch_content(monkeypatch, '{"action": "slow_down", "tempo_')
+        assert self._provider().propose_action({}) is None
+
+    def test_action_outside_the_whitelist_is_rejected(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        self._patch_content(
+            monkeypatch, '{"action": "rm -rf", "params": {}, "reason": "motivo"}'
+        )
+        assert self._provider().propose_action({}) is None
+
+    def test_proposal_of_real_provider_is_validated_by_the_service(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """El LLM propone fuera de rango → el servicio cae al fallback."""
+        self._patch_content(
+            monkeypatch,
+            '{"action": "slow_down", "params": {"tempo_factor": 5.0}, "reason": "muy lento"}',
+        )
+        proposal = AgentService().propose_action(
+            _ctx(), provider=self._provider()
+        )
+        assert proposal.provider == "deterministic"
+        assert proposal.used_fallback is True

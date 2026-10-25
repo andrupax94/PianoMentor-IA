@@ -42,6 +42,44 @@ class LLMResponse:
         self.used_fallback = used_fallback
 
 
+# Tokens de salida para `propose_action`: un modelo que razona antes de
+# responder necesita presupuesto para llegar a cerrar el JSON (B-012.6).
+PROPOSE_MAX_TOKENS = 1000
+
+
+def _esquema_de_acciones() -> str:
+    """Esquema de params por acción, derivado de los límites reales (B-012.6).
+
+    Se genera desde las constantes de validación (`PARAM_RANGES`,
+    `ENUM_PARAMS`, `MAX_MEASURES`, `DEFAULT_PARAMS`) para que el prompt nunca
+    se desincronice de lo que después acepta `AgentService.validate_action()`.
+    """
+    from .agent import (  # import local para evitar ciclo
+        ALLOWED_ACTIONS,
+        DEFAULT_PARAMS,
+        ENUM_PARAMS,
+        MAX_MEASURES,
+        PARAM_RANGES,
+    )
+
+    lineas: list[str] = []
+    for action in sorted(ALLOWED_ACTIONS):
+        detalles: list[str] = []
+        for param, (lo, hi) in PARAM_RANGES.get(action, {}).items():
+            detalles.append(f'"{param}": número entre {lo:g} y {hi:g}')
+        for param, opciones in ENUM_PARAMS.get(action, {}).items():
+            detalles.append(f'"{param}": {" | ".join(sorted(opciones))}')
+        if action in MAX_MEASURES:
+            detalles.append(
+                f'"from_measure"/"to_measure": enteros, to > from, máx {MAX_MEASURES[action]} compases'
+            )
+        for param, valor in DEFAULT_PARAMS.get(action, {}).items():
+            if not any(param in detalle for detalle in detalles):
+                detalles.append(f'"{param}": {valor!r} (opcional)')
+        lineas.append(f"- {action}: " + (", ".join(detalles) if detalles else "sin parámetros"))
+    return "\n".join(lineas)
+
+
 class ActionProposal:
     """Propuesta de acción pedagógica del LLM (B-012.6).
 
@@ -480,10 +518,11 @@ class OpenAICompatibleProvider(LLMProvider):
     def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
         """Pide al LLM una acción pedagógica en JSON estructurado (B-012.6).
 
-        El prompt incluye el estado de la sesión y pide JSON con
-        `action`, `params` y `reason`. Si la respuesta no es JSON válido
-        o la acción no está en la whitelist, devuelve `None` y el caller
-        usa el fallback determinista.
+        El prompt lleva el estado de la sesión y el esquema de params de cada
+        acción, derivado de los límites reales de validación. Si la respuesta
+        no es JSON válido (por ejemplo, queda cortada por `max_tokens`) o la
+        acción no está en la whitelist, devuelve `None` y el caller usa el
+        fallback determinista.
         """
         import httpx
 
@@ -491,16 +530,24 @@ class OpenAICompatibleProvider(LLMProvider):
 
         prompt = (
             "Eres un profesor de piano. Dado el estado de la sesión, propón UNA acción pedagógica.\n"
-            f"Acciones permitidas: {', '.join(sorted(ALLOWED_ACTIONS))}.\n"
-            "Devuelve SOLO JSON, sin texto adicional:\n"
-            '{"action": "...", "params": {...}, "reason": "..."}\n\n'
+            "Responde SOLO con este JSON, sin nada delante ni detrás y sin comentarios:\n"
+            '{"action": "...", "params": {...}, "reason": "..."}\n'
+            "Reglas:\n"
+            f"- `action` debe ser una de: {', '.join(sorted(ALLOWED_ACTIONS))}.\n"
+            "- `params` solo puede llevar los parámetros del esquema de esa acción: no inventes claves.\n"
+            "- `reason`: una frase corta en español con el porqué.\n"
+            "Esquema de params por acción:\n"
+            f"{_esquema_de_acciones()}\n\n"
             f"Estado de la sesión:\n{json.dumps(state, ensure_ascii=False, default=str)}"
         )
 
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 200,
+            # Modelos con razonamiento interno (gpt-oss) se comen los tokens de
+            # salida antes de escribir el JSON: con 200 la respuesta llegaba
+            # cortada (`finish_reason=length`) y había que descartarla.
+            "max_tokens": PROPOSE_MAX_TOKENS,
         }
         headers = {
             "Content-Type": "application/json",
