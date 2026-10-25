@@ -106,6 +106,19 @@ async def _broadcast_state(session_id: str, state: dict[str, object]) -> None:
             _unregister_socket(session_id, websocket)
 
 
+async def _broadcast_agent_action(session_id: str, action: str, **params: object) -> None:
+    """Notifica una acción del agente a todas las conexiones de la sesión (B-012.5).
+
+    El front escucha `agent_action` para mostrar el indicador de demostración,
+    bloquear el teclado o devolver el control al estudiante.
+    """
+    for websocket in list(_session_sockets.get(session_id, ())):
+        try:
+            await websocket.send_json({"type": "agent_action", "action": action, **params})
+        except (WebSocketDisconnect, RuntimeError):
+            _unregister_socket(session_id, websocket)
+
+
 def _session_state_or_404(session_id: str) -> dict[str, object]:
     """Estado de la sesión o 404 con código estable si no existe."""
     try:
@@ -517,10 +530,12 @@ def get_session_state(session_id: str) -> SessionStateResponse:
 
 
 @router.post("/sessions/{session_id}/actions", response_model=ActionResponse)
-def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
-    """Valida y confirma una acción del agente en la sesión (B-012.4).
+async def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
+    """Valida y ejecuta una acción del agente en la sesión (B-012.4/B-012.5).
 
     Rechaza con 400 y código estable si la acción o sus params son inválidos.
+    `demonstrate` y `return_control` actualizan el control del piano y notifican
+    por WebSocket a todas las conexiones de la sesión.
     """
     session_state = _session_state_or_404(session_id)
     try:
@@ -531,6 +546,12 @@ def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
         raise HTTPException(
             status_code=400, detail={"code": exc.code, "message": exc.message}
         ) from exc
+
+    if payload.action in ("demonstrate", "return_control"):
+        new_control = "agent" if payload.action == "demonstrate" else "student"
+        practice_service.set_control(session_id, new_control)
+        await _broadcast_agent_action(session_id, payload.action, **payload.params)
+
     return ActionResponse(action=payload.action, status="validated")
 
 

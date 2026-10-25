@@ -119,6 +119,19 @@ class PracticeService:
             raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
         return _session_state(row)
 
+    def set_control(self, session_id: str, control: str) -> dict[str, object]:
+        """Actualiza quién tiene el control del piano (B-012.5)."""
+        if control not in ("student", "agent"):
+            raise ValidationError("invalid_control", f"Control inválido: {control!r}")
+        with database.open_db() as conn:
+            row = database.get_session(conn, session_id)
+            if row is None:
+                raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
+            database.update_session_state(conn, session_id, control=control)
+            row = database.get_session(conn, session_id)
+        assert row is not None
+        return _session_state(row)
+
     def receive_event(self, session_id: str, event: object) -> dict[str, object]:
         """Valida el evento, lo persiste, actualiza el estado y lo devuelve.
 
