@@ -1,9 +1,11 @@
-# description: Máquina de estados, reglas deterministas y validación del agente (B-012.3).
-# context: Confianza en el fallback sin LLM: cada regla, su prioridad y sus bordes.
+# description: Máquina de estados, reglas deterministas y validación de acciones (B-012.3/B-012.4).
+# context: Confianza en el fallback sin LLM: cada regla, su prioridad, sus bordes y la validación.
 
-"""Tests de B-012.3: máquina de estados y reglas deterministas del agente."""
+"""Tests de B-012.3 y B-012.4: máquina de estados, reglas y validación del agente."""
 
 from __future__ import annotations
+
+import pytest
 
 from piano_mentor.agent import (
     ALLOWED_ACTIONS,
@@ -15,6 +17,7 @@ from piano_mentor.agent import (
     AgentService,
     DecisionContext,
 )
+from piano_mentor.validators import ValidationError
 
 # --- Helpers ----------------------------------------------------------------
 
@@ -251,3 +254,189 @@ class TestValidation:
         assert service.validate("hack") is False
         assert service.validate("") is False
         assert service.validate("WAIT") is False
+
+
+# --- Validación de acciones (B-012.4) ---------------------------------------
+
+
+class TestActionValidation:
+    """Matriz acción × param inválido → código de error estable."""
+
+    def setup_method(self) -> None:
+        self.service = AgentService()
+
+    # --- Whitelist ---
+
+    def test_invalid_action_code(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("hack")
+        assert exc_info.value.code == "invalid_action"
+
+    def test_empty_action_code(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("")
+        assert exc_info.value.code == "invalid_action"
+
+    # --- return_control ---
+
+    def test_return_control_with_params_rejected(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("return_control", {"tempo": 1.0})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_return_control_without_agent_control_rejected(self) -> None:
+        state = {"control": "student"}
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("return_control", session_state=state)
+        assert exc_info.value.code == "action_not_allowed_now"
+
+    def test_return_control_with_agent_control_ok(self) -> None:
+        state = {"control": "agent"}
+        self.service.validate_action("return_control", session_state=state)
+
+    # --- slow_down ---
+
+    def test_slow_down_tempo_factor_low(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("slow_down", {"tempo_factor": 0.4})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_slow_down_tempo_factor_high(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("slow_down", {"tempo_factor": 0.95})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_slow_down_tempo_factor_valid(self) -> None:
+        self.service.validate_action("slow_down", {"tempo_factor": 0.7})
+
+    def test_slow_down_measures_too_many(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("slow_down", {"measures": 3})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_slow_down_non_numeric_tempo(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("slow_down", {"tempo_factor": "fast"})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    # --- demonstrate ---
+
+    def test_demonstrate_tempo_factor_high(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("demonstrate", {"tempo_factor": 0.9})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_demonstrate_to_measure_before_from(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "demonstrate", {"from_measure": 5, "to_measure": 3}
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_demonstrate_too_many_measures(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "demonstrate", {"from_measure": 0, "to_measure": 17}
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_demonstrate_valid_range(self) -> None:
+        self.service.validate_action(
+            "demonstrate", {"from_measure": 0, "to_measure": 16, "tempo_factor": 0.7}
+        )
+
+    def test_demonstrate_negative_from_measure(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "demonstrate", {"from_measure": -1, "to_measure": 5}
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_demonstrate_non_integer_measures(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "demonstrate", {"from_measure": "a", "to_measure": 5}
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    # --- accompany ---
+
+    def test_accompany_invalid_hand(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("accompany", {"hand": "middle"})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_accompany_valid_hand(self) -> None:
+        self.service.validate_action(
+            "accompany", {"hand": "left", "from_measure": 0, "to_measure": 8}
+        )
+
+    def test_accompany_too_many_measures(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "accompany", {"hand": "both", "from_measure": 0, "to_measure": 33}
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    # --- give_hint ---
+
+    def test_give_hint_duplicate_measure_rejected(self) -> None:
+        history = [{"action": "give_hint", "measure": 3}]
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action(
+                "give_hint", {"measure": 3}, history=history
+            )
+        assert exc_info.value.code == "action_not_allowed_now"
+
+    def test_give_hint_different_measure_ok(self) -> None:
+        history = [{"action": "give_hint", "measure": 3}]
+        self.service.validate_action("give_hint", {"measure": 5}, history=history)
+
+    # --- wait chaining ---
+
+    def test_wait_chaining_limit(self) -> None:
+        history = [{"action": "wait"}, {"action": "wait"}]
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.validate_action("wait", history=history)
+        assert exc_info.value.code == "action_not_allowed_now"
+
+    def test_wait_chaining_below_limit_ok(self) -> None:
+        history = [{"action": "wait"}]
+        self.service.validate_action("wait", history=history)
+
+    def test_wait_after_other_action_ok(self) -> None:
+        """Una acción distinta de wait reinicia el contador de encadenamiento."""
+        history = [{"action": "give_hint"}, {"action": "wait"}]
+        self.service.validate_action("wait", history=history)
+
+    def test_wait_duration_s_range(self) -> None:
+        self.service.validate_action("wait", {"duration_s": 15.0})
+        with pytest.raises(ValidationError):
+            self.service.validate_action("wait", {"duration_s": 31.0})
+        with pytest.raises(ValidationError):
+            self.service.validate_action("wait", {"duration_s": 0.0})
+
+    # --- Validaciones válidas ---
+
+    def test_all_valid_actions_pass(self) -> None:
+        """Matriz de acciones válidas: ninguna lanza excepción."""
+        valid_cases = [
+            ("wait", {"duration_s": 10.0}, None, None),
+            ("give_hint", {"measure": 2}, None, None),
+            ("slow_down", {"tempo_factor": 0.7, "measures": 2}, None, None),
+            (
+                "demonstrate",
+                {"from_measure": 0, "to_measure": 8, "tempo_factor": 0.6},
+                None,
+                None,
+            ),
+            (
+                "accompany",
+                {"hand": "right", "from_measure": 0, "to_measure": 16},
+                None,
+                None,
+            ),
+            ("return_control", None, {"control": "agent"}, None),
+        ]
+        for action, params, state, history in valid_cases:
+            self.service.validate_action(action, params, session_state=state, history=history)

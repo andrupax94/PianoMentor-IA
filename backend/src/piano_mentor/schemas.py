@@ -63,7 +63,14 @@ class SessionStateResponse(BaseModel):
 
 
 class ActionRequest(BaseModel):
+    """Acción que el agente quiere ejecutar en la sesión (B-012.4).
+
+    `params` es un dict plano: cada acción valida los suyos con límites
+    específicos (`tempo_factor`, `from_measure`/`to_measure`, `duration_s`, etc.).
+    """
+
     action: str = Field(default="wait")
+    params: dict[str, object] = Field(default_factory=dict)
 
 
 class ActionResponse(BaseModel):

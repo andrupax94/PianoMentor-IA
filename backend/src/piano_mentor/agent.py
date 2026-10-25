@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .validators import ValidationError
+
 # Lista blanca de acciones (B-012.3). El agente solo puede emitir estas.
 ALLOWED_ACTIONS = {"wait", "give_hint", "slow_down", "demonstrate", "accompany", "return_control"}
 
@@ -79,6 +81,34 @@ DEFAULT_PARAMS: dict[str, dict[str, object]] = {
     "accompany": {"tempo_factor": 0.9},
     "return_control": {},
 }
+
+# --- Límites de validación de acciones (B-012.4) ---
+
+# Rangos numéricos permitidos: acción -> {param: (mín, máx)}
+PARAM_RANGES: dict[str, dict[str, tuple[float, float]]] = {
+    "wait": {"duration_s": (0.1, 30.0)},
+    "slow_down": {"tempo_factor": (0.5, 0.9), "measures": (1, 2)},
+    "demonstrate": {"tempo_factor": (0.5, 0.8)},
+    "accompany": {"tempo_factor": (0.5, 1.0)},
+}
+
+# Valores permitidos por enum: acción -> {param: conjunto}
+ENUM_PARAMS: dict[str, dict[str, set[str]]] = {
+    "accompany": {"hand": {"left", "right", "both"}},
+}
+
+# Máximo de compases por acción (sección from_measure/to_measure)
+MAX_MEASURES: dict[str, int] = {
+    "slow_down": 2,
+    "demonstrate": 16,
+    "accompany": 32,
+}
+
+# Máximo de `wait` encadenados seguidos
+MAX_CONSECUTIVE_WAIT = 2
+
+# Máximo de `give_hint` por compás
+MAX_HINTS_PER_MEASURE = 1
 
 
 @dataclass
@@ -171,3 +201,122 @@ class AgentService:
     def validate(self, action: str) -> bool:
         """True si la acción pertenece a la lista blanca."""
         return action in ALLOWED_ACTIONS
+
+    def validate_action(
+        self,
+        action: str,
+        params: dict[str, object] | None = None,
+        *,
+        session_state: dict[str, object] | None = None,
+        history: list[dict[str, object]] | None = None,
+    ) -> None:
+        """Valida una acción completa: whitelist, params, límites y estado.
+
+        Lanza `ValidationError` con código estable si algo falla:
+        - `invalid_action`: acción fuera de la lista blanca.
+        - `action_params_out_of_range`: param fuera de rango o formato inválido.
+        - `action_not_allowed_now`: acción válida pero no permitida en el estado actual.
+        """
+        # 1. Whitelist
+        if action not in ALLOWED_ACTIONS:
+            raise ValidationError("invalid_action", f"Acción desconocida: {action!r}")
+
+        params = params or {}
+
+        # 2. return_control: sin params y solo si el agente tiene el control
+        if action == "return_control":
+            if params:
+                raise ValidationError(
+                    "action_params_out_of_range", "return_control no admite parámetros"
+                )
+            if session_state and session_state.get("control") != "agent":
+                raise ValidationError(
+                    "action_not_allowed_now",
+                    "return_control solo cuando el agente tiene el control",
+                )
+            return
+
+        # 3. Rangos numéricos
+        for param, (lo, hi) in PARAM_RANGES.get(action, {}).items():
+            if param not in params:
+                continue
+            try:
+                value = float(params[param])
+            except (TypeError, ValueError):
+                raise ValidationError(
+                    "action_params_out_of_range", f"{param} debe ser numérico"
+                ) from None
+            if not lo <= value <= hi:
+                raise ValidationError(
+                    "action_params_out_of_range",
+                    f"{param} debe estar entre {lo} y {hi} (recibido: {value})",
+                )
+
+        # 4. Enums
+        for param, allowed in ENUM_PARAMS.get(action, {}).items():
+            if param in params and params[param] not in allowed:
+                raise ValidationError(
+                    "action_params_out_of_range",
+                    f"{param} debe ser uno de {sorted(allowed)} (recibido: {params[param]!r})",
+                )
+
+        # 5. Sección de compases (demonstrate/accompany): to > from y máx compases
+        if action in ("demonstrate", "accompany"):
+            self._validate_measure_range(action, params)
+
+        # 6. wait: no encadenar más de MAX_CONSECUTIVE_WAIT seguidos
+        if action == "wait" and history:
+            consecutive = 0
+            for entry in reversed(history):
+                if entry.get("action") == "wait":
+                    consecutive += 1
+                else:
+                    break
+            if consecutive >= MAX_CONSECUTIVE_WAIT:
+                raise ValidationError(
+                    "action_not_allowed_now",
+                    f"No se pueden encadenar más de {MAX_CONSECUTIVE_WAIT} wait seguidos",
+                )
+
+        # 7. give_hint: máximo MAX_HINTS_PER_MEASURE por compás
+        if action == "give_hint" and history:
+            measure = params.get("measure")
+            if measure is not None:
+                used = sum(
+                    1
+                    for entry in history
+                    if entry.get("action") == "give_hint"
+                    and entry.get("measure") == measure
+                )
+                if used >= MAX_HINTS_PER_MEASURE:
+                    raise ValidationError(
+                        "action_not_allowed_now",
+                        f"Ya se dio un hint para el compás {measure}",
+                    )
+
+    @staticmethod
+    def _validate_measure_range(action: str, params: dict[str, object]) -> None:
+        """Valida from_measure/to_measure y el máximo de compases de la sección."""
+        max_measures = MAX_MEASURES[action]
+        try:
+            frm = int(params.get("from_measure", 0))
+            to = int(params.get("to_measure", frm + 1))
+        except (TypeError, ValueError):
+            raise ValidationError(
+                "action_params_out_of_range",
+                "from_measure y to_measure deben ser enteros",
+            ) from None
+        if frm < 0:
+            raise ValidationError(
+                "action_params_out_of_range", "from_measure no puede ser negativo"
+            )
+        if to <= frm:
+            raise ValidationError(
+                "action_params_out_of_range",
+                f"to_measure ({to}) debe ser mayor que from_measure ({frm})",
+            )
+        if to - frm > max_measures:
+            raise ValidationError(
+                "action_params_out_of_range",
+                f"La sección no puede superar {max_measures} compases (recibido: {to - frm})",
+            )

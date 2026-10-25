@@ -518,8 +518,19 @@ def get_session_state(session_id: str) -> SessionStateResponse:
 
 @router.post("/sessions/{session_id}/actions", response_model=ActionResponse)
 def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
-    if not agent_service.validate(payload.action):
-        return ActionResponse(action="wait", status="rejected")
+    """Valida y confirma una acción del agente en la sesión (B-012.4).
+
+    Rechaza con 400 y código estable si la acción o sus params son inválidos.
+    """
+    session_state = _session_state_or_404(session_id)
+    try:
+        agent_service.validate_action(
+            payload.action, payload.params, session_state=session_state
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": exc.code, "message": exc.message}
+        ) from exc
     return ActionResponse(action=payload.action, status="validated")
 
 
