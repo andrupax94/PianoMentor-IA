@@ -1,7 +1,7 @@
-# description: Máquina de estados, reglas deterministas y validación de acciones (B-012.3/B-012.4).
-# context: Confianza en el fallback sin LLM: cada regla, su prioridad, sus bordes y la validación.
+# description: Máquina de estados, reglas, validación y propuesta LLM del agente (B-012.3/.4/.6).
+# context: Confianza en el fallback sin LLM: cada regla, su prioridad, sus bordes, la validación y la propuesta.
 
-"""Tests de B-012.3 y B-012.4: máquina de estados, reglas y validación del agente."""
+"""Tests de B-012.3, B-012.4 y B-012.6: máquina de estados, reglas, validación y propuesta."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from piano_mentor.agent import (
     AgentService,
     DecisionContext,
 )
+from piano_mentor.llm import FallbackProvider, MockProvider
 from piano_mentor.validators import ValidationError
 
 # --- Helpers ----------------------------------------------------------------
@@ -440,3 +441,98 @@ class TestActionValidation:
         ]
         for action, params, state, history in valid_cases:
             self.service.validate_action(action, params, session_state=state, history=history)
+
+
+# --- Propuesta de acción con LLM (B-012.6) -----------------------------------
+
+
+class TestProposeAction:
+    """propose_action(): LLM si hay proveedor, fallback determinista si no."""
+
+    def setup_method(self) -> None:
+        self.service = AgentService()
+
+    def test_without_provider_uses_deterministic(self) -> None:
+        """Sin proveedor, la propuesta viene de las reglas deterministas."""
+        ctx = _ctx()
+        proposal = self.service.propose_action(ctx)
+        assert proposal.action == "wait"
+        assert proposal.provider == "deterministic"
+        assert proposal.used_fallback is False
+
+    def test_mock_provider_low_precision(self) -> None:
+        """MockProvider propone demonstrate con precisión baja."""
+        ctx = _ctx(evaluation=_eval(accuracy_pct=30.0))
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "demonstrate"
+        assert proposal.provider == "mock"
+
+    def test_mock_provider_repeated_errors(self) -> None:
+        ctx = _ctx(evaluation=_eval(wrong_pitch=5))
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "give_hint"
+
+    def test_mock_provider_timing_off(self) -> None:
+        ctx = _ctx(evaluation=_eval(timing_ms=300.0))
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "slow_down"
+
+    def test_mock_provider_all_good(self) -> None:
+        ctx = _ctx(evaluation=_eval(accuracy_pct=95.0, timing_ms=50.0))
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "wait"
+
+    def test_mock_provider_student_silent(self) -> None:
+        ctx = _ctx(seconds_since_last_note=SILENCE_TIMEOUT_S + 1)
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "wait"
+        assert "silen" in proposal.reason
+
+    def test_mock_provider_agent_control(self) -> None:
+        ctx = _ctx(control="agent", history=[{"action": "demonstrate", "measure": 0}])
+        proposal = self.service.propose_action(ctx, provider=MockProvider())
+        assert proposal.action == "wait"
+
+    def test_fallback_provider_uses_mock_when_first_fails(self) -> None:
+        """FallbackProvider salta al siguiente si el primero falla."""
+        chain = FallbackProvider([MockProvider()])
+        ctx = _ctx(evaluation=_eval(accuracy_pct=30.0))
+        proposal = self.service.propose_action(ctx, provider=chain)
+        assert proposal.action == "demonstrate"
+        assert proposal.provider == "mock"
+
+    def test_failing_provider_falls_back_to_deterministic(self) -> None:
+        """Si el proveedor lanza excepción, se usa el fallback determinista."""
+
+        class BrokenProvider(MockProvider):
+            def propose_action(self, state):
+                raise RuntimeError("red caída")
+
+        ctx = _ctx(evaluation=_eval(accuracy_pct=30.0))
+        proposal = self.service.propose_action(ctx, provider=BrokenProvider())
+        assert proposal.action == "demonstrate"  # regla determinista
+        assert proposal.provider == "deterministic"
+        assert proposal.used_fallback is True
+
+    def test_invalid_proposal_falls_back(self) -> None:
+        """Si el LLM propone una acción inválida, se ignora y se usa decide()."""
+
+        class BadProvider(MockProvider):
+            def propose_action(self, state):
+                from piano_mentor.llm import ActionProposal
+
+                return ActionProposal("hack", provider="bad")
+
+        ctx = _ctx()
+        proposal = self.service.propose_action(ctx, provider=BadProvider())
+        assert proposal.action == "wait"
+        assert proposal.provider == "deterministic"
+        assert proposal.used_fallback is True
+
+    def test_proposal_always_in_whitelist(self) -> None:
+        """La propuesta final siempre pasa la whitelist."""
+        for eval_data in (None, _eval(), _eval(accuracy_pct=30.0), _eval(wrong_pitch=5)):
+            ctx = _ctx(evaluation=eval_data)
+            for provider in (None, MockProvider()):
+                proposal = self.service.propose_action(ctx, provider=provider)
+                assert proposal.action in ALLOWED_ACTIONS

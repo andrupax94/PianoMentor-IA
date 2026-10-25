@@ -557,9 +557,22 @@ async def execute_action(session_id: str, payload: ActionRequest) -> ActionRespo
 
 @router.post("/sessions/{session_id}/agent-step", response_model=ActionResponse)
 def agent_step(session_id: str) -> ActionResponse:
+    """Propone la siguiente acción de la sesión (B-012.6).
+
+    El proveedor viene de `settings.llm_provider` (con Mock al final de la
+    cadena, B-012.8). Si el LLM falla o la propuesta no pasa la whitelist y
+    los límites, se cae a las reglas deterministas (B-012.3): el paso nunca
+    se rompe.
+    """
     context = DecisionContext(session_state=_session_state_or_404(session_id))
-    decision = agent_service.decide(context)
-    return ActionResponse(action=decision.action, status="validated")
+    proposal = agent_service.propose_action(context, provider=get_fallback_provider())
+    return ActionResponse(
+        action=proposal.action,
+        status="validated",
+        provider=proposal.provider,
+        reason=proposal.reason,
+        used_fallback=proposal.used_fallback,
+    )
 
 
 @router.post("/sessions/{session_id}/evaluation", response_model=EvaluationResponse)

@@ -74,8 +74,18 @@ class ActionRequest(BaseModel):
 
 
 class ActionResponse(BaseModel):
+    """Acción decidida/propuesta por el agente (B-012.4/B-012.6).
+
+    `provider` dice quién la propuso (`deterministic`, `mock`, `groq`…),
+    `reason` el disparador y `used_fallback` si hubo que caer en las reglas
+    deterministas porque el LLM falló o propuso algo inválido.
+    """
+
     action: str
     status: str = "validated"
+    provider: str = "deterministic"
+    reason: str = ""
+    used_fallback: bool = False
 
 
 class NoteEvaluation(BaseModel):

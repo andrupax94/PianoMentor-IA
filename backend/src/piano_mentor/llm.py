@@ -42,12 +42,43 @@ class LLMResponse:
         self.used_fallback = used_fallback
 
 
+class ActionProposal:
+    """Propuesta de acción pedagógica del LLM (B-012.6).
+
+    El LLM propone; el sistema valida contra la whitelist y los límites
+    antes de ejecutar. Si la propuesta no pasa la validación, se usa
+    el fallback determinista (`AgentService.decide`).
+    """
+
+    def __init__(
+        self,
+        action: str,
+        params: dict[str, Any] | None = None,
+        reason: str = "",
+        provider: str = "mock",
+        used_fallback: bool = False,
+    ) -> None:
+        self.action = action
+        self.params = params or {}
+        self.reason = reason
+        self.provider = provider
+        self.used_fallback = used_fallback
+
+
 class LLMProvider(ABC):
     """Contrato de proveedor: dada una conversación y las herramientas, propone."""
 
     @abstractmethod
     def chat(self, messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> LLMResponse:
         """Devuelve texto y, opcionalmente, una llamada a función del registro."""
+
+    def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
+        """Propone una acción pedagógica dado el estado de la sesión (B-012.6).
+
+        Devuelve `None` si el proveedor no implementa esto o si la propuesta
+        no es válida; el caller usa las reglas deterministas como fallback.
+        """
+        return None
 
 
 def _parse_arguments(raw: Any) -> dict[str, Any]:
@@ -84,7 +115,7 @@ class MockProvider(LLMProvider):
 
     # Verbos de orden: dicen qué quiere el usuario, no qué buscar.
     VERBOS = frozenset({
-        "pon", "pone", "ponme", "ponle", "reproduce", "reproduce", "toca",
+        "pon", "pone", "ponme", "ponle", "reproduce", "toca",
         "tocar", "suena", "sonar", "escucha", "dime", "busca", "buscar",
         "quiero", "dame", "hazme", "abre", "abrir",
     })
@@ -332,6 +363,51 @@ class MockProvider(LLMProvider):
             "Di «reproduce <título>» si quieres escuchar alguna."
         )
 
+    def propose_action(self, state: dict[str, Any]) -> ActionProposal:
+        """Propone una acción pedagógica determinista (B-012.6).
+
+        Usa las mismas reglas simples que `AgentService.decide()`: el Mock
+        no es un espejo de juguete, es el fallback que garantiza que la
+        demo funciona sin red ni clave.
+        """
+        evaluation = state.get("evaluation") or {}
+        control = state.get("control", "student")
+        seconds_silent = float(state.get("seconds_since_last_note", 0.0) or 0.0)
+
+        if control == "agent":
+            return ActionProposal("wait", reason="mock_agent_control", provider="mock")
+
+        if seconds_silent > 10.0:
+            return ActionProposal("wait", reason="mock_student_silent", provider="mock")
+
+        accuracy = float(evaluation.get("accuracy_pct", 100.0) or 0.0)
+        counts = evaluation.get("counts") or {}
+        wrong_pitch = int(counts.get("wrong_pitch", 0) or 0)
+        timing_ms = float(evaluation.get("timing_ms", 0.0) or 0.0)
+
+        if accuracy < 60.0:
+            return ActionProposal(
+                "demonstrate",
+                params={"tempo_factor": 0.8},
+                reason="mock_low_precision",
+                provider="mock",
+            )
+        if wrong_pitch >= 3:
+            return ActionProposal(
+                "give_hint",
+                params={"hint_type": "measure_focus"},
+                reason="mock_repeated_errors",
+                provider="mock",
+            )
+        if timing_ms > 200.0:
+            return ActionProposal(
+                "slow_down",
+                params={"tempo_factor": 0.7},
+                reason="mock_timing_off",
+                provider="mock",
+            )
+        return ActionProposal("wait", reason="mock_all_good", provider="mock")
+
 
 class OpenAICompatibleProvider(LLMProvider):
     """Proveedor compatible con OpenAI (Groq, Gemini, OpenCode Console).
@@ -401,6 +477,65 @@ class OpenAICompatibleProvider(LLMProvider):
             provider=self.provider_name,
         )
 
+    def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
+        """Pide al LLM una acción pedagógica en JSON estructurado (B-012.6).
+
+        El prompt incluye el estado de la sesión y pide JSON con
+        `action`, `params` y `reason`. Si la respuesta no es JSON válido
+        o la acción no está en la whitelist, devuelve `None` y el caller
+        usa el fallback determinista.
+        """
+        import httpx
+
+        from .agent import ALLOWED_ACTIONS  # import local para evitar ciclo
+
+        prompt = (
+            "Eres un profesor de piano. Dado el estado de la sesión, propón UNA acción pedagógica.\n"
+            f"Acciones permitidas: {', '.join(sorted(ALLOWED_ACTIONS))}.\n"
+            "Devuelve SOLO JSON, sin texto adicional:\n"
+            '{"action": "...", "params": {...}, "reason": "..."}\n\n'
+            f"Estado de la sesión:\n{json.dumps(state, ensure_ascii=False, default=str)}"
+        )
+
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        with httpx.Client(timeout=self.timeout_s) as client:
+            response = client.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            )
+        response.raise_for_status()
+        data = response.json()
+        content = data["choices"][0]["message"].get("content") or ""
+
+        # Parse JSON: el modelo puede envolverlo en ```json ... ```
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if not match:
+            return None
+        try:
+            parsed = json.loads(match.group())
+        except json.JSONDecodeError:
+            return None
+
+        action = str(parsed.get("action") or "")
+        if action not in ALLOWED_ACTIONS:
+            return None
+
+        return ActionProposal(
+            action=action,
+            params=parsed.get("params") or {},
+            reason=str(parsed.get("reason") or ""),
+            provider=self.provider_name,
+        )
+
 
 class FallbackProvider(LLMProvider):
     """Encadena proveedores hasta que uno responde; el último es siempre MockProvider.
@@ -439,3 +574,17 @@ class FallbackProvider(LLMProvider):
         respuesta = self.providers[-1].chat(messages, tools)
         respuesta.used_fallback = True
         return respuesta
+
+    def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
+        """Prueba cada proveedor hasta que uno propone una acción válida (B-012.6)."""
+        for provider in self.providers:
+            try:
+                proposal = provider.propose_action(state)
+            except Exception:  # noqa: BLE001, S112
+                # Un proveedor caído no debe romper la cadena: se salta al siguiente.
+                continue
+            if proposal is not None:
+                if provider is not self.providers[0]:
+                    proposal.used_fallback = True
+                return proposal
+        return None

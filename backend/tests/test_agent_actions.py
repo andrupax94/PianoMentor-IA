@@ -171,3 +171,39 @@ class TestDemoFlow:
             msg_state = websocket.receive_json()
             assert msg_state["type"] == "state"
             assert msg_state["status"] == "playing"
+
+
+# --- agent-step con proveedor LLM (B-012.6) -----------------------------------
+
+
+class TestAgentStepEndpoint:
+    def test_returns_proposal_with_provider(self, session_id: str) -> None:
+        response = client.post(f"/api/v1/sessions/{session_id}/agent-step")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["action"] in ("wait", "give_hint", "slow_down", "demonstrate")
+        # En CI el proveedor es MockProvider (aislamiento de conftest).
+        assert body["provider"] == "mock"
+        assert isinstance(body["used_fallback"], bool)
+
+    def test_agent_control_makes_it_wait(self, session_id: str) -> None:
+        client.post(
+            f"/api/v1/sessions/{session_id}/actions",
+            json={"action": "demonstrate", "params": {"from_measure": 0, "to_measure": 4}},
+        )
+        response = client.post(f"/api/v1/sessions/{session_id}/agent-step")
+        assert response.status_code == 200
+        assert response.json()["action"] == "wait"
+
+    def test_unknown_session_returns_404(self) -> None:
+        response = client.post("/api/v1/sessions/no-existe/agent-step")
+        assert response.status_code == 404
+
+    def test_execute_action_still_validates_before_running(self, session_id: str) -> None:
+        """El paso propone y la ejecución sigue pasando por la validación."""
+        step = client.post(f"/api/v1/sessions/{session_id}/agent-step")
+        action = step.json()["action"]
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/actions", json={"action": action}
+        )
+        assert response.status_code == 200

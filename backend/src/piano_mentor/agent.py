@@ -31,8 +31,12 @@ fallback obligatorio que garantiza que el flujo funciona sin red.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from .validators import ValidationError
+
+if TYPE_CHECKING:
+    from .llm import ActionProposal, LLMProvider
 
 # Lista blanca de acciones (B-012.3). El agente solo puede emitir estas.
 ALLOWED_ACTIONS = {"wait", "give_hint", "slow_down", "demonstrate", "accompany", "return_control"}
@@ -201,6 +205,51 @@ class AgentService:
     def validate(self, action: str) -> bool:
         """True si la acción pertenece a la lista blanca."""
         return action in ALLOWED_ACTIONS
+
+    def propose_action(
+        self,
+        context: DecisionContext,
+        provider: LLMProvider | None = None,
+    ) -> ActionProposal:
+        """Propone una acción: LLM si hay proveedor, si no, reglas deterministas (B-012.6).
+
+        El LLM propone; el sistema valida contra la whitelist y los límites.
+        Si la propuesta no pasa la validación o el proveedor falla, se usa
+        el fallback determinista (`decide()`), que nunca falla.
+        """
+        from .llm import ActionProposal  # import local para evitar ciclo
+
+        # 1. Intentar con el proveedor LLM
+        if provider is not None:
+            state = {
+                **context.session_state,
+                "evaluation": context.evaluation,
+                "seconds_since_last_note": context.seconds_since_last_note,
+            }
+            try:
+                proposal = provider.propose_action(state)
+            except Exception:  # noqa: BLE001
+                proposal = None
+
+            if proposal is not None and self.validate(proposal.action):
+                try:
+                    self.validate_action(
+                        proposal.action, proposal.params,
+                        session_state=context.session_state,
+                    )
+                    return proposal
+                except ValidationError:
+                    pass  # propuesta inválida: cae al fallback
+
+        # 2. Fallback determinista (B-012.3): siempre funciona
+        decision = self.decide(context)
+        return ActionProposal(
+            action=decision.action,
+            params=decision.params,
+            reason=decision.reason,
+            provider="deterministic",
+            used_fallback=provider is not None,
+        )
 
     def validate_action(
         self,
