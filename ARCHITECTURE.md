@@ -1253,6 +1253,8 @@ piano-mentor-ai/
 ├── frontend/src/lib/hand-color.ts
 ├── frontend/src/lib/key-geometry.test.ts
 ├── frontend/src/lib/key-geometry.ts
+├── frontend/src/lib/key-shadow.test.ts
+├── frontend/src/lib/key-shadow.ts
 ├── frontend/src/lib/key-states.test.ts
 ├── frontend/src/lib/key-states.ts
 ├── frontend/src/lib/library-preview.test.ts
