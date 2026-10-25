@@ -1,0 +1,24 @@
+/* description: Estilos del chip «Pedir pista al agente» del chat. */
+/* context: B-012.6; píldora alineada a la derecha sobre el input, para no ocupar columna propia en el panel. */
+
+.chip {
+  align-self: flex-end;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

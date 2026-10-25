@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-25 17:10 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-25 17:36 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -803,7 +803,6 @@ piano-mentor-ai/
 ├── .agents/skills/piano-mentor-github-projects/
 ├── .agents/skills/piano-mentor-github-projects/SKILL.md
 ├── .dockerignore
-├── .env
 ├── .env.example
 ├── .github_projects/
 ├── .github_projects/project-backlog.csv
@@ -831,6 +830,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/__init__.py
 ├── backend/src/piano_mentor/agent.py
 ├── backend/src/piano_mentor/api.py
+├── backend/src/piano_mentor/auth.py
 ├── backend/src/piano_mentor/catalog.py
 ├── backend/src/piano_mentor/chat.py
 ├── backend/src/piano_mentor/config.py
@@ -846,6 +846,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/migrations/0004_add_cover.sql
 ├── backend/src/piano_mentor/migrations/0005_add_sessions.sql
 ├── backend/src/piano_mentor/migrations/0006_add_chat_messages.sql
+├── backend/src/piano_mentor/migrations/0007_create_users.sql
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
 ├── backend/src/piano_mentor/storage.py
@@ -874,6 +875,7 @@ piano-mentor-ai/
 ├── backend/tests/test_agent_actions.py
 ├── backend/tests/test_agent_chat.py
 ├── backend/tests/test_agent_chat_integration.py
+├── backend/tests/test_auth.py
 ├── backend/tests/test_catalog.py
 ├── backend/tests/test_catalog_load.py
 ├── backend/tests/test_chords.py
@@ -918,6 +920,7 @@ piano-mentor-ai/
 ├── docs/decisions/0003-web-first-interface.md
 ├── docs/decisions/0004-structured-agent-actions.md
 ├── docs/decisions/0005-sqlite-vector-storage.md
+├── docs/decisions/0006-google-oauth-identity.md
 ├── docs/DEMO_AGENT.md
 ├── docs/design/
 ├── docs/design/main_page.ai
@@ -1006,6 +1009,8 @@ piano-mentor-ai/
 ├── docs/issues/D-002/D-002.1.md
 ├── docs/issues/D-002/D-002.2.md
 ├── docs/issues/D-002/D-002.3.md
+├── docs/issues/D-002/D-002.4.md
+├── docs/issues/D-002/D-002.5.md
 ├── docs/issues/D-002/D-002.md
 ├── docs/issues/U-001/
 ├── docs/issues/U-001/U-001.md
@@ -1073,6 +1078,10 @@ piano-mentor-ai/
 ├── frontend/src/app/(home)/layout.module.css
 ├── frontend/src/app/(home)/layout.tsx
 ├── frontend/src/app/(home)/page.tsx
+├── frontend/src/app/api/
+├── frontend/src/app/api/auth/
+├── frontend/src/app/api/auth/[...nextauth]/
+├── frontend/src/app/api/auth/[...nextauth]/route.ts
 ├── frontend/src/app/globals.css
 ├── frontend/src/app/grid-fractions.css
 ├── frontend/src/app/layout.tsx
@@ -1086,10 +1095,6 @@ piano-mentor-ai/
 ├── frontend/src/components/AgentDock/AgentDock.module.css
 ├── frontend/src/components/AgentDock/AgentDock.test.ts
 ├── frontend/src/components/AgentDock/AgentDock.tsx
-├── frontend/src/components/AgentStepPanel/
-├── frontend/src/components/AgentStepPanel/AgentStepPanel.module.css
-├── frontend/src/components/AgentStepPanel/AgentStepPanel.tsx
-├── frontend/src/components/AgentStepPanel/AgentStepPanel.types.ts
 ├── frontend/src/components/AppFooter/
 ├── frontend/src/components/AppFooter/AppFooter.module.css
 ├── frontend/src/components/AppFooter/AppFooter.tsx
@@ -1097,6 +1102,10 @@ piano-mentor-ai/
 ├── frontend/src/components/AppHeader/AppHeader.module.css
 ├── frontend/src/components/AppHeader/AppHeader.tsx
 ├── frontend/src/components/AppHeader/AppHeader.types.ts
+├── frontend/src/components/AppHeader/AuthUserMenu/
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.tsx
+├── frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.types.ts
 ├── frontend/src/components/AppHeader/BrandLogo/
 ├── frontend/src/components/AppHeader/BrandLogo/BrandLogo.module.css
 ├── frontend/src/components/AppHeader/BrandLogo/BrandLogo.tsx
@@ -1141,6 +1150,10 @@ piano-mentor-ai/
 ├── frontend/src/components/LibrarySection/TablePagination/TablePagination.types.ts
 ├── frontend/src/components/MentorPanel/
 ├── frontend/src/components/MentorPanel/MentorChat/
+├── frontend/src/components/MentorPanel/MentorChat/AgentHintButton/
+├── frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.module.css
+├── frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.tsx
+├── frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.types.ts
 ├── frontend/src/components/MentorPanel/MentorChat/MentorChat.module.css
 ├── frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx
 ├── frontend/src/components/MentorPanel/MentorChat/MentorChat.types.ts
@@ -1217,9 +1230,14 @@ piano-mentor-ai/
 ├── frontend/src/lib/agent-chat.ts
 ├── frontend/src/lib/agent-commands.test.ts
 ├── frontend/src/lib/agent-commands.ts
+├── frontend/src/lib/agent-hint.test.ts
+├── frontend/src/lib/agent-hint.ts
 ├── frontend/src/lib/api-client.test.ts
 ├── frontend/src/lib/api-client.ts
 ├── frontend/src/lib/audio-doubles.ts
+├── frontend/src/lib/auth-user.test.ts
+├── frontend/src/lib/auth-user.ts
+├── frontend/src/lib/auth.ts
 ├── frontend/src/lib/falling-notes.test.ts
 ├── frontend/src/lib/falling-notes.ts
 ├── frontend/src/lib/hand-color.test.ts
@@ -1287,7 +1305,7 @@ piano-mentor-ai/
 | `AGENTS.md` | Instrucciones persistentes del entorno: terminal PowerShell 7.6, UTF-8 sin BOM y reglas del proyecto. | Leer antes de crear o sobrescribir archivos desde herramientas. |
 | `GLOSSARY.md` | Definiciones de términos musicales, técnicos y pedagógicos del proyecto. | Resolver vocabulario (nota, compás, timing, acción) antes de diseñar. |
 | `.dockerignore` | Exclusiones del contexto de build Docker (raíz del repo). | Obligatorio desde que el backend se construye desde la raíz: evita subir .env, frontend/node_modules y artefactos al builder; el corpus data/midi sí entra en la imagen. |
-| `docker-compose.yml` | Orquestación local: servicios backend (FastAPI) y frontend (Next.js) con volúmenes de datos. | Arranque reproducible del MVP; base del despliegue local. El backend se construye con contexto en la raíz y dockerfile backend/Dockerfile, igual que en Render. |
+| `docker-compose.yml` | Orquestación local: servicios backend (FastAPI) y frontend (Next.js) con volúmenes de datos. | Arranque reproducible del MVP; base del despliegue local. El backend se construye con contexto en la raíz y dockerfile backend/Dockerfile, igual que en Render. Desde U-005 el frontend recibe también GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y AUTH_SECRET interpolados del .env raíz. |
 | `.env.example` | Plantilla de variables de entorno sin secretos (puertos, CORS, rutas MIDI, Groq). | Copiar a .env para desarrollo; nunca commitear valores reales. |
 | `.gitignore` | Exclusiones de git: secretos, venv, node_modules, .next, datos locales y *.skill. | Evita subir .env, uploads MIDI y artefactos generados. |
 | `LICENSE` | Licencia del repositorio. | Marco legal de uso y distribución del código. |
@@ -1362,10 +1380,7 @@ piano-mentor-ai/
 | `frontend/src/components/MidiUploader.tsx` | Selector de un MIDI a mano: valida en cliente, lo manda a POST /pieces/preview (efímero) y publica la partitura en piece-store para que suene en el piano, sin guardarla. | B-027.3; vive en el MentorPanel (Learn) y en SongDetailPanel (Library). Si no estamos en /, navega al piano tras cargarla; la subida persistente (uploadPiece) se conserva sin uso. |
 | `frontend/src/components/SessionStatus.tsx` | Estado de la sesión de práctica: modo (esperando/tocando/en pausa), control (estudiante/agente), compás, estado de la conexión y el último error; con las props opcionales muestra 'Sin sesión activa.' donde todavía no hay práctica (B-012.1). | Sustituye el marcador estático que usaba el armazón del piano (B-006.4) y lo pinta SessionStatusLive con el estado que llega por WebSocket. |
 | `frontend/src/components/PracticeBridge.tsx` | Enlace entre la sesión de la ruta y la portada: WebSocket, teclado del PC y almacén de estado. | La práctica vive en /{id} sobre la portada (reposición post-B-012.1); absorbe la lógica de PracticeSession (B-012.1). No pinta nada: manda las notas al servidor y publica el estado en session-store, que lee el mini cuadro del panel del mentor. |
-| `frontend/src/components/SessionStatusLive.tsx` | Mini cuadro de estado de sesión enganchado al almacén de la práctica y panel del paso del agente. | MentorPanel es Server Component y session-store vive en cliente, así que el enganche va en este componente cliente; sin práctica abierta pinta el estado vacío de siempre y esconde el panel de agent-step (B-012.6). |
-| `frontend/src/components/AgentStepPanel/AgentStepPanel.types.ts` | Props del panel del paso del agente. | B-012.6; el panel pide el siguiente paso a la API y muestra la propuesta ya validada. |
-| `frontend/src/components/AgentStepPanel/AgentStepPanel.tsx` | Botón que pide el siguiente paso del agente y muestra la propuesta validada. | B-012.6; solo pide y enseña la propuesta (action + motivo + procedencia). La ejecución de la acción sigue siendo un paso aparte (POST /sessions/{id}/actions, B-012.4). |
-| `frontend/src/components/AgentStepPanel/AgentStepPanel.module.css` | Estilos del panel del paso del agente. | B-012.6; bloque mínimo del mini cuadro de sesión con botón y propuesta. |
+| `frontend/src/components/SessionStatusLive.tsx` | Mini cuadro de estado de sesión enganchado al almacén de la práctica. | MentorPanel es Server Component y session-store vive en cliente, así que el enganche va en este componente cliente; sin práctica abierta pinta el estado vacío de siempre. |
 | `frontend/src/lib/api-client.ts` | Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus\|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback). | Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. La subida persistente se conserva a propósito, aunque hoy la interfaz use previewPiece. Los campos de B-009.3 son opcionales en los tipos y no los pide ningún componente todavía: el uso visible (manos, acordes) es de B-012. Los códigos session_not_found, invalid_event_payload y ws_error se reconocen como errores estables, al igual que invalid_chat_payload, unknown_tool y tool_failed del chat. |
 | `frontend/src/lib/agent-chat.ts` | Lógica del chat del agente (B-012.8 bloque C): runChatTurn, un turno completo (envía el mensaje, ejecuta la orden devuelta en client_action y devuelve respuesta, chat_id y error por separado) con send/executeAction inyectados; y la presentación de la burbuja: chatFontSize (tamaño de letra dinámico: corto en grande, mediano en normal, largo en pequeño), typingStep (cuántos caracteres revelar por paso para que la escritura dure lo mismo sea corta o larga la respuesta, con tope CHAT_TYPING_MAX_MS ~2.6 s), typedSlice e isTyping (revelado progresivo para el efecto de escritura). | Puro y testeable sin DOM; lo consume MentorChat. La respuesta se muestra completa: la altura la fija el CSS (burbuja fija con overflow-y auto) y el desbordamiento hace scroll, así que no hay tope de caracteres ni recorte con puntos suspensivos. typingStep revela carácter a carácter lo corto y en bloques lo largo, para que una respuesta de ~1400 caracteres no tarde ~25 s en revelarse. En runChatTurn un fallo de la orden no borra la respuesta: la respuesta ya es buena y el fallo se cuenta aparte; solo si el envío falla no hay turno nuevo y se devuelve CHAT_FALLBACK_REPLY. |
 | `frontend/src/lib/api-client.test.ts` | Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend, caída del servicio, rejilla de compases en la respuesta de notas, los parámetros opcionales with_hands/with_chords de B-009.3 (con ellos y sin ellos), las sesiones de B-012.1 (createSession con el piece_id en el cuerpo y piece_not_found; getSessionState y session_not_found), el chat de B-012.8 (sendAgentMessage enviando mensaje, chat_id y contexto, devolviendo client_action entero, sin chat_id cuando no hay conversación previa y con network_error si el servicio cae) y el paso del agente de B-012.6 (runAgentStep enviando el POST al endpoint de la sesión, devolviendo la propuesta completa y network_error si el servicio cae). | Criterio de B-004.3, B-012.1 y B-012.6; se ejecutan con `npm run test` (Vitest). |
@@ -1389,6 +1404,8 @@ piano-mentor-ai/
 | `frontend/src/lib/library.ts` | Adapta el catálogo de la API al modelo de la Library (Song con título, compositor, iniciales, portada, dificultad, BPM, duración formateada y en segundos) y resuelve la vista de forma pura: toSong(s), initialsFromTitle, formatDuration, paginate, matchesFilters (búsqueda, estado, dificultad, duración y tempo), sortSongs (título, compositor, dificultad, duración y tempo en los dos sentidos) y toggleSort (el clic de una cabecera). | B-027.3/B-027.4; lógica pura y testeable, los componentes solo pintan y la barra solo cambia LibraryFilters/SortState. bestScore, status, timing y notes quedan a null hasta que existan evaluaciones (B-012/B-014). |
 | `frontend/src/lib/library.test.ts` | Tests de la lógica pura de la Library: adaptación del catálogo (iniciales, duración formateada, dificultad traducida, portada, valores por defecto), paginación, matchesFilters (búsqueda y tramos de estado, dificultad, duración y tempo) y sortSongs/toggleSort (los dos sentidos de cada campo, huecos al final y clic de cabecera). | Criterio de B-027.3/B-027.4; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/agent-chat.test.ts` | Tests del chat del agente: runChatTurn (envío con chat_id y contexto de la página, respuesta y chat_id para el siguiente turno, ejecución de la orden de client_action, orden ausente que no llama a la ejecución, fallo de red con CHAT_FALLBACK_REPLY y error aparte, fallo sin mensaje legible y orden que falla conservando la respuesta) y la presentación de la burbuja: chatFontSize (tamaño dinámico por longitud), typingStep (carácter a carácter en corto, en bloques en largo, nunca 0 ni más que el propio largo, y duración total bajo el tope), typedSlice (revelado progresivo, índices negativos y fuera de rango) e isTyping. | Criterio de B-012.8 bloque C; se ejecutan con `npm run test` (Vitest). Cubre envío, respuesta, acción ejecutada y error de red del chat, con send/executeAction sustituidos por fakes. |
+| `frontend/src/lib/agent-hint.ts` | Traducción de la propuesta del agente a un mensaje para el alumno: AGENT_ACTION_LABELS con la etiqueta en español de cada acción de la lista blanca y hintMessage, que une la etiqueta con el motivo y omite la procedencia (provider/used_fallback). | B-012.6; acompaña al chip «Pedir pista al agente» del chat. La procedencia es diagnóstico del desarrollador, no contenido del estudiante, así que no se enseña. |
+| `frontend/src/lib/agent-hint.test.ts` | Tests del mensaje de pista: etiqueta en español para toda la lista blanca, acción cruda si aparece una nueva fuera del mapa, motivo vacío que deja solo la etiqueta y ausencia de la procedencia en el texto. | Criterio de B-012.6; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/library-preview.ts` | Lógica pura del play por fila de la Library: previewStep(loadedId, songId, status) decide start, pause o resume comparando la pieza cargada con la pulsada. | B-027.3; sin pieza, otra pieza o una terminada arrancan desde el principio; la misma pieza pausada se reanuda. |
 | `frontend/src/lib/library-preview.test.ts` | Tests de la decisión del preview: sin pieza, otra pieza, pausar la que suena, reanudar la pausada y reiniciar la terminada. | Criterio de B-027.3; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/piece-store.ts` | Almacén en memoria de la pieza que debe sonar en el piano: PianoPiece = subida a mano (partitura completa) o pieza del catálogo (id, título y portada, cuyas notas pide el piano al backend), con autoPlay opcional. Expone publishPianoPiece, getPianoPiece y subscribePianoPiece. | B-027.3; mismo patrón que visible-range-store (useSyncExternalStore). El subidor y la Library publican, PlaybackArea se suscribe. Al recargar se pierde y vuelve la demo, porque nada se persiste. |
@@ -1486,9 +1503,12 @@ piano-mentor-ai/
 | `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna del mentor: chat, modos, rendimiento y flujo existente reubicado. | B-006.4; reutiliza MidiUploader y monta SessionStatus vía SessionStatusLive, que lo engancha a session-store (la sesión activa de la portada). |
 | `frontend/src/components/MentorPanel/MentorPanel.module.css` | Estilos de la columna del mentor. | B-006.4; simplicidad primero. |
 | `frontend/src/components/MentorPanel/MentorPanel.types.ts` | Props del panel (weakPoint). | B-006.4. |
-| `frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx` | Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). | B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. |
+| `frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx` | Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton) y escribe la propuesta validada en la propia burbuja. | B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. |
 | `frontend/src/components/MentorPanel/MentorChat/MentorChat.module.css` | Estilos del chat: burbuja de altura fija (116px) con overflow-y auto y scrollbar fina (safe center: centra mensajes cortos, alinea arriba y hace scroll al desbordar), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion y estilo del input. | B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. |
 | `frontend/src/components/MentorPanel/MentorChat/MentorChat.types.ts` | Props del chat (exampleMessage) y MentorChatTurn para representar una conversación completa. | B-012.8; los tipos de las acciones del agente vienen del cliente API. |
+| `frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.tsx` | Chip «Pedir pista al agente» que pide un paso al agente cuando hay sesión abierta. | B-012.6; sustituye al antiguo panel de la columna de sesión y su respuesta se muestra en la burbuja del chat. |
+| `frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.types.ts` | Props del botón «Pedir pista al agente». | B-012.6; vive en el chat y solo pide el paso: la propuesta la escribe MentorChat en la burbuja. |
+| `frontend/src/components/MentorPanel/MentorChat/AgentHintButton/AgentHintButton.module.css` | Estilos del chip «Pedir pista al agente» del chat. | B-012.6; píldora alineada a la derecha sobre el input, para no ocupar columna propia en el panel. |
 | `frontend/src/components/AgentDock/AgentDock.tsx` | Chat del agente disponible en todas las páginas, flotando sobre el contenido (B-012.8 bloque C). Compone el mismo MentorChat del panel del mentor dentro de un aside fijo abajo a la derecha, y se oculta en la portada (/ y /{id}, que es la práctica con el id en la URL) porque allí ya está el del mentor: duplicarlo sería ruido. shouldShowDock es el predicado puro que decide. | El layout no re-renderiza al navegar y no puede leer la ruta, así que el pathname se lee aquí con usePathname y no en el layout (guía de layout de Next 16). Las rutas de práctica son UUID en la raíz; una ruta suelta que no lo sea se trata como página normal. Sin chat en Library no habría forma de pedirle al agente que reproduzca o abra una práctica desde esa página. |
 | `frontend/src/components/AgentDock/AgentDock.module.css` | Estilos del panel flotante: posición fixed abajo a la derecha, ancho 340px con tope del viewport, sombra y radio, con ajuste bajo 900px. | B-012.8 bloque C; se oculta desde el componente y no desde el CSS, porque el pathname no está disponible al pintar el layout. |
 | `frontend/src/components/AgentDock/AgentDock.test.ts` | Tests del predicado shouldShowDock: oculto en la página principal y en una sesión de práctica (/{id}, UUID en la raíz, en minúsculas y en mayúsculas), visible en la Library, en rutas desconocidas (incluida la antigua /practice/...) y sin pathname definido. | Criterio de B-012.8 bloque C; sin DOM: se prueba la decisión pura de mostrar u ocultar, no el render. |
@@ -1549,5 +1569,15 @@ piano-mentor-ai/
 | `frontend/src/lib/audio-doubles.ts` | Dobles de WebAudio y de fetch para tests (contexto, ganancias, osciladores, fuentes de buffer y rutas falsas). | Solo lo usan los tests de synth.ts y piano-samples.ts; la app no lo importa, así que no entra en el bundle. |
 | `frontend/public/audio/piano/` | 120 MP3 de piano (30 teclas en terceras menores x 2 capas de velocity x 2 calidades, 4,7 MB) generados por `npm run samples`. | B-007.5; HQ para la ventana visible C1–C6 y LQ para el resto; atribución en THIRD_PARTY_NOTICES.md. |
 | `frontend/public/audio/piano/manifest.json` | Manifiesto de las muestras: pitch, capa, calidad, fichero, duración, bytes y SHA-256, más licencia y procedencia del banco. | B-007.5; lo pide piano-samples.ts a /audio/piano/manifest.json; regenerarlo con el script, no a mano. |
+| `backend/src/piano_mentor/auth.py` | Validación de id_token de Google con PyJWT + JWKS (RS256, iss, exp, aud igual a GOOGLE_CLIENT_ID) y errores con códigos estables (auth_invalid_token, auth_not_configured). | U-005 con el ADR 0006; sin red en los tests: el cliente de JWKS se sustituye en test_auth.py. |
+| `backend/src/piano_mentor/migrations/0007_create_users.sql` | Tabla users mínima: google_sub UNIQUE, email, name, picture, created_at y updated_at. | U-005; solo lo que entrega Google; los datos personales quedan reservados y vacíos. |
+| `backend/tests/test_auth.py` | Tests herméticos de identidad: /auth/session (sin header, malformado, token expirado, aud distinto, sin client id, registro y re-registro) y owner_id en POST /pieces. | U-005; clave RSA de juguete y JWKS falsos, la suite nunca toca la red. |
+| `frontend/src/lib/auth.ts` | Instancia de NextAuth (Auth.js v5) con Google: sesión jwt y id_token expuesto en session.accessToken. | U-005 con el ADR 0006; GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y AUTH_SECRET; trustHost detrás de Vercel. |
+| `frontend/src/app/api/auth/[...nextauth]/route.ts` | Handlers GET/POST de Auth.js: signin, callback, session y csrf del flujo de Google. | U-005; la URI de redirección de Google Cloud apunta a /api/auth/callback/google. |
+| `frontend/src/lib/auth-user.ts` | Puente de identidad: normaliza la sesión cruda de Auth.js y la manda a POST /api/v1/auth/session, con upsert idempotente tolerante a fallo del backend. | U-005; lo usa AuthUserMenu y lo cubre auth-user.test.ts. |
+| `frontend/src/lib/auth-user.test.ts` | Tests del puente de identidad: mapeo de sesión con y sin id_token, y syncAuthUser con fetch simulado (correcto, sin sesión y 401). | U-005; Vitest con vi.stubGlobal, igual que api-client.test.ts. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.tsx` | Menú de usuario de la cabecera (cliente): Entrar con Google y avatar con inicial más Salir; consulta /api/auth/session y registra al usuario en el backend. | U-005; punto visible de la identidad en AppHeader; única pieza cliente de la cabecera. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css` | Estilos del menú de usuario: píldora de entrar con Google, fila de avatar más Salir y placeholder mientras carga. | U-005; usa el amarillo #e8a13e del avatar estático. |
+| `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.types.ts` | Tipos del menú de usuario: AuthUserMenuStatus y AuthUserMenuProps. | U-005; triada de convención con el resto de componentes. |
 
 _Para añadir un archivo nuevo: agrega su fila en `docs/architecture/files.csv` y ejecuta `python docs/architecture/generate_architecture.py`._

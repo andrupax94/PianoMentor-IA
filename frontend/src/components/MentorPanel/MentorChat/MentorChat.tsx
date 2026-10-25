@@ -1,9 +1,9 @@
-"use client";
-// description: Chat real del agente: burbuja con escritura progresiva, tamaño dinámico y envío con Enter.
-// context: B-012.8 bloque C; el backend propone funciones y valida, el navegador ejecuta la orden
-// devuelta en client_action (reproducir, pausar, abrir práctica) a través de agent-commands.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton) y escribe la propuesta validada en la propia burbuja.
+// context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+"use client";
+
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -13,13 +13,21 @@ import {
   typedSlice,
   typingStep,
 } from "../../../lib/agent-chat";
+import { hintMessage } from "../../../lib/agent-hint";
 import {
   executeClientAction,
   publishAgentCommand,
   fetchPieceInfo,
 } from "../../../lib/agent-commands";
-import { createSession, sendAgentMessage } from "../../../lib/api-client";
+import {
+  ApiError,
+  createSession,
+  runAgentStep,
+  sendAgentMessage,
+} from "../../../lib/api-client";
 import { publishPianoPiece } from "../../../lib/piece-store";
+import { getSessionSnapshot, subscribeSession } from "../../../lib/session-store";
+import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
 
@@ -59,6 +67,8 @@ export function MentorChat({
   exampleMessage = "Hola En que puedo Ayudarte?",
 }: MentorChatProps) {
   const router = useRouter();
+  /** Sesión abierta en la portada: el chip de pista solo existe con práctica. */
+  const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
   const [input, setInput] = useState("");
   /** Respuesta completa del agente, sin recortar: la altura la fija el CSS. */
   const [reply, setReply] = useState<string | null>(null);
@@ -142,6 +152,30 @@ export function MentorChat({
     [send],
   );
 
+  /**
+   * Pide un paso al agente (B-012.6) y lo escribe en la propia burbuja como
+   * mensaje para el alumno. El texto anterior se limpia antes de pedirlo para
+   * que la burbuja muestre «Pensando…» mientras el backend decide.
+   */
+  const askHint = useCallback(async () => {
+    const sessionId = session.sessionId;
+    if (sessionId === null || busy) return;
+    setBusy(true);
+    setError(null);
+    setReply(null);
+    try {
+      setReply(hintMessage(await runAgentStep(sessionId)));
+    } catch (failure: unknown) {
+      setError(
+        failure instanceof ApiError
+          ? failure.message
+          : "No se pudo pedir la pista del agente. Inténtalo de nuevo.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, session.sessionId]);
+
   // El tamaño se decide sobre la respuesta completa (no sobre lo ya revelado)
   // para que no salte de tamaño mientras se escribe.
   const shown = reply ?? exampleMessage;
@@ -171,6 +205,10 @@ export function MentorChat({
         <p className={styles.error} role="alert">
           {error}
         </p>
+      )}
+      {/* Solo con práctica abierta: sin sesión no hay estado que observar. */}
+      {session.sessionId !== null && (
+        <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
       )}
       <div className={styles.input__container}>
         <input
