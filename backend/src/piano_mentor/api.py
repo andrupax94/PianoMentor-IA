@@ -16,7 +16,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
-from .agent import AgentService
+from .agent import AgentService, DecisionContext
 from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .config import settings
@@ -525,8 +525,9 @@ def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
 
 @router.post("/sessions/{session_id}/agent-step", response_model=ActionResponse)
 def agent_step(session_id: str) -> ActionResponse:
-    decision = agent_service.decide(_session_state_or_404(session_id))
-    return ActionResponse(action=decision["action"], status="validated")
+    context = DecisionContext(session_state=_session_state_or_404(session_id))
+    decision = agent_service.decide(context)
+    return ActionResponse(action=decision.action, status="validated")
 
 
 @router.post("/sessions/{session_id}/evaluation", response_model=EvaluationResponse)
