@@ -16,6 +16,7 @@ export function SessionStatusLive() {
       state={session.state}
       connection={session.connection}
       error={session.error}
+      step={session.lastStep}
     />
   );
 }

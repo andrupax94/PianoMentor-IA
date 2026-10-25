@@ -1,10 +1,10 @@
-// description: Tests del mensaje de pista: etiqueta en español para toda la lista blanca, acción cruda si aparece una nueva fuera del mapa, motivo vacío que deja solo la etiqueta y ausencia de la procedencia en el texto.
+// description: Tests del mensaje de pista (etiqueta en español para toda la lista blanca, acción cruda si aparece una nueva fuera del mapa, motivo vacío que deja solo la etiqueta y ausencia de la procedencia en el texto) y de providerLabel (Groq, Gemini, reglas, simulado y el sufijo «→ reglas deterministas» del fallback).
 // context: Criterio de B-012.6; se ejecutan con `npm run test` (Vitest).
 
 import { describe, expect, it } from "vitest";
 
 import type { AgentStepResponse } from "./api-client";
-import { AGENT_ACTION_LABELS, hintMessage } from "./agent-hint";
+import { AGENT_ACTION_LABELS, hintMessage, providerLabel } from "./agent-hint";
 
 /** Acciones que el backend tiene en su lista blanca (ALLOWED_ACTIONS). */
 const ALLOWED_ACTIONS = [
@@ -61,5 +61,33 @@ describe("hintMessage", () => {
     expect(mensaje).not.toContain("deterministic");
     expect(mensaje).not.toContain("Groq");
     expect(mensaje).not.toContain("fallback");
+  });
+});
+
+describe("providerLabel", () => {
+  it("nombra al proveedor en español o con su nombre comercial", () => {
+    expect(providerLabel(step({ provider: "groq" }))).toBe("Groq");
+    expect(providerLabel(step({ provider: "gemini" }))).toBe("Gemini");
+    expect(providerLabel(step({ provider: "deterministic" }))).toBe("reglas deterministas");
+    expect(providerLabel(step({ provider: "mock" }))).toBe("proveedor simulado");
+  });
+
+  it("señala el fallback cuando un LLM real cayó a las reglas", () => {
+    expect(providerLabel(step({ provider: "groq", used_fallback: true }))).toBe(
+      "Groq → reglas deterministas",
+    );
+  });
+
+  it("no pone «fallback» en proveedores que ya son reglas", () => {
+    expect(providerLabel(step({ provider: "deterministic", used_fallback: true }))).toBe(
+      "reglas deterministas",
+    );
+    expect(providerLabel(step({ provider: "mock", used_fallback: true }))).toBe(
+      "proveedor simulado",
+    );
+  });
+
+  it("usa el nombre crudo si el backend añade un proveedor nuevo", () => {
+    expect(providerLabel(step({ provider: "anthropic" }))).toBe("anthropic");
   });
 });

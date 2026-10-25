@@ -1,4 +1,4 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton) y escribe la propuesta validada en la propia burbuja.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión.
 // context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts.
 
 "use client";
@@ -26,7 +26,7 @@ import {
   sendAgentMessage,
 } from "../../../lib/api-client";
 import { publishPianoPiece } from "../../../lib/piece-store";
-import { getSessionSnapshot, subscribeSession } from "../../../lib/session-store";
+import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
@@ -162,9 +162,14 @@ export function MentorChat({
     if (sessionId === null || busy) return;
     setBusy(true);
     setError(null);
+    // Limpia la respuesta para que la burbuja muestre «Pensando…»; la
+    // procedencia anterior se queda hasta que llegue la nueva.
     setReply(null);
     try {
-      setReply(hintMessage(await runAgentStep(sessionId)));
+      const step = await runAgentStep(sessionId);
+      // La procedencia es diagnóstico del estado de sesión (fuera de producción).
+      updateSession({ lastStep: { provider: step.provider, used_fallback: step.used_fallback } });
+      setReply(hintMessage(step));
     } catch (failure: unknown) {
       setError(
         failure instanceof ApiError

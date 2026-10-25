@@ -1,7 +1,7 @@
-// description: Almacén de la sesión de práctica abierta en la portada.
-// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado que llega por WebSocket y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia.
+// description: Almacén de la sesión de práctica abierta en la portada, con `lastStep`: la procedencia de la última pista pedida al agente (B-012.6), solo para diagnóstico.
+// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado que llega por WebSocket y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia. `lastStep` lo escribe MentorChat al pedir la pista y updateSession avisa también cuando solo cambia ese campo.
 
-import type { SessionState } from "./api-client";
+import type { AgentStepResponse, SessionState } from "./api-client";
 import type { ConnectionStatus } from "./websocket-client";
 
 /** Fotografía completa de la sesión visible en el mini cuadro del mentor. */
@@ -14,6 +14,12 @@ export interface SessionSnapshot {
   connection: ConnectionStatus;
   /** Último aviso del servidor o del transporte; null si no hay ninguno. */
   error: string | null;
+  /**
+   * Quién propuso la última pista pedida desde el chat y si hubo que caer al
+   * fallback (B-012.6); null hasta que se pida la primera. Es diagnóstico:
+   * solo lo enseña el estado de sesión fuera de producción.
+   */
+  lastStep: Pick<AgentStepResponse, "provider" | "used_fallback"> | null;
 }
 
 /** Fotografía por defecto: sin sesión, como el mini cuadro sin práctica abierta. */
@@ -22,6 +28,7 @@ export const EMPTY_SESSION: SessionSnapshot = {
   state: null,
   connection: "closed",
   error: null,
+  lastStep: null,
 };
 
 let current: SessionSnapshot = EMPTY_SESSION;
@@ -47,7 +54,8 @@ export function updateSession(patch: Partial<SessionSnapshot>): void {
     next.sessionId === current.sessionId &&
     next.state === current.state &&
     next.connection === current.connection &&
-    next.error === current.error
+    next.error === current.error &&
+    next.lastStep === current.lastStep
   ) {
     return;
   }

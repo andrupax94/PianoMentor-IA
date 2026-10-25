@@ -16,13 +16,19 @@ export interface PracticeBridgeProps {
   sessionId: string;
 }
 
+/**
+ * Estado que gobierna el puente: no incluye `lastStep`, que escribe el chat
+ * al pedir una pista y este componente no debe pisarlo en cada actualización.
+ */
+type PracticeSnapshot = Omit<SessionSnapshot, "lastStep">;
+
 /** Foto inicial mientras el socket y el REST contestan. */
-function connectingSnapshot(sessionId: string): SessionSnapshot {
+function connectingSnapshot(sessionId: string): PracticeSnapshot {
   return { sessionId, state: null, connection: "connecting", error: null };
 }
 
 export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
-  const [snapshot, setSnapshot] = useState<SessionSnapshot>(() => connectingSnapshot(sessionId));
+  const [snapshot, setSnapshot] = useState<PracticeSnapshot>(() => connectingSnapshot(sessionId));
 
   const socketRef = useRef<SessionSocket | null>(null);
   /**

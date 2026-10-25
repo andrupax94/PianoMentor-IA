@@ -40,7 +40,19 @@ describe("session-store", () => {
       state: STATE,
       connection: "open",
       error: null,
+      lastStep: null,
     });
+  });
+
+  it("avisa también cuando solo cambia la procedencia de la última pista", () => {
+    updateSession({ sessionId: "s-1" });
+    const listener = vi.fn();
+    subscribeSession(listener);
+
+    updateSession({ lastStep: { provider: "groq", used_fallback: false } });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getSessionSnapshot().lastStep).toEqual({ provider: "groq", used_fallback: false });
   });
 
   it("avisa a los suscriptores con la foto nueva", () => {
