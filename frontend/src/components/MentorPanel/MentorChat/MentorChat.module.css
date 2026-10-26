@@ -1,5 +1,5 @@
-/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center: centra mensajes cortos, alinea arriba y hace scroll al desbordar), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion y estilo del input. */
-/* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector. */
+/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center: centra mensajes cortos, alinea arriba y hace scroll al desbordar), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, botón de cierre circular del flotante (D-002.5) y estilo del input. */
+/* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. */
 
 .chat {
   display: flex;
@@ -40,6 +40,59 @@
 
 .chat__title>strong>span {
   color: var(--gold);
+}
+
+/* Botón de cierre del chat flotante (D-002.5): solo lo renderiza MentorChat
+   cuando el hospedador le pasa onClose, así que el panel del mentor de la
+   principal no lo ve. La × va dibujada con dos barras rotadas: no hay icono
+   de cierre en el banco de assets. */
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-mute);
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  color: var(--text);
+  border-color: var(--text-mute);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
+}
+
+.closeIcon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.closeIcon::before,
+.closeIcon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.closeIcon::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* La burbuja tiene altura fija: así el panel no salta aunque la respuesta

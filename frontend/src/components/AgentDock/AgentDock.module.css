@@ -1,6 +1,42 @@
-/* description: Chat del agente flotando sobre el contenido de las páginas secundarias.
-   context: B-012.8 bloque C; se oculta en "/" desde el componente, no desde aquí, porque
-   el layout no re-renderiza al navegar. Sobre la Library y la práctica, no sobre el piano. */
+/* description: Estilos del chat flotante y colapsable: FAB de 56px con bot.svg abajo a la derecha y panel de 340px con tope del viewport, sombra, radio, animación de apertura y ajuste bajo 900px. */
+/* context: B-012.8 bloque C trajo el panel fijo; D-002.5 añade la FAB y la animación dockIn (200ms, con prefers-reduced-motion aparte). Se oculta desde el componente y no desde el CSS, porque el pathname no está disponible al pintar el layout. */
+
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.fab:hover {
+  filter: brightness(1.08);
+}
+
+.fab:focus-visible {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
+}
+
+/* El icono del chat es el mismo avatar del panel (bot.svg con sus propios colores). */
+.fabIcon {
+  width: 34px;
+  height: 34px;
+  background-image: url("/assets/icons/bot.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
 
 .dock {
   position: fixed;
@@ -14,6 +50,27 @@
   border: 1px solid var(--line-strong);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+  /* Apertura corta; con hidden el panel no está en el flujo, así que la
+     animación (y no una transición) reproduce el despliegue al montarse. */
+  transform-origin: bottom right;
+  animation: dockIn 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock {
+    animation: none;
+  }
+}
+
+@keyframes dockIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 900px) {
@@ -21,5 +78,10 @@
     right: 12px;
     bottom: 12px;
     width: 300px;
+  }
+
+  .fab {
+    right: 12px;
+    bottom: 12px;
   }
 }

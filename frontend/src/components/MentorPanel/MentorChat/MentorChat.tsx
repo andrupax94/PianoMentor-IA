@@ -65,6 +65,7 @@ function storeChatId(chatId: string): void {
 
 export function MentorChat({
   exampleMessage = "Hola En que puedo Ayudarte?",
+  onClose,
 }: MentorChatProps) {
   const router = useRouter();
   /** Sesión abierta en la portada: el chip de pista solo existe con práctica. */
@@ -195,6 +196,17 @@ export function MentorChat({
           <strong>PianoMentor <span>Chat</span></strong>
           <p>Tu Profesor de piano IA</p>
         </div>
+        {/* Solo el chat flotante llega con onClose y lo enseña (D-002.5). */}
+        {onClose && (
+          <button
+            className={styles.closeButton}
+            type="button"
+            aria-label="Cerrar chat"
+            onClick={onClose}
+          >
+            <span className={styles.closeIcon} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <p

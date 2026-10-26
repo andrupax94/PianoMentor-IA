@@ -1,10 +1,9 @@
-// description: Tests del predicado del chat flotante: cuándo se ve y cuándo no.
-// context: Criterio de B-012.8 bloque C; sin DOM. El componente no se renderiza
-// (la suite no monta DOM): se prueba la decisión pura de mostrar u ocultar.
+// description: Tests del chat flotante: shouldShowDock (oculto en la principal y en /{id} UUID en la raíz, en minúsculas y mayúsculas; visible en Library, rutas desconocidas y sin pathname) y shouldCollapseOnNavigate (colapsa al cambiar de ruta).
+// context: Criterios de B-012.8 bloque C y D-002.5; sin DOM: se prueban las decisiones puras de mostrar y de volver a cerrado, no el render.
 
 import { describe, expect, it } from "vitest";
 
-import { shouldShowDock } from "./AgentDock";
+import { shouldCollapseOnNavigate, shouldShowDock } from "./AgentDock";
 
 describe("shouldShowDock", () => {
   it("se oculta en la página principal, donde ya está el chat del mentor", () => {
@@ -27,5 +26,21 @@ describe("shouldShowDock", () => {
 
   it("sin pathname definido se muestra, para no dejar al usuario sin chat", () => {
     expect(shouldShowDock(null)).toBe(true);
+  });
+});
+
+describe("shouldCollapseOnNavigate", () => {
+  it("al cambiar de ruta el panel vuelve a cerrado", () => {
+    expect(shouldCollapseOnNavigate("/library", "/otra")).toBe(true);
+    expect(shouldCollapseOnNavigate("/otra", "/library")).toBe(true);
+  });
+
+  it("desde la primera ruta conocida también colapsa, aunque empezara abierto", () => {
+    expect(shouldCollapseOnNavigate(null, "/library")).toBe(true);
+  });
+
+  it("con la misma ruta de nuevo se queda como estaba", () => {
+    expect(shouldCollapseOnNavigate("/library", "/library")).toBe(false);
+    expect(shouldCollapseOnNavigate(null, null)).toBe(false);
   });
 });
