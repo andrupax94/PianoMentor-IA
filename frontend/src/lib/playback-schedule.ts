@@ -1,5 +1,5 @@
-// description: Matemática pura de reproducción: schedule de eventos, tempo y pitch.
-// context: Núcleo testeable de B-006.2; sin DOM, sin AudioContext, sin React.
+// description: Matemática pura de reproducción (B-006.2): schedule ordenado con factor de tempo, ventana de eventos, pitch a Hz, recortes y tempoFactorFor, que convierte el BPM que pide el usuario en el factor multiplicativo (B-006.5).
+// context: Sin DOM ni AudioContext; testeable con números, la ejecuta el motor de transporte. El factor es una razón sobre el tempo base, así que el cambio de velocidad es relativo y respeta los cambios de tempo internos de la pieza.
 
 import type { NoteHand, PlayableNote } from "./api-client";
 
@@ -21,6 +21,20 @@ export const MAX_TEMPO_FACTOR = 2.0;
 export function clampTempoFactor(factor: number): number {
   if (!Number.isFinite(factor)) return 1.0;
   return Math.min(MAX_TEMPO_FACTOR, Math.max(MIN_TEMPO_FACTOR, factor));
+}
+
+/**
+ * Factor que hace sonar el tempo base de la pieza a `target_bpm` (B-006.5):
+ * el usuario pide un BPM y aquí se convierte en el factor multiplicativo que
+ * ya entiende el motor. Como es una razón sobre el tempo base, el cambio es
+ * relativo: la pieza conserva sus propios cambios de tempo por dentro.
+ * Base desconocida, cero o valores no numéricos → tiempo real (1.0); el
+ * resultado siempre pasa por `clampTempoFactor`.
+ */
+export function tempoFactorFor(target_bpm: number, base_bpm: number | null): number {
+  if (base_bpm === null || !Number.isFinite(base_bpm) || base_bpm <= 0) return 1.0;
+  if (!Number.isFinite(target_bpm)) return 1.0;
+  return clampTempoFactor(target_bpm / base_bpm);
 }
 
 /**

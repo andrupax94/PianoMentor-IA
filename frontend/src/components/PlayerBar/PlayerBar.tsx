@@ -1,10 +1,12 @@
+// description: Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real editable (el BPM pedido se convierte en factor con tempoFactorFor), compás actual real (derivado de la rejilla con measureIndexAt) y progreso redondeado.
+// context: B-007.3/B-008.3/B-027.3; B-006.4 la dejó solo HTML/CSS. El título y la portada llegan por props (la demo, el nombre del archivo subido o la ficha del catálogo) y nunca son un marcador: siempre nombran la pieza que suena.
+
 "use client";
-// description: Franja superior del área izquierda (pieza, controles, tempo, progreso).
-// context: B-007.3/B-008.3; reenvía las acciones del transporte y deriva el compás
 // real de la rejilla servida por el backend. El título lo aporta PlaybackArea —la
 // demo o la pieza elegida—, así que nunca puede desentonar con lo que suena.
 
 import { measureIndexAt } from "../../lib/measures";
+import { tempoFactorFor } from "../../lib/playback-schedule";
 import { PlaybackControls } from "./PlaybackControls/PlaybackControls";
 import { ProgressBar } from "./ProgressBar/ProgressBar";
 import { SongInfo } from "./SongInfo/SongInfo";
@@ -32,6 +34,7 @@ export function PlayerBar({
     pause,
     stop,
     seek,
+    setTempoFactor,
   } = player;
 
   const isPlaying = status === "playing";
@@ -39,6 +42,11 @@ export function PlayerBar({
   // Redondeado aquí: la barra pinta un entero, no 25.131969576413994%.
   const progress = duration_s > 0 ? Math.round((position_s / duration_s) * 100) : 0;
   const tempoBpm = tempo_bpm === null ? null : Math.round(tempo_bpm * tempoFactor);
+
+  // El BPM que teclea el usuario es relativo al tempo de la pieza: aquí se
+  // convierte en el factor del motor (recortado a 0.5–2.0) y el resto de la
+  // pieza, con sus propios cambios de tempo, escala por igual (B-006.5).
+  const changeTempo = (bpm: number) => setTempoFactor(tempoFactorFor(bpm, tempo_bpm));
 
   // Compás actual derivado de la posición viva (misma cadencia de 25 ms que el resto).
   const measureIndex = measureIndexAt(measures, tempoFactor, position_s);
@@ -70,6 +78,8 @@ export function PlayerBar({
       <span></span>
       <TempoMeasure
         tempoBpm={tempoBpm}
+        baseTempoBpm={tempo_bpm}
+        onTempoChange={changeTempo}
         measure={measure}
         measureCount={measureCount}
         signature={signature}

@@ -1,5 +1,6 @@
-/* description: Estilos de tempo y compás. */
+/* description: Estilos de tempo y compás, más el input numérico del tempo editable (ancho fijo, borde suave hasta el foco). */
 /* context: B-006.4; simplicidad primero. */
+
 .tempo {
   justify-content: center;
 }
@@ -30,4 +31,22 @@
   height: 20px;
   margin-right: 5px;
   mask-position: center;
+}
+
+/* Campo editable del tempo (B-006.5): ancho para 3-4 dígitos y borde
+   suave hasta que recibe foco; el resto de la línea no cambia. */
+.bpm {
+  width: 5.4ch;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.bpm:focus {
+  border-color: var(--accent);
+  outline: none;
 }

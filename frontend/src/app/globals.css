@@ -1,4 +1,4 @@
-/* description: Estilos globales de la aplicación. */
+/* description: Estilos globales de la aplicación: paleta de tokens, tipografía, botones y el estilo base de los inputs numéricos (flechitas del spinner en tono con la página). */
 /* context: Base visual de la web. */
 
 /* Paleta del diseño (navy profundo + oro). Los tokens que comparten la página
@@ -120,4 +120,21 @@ button {
     cursor: pointer;
     padding: 12px 16px;
     font-weight: 700;
+}
+
+/* Inputs numéricos (B-006.5): las flechitas del spinner siguen la paleta —
+   el fondo oscuro ya lo da `color-scheme: dark` de :root, el dorado lo pone
+   accent-color en Firefox/controles afines y en Chromium se suavizan con la
+   opacidad hasta el hover o el foco en lugar de quedar en gris de sistema. */
+input[type="number"] {
+    accent-color: var(--gold);
+}
+
+input[type="number"]::-webkit-inner-spin-button {
+    opacity: .55;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button {
+    opacity: 1;
 }

@@ -1,5 +1,5 @@
-// description: Tests de la matemática pura de reproducción (schedule, tempo, pitch).
-// context: Criterio de B-006.2; sin DOM ni AudioContext.
+// description: Tests de la matemática de reproducción: escala por factor, orden estable, ventana, pitch, recortes y tempoFactorFor (BPM pedido → factor, rango 0.5–2.0, sin base válida → tiempo real).
+// context: Criterio de B-006.2; se ejecutan con `npm run test` (Vitest).
 
 import { describe, expect, it } from "vitest";
 
@@ -11,6 +11,7 @@ import {
   MAX_TEMPO_FACTOR,
   MIN_TEMPO_FACTOR,
   pitchToFrequency,
+  tempoFactorFor,
 } from "./playback-schedule";
 import type { PlayableNote } from "./api-client";
 
@@ -104,5 +105,29 @@ describe("clampPosition", () => {
     expect(clampTempoFactor(0.1)).toBe(MIN_TEMPO_FACTOR);
     expect(clampTempoFactor(99)).toBe(MAX_TEMPO_FACTOR);
     expect(clampTempoFactor(Number.NaN)).toBe(1.0);
+  });
+});
+
+describe("tempoFactorFor", () => {
+  it("convierte el BPM pedido en el factor multiplicativo del motor", () => {
+    expect(tempoFactorFor(60, 120)).toBe(0.5);
+    expect(tempoFactorFor(240, 120)).toBe(2.0);
+    expect(tempoFactorFor(120, 120)).toBe(1.0);
+    // Relativo, no absoluto: un mismo BPM pedido da factores distintos
+    // según el tempo base de la pieza.
+    expect(tempoFactorFor(90, 120)).toBeCloseTo(0.75, 5);
+    expect(tempoFactorFor(90, 180)).toBeCloseTo(0.5, 5);
+  });
+
+  it("recorta al rango 0.5–2.0 lo que pase de largo", () => {
+    expect(tempoFactorFor(30, 120)).toBe(MIN_TEMPO_FACTOR);
+    expect(tempoFactorFor(500, 120)).toBe(MAX_TEMPO_FACTOR);
+  });
+
+  it("sin tempo base válido vuelve a tiempo real", () => {
+    expect(tempoFactorFor(120, null)).toBe(1.0);
+    expect(tempoFactorFor(120, 0)).toBe(1.0);
+    expect(tempoFactorFor(120, Number.NaN)).toBe(1.0);
+    expect(tempoFactorFor(Number.NaN, 120)).toBe(1.0);
   });
 });
