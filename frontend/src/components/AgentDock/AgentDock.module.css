@@ -1,5 +1,5 @@
 /* description: Estilos del chat flotante y colapsable: FAB de 56px con bot.svg abajo a la derecha y panel de 340px con tope del viewport, sombra, radio, animación de apertura y ajuste bajo 900px. */
-/* context: B-012.8 bloque C trajo el panel fijo; D-002.5 añade la FAB y la animación dockIn (200ms, con prefers-reduced-motion aparte). Se oculta desde el componente y no desde el CSS, porque el pathname no está disponible al pintar el layout. */
+/* context: B-012.8 bloque C trajo el panel fijo; D-002.5 añade la FAB y la animación dockIn (200ms). Se oculta desde el componente y no desde el CSS, porque el pathname no está disponible al pintar el layout. */
 
 .fab {
   position: fixed;
@@ -54,12 +54,6 @@
      animación (y no una transición) reproduce el despliegue al montarse. */
   transform-origin: bottom right;
   animation: dockIn 200ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dock {
-    animation: none;
-  }
 }
 
 @keyframes dockIn {

@@ -193,11 +193,3 @@
   transform: scaleX(-1);
   margin-left: -4px;
 }
-
-@media (prefers-reduced-motion: reduce) {
-
-  .lente,
-  .clon {
-    transition: none;
-  }
-}
