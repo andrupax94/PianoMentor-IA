@@ -1,6 +1,5 @@
 /* description: Estilos del mini box de acceso con el fondo oscurecido. */
-/* context: U-005; overlay fijo que cubre la página con un velo suave y una
-   caja centrada, alineada con el amarillo #e8a13e de la cabecera. */
+/* context: U-005; overlay con velo y desenfoque suave, caja oscura con borde degradado azul-dorado (como el chat), logo de la app arriba y acento #e8a13e de la cabecera. */
 
 .overlay {
   position: fixed;
@@ -8,78 +7,154 @@
   z-index: 1000;
   display: grid;
   place-items: center;
-  background: rgba(15, 15, 15, 0.45);
+  background: rgba(5, 9, 18, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .box {
+  /* Paleta local: usa tus tokens si existen y cae a estos valores si no */
+  --m-bg: var(--bg, #0f1a2e);
+  --m-text: var(--text, #f4eee2);
+  --m-soft: var(--text-soft, #9fb1cc);
+  --m-gold: #e8a13e;
+  --m-blue: #6ea8ff;
+  --m-field: rgba(255, 255, 255, 0.04);
+
   position: relative;
-  width: min(320px, calc(100vw - 32px));
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 20px 20px 22px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  width: min(340px, calc(100vw - 32px));
+  padding: 24px 22px 24px;
+  color: var(--m-text);
+  border: 2px solid transparent;
+  border-radius: 22px;
+  /* Borde degradado: relleno sólido en padding-box, degradado en border-box */
+  background:
+    linear-gradient(var(--m-bg), var(--m-bg)) padding-box,
+    linear-gradient(135deg, var(--m-blue), var(--m-gold)) border-box;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 40px color-mix(in srgb, var(--m-gold) 12%, transparent);
+  animation: entrada 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .close {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 10px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
   border: none;
+  border-radius: 50%;
   background: transparent;
   font-size: 20px;
   line-height: 1;
-  color: #777777;
+  color: var(--m-soft);
   cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .close:hover {
-  color: #222222;
+  color: var(--m-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--m-gold);
+  outline-offset: 2px;
+}
+
+/* El logo es multicolor, así que va como imagen de fondo (no como máscara) */
+.logo {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  background: url("/assets/icons/Logo.svg") center / contain no-repeat;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--m-gold) 35%, transparent));
 }
 
 .title {
-  margin: 0 0 14px;
-  font-size: 1.05rem;
+  margin: 0 0 18px;
+  font-size: 1.1rem;
+  font-weight: 600;
   text-align: center;
+  color: var(--m-text);
 }
 
 .form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dddddd;
-  border-radius: 8px;
-  padding: 9px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--m-soft) 35%, transparent);
+  border-radius: 999px;
+  background: var(--m-field);
+  color: var(--m-text);
+  padding: 10px 16px;
   font: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input::placeholder {
+  color: var(--m-soft);
+  opacity: 0.8;
 }
 
 .input:focus {
-  border-color: #e8a13e;
+  border-color: var(--m-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-gold) 22%, transparent);
   outline: none;
+}
+
+.input:disabled {
+  opacity: 0.6;
 }
 
 .error {
   margin: 0;
-  color: #b3261e;
+  padding: 0 6px;
+  color: #ff8a80;
   font-size: 0.85rem;
+  text-align: center;
 }
 
 .enter {
   border: none;
   border-radius: 999px;
-  background: #e8a13e;
-  color: #ffffff;
-  padding: 9px 14px;
+  background: linear-gradient(135deg, #f0b04f, var(--m-gold));
+  color: #1a1206;
+  padding: 10px 14px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--m-gold) 30%, transparent);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 }
 
-.enter:hover {
-  background: #d99432;
+.enter:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--m-gold) 40%, transparent);
+}
+
+.enter:focus-visible {
+  outline: 2px solid var(--m-text);
+  outline-offset: 2px;
 }
 
 .enter:disabled {
@@ -91,8 +166,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0 12px;
-  color: #999999;
+  margin: 16px 0 14px;
+  color: var(--m-soft);
   font-size: 0.8rem;
 }
 
@@ -101,7 +176,7 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: #e5e5e5;
+  background: color-mix(in srgb, var(--m-soft) 25%, transparent);
 }
 
 .dividerText {
@@ -111,20 +186,33 @@
 
 .google {
   width: 100%;
-  border: 1px solid #dddddd;
+  border: 1.5px solid color-mix(in srgb, var(--m-blue) 45%, transparent);
   border-radius: 999px;
-  background: #ffffff;
-  color: #333333;
-  padding: 9px 14px;
+  background: transparent;
+  color: var(--m-text);
+  padding: 10px 14px;
   font: inherit;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-.google:hover {
-  background: #f5f5f5;
+.google:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--m-blue) 12%, transparent);
+  border-color: var(--m-blue);
+}
+
+.google:focus-visible {
+  outline: 2px solid var(--m-blue);
+  outline-offset: 2px;
 }
 
 .google:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box {
+    animation: none;
+  }
 }

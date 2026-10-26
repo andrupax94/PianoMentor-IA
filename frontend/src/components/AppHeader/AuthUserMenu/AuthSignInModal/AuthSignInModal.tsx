@@ -66,10 +66,13 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
 
   return (
     <div className={styles.overlay} onMouseDown={handleOverlayDown} role="presentation">
-      <div className={styles.box} aria-label="Iniciar sesión">
+      <div className={styles.box} role="dialog"
+        aria-modal="true"
+        aria-label="Iniciar sesión">
         <button type="button" className={styles.close} onClick={onClose} aria-label="Cerrar">
           ×
         </button>
+        <span className={styles.logo} aria-hidden="true" />
         <h2 className={styles.title}>Iniciar sesión</h2>
         <form className={styles.form} onSubmit={handleEnter}>
           <input

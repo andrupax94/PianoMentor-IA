@@ -216,6 +216,10 @@ export function MentorChat({
       >
         {busy && reply === null ? "Pensando…" : visible}
         {typing && <span className={styles.cursor}>{TYPING_CURSOR}</span>}
+        {/* Solo con práctica abierta: sin sesión no hay estado que observar. */}
+        {session.sessionId !== null && (
+          <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
+        )}
       </p>
 
       {error && (
@@ -223,10 +227,7 @@ export function MentorChat({
           {error}
         </p>
       )}
-      {/* Solo con práctica abierta: sin sesión no hay estado que observar. */}
-      {session.sessionId !== null && (
-        <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
-      )}
+
       <div className={styles.input__container}>
         <input
           className={styles.input}

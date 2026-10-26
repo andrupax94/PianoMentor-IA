@@ -13,6 +13,7 @@ export function AgentHintButton({ onAsk, disabled = false }: AgentHintButtonProp
       disabled={disabled}
       aria-busy={disabled}
     >
+      <span className={styles.stars}></span>
       Pedir pista al agente
     </button>
   );

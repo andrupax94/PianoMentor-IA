@@ -3,7 +3,7 @@
 
 .contenedor {
   --gap: 6px;
-  --pad: 8px;
+  --pad: 0px;
   --lente: var(--c-observar);
   --duracion: 450ms;
   /* Curva con ligero rebote: la lente se pasa un poco y vuelve */
@@ -18,7 +18,9 @@
   /* crema, en vez de blanco puro */
   --c-derecha: #ffb547;
   /* dorado, el mismo del logo */
-
+  width: 93%;
+  height: 70px;
+  margin: 0 auto;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -79,13 +81,13 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 6px;
-  height: 76px;
+  height: 100%;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--opcion);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
@@ -187,6 +189,7 @@
 .iconos {
   display: flex;
   align-items: center;
+
 }
 
 .espejo {

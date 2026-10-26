@@ -47,6 +47,7 @@
    principal no lo ve. La × va dibujada con dos barras rotadas: no hay icono
    de cierre en el banco de assets. */
 .closeButton {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;

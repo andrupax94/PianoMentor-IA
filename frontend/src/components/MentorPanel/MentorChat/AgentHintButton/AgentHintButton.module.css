@@ -2,11 +2,16 @@
 /* context: B-012.6; píldora alineada a la derecha sobre el input, para no ocupar columna propia en el panel. */
 
 .chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  bottom: 5px;
+  right: 5px;
   align-self: flex-end;
   padding: 6px 14px;
-  border: 1px solid var(--accent);
   border-radius: 999px;
-  background: var(--bg);
+  background: var(--gradient1);
+  border: solid 2px var(--accent);
   color: var(--text);
   font-size: 0.8rem;
   line-height: 1.2;
@@ -21,4 +26,19 @@
 .chip:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.stars {
+  position: relative;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  mask-image: url("/assets/icons/stars.svg");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  background-color: white;
+  margin-right: 10px;
+  margin-left: 5px;
+
 }
