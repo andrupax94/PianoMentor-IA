@@ -1,9 +1,9 @@
-// description: Props del selector de modo del mentor.
-// context: B-006.4; los modos reales los gobierna el agente después.
+// description: Posiciones del switch del mentor (MentorMode) y la prop mode.
+// context: B-006.4; D-002.3 amplia el union de tres modos a las cuatro manos del switch. Los contratos de comportamiento los decide B-012.
 
-export type MentorMode = "observar" | "duo" | "control";
+export type MentorMode = "observar" | "izquierda" | "dos" | "derecha";
 
 export interface ModeSelectorProps {
-  /** Modo activo. */
+  /** Estado inicial del switch; tras montar, el estado es interno (cosmético, D-002.3). */
   mode?: MentorMode;
 }

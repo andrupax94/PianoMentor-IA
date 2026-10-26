@@ -1,51 +1,125 @@
-/* description: Estilos del selector de modo. */
-/* context: B-006.4; simplicidad primero. */
+/* description: Estilos del switch de manos del mentor. */
+/* context: D-002.3; contenedor píldora con borde de 2px y fondo translúcido del color de la opción activa, círculo interno al seleccionar y los cuatro colores de la cascada (--hand-unknown, --hand-left, --text, --hand-right); CSS Modules y tokens, sin Bootstrap. */
 
-.modes {
+.contenedor {
   display: flex;
-}
-
-.modes button {
-  background: #191e29;
-  color: var(--text);
-  border: 1px solid #2b3544;
-  font-weight: 400;
-  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--bg);
   box-shadow: var(--shadow1);
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+/* El contenedor toma el color de la opción activa: el borde con la propia y
+   el fondo en una versión translúcida de la misma. */
+.contenedor[data-mode="observar"] {
+  border-color: var(--hand-unknown);
+  background-color: color-mix(in srgb, var(--hand-unknown) 14%, transparent);
+}
+
+.contenedor[data-mode="izquierda"] {
+  border-color: var(--hand-left);
+  background-color: color-mix(in srgb, var(--hand-left) 14%, transparent);
+}
+
+.contenedor[data-mode="dos"] {
+  border-color: var(--text);
+  background-color: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.contenedor[data-mode="derecha"] {
+  border-color: var(--hand-right);
+  background-color: color-mix(in srgb, var(--hand-right) 14%, transparent);
+}
+
+/* Cada opción fija su color en una variable local: el botón en reposo pinta
+   icono y texto con ella, y al pulsarla la usa de fondo del círculo interno. */
+.opcion {
+  --opcion: var(--text-soft);
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  font-weight: bold;
   justify-content: center;
-  height: 50px;
-  border-radius: 30px;
-}
-
-.modes button[aria-pressed="true"] {
-  border-color: var(--accent);
-}
-
-.modes button>span {
-  mask-repeat: no-repeat;
-  mask-position: center;
-  background-color: white;
-  position: relative;
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-
+  gap: 6px;
+  padding: 8px 6px;
+  height: 76px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--opcion);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .observar {
-  background-color: var(--gold-t) !important;
-  border: solid 3px var(--gold-usoft) !important;
+  --opcion: var(--hand-unknown);
 }
 
-.duo {
-  background-color: var(--line-strong) !important;
-  border: solid 3px var(--text-mute) !important;
+.izquierda {
+  --opcion: var(--hand-left);
 }
 
-.control {
+.dos {
+  --opcion: var(--text);
+}
 
-  background-color: var(--bg) !important;
-  border: solid 3px var(--line-strong) !important;
+.derecha {
+  --opcion: var(--hand-right);
+}
+
+.opcion:hover {
+  background-color: color-mix(in srgb, var(--opcion) 15%, transparent);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--opcion);
+  outline-offset: 2px;
+}
+
+/* Círculo interno al seleccionar: la opción rellena el píldora entera con su
+   color e invierte icono y texto (oscuro sobre el color claro). */
+.opcion[aria-pressed="true"] {
+  background-color: var(--opcion);
+  color: var(--bg);
+}
+
+/* Icono con máscara: el "papel" lo pinta background-color; la forma la da el SVG. */
+.icono {
+  width: 24px;
+  height: 24px;
+  background-color: var(--opcion);
+  -webkit-mask-image: url("/assets/icons/hand.svg");
+  mask-image: url("/assets/icons/hand.svg");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.observar .icono {
+  -webkit-mask-image: url("/assets/icons/eye.svg");
+  mask-image: url("/assets/icons/eye.svg");
+}
+
+/* La segunda palma de "Dos manos": la misma, espejada, solapando un punto. */
+.iconos {
+  display: flex;
+  align-items: center;
+}
+
+.espejo {
+  transform: scaleX(-1);
+  margin-left: -4px;
 }

@@ -1,27 +1,52 @@
-// description: Selector de modo (Observar, Duo, Tomar Control).
-// context: B-006.4; armazón estático.
+// description: Switch del modo del mentor: Observar, Mano izquierda, Dos manos y Mano derecha.
+// context: B-006.4 armazón; D-002.3 lo hace switch de 4 posiciones con un color por opción y retira Tomar Control (cualquier mano que no sea Observar implica que el estudiante toca); el estado es interno y cosmético, y los colores por opción son los mismos que tiñen la cascada (D-002.1).
 
-import { url } from "inspector";
+"use client";
+
+import { useState } from "react";
+
 import styles from "./ModeSelector.module.css";
 import type { MentorMode, ModeSelectorProps } from "./ModeSelector.types";
 
-const MODES: { id: MentorMode; className: string; label: string; icon: string }[] = [
-  { id: "observar", className: styles.observar + " col-6", label: "Observar", icon: "eye.svg" },
-  { id: "duo", className: styles.duo + " col-6", label: "Duo", icon: "play2.svg" },
-  { id: "control", className: styles.control + " col-12", label: "Tomar Control", icon: "piano.svg" },
+interface Opcion {
+  id: MentorMode;
+  label: string;
+  clase: string;
+  /** Dos manos son dos palmas: la segunda va espejada. */
+  espejo?: boolean;
+}
+
+/** Las cuatro posiciones del switch, en el orden en que se muestran. */
+const MODES: Opcion[] = [
+  { id: "observar", label: "Observar", clase: styles.observar },
+  { id: "izquierda", label: "Mano izquierda", clase: styles.izquierda },
+  { id: "dos", label: "Dos manos", clase: styles.dos, espejo: true },
+  { id: "derecha", label: "Mano derecha", clase: styles.derecha },
 ];
 
-export function ModeSelector({ mode = "observar" }: ModeSelectorProps) {
+export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) {
+  // Estado interno y cosmético: solo dibuja el switch; la semántica la decide B-012.
+  const [modo, setModo] = useState<MentorMode>(inicial);
+
   return (
-    <div className="container">
-      <div className={styles.modes + " row g-2  justify-content-between"} role="group" aria-label="Modo del mentor">
-        {MODES.map((item) => (
-          <button key={item.id} className={item.className} type="button" aria-pressed={item.id === mode}>
-            <span style={{ maskImage: `url(/assets/icons/${item.icon})` }}></span>
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <div className={styles.contenedor} data-mode={modo} role="group" aria-label="Modo del mentor">
+      {MODES.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className={`${styles.opcion} ${item.clase}`}
+          aria-pressed={item.id === modo}
+          onClick={() => setModo(item.id)}
+        >
+          <span className={styles.iconos}>
+            <span className={styles.icono} aria-hidden="true" />
+            {item.espejo ? (
+              <span className={`${styles.icono} ${styles.espejo}`} aria-hidden="true" />
+            ) : null}
+          </span>
+          {item.label}
+        </button>
+      ))}
     </div>
   );
 }

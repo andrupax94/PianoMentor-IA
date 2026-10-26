@@ -1,5 +1,5 @@
-/* description: Estilos del chat del mentor. */
-/* context: B-012.8; burbuja de altura fija con texto dinámico y escritura progresiva. */
+/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center: centra mensajes cortos, alinea arriba y hace scroll al desbordar), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion y estilo del input. */
+/* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector. */
 
 .chat {
   display: flex;
@@ -46,13 +46,15 @@
    cambie de longitud. El texto se reduce de lg a sm para caber; si aun así
    desborda (respuestas largas), aparece el scroll en vertical en vez de
    crecer o recortarse. `safe center` centra los mensajes cortos y, al
-   desbordar, alinea arriba para poder hacer scroll hasta el principio. */
+   desbordar, alinea arriba para poder hacer scroll hasta el principio.
+   D-002.3 absorbe el alto de la fila que quitamos (Tomar Control: 50px más el
+   canal de 8px que la separaba), que ahora vive aquí. */
 .bubble {
 
   position: relative;
   border-radius: 16px;
   padding: 14px 16px;
-  height: 116px;
+  height: 174px;
   display: flex;
   align-items: center;
   align-items: safe center;
