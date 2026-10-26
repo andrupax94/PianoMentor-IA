@@ -1,8 +1,7 @@
-"use client";
 // description: Teclado SVG con ventana visible y resaltado de la tecla pulsada.
-// context: B-007.1 dibuja y recorta; B-007.2 pinta estados; D-002.4 hunde la tecla
-// pulsada (base oscura + sombra interna direccional) y retira el aviso de "nota
-// próxima". PianoVirtual88Pressed se genera con SVGR: no editar ese fichero.
+// context: B-007.1 dibuja y recorta; B-007.2 pinta el estado de la tecla pulsada; D-002.4 lo hunde (base oscura + sombra interna direccional) y retira el aviso de nota próxima. PianoVirtual88Pressed se genera con SVGR: no editar ese fichero.
+
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 

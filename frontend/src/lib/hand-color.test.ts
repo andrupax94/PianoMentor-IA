@@ -1,6 +1,5 @@
 // description: Tests del color de mano de la cascada.
-// context: D-002.1; verifica el mapeo mano → token y que no se cuele ningún
-// hexadecimal fuera de globals.css.
+// context: D-002.1; verifica el mapeo mano → token y que no se cuele ningún hexadecimal fuera de globals.css.
 
 import { describe, expect, it } from "vitest";
 

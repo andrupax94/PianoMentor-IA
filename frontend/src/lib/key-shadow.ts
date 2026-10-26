@@ -1,6 +1,5 @@
 // description: Dirección e intensidad de la sombra interna de la tecla pulsada.
-// context: D-002.4; puro y testeable, sin DOM ni SVG. El componente solo pinta
-// lo que este módulo decide: la matemática vive aquí para poder testearla.
+// context: D-002.4; puro y testeable, sin DOM ni SVG: el componente solo pinta lo que este módulo decide, así la matemática se puede probar aparte.
 
 /** Lado de la tecla por el que entra la sombra. */
 export type ShadowSide = "left" | "right";

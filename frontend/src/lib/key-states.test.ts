@@ -1,4 +1,4 @@
-// description: Tests de ids sonando/esperada desde schedule y posición.
+// description: Tests de sonando/esperada con schedule falso.
 // context: Criterio de B-007.2; se ejecutan con `npm run test` (Vitest).
 
 import { describe, expect, it } from "vitest";

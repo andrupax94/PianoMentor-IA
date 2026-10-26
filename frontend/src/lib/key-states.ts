@@ -1,7 +1,5 @@
-// description: Ids de teclas sonando y "esperadas" desde el schedule y la posición.
-// context: B-007.2; puro y testeable, sin DOM. D-002.4: el teclado dejó de pintar
-// las esperadas, pero expectedKeyIds se queda documentado y testeado por si un
-// "pista" del agente vuelve a necesitarlo.
+// description: Ids de teclas sonando y esperada desde schedule y posición; exporta HORIZON_S (2 s) como horizonte compartido.
+// context: B-007.2; puro y testeable, sin DOM. La cascada usa el mismo horizonte para que la nota llegue justo cuando la tecla se enciende. D-002.4 retiró del teclado el pintado de las esperadas, pero expectedKeyIds sigue aquí documentado y testeado por si una pista del agente lo vuelve a necesitar.
 
 import { pitchToKeyId } from "./pitch";
 import type { ScheduledEvent } from "./playback-schedule";

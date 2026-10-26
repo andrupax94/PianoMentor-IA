@@ -1,8 +1,7 @@
+// description: Teclado del escenario: recibe el transporte por props, entrega al SvgKeyboard las teclas sonando y añade el teclado del PC.
+// context: B-007.4 jubiló el PianoKeyboard temporal: sin vía de inyección, el teclado SVG es el único render. D-002.4 retiró el aviso de nota esperada; Keyboard solo pasa soundingKeyIds.
+
 "use client";
-// description: Teclado del escenario (SVG real + transporte + teclado del PC).
-// context: B-007.4; el transporte vive en PianoStage y llega por props, porque el
-// NoteFallGrid (su hermano) necesita la misma posición y el mismo schedule. El
-// PianoKeyboard temporal se retiró aquí: este SvgKeyboard es el teclado real.
 
 import { useMemo, useState } from "react";
 

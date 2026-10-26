@@ -1,6 +1,5 @@
 // description: Color de relleno de las barras de la cascada según la mano.
-// context: D-002.1; puro y sin DOM. Los tokens viven en globals.css para que la
-// línea .final__line y las barras compartan la misma fuente de verdad.
+// context: D-002.1; puro y sin DOM. Los tokens viven en globals.css para que la línea .final__line y las barras compartan la misma fuente de verdad.
 
 import type { NoteHand } from "./api-client";
 
