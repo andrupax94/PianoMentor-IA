@@ -12,11 +12,9 @@ interface Opcion {
   id: MentorMode;
   label: string;
   clase: string;
-  /** Dos manos son dos palmas: la segunda va espejada. */
   espejo?: boolean;
 }
 
-/** Las cuatro posiciones del switch, en el orden en que se muestran. */
 const MODES: Opcion[] = [
   { id: "observar", label: "Observar", clase: styles.observar },
   { id: "izquierda", label: "Mano izquierda", clase: styles.izquierda },
@@ -25,28 +23,55 @@ const MODES: Opcion[] = [
 ];
 
 export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) {
-  // Estado interno y cosmético: solo dibuja el switch; la semántica la decide B-012.
   const [modo, setModo] = useState<MentorMode>(inicial);
+  const indice = MODES.findIndex((m) => m.id === modo);
+
+  /** Contenido visual de una opción: se reutiliza en la barra real y en el clon. */
+  const contenido = (item: Opcion) => (
+    <>
+      <span className={styles.iconos}>
+        <span className={styles.icono} aria-hidden="true" />
+        {item.espejo ? (
+          <span className={`${styles.icono} ${styles.espejo}`} aria-hidden="true" />
+        ) : null}
+      </span>
+      {item.label}
+    </>
+  );
 
   return (
-    <div className={styles.contenedor} data-mode={modo} role="group" aria-label="Modo del mentor">
-      {MODES.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className={`${styles.opcion} ${item.clase}`}
-          aria-pressed={item.id === modo}
-          onClick={() => setModo(item.id)}
-        >
-          <span className={styles.iconos}>
-            <span className={styles.icono} aria-hidden="true" />
-            {item.espejo ? (
-              <span className={`${styles.icono} ${styles.espejo}`} aria-hidden="true" />
-            ) : null}
-          </span>
-          {item.label}
-        </button>
-      ))}
+    <div
+      className={styles.contenedor}
+      data-mode={modo}
+      role="group"
+      aria-label="Modo del mentor"
+      style={{ "--i": indice, "--n": MODES.length } as React.CSSProperties}
+    >
+      {/* Capa 1: barra real, interactiva y accesible */}
+      <div className={styles.capa}>
+        {MODES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`${styles.opcion} ${item.clase}`}
+            aria-pressed={item.id === modo}
+            onClick={() => setModo(item.id)}
+          >
+            {contenido(item)}
+          </button>
+        ))}
+      </div>
+
+      {/* Capa 2: clon recortado por el círculo. Decorativo: sin eventos ni a11y */}
+      <div className={styles.lente} aria-hidden="true">
+        <div className={styles.clon}>
+          {MODES.map((item) => (
+            <span key={item.id} className={`${styles.opcion} ${item.clase} ${styles.opcionClon}`}>
+              {contenido(item)}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

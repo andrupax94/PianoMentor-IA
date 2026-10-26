@@ -1,42 +1,74 @@
 /* description: Estilos del switch de manos del mentor. */
-/* context: D-002.3; contenedor píldora con borde de 2px y fondo translúcido del color de la opción activa, círculo interno al seleccionar y los cuatro colores de la cascada (--hand-unknown, --hand-left, --text, --hand-right); CSS Modules y tokens, sin Bootstrap. */
+/* context: D-002.3; contenedor píldora con borde de 2px y fondo translúcido del color de la opción activa, lente circular que se desliza sobre la opción seleccionada (clon recortado con overflow) y los cuatro colores de la cascada (--hand-unknown, --hand-left, --text, --hand-right); CSS Modules y tokens, sin Bootstrap. */
 
 .contenedor {
+  --gap: 6px;
+  --pad: 8px;
+  --lente: var(--c-observar);
+  --duracion: 450ms;
+  /* Curva con ligero rebote: la lente se pasa un poco y vuelve */
+  --curva: cubic-bezier(0.34, 1.35, 0.64, 1);
+
+  /* Paleta del switch, alineada con el resto de la página */
+  --c-observar: #9fb1cc;
+  /* gris azulado: modo pasivo */
+  --c-izquierda: #6ea8ff;
+  /* azul claro */
+  --c-dos: #f4eee2;
+  /* crema, en vez de blanco puro */
+  --c-derecha: #ffb547;
+  /* dorado, el mismo del logo */
+
+  position: relative;
   display: flex;
   align-items: stretch;
-  gap: 6px;
-  padding: 8px;
+  padding: var(--pad);
   border: 2px solid transparent;
   border-radius: 999px;
   background-color: var(--bg);
   box-shadow: var(--shadow1);
-  transition: border-color 150ms ease, background-color 150ms ease;
+  /* Misma duración que la lente para que el borde cambie a la vez */
+  transition:
+    border-color var(--duracion) ease,
+    background-color var(--duracion) ease;
 }
 
-/* El contenedor toma el color de la opción activa: el borde con la propia y
-   el fondo en una versión translúcida de la misma. */
 .contenedor[data-mode="observar"] {
-  border-color: var(--hand-unknown);
-  background-color: color-mix(in srgb, var(--hand-unknown) 14%, transparent);
+  --lente: var(--c-observar);
+  border-color: var(--c-observar);
+  background-color: color-mix(in srgb, var(--c-observar) 14%, transparent);
 }
 
 .contenedor[data-mode="izquierda"] {
-  border-color: var(--hand-left);
-  background-color: color-mix(in srgb, var(--hand-left) 14%, transparent);
+  --lente: var(--c-izquierda);
+  border-color: var(--c-izquierda);
+  background-color: color-mix(in srgb, var(--c-izquierda) 14%, transparent);
 }
 
 .contenedor[data-mode="dos"] {
-  border-color: var(--text);
-  background-color: color-mix(in srgb, var(--text) 14%, transparent);
+  --lente: var(--c-dos);
+  border-color: var(--c-dos);
+  background-color: color-mix(in srgb, var(--c-dos) 14%, transparent);
 }
 
 .contenedor[data-mode="derecha"] {
-  border-color: var(--hand-right);
-  background-color: color-mix(in srgb, var(--hand-right) 14%, transparent);
+  --lente: var(--c-derecha);
+  border-color: var(--c-derecha);
+  background-color: color-mix(in srgb, var(--c-derecha) 14%, transparent);
+}
+
+/* Capa 1: la barra real (botones). Ocupa todo el ancho útil del contenedor. */
+.capa {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap);
 }
 
 /* Cada opción fija su color en una variable local: el botón en reposo pinta
-   icono y texto con ella, y al pulsarla la usa de fondo del círculo interno. */
+   icono y texto con ella. El relleno de la opción activa ya no lo da el botón
+   sino la lente que se desliza por encima. */
 .opcion {
   --opcion: var(--text-soft);
   flex: 1 1 0;
@@ -61,20 +93,21 @@
   transition: background-color 150ms ease, color 150ms ease;
 }
 
+/* Colores en reposo de cada opción */
 .observar {
-  --opcion: var(--hand-unknown);
+  --opcion: var(--c-observar);
 }
 
 .izquierda {
-  --opcion: var(--hand-left);
+  --opcion: var(--c-izquierda);
 }
 
 .dos {
-  --opcion: var(--text);
+  --opcion: var(--c-dos);
 }
 
 .derecha {
-  --opcion: var(--hand-right);
+  --opcion: var(--c-derecha);
 }
 
 .opcion:hover {
@@ -86,11 +119,48 @@
   outline-offset: 2px;
 }
 
-/* Círculo interno al seleccionar: la opción rellena el píldora entera con su
-   color e invierte icono y texto (oscuro sobre el color claro). */
-.opcion[aria-pressed="true"] {
-  background-color: var(--opcion);
+.lente {
+  position: absolute;
+  top: var(--pad);
+  bottom: var(--pad);
+  left: var(--pad);
+  width: calc((100% - 2 * var(--pad) - (var(--n) - 1) * var(--gap)) / var(--n));
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: var(--lente);
+  /* Resplandor del color de la lente; cambia de color mientras se mueve */
+  box-shadow: 0 0 18px color-mix(in srgb, var(--lente) 55%, transparent);
+  pointer-events: none;
+  transform: translateX(calc(var(--i) * (100% + var(--gap))));
+  transition:
+    transform var(--duracion) var(--curva),
+    background-color var(--duracion) ease,
+    box-shadow var(--duracion) ease;
+}
+
+/* El clon debe usar exactamente la misma duración y curva que la lente */
+.clon {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: calc(var(--n) * 100% + (var(--n) - 1) * var(--gap));
+  left: calc(var(--i) * (100% + var(--gap)) * -1);
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap);
+  transition: left var(--duracion) var(--curva);
+}
+
+/* Dentro de la lente: icono y texto invertidos (oscuro sobre el color). */
+.opcionClon {
   color: var(--bg);
+  background: transparent;
+  pointer-events: none;
+  cursor: default;
+}
+
+.opcionClon .icono {
+  background-color: var(--bg);
 }
 
 /* Icono con máscara: el "papel" lo pinta background-color; la forma la da el SVG. */
@@ -122,4 +192,12 @@
 .espejo {
   transform: scaleX(-1);
   margin-left: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .lente,
+  .clon {
+    transition: none;
+  }
 }
