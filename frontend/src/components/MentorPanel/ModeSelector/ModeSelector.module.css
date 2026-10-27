@@ -153,16 +153,18 @@
   transition: left var(--duracion) var(--curva);
 }
 
-/* Dentro de la lente: icono y texto invertidos (oscuro sobre el color). */
+/* Dentro de la lente: icono y texto en una mezcla oscura del color del foco
+   activo, no en el --bg puro: así el tinte sigue a la lente en cada opción
+   manteniendo el contraste alto sobre el relleno. */
 .opcionClon {
-  color: var(--bg);
+  color: color-mix(in srgb, var(--lente) 15%, var(--bg));
   background: transparent;
   pointer-events: none;
   cursor: default;
 }
 
 .opcionClon .icono {
-  background-color: var(--bg);
+  background-color: color-mix(in srgb, var(--lente) 15%, var(--bg));
 }
 
 /* Icono con máscara: el "papel" lo pinta background-color; la forma la da el SVG. */
