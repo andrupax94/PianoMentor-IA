@@ -131,7 +131,7 @@ if (-not $Preview) {
     if ($null -eq $existingIssues) { $existingIssues = @() }
     Write-Output "Issues existentes consultados una sola vez: $(@($existingIssues).Count)"
 }
-$labels = @('P0', 'P1', 'P2', 'Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5', 'MIDI', 'Backend', 'Frontend', 'Evaluación', 'Agente', 'IA', 'Deploy', 'Video', 'Comunicación', 'Arquitectura', 'Calidad', 'Documentación')
+$labels = @('P0', 'P1', 'P2', 'Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5', 'MIDI', 'Backend', 'Frontend', 'Evaluación', 'Agente', 'IA', 'Deploy', 'Video', 'Comunicación', 'Arquitectura', 'Calidad', 'Documentación', 'Legal')
 
 if (-not [string]::IsNullOrWhiteSpace($OnlyId)) {
     if (@($items | Where-Object { $_.ID -eq $OnlyId }).Count -eq 0) {
