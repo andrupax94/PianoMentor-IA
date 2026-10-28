@@ -71,6 +71,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | U-001 | P2 | Configurar el depurador en VS Code y Docker | — |
 | U-005 | P2 | Autenticación con Google y tabla users | — |
 | U-006 | P2 | Formulario de registro de usuarios | — |
+| U-007 | P2 | Recuperación de contraseña | — |
 | P-001 | P2 | Documentación legal: términos, privacidad y consentimiento | — |
 
 Las prioridades significan: **P0**, imprescindible para el flujo principal; **P1**, necesario para la demo completa o el primer despliegue; **P2**, posterior y aplazable.
@@ -79,7 +80,7 @@ El backlog puede crecer o reordenarse. Cuando una tarea se complete, debe reflej
 
 Tras la revisión de B-005 se añadieron dos tareas no previstas en el plan inicial: **B-028** (detección de duplicados por hash y procedencia de las piezas, implementada en la semana 1) y **B-029** (control de MIDIs por usuario y subidas anónimas, reservada para el final del MVP, fuera del alcance de las semanas 1 a 4).
 
-La serie **U-** está **fuera del plan inicial**: nacieron a último momento para desbloquear lo que hizo falta mientras se implementaba el resto. Comenzó como tareas de herramientas de desarrollo (no de producto) y luego atrajo piezas de producto pedidas al vuelo: no se reparten por semanas (columna `—`), no cuentan para la aceptación del MVP y se atienden cuando hacen falta. La primera fue **U-001** (depurador en VS Code y Docker, surgida al cablear B-007); le siguen **U-005** (identidad con Google + login con contraseña, entregada) y **U-006** (formulario de registro por pasos, con sus steps de géneros y términos construidos pero inactivos hasta que **P-001** publique la documentación legal).
+La serie **U-** está **fuera del plan inicial**: nacieron a último momento para desbloquear lo que hizo falta mientras se implementaba el resto. Comenzó como tareas de herramientas de desarrollo (no de producto) y luego atrajo piezas de producto pedidas al vuelo: no se reparten por semanas (columna `—`), no cuentan para la aceptación del MVP y se atienden cuando hacen falta. La primera fue **U-001** (depurador en VS Code y Docker, surgida al cablear B-007); le siguen **U-005** (identidad con Google + login con contraseña, entregada), **U-006** (formulario de registro por pasos, con sus steps de géneros y términos construidos pero inactivos hasta que **P-001** publique la documentación legal, y envío del email a producción en la sub-issue U-006.1) y **U-007** (recuperación de contraseña con enlace de un solo uso siguiendo la Forgot Password Cheat Sheet de OWASP).
 
 La serie **P-** (plataforma y cumplimiento) reúne las tareas de legislación y cumplimiento mínimas que el registro público arrastra; hoy solo tiene **P-001** (términos, privacidad y consentimiento).
 
