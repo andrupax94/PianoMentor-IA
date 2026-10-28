@@ -1,9 +1,10 @@
-// description: Estado de la sesión de práctica: modo (esperando/tocando/en pausa), control (estudiante/agente), compás, estado de la conexión, la procedencia de la última pista del agente (solo fuera de producción) y el último error; con las props opcionales muestra 'Sin sesión activa.' donde todavía no hay práctica (B-012.1).
-// context: Sustituye el marcador estático que usaba el armazón del piano (B-006.4) y lo pinta SessionStatusLive con el estado que llega por WebSocket. La línea de procedencia (B-012.6) es diagnóstico: se oculta en producción.
+// description: Estado de la sesión de práctica: modo (esperando/tocando/en pausa), control efectivo (estudiante/agente con la demostración del agente en cuenta — B-012.5), indicador IA demostrando con su ventana de compases y tempo, compás, estado de la conexión, la procedencia de la última pista del agente (solo fuera de producción) y el último error; con las props opcionales muestra 'Sin sesión activa.' donde todavía no hay práctica (B-012.1).
+// context: Sustituye el marcador estático que usaba el armazón del piano (B-006.4) y lo pinta SessionStatusLive con el estado que llega por WebSocket. El control y la demostración salen de la lógica pura de agent-demo: el backend cambia el control sin re-empujar state, así que el sobre agent_action manda. La línea de procedencia (B-012.6) es diagnóstico: se oculta en producción.
 
+import { demoLabel, demoWindow, effectiveControl, isDemonstrating } from "../lib/agent-demo";
 import { providerLabel } from "../lib/agent-hint";
 import type { AgentStepResponse, SessionState } from "../lib/api-client";
-import type { ConnectionStatus } from "../lib/websocket-client";
+import type { AgentActionMessage, ConnectionStatus } from "../lib/websocket-client";
 import styles from "./SessionStatus.module.css";
 
 /** La procedencia es diagnóstico: en producción no se enseña (B-012.6). */
@@ -32,6 +33,8 @@ export interface SessionStatusProps {
   connection?: ConnectionStatus;
   /** Último aviso del servidor o del transporte; null si no hay ninguno. */
   error?: string | null;
+  /** Última acción del agente escuchada por WebSocket (B-012.5); null si no hay. */
+  action?: AgentActionMessage | null;
   /** Quién propuso la última pista del agente; solo se pinta fuera de producción. */
   step?: Pick<AgentStepResponse, "provider" | "used_fallback"> | null;
 }
@@ -40,6 +43,7 @@ export function SessionStatus({
   state = null,
   connection = "closed",
   error = null,
+  action = null,
   step = null,
 }: SessionStatusProps) {
   return (
@@ -57,12 +61,19 @@ export function SessionStatus({
             Modo: <strong>{STATUS_LABELS[state.status]}</strong>
           </p>
           <p>
-            Control: <strong>{CONTROL_LABELS[state.control]}</strong>
+            Control: <strong>{CONTROL_LABELS[effectiveControl(state, action)]}</strong>
           </p>
           <p>
             Compás: <strong>{state.current_measure ?? "—"}</strong>
           </p>
         </>
+      )}
+
+      {/* La demostración en marcha (B-012.5): visible mientras el agente toca. */}
+      {isDemonstrating(action) && (
+        <p className={styles.demo} role="status">
+          <strong>{demoLabel(demoWindow(action))}</strong>
+        </p>
       )}
 
       <p>

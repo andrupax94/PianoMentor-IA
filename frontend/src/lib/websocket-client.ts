@@ -1,5 +1,5 @@
-// description: Cliente WebSocket de la sesión de práctica: envía eventos MIDI y recibe estado (B-012.1).
-// context: Mismo sobre `{type, ...}` que el backend; la lógica es pura y testeable sin DOM.
+// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control y su ventana), y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent y parseServerMessage.
+// context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el temporizador se inyectan en los tests. Un cierre pedido con close() no reconecta.
 
 import type { SessionState } from "./api-client";
 
@@ -29,7 +29,22 @@ export interface SessionErrorMessage {
   message: string;
 }
 
-export type ServerMessage = SessionStateMessage | SessionErrorMessage;
+/**
+ * Acción del agente en la sesión (B-012.5): el backend la emite al validarla y
+ * ejecutarla. `demonstrate` arranca la demostración y bloquea el control del
+ * estudiante; `return_control` lo devuelve. Los parámetros de la ventana
+ * demostrada (`from_measure`, `to_measure`, `tempo_factor`) llegan
+ * opcionalmente en el propio sobre y solo para `demonstrate`.
+ */
+export interface AgentActionMessage {
+  type: "agent_action";
+  action: string;
+  from_measure?: number;
+  to_measure?: number;
+  tempo_factor?: number;
+}
+
+export type ServerMessage = SessionStateMessage | SessionErrorMessage | AgentActionMessage;
 
 /**
  * Subconjunto de `WebSocket` que usa el cliente: permite inyectar un doble en
@@ -50,6 +65,8 @@ export interface SessionSocketOptions {
   url?: string;
   onState?: (state: SessionStateMessage) => void;
   onError?: (error: SessionErrorMessage) => void;
+  /** Acción del agente (demostración o devolución de control), B-012.5. */
+  onAction?: (action: AgentActionMessage) => void;
   onStatusChange?: (status: ConnectionStatus) => void;
   /** Inyectable en tests; en el navegador es `new WebSocket`. */
   createSocket?: (url: string) => WebSocketLike;
@@ -212,6 +229,7 @@ export class SessionSocket {
     this.attempts = 0;
     if (message.type === "state") this.options.onState?.(message);
     else if (message.type === "error") this.options.onError?.(message);
+    else if (message.type === "agent_action") this.options.onAction?.(message);
   }
 
   private scheduleReconnect(): void {

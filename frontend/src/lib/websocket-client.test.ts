@@ -1,5 +1,5 @@
-// description: Tests del cliente WebSocket: sobre de mensajes, backoff y reconexión (B-012.1).
-// context: Lógica pura y dobles de socket; los tests corren sin DOM.
+// description: Tests del cliente WebSocket con socket falso: composición de la URL (barra final, escapado y variable vacía), backoff exponencial con tope, redondeo del reloj, forma de note_on/note_off, normalización del sobre del servidor, estados de conexión, envío solo con el socket abierto, entrega de estado, errores y acciones del agente (B-012.5), reconexión con retardo creciente, reinicio del contador cuando la sesión vuelve a estar viva y ausencia de reconexión al cerrar a propósito.
+// context: Criterio de B-012.1/B-012.5; se ejecutan con `npm run test` (Vitest) sin DOM.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,7 @@ import {
   reconnectDelay,
   roundSeconds,
   sessionSocketUrl,
+  type AgentActionMessage,
   type ConnectionStatus,
   type ServerMessage,
   type WebSocketLike,
@@ -138,6 +139,7 @@ describe("SessionSocket", () => {
     sockets: FakeSocket[];
     states: ServerMessage[];
     errors: ServerMessage[];
+    actions: AgentActionMessage[];
     statuses: ConnectionStatus[];
     scheduled: { run: () => void; delay: number }[];
   }
@@ -146,6 +148,7 @@ describe("SessionSocket", () => {
     const sockets: FakeSocket[] = [];
     const states: ServerMessage[] = [];
     const errors: ServerMessage[] = [];
+    const actions: AgentActionMessage[] = [];
     const statuses: ConnectionStatus[] = [];
     const scheduled: { run: () => void; delay: number }[] = [];
 
@@ -160,11 +163,12 @@ describe("SessionSocket", () => {
       schedule: (run, delay) => scheduled.push({ run, delay }),
       onState: (message) => states.push(message),
       onError: (message) => errors.push(message),
+      onAction: (message) => actions.push(message),
       onStatusChange: (status) => statuses.push(status),
       ...overrides,
     });
 
-    return { client, sockets, states, errors, statuses, scheduled };
+    return { client, sockets, states, errors, actions, statuses, scheduled };
   }
 
   it("avisa del cambio de conexión al abrir", () => {
@@ -207,6 +211,27 @@ describe("SessionSocket", () => {
     expect(states[0]).toMatchObject({ type: "state", session_id: "s1", status: "playing" });
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ type: "error", code: "invalid_event_payload" });
+  });
+
+  it("entrega las acciones del agente con sus parámetros (B-012.5)", () => {
+    const { client, sockets, actions } = harness();
+    client.connect();
+    sockets[0].open();
+
+    sockets[0].deliver(
+      '{"type":"agent_action","action":"demonstrate","from_measure":0,"to_measure":4,"tempo_factor":0.7}',
+    );
+    sockets[0].deliver('{"type":"agent_action","action":"return_control"}');
+
+    expect(actions).toHaveLength(2);
+    expect(actions[0]).toMatchObject({
+      type: "agent_action",
+      action: "demonstrate",
+      from_measure: 0,
+      to_measure: 4,
+      tempo_factor: 0.7,
+    });
+    expect(actions[1]).toMatchObject({ type: "agent_action", action: "return_control" });
   });
 
   it("reconecta con retardo creciente si el servidor cierra", () => {

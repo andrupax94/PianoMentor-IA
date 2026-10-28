@@ -1,5 +1,5 @@
-// description: Tests del almacén de la sesión activa: publicar, suscribirse y limpiar.
-// context: Criterio de la reposición de la práctica sobre la portada; sin DOM: se prueba la decisión del almacén, no el pintado del mini cuadro.
+// description: Tests del almacén de la sesión activa: publicar, suscribirse, limpiar y el aviso cuando solo cambia la acción del agente o la procedencia.
+// context: Criterio de la reposición de la práctica sobre la portada y de B-012.5; sin DOM: se prueba la decisión del almacén, no el pintado del mini cuadro.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
 } from "./session-store";
 import type { SessionSnapshot } from "./session-store";
 import type { SessionState } from "./api-client";
+import type { AgentActionMessage } from "./websocket-client";
 
 const STATE: SessionState = {
   session_id: "s-1",
@@ -20,6 +21,14 @@ const STATE: SessionState = {
   control: "student",
   current_measure: null,
   position_s: 0,
+};
+
+const DEMONSTRATE: AgentActionMessage = {
+  type: "agent_action",
+  action: "demonstrate",
+  from_measure: 0,
+  to_measure: 4,
+  tempo_factor: 0.7,
 };
 
 beforeEach(() => {
@@ -40,8 +49,25 @@ describe("session-store", () => {
       state: STATE,
       connection: "open",
       error: null,
+      agentAction: null,
       lastStep: null,
     });
+  });
+
+  it("avisa también cuando solo cambia la acción del agente (B-012.5)", () => {
+    updateSession({ sessionId: "s-1" });
+    const listener = vi.fn();
+    subscribeSession(listener);
+
+    updateSession({ agentAction: DEMONSTRATE });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getSessionSnapshot().agentAction).toEqual(DEMONSTRATE);
+
+    // Devolver el control también es un cambio que los suscriptores deben ver.
+    updateSession({ agentAction: { type: "agent_action", action: "return_control" } });
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(getSessionSnapshot().agentAction?.action).toBe("return_control");
   });
 
   it("avisa también cuando solo cambia la procedencia de la última pista", () => {

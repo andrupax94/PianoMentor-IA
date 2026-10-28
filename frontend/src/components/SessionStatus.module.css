@@ -1,0 +1,6 @@
+/* description: Estilos del cuadro de estado de sesión: el acento dorado de la demostración en marcha (B-012.5). */
+/* context: Panel del mini cuadro del mentor; el color sale del token --gold, sin salir de la paleta. */
+
+.demo {
+    color: var(--gold);
+}
