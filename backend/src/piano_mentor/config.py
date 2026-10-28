@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     app_public_url: str = "http://localhost:3000"
     verification_token_ttl_h: int = 24
 
+    # --- Email vía Resend (U-006) ------------------------------------------
+    # Con RESEND_API_KEY el mailer manda de verdad; sin ella queda hermético
+    # (enlace en el log). Mientras no haya dominio propio en Resend, el
+    # remitente es onboarding@resend.dev y solo entrega a tu propio correo.
+    resend_api_key: str = ""
+    email_from: str = "PianoMentor AI <onboarding@resend.dev>"
+
     # --- Proveedor LLM para el chat del agente (B-012.8) ------------------
     # "mock" por defecto: CI y desarrollo son herméticos (sin red ni clave).
     # "groq", "gemini" o "opencode" activan el proveedor real.

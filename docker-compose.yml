@@ -19,6 +19,9 @@ services:
       # U-006: email de verificación del registro por pasos.
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
       VERIFICATION_TOKEN_TTL_H: ${VERIFICATION_TOKEN_TTL_H:-24}
+      # Resend: con clave vacía el mailer queda hermético (solo log).
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-PianoMentor AI <onboarding@resend.dev>}
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
