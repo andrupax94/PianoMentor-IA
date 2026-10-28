@@ -18,6 +18,7 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       # U-006: email de verificación del registro por pasos.
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-}
       VERIFICATION_TOKEN_TTL_H: ${VERIFICATION_TOKEN_TTL_H:-24}
       # Resend: con clave vacía el mailer queda hermético (solo log).
       RESEND_API_KEY: ${RESEND_API_KEY:-}

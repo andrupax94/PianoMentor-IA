@@ -30,10 +30,12 @@ class Settings(BaseSettings):
     admin_email: str = ""
 
     # --- Registro abierto por pasos (U-006) --------------------------------
-    # APP_PUBLIC_URL es el frontend al que apunta el enlace del email de
-    # comprobación; solo la UI se llama /api/v1/auth/verify. La verificación
-    # consume un token de un solo uso con esta caducidad (24 h por defecto).
+    # APP_PUBLIC_URL es el frontend al que apuntan los enlaces de la página
+    # de verificación («Volver al registro», «Ir a la app»). API_PUBLIC_URL,
+    # si está definida, es la base del enlace de verificación del email
+    # (producción: el dominio del backend); sin ella se asume el front.
     app_public_url: str = "http://localhost:3000"
+    api_public_url: str = ""
     verification_token_ttl_h: int = 24
 
     # --- Email vía Resend (U-006) ------------------------------------------

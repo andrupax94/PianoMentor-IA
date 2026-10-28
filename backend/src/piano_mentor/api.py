@@ -442,8 +442,14 @@ EMAIL_EXISTS = {
 
 
 def _verification_link(token: str) -> str:
-    """Enlace absoluto del email de comprobación (U-006)."""
-    base = settings.app_public_url.rstrip("/")
+    """Enlace absoluto del email de comprobación (U-006).
+
+    Apunta al backend (donde vive /auth/verify); la página HTML que responde
+    usa APP_PUBLIC_URL para sus enlaces hacia la app. En producción son dos
+    dominios (API_PUBLIC_URL y APP_PUBLIC_URL); sin API definida se asume el
+    front, que es como vive el desarrollo local.
+    """
+    base = (settings.api_public_url or settings.app_public_url).rstrip("/")
     return f"{base}/api/v1/auth/verify?token={token}"
 
 

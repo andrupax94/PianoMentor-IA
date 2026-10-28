@@ -49,6 +49,22 @@ def _token_from_link(link: str) -> str:
     return match.group(1)
 
 
+def test_el_enlace_de_verificacion_usa_api_public_cuando_existe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Producción: front y backend en dominios distintos (U-006)."""
+    from piano_mentor.api import _verification_link
+
+    monkeypatch.setattr(settings, "api_public_url", "https://api.pianomentoria.com")
+    monkeypatch.setattr(settings, "app_public_url", "https://www.pianomentoria.com")
+    link = _verification_link("t")
+    assert link == "https://api.pianomentoria.com/api/v1/auth/verify?token=t"
+
+    # Sin dominio de API, el desarrollo local apunta al front: mismo default.
+    monkeypatch.setattr(settings, "api_public_url", "")
+    assert _verification_link("t").startswith("https://www.pianomentoria.com/")
+
+
 def test_register_crea_cuenta_inactiva_y_envia_email(
     capture_emails: list[tuple[str, str]],
 ) -> None:
