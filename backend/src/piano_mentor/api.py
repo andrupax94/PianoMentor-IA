@@ -1,9 +1,12 @@
-# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws). Debe mantenerse delgado.
-# context: Traduce HTTP/WS a servicios; sin lógica musical compleja.
+# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado.
+# context: Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí.
 
 import logging
+import re
+import secrets
 import sqlite3
 import tempfile
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import (
@@ -16,6 +19,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from fastapi.responses import HTMLResponse
 
 from .agent import AgentService, DecisionContext
 from .auth import (
@@ -28,16 +32,21 @@ from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .config import settings
 from .database import (
+    create_pending_registration,
     find_existing_piece,
     find_piece_by_id,
     find_pieces,
     find_user_by_email,
     find_user_by_google_sub,
+    find_user_by_verification_token,
+    mark_email_verified,
     open_db,
     save_piece,
+    update_pending_registration,
     upsert_user,
 )
 from .evaluation import DEFAULT_TOLERANCE_MS, EvaluationService
+from .mailer import send_verification_email
 from .midi import (
     HAND_UNKNOWN,
     Hand,
@@ -48,13 +57,18 @@ from .midi import (
     group_chords,
     hand_by_track,
 )
+from .passwords import hash_password
 from .passwords import verify_password as verify_user_password
 from .practice import PracticeService
 from .schemas import (
+    AUTH_LEVELS,
+    GENRES_UI,
     ActionRequest,
     ActionResponse,
     AuthLoginRequest,
     AuthLoginResponse,
+    AuthRegisterRequest,
+    AuthRegisterResponse,
     AuthSessionResponse,
     AuthUser,
     ChatMessageRequest,
@@ -397,6 +411,17 @@ def auth_login(payload: AuthLoginRequest) -> AuthLoginResponse:
     ):
         raise HTTPException(status_code=401, detail=INVALID_CREDENTIALS)
 
+    # Registro pendiente de verificar (U-006): solo se revela con la
+    # contraseña correcta, como un correo en el buzón que aun no se abrió.
+    if not row["email_verified"]:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "auth_email_unverified",
+                "message": "Verifica tu correo antes de entrar: te enviamos el enlace al registrarte.",
+            },
+        )
+
     try:
         access_token = create_pm_token(str(row["google_sub"]))
     except AuthTokenError as exc:
@@ -406,6 +431,172 @@ def auth_login(payload: AuthLoginRequest) -> AuthLoginResponse:
         ) from exc
 
     return AuthLoginResponse(user=_auth_user_from_row(row), access_token=access_token)
+
+
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+MIN_PASSWORD_LEN = 8
+EMAIL_EXISTS = {
+    "code": "auth_email_exists",
+    "message": "Este correo ya está registrado. Prueba a iniciar sesión.",
+}
+
+
+def _verification_link(token: str) -> str:
+    """Enlace absoluto del email de comprobación (U-006)."""
+    base = settings.app_public_url.rstrip("/")
+    return f"{base}/api/v1/auth/verify?token={token}"
+
+
+def _registration_fields(
+    password: str, level: str, display_name: str | None, genres: list[str] | None, accepted: bool | None
+) -> dict[str, object]:
+    """Campos compartidos entre alta y reenvío del registro (U-006)."""
+    now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "name": display_name,
+        "password_hash": hash_password(password),
+        "level": level,
+        "genres": genres or [],
+        "terms_version": "PRE-P001" if accepted else None,
+        "terms_accepted_at": now_iso if accepted else None,
+        "verification_token": secrets.token_urlsafe(32),
+        "verification_expires_at": (
+            datetime.now(UTC) + timedelta(hours=settings.verification_token_ttl_h)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+
+@router.post("/auth/register", response_model=AuthRegisterResponse)
+def auth_register(payload: AuthRegisterRequest) -> AuthRegisterResponse:
+    """Registro abierto por pasos (U-006): crea la cuenta inactiva y manda el email.
+
+    La cuenta nace sin verificar con `email_verified = 0`; quien repita el
+    registro con el mismo correo de una cuenta pendiente (enlace perdido o
+    caducado) reemite el token con los datos nuevos. Mientras no haya
+    proveedor, el enlace queda en el log (`mailer.py`, único punto a cambiar).
+    """
+    email = payload.email.strip().lower()
+    password = payload.password or ""
+
+    if not EMAIL_RE.match(email):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "auth_invalid_email", "message": "Escribe un correo válido."},
+        )
+    if len(password) < MIN_PASSWORD_LEN:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "auth_weak_password",
+                "message": f"Usa al menos {MIN_PASSWORD_LEN} caracteres en la contraseña.",
+            },
+        )
+    if payload.level not in AUTH_LEVELS:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "auth_invalid_level", "message": "Elige el nivel que mejor te describe."},
+        )
+
+    genres = payload.genres
+    if genres is not None:
+        unknown = [g for g in genres if g not in GENRES_UI]
+        if unknown:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "auth_invalid_genre", "message": "Género no reconocido."},
+            )
+
+    display_name = (payload.display_name or "").strip() or None
+
+    with open_db() as conn:
+        existing = find_user_by_email(conn, email)
+        token: str
+        if existing is not None:
+            # Cuenta ya activada: correo reservado; si sigue pendiente, reenvío.
+            if existing["email_verified"]:
+                raise HTTPException(status_code=409, detail=EMAIL_EXISTS)
+            fields = _registration_fields(
+                password, payload.level, display_name, genres, payload.accepted_terms
+            )
+            update_pending_registration(conn, str(existing["google_sub"]), fields)
+            token = str(fields["verification_token"])
+        else:
+            fields = _registration_fields(
+                password, payload.level, display_name, genres, payload.accepted_terms
+            )
+            try:
+                create_pending_registration(conn, {**fields, "email": email})
+            except ValueError as exc:
+                # Carrera improbable (dos registros a la vez): trátalo como duplicado.
+                raise HTTPException(status_code=409, detail=EMAIL_EXISTS) from exc
+            token = str(fields["verification_token"])
+
+    send_verification_email(email, _verification_link(token))
+
+    return AuthRegisterResponse(status="verification_sent", email=email)
+
+
+def _html_page(title: str, body: str, extra_style: str = "") -> str:
+    """Página mínima de confirmación para el enlace del email (U-006)."""
+    base = settings.app_public_url.rstrip("/")
+    return (
+        "<!doctype html><html lang='es'><head><meta charset='utf-8'>"
+        "<title>PianoMentor AI</title>"
+        "<style>body{background:#0e1522;color:#e8edf7;font-family:system-ui,sans-serif;"
+        "display:grid;place-items:center;height:92vh;margin:0;text-align:center}"
+        "main{max-width:26rem;padding:2rem}h1{color:#f5a524;font-size:1.5rem}"
+        f"a{{color:#6ea8ff}}{extra_style}</style></head><body><main>"
+        f"<h1>{title}</h1><p>{body}</p>"
+        f"<p><a href='{base}/registro'>Volver al registro</a> · <a href='{base}'>Ir a la app</a></p>"
+        "</main></body></html>"
+    )
+
+
+@router.get("/auth/verify")
+def auth_verify(token: str = Query(min_length=1)) -> HTMLResponse:
+    """Consume el enlace del email de comprobación y activa la cuenta (U-006).
+
+    Devuelve una página HTML mínima: es lo que ve el usuario al abrir el
+    correo. Caducado, sugiere reenviar (repetir el registro); el token nunca
+    se reutiliza tras la activación.
+    """
+    with open_db() as conn:
+        row = find_user_by_verification_token(conn, token)
+
+    if row is None:
+        return HTMLResponse(
+            _html_page(
+                "Enlace no válido",
+                "Este enlace ya no existe: ciérralo y vuelve a registrarte o contacta con soporte.",
+            ),
+            status_code=404,
+        )
+
+    expires = row["verification_expires_at"]
+    if expires:
+        try:
+            expired = datetime.fromisoformat(expires) < datetime.now(UTC)
+        except ValueError:
+            expired = True
+        if expired:
+            return HTMLResponse(
+                _html_page(
+                    "Enlace caducado",
+                    "Los enlaces caducan a las 24 horas; vuelve a rellenar el formulario de registro"
+                    " con el mismo correo y te mandamos uno nuevo.",
+                ),
+                status_code=410,
+            )
+
+    with open_db() as conn:
+        mark_email_verified(conn, str(row["google_sub"]))
+
+    return HTMLResponse(
+        _html_page(
+            "Cuenta activada",
+            f"Ya puedes iniciar sesión con <b>{row['email']}</b> y tu contraseña.",
+        )
+    )
 
 
 @router.get("/pieces", response_model=list[PieceSummary])

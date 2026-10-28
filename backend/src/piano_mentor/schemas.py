@@ -347,3 +347,38 @@ class AuthLoginResponse(BaseModel):
 
     user: AuthUser
     access_token: str
+
+
+# Nivel de piano del registro (U-006); el selector del front usa los mismos
+# códigos. Cuando el perfil editable llegue, vivirá aquí mismo.
+AUTH_LEVELS = ("beginner", "basic", "intermediate", "advanced")
+
+# Géneros del paso 3; los chips del front traen exactamente estos valores.
+GENRES_UI = (
+    "Clásica", "Pop", "Rock", "Jazz", "Blues", "Latina", "Cine y videojuegos", "Electrónica"
+)
+
+
+class AuthRegisterRequest(BaseModel):
+    """Cuerpo de POST /api/v1/auth/register (U-006, registro por pasos).
+
+    `level` es obligatorio y va dentro de AUTH_LEVELS; `genres` y
+    `accepted_terms` solo llegan con el interruptor de los extra steps activo.
+    """
+
+    email: str
+    password: str
+    display_name: str | None = None
+    level: str
+    genres: list[str] | None = None
+    accepted_terms: bool | None = None
+
+
+class AuthRegisterResponse(BaseModel):
+    """Respuesta de POST /api/v1/auth/register (U-006).
+
+    La cuenta queda creada e inactiva: la activa el enlace del email.
+    """
+
+    status: str = "verification_sent"
+    email: str

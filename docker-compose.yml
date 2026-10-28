@@ -16,6 +16,9 @@ services:
       AUTOLOGIN: ${AUTOLOGIN:-false}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       AUTH_SECRET: ${AUTH_SECRET:-}
+      # U-006: email de verificación del registro por pasos.
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
+      VERIFICATION_TOKEN_TTL_H: ${VERIFICATION_TOKEN_TTL_H:-24}
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests

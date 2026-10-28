@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     autologin: bool = False
     admin_email: str = ""
 
+    # --- Registro abierto por pasos (U-006) --------------------------------
+    # APP_PUBLIC_URL es el frontend al que apunta el enlace del email de
+    # comprobación; solo la UI se llama /api/v1/auth/verify. La verificación
+    # consume un token de un solo uso con esta caducidad (24 h por defecto).
+    app_public_url: str = "http://localhost:3000"
+    verification_token_ttl_h: int = 24
+
     # --- Proveedor LLM para el chat del agente (B-012.8) ------------------
     # "mock" por defecto: CI y desarrollo son herméticos (sin red ni clave).
     # "groq", "gemini" o "opencode" activan el proveedor real.

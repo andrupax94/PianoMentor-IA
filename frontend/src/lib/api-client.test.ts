@@ -1,5 +1,5 @@
-// description: Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend, caída del servicio, rejilla de compases en la respuesta de notas, los parámetros opcionales with_hands/with_chords de B-009.3 (con ellos y sin ellos), las sesiones de B-012.1 (createSession con el piece_id en el cuerpo y piece_not_found; getSessionState y session_not_found), el chat de B-012.8 (sendAgentMessage enviando mensaje, chat_id y contexto, devolviendo client_action entero, sin chat_id cuando no hay conversación previa y con network_error si el servicio cae) y el paso del agente de B-012.6 (runAgentStep enviando el POST al endpoint de la sesión, devolviendo la propuesta completa y network_error si el servicio cae).
-// context: Criterio de B-004.3, B-012.1 y B-012.6; se ejecutan con `npm run test` (Vitest).
+// description: Tests del cliente HTTP con fetch simulado: éxito, error 400 del backend, caída del servicio, rejilla de compases en la respuesta de notas, los parámetros opcionales with_hands/with_chords de B-009.3 (con ellos y sin ellos), las sesiones de B-012.1 (createSession con el piece_id en el cuerpo y piece_not_found; getSessionState y session_not_found), el chat de B-012.8 (sendAgentMessage enviando mensaje, chat_id y contexto, devolviendo client_action entero, sin chat_id cuando no hay conversación previa y con network_error si el servicio cae), el paso del agente de B-012.6 (runAgentStep enviando el POST al endpoint de la sesión, devolviendo la propuesta completa y network_error si el servicio cae) y el registro por pasos de U-006 (registerUser llama a POST /auth/register con el payload del wizard y propaga los códigos 422/409 del backend).
+// context: Criterio de B-004.3, B-012.1, B-012.6 y U-006; se ejecutan con `npm run test` (Vitest).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import {
   getPieceNotes,
   getSessionState,
   previewPiece,
+  registerUser,
   runAgentStep,
   sendAgentMessage,
   uploadPiece,
@@ -494,5 +495,101 @@ describe("sendAgentMessage", () => {
     await expect(sendAgentMessage({ message: "hola" })).rejects.toMatchObject({
       code: "network_error",
     });
+  });
+});
+
+describe("registerUser", () => {
+  const REGISTER_RESPONSE = { status: "verification_sent", email: "nueva@gmail.com" };
+
+  it("manda el payload del wizard a POST /api/v1/auth/register", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(REGISTER_RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const answer = await registerUser({
+      email: "nueva@gmail.com",
+      password: "contrasena-larga-1234",
+      display_name: "Nueva",
+      level: "beginner",
+      genres: ["Clásica"],
+      accepted_terms: true,
+    });
+
+    expect(answer).toEqual(REGISTER_RESPONSE);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/auth\/register$/);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(init.body as string)).toEqual({
+      email: "nueva@gmail.com",
+      password: "contrasena-larga-1234",
+      display_name: "Nueva",
+      level: "beginner",
+      genres: ["Clásica"],
+      accepted_terms: true,
+    });
+  });
+
+  it("propaga el código 409 de correo ya registrado como ApiError", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          detail: {
+            code: "auth_email_exists",
+            message: "Este correo ya está registrado. Prueba a iniciar sesión.",
+          },
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await registerUser({
+      email: "nueva@gmail.com",
+      password: "contrasena-larga-1234",
+      level: "beginner",
+    }).catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe("auth_email_exists");
+    expect((error as ApiError).status).toBe(409);
+  });
+
+  it("propaga los códigos 422 de validación de cada paso", async () => {
+    for (const code of ["auth_invalid_email", "auth_weak_password", "auth_invalid_level"]) {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: { code, message: "revisado" } }), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const error = await registerUser({
+        email: "nueva@gmail.com",
+        password: "contrasena-larga-1234",
+        level: "beginner",
+      }).catch((reason: unknown) => reason);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe(code);
+    }
+  });
+
+  it("convierte la caída del servicio en un error controlado", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(
+      registerUser({
+        email: "nueva@gmail.com",
+        password: "contrasena-larga-1234",
+        level: "beginner",
+      }),
+    ).rejects.toMatchObject({ code: "network_error" });
   });
 });

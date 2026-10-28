@@ -164,8 +164,7 @@ export interface SessionState {
   position_s: number;
 }
 
-const ERROR_CODES = [
-  "invalid_extension",
+const ERROR_CODES = [  "invalid_extension",
   "invalid_filename",
   "empty_file",
   "file_too_large",
@@ -182,6 +181,12 @@ const ERROR_CODES = [
   "auth_not_configured",
   "auth_invalid_token",
   "auth_invalid_credentials",
+  "auth_invalid_email",
+  "auth_weak_password",
+  "auth_invalid_level",
+  "auth_invalid_genre",
+  "auth_email_exists",
+  "auth_email_unverified",
   "invalid_chat_payload",
   "unknown_tool",
   "tool_failed",
@@ -328,6 +333,36 @@ export async function loginWithPassword(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, autologin }),
+  });
+}
+
+/**
+ * Carga del registro por pasos (U-006): POST /api/v1/auth/register.
+ * La cuenta queda creada pero inactiva; el usuario la activa con el enlace
+ * del email (step 5 del wizard). El backend puede devolver cuatro códigos
+ * propios del formulario (auth_invalid_email, auth_weak_password,
+ * auth_invalid_level, auth_invalid_genre) más auth_email_exists cuando el
+ * correo ya pertenece a una cuenta verificada: son los que la UI mapea.
+ */
+export interface AuthRegisterRequest {
+  email: string;
+  password: string;
+  display_name?: string | null;
+  level: string;
+  genres?: string[] | null;
+  accepted_terms?: boolean | null;
+}
+
+export interface AuthRegisterResponse {
+  status: "verification_sent";
+  email: string;
+}
+
+export async function registerUser(payload: AuthRegisterRequest): Promise<AuthRegisterResponse> {
+  return request<AuthRegisterResponse>("/api/v1/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

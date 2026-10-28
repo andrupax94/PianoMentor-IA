@@ -1,10 +1,11 @@
-# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas, sesiones de práctica y usuarios (U-005).
-# context: Persistencia de piezas (B-003.2/B-003.3), de sesiones y eventos (B-012.1) y de usuarios (auth con Google y contraseña).
+# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas, sesiones de práctica, usuarios y registros pendientes (U-005/U-006).
+# context: Persistencia de piezas (B-003.2/B-003.3), de sesiones y eventos (B-012.1) y de usuarios (auth con Google, contraseña y registro por pasos).
 
 """Conexión reutilizable a SQLite con sqlite-vec y migraciones SQL versionadas."""
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -195,9 +196,13 @@ def find_user_by_email(conn: sqlite3.Connection, email: str) -> sqlite3.Row | No
 def new_user_google(
     conn: sqlite3.Connection, google_sub: str, email: str | None, name: str | None, picture: str | None
 ) -> sqlite3.Row:
-    """Inserta un usuario nuevo con color de burbuja aleatorio (U-005)."""
+    """Inserta un usuario nuevo con color de burbuja aleatorio (U-005).
+
+    `email_verified` nace a 1: Google ya entrega el correo verificado.
+    """
     conn.execute(
-        "INSERT INTO users (google_sub, email, name, picture, bubble_color) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (google_sub, email, name, picture, bubble_color, email_verified) "
+        "VALUES (?, ?, ?, ?, ?, 1)",
         (google_sub, email, name, picture, random_bubble_color()),
     )
     conn.commit()
@@ -284,12 +289,134 @@ def upsert_manual_user(
         return _user_row(conn, sub)  # type: ignore[return-value]
 
     conn.execute(
-        "INSERT INTO users (google_sub, email, name, password_hash, bubble_color) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (google_sub, email, name, password_hash, bubble_color, email_verified) "
+        "VALUES (?, ?, ?, ?, ?, 1)",
         (sub, email, record.get("name"), password_hash, random_bubble_color()),
     )
     conn.commit()
     return _user_row(conn, sub)  # type: ignore[return-value]
+
+
+def create_pending_registration(
+    conn: sqlite3.Connection, record: Mapping[str, object]
+) -> sqlite3.Row:
+    """Crea la cuenta inactiva del registro abierto (U-006).
+
+    Variante de `upsert_manual_user` para el formulario por pasos: nace sin
+    verificar (`email_verified = 0`) y con el token del email de comprobación
+    y su caducidad. La duplicidad de correo se consulta antes; aquí asume que
+    no hay fila con ese email. `ui_source` registra de dónde salió la cuenta.
+    """
+    email = str(record.get("email") or "").strip().lower()
+    if not email:
+        raise ValueError("create_pending_registration requiere el campo 'email'")
+    password_hash = record.get("password_hash")
+    if not password_hash:
+        raise ValueError("create_pending_registration requiere 'password_hash'")
+    token = record.get("verification_token")
+    if not token:
+        raise ValueError("create_pending_registration requiere 'verification_token'")
+
+    sub = f"manual:{email}"
+    if _user_row(conn, sub) is not None or find_user_by_email(conn, email) is not None:
+        raise ValueError(f"Ya existe una cuenta con el correo {email}")
+
+    level = record.get("level")
+    raw_genres = record.get("genres")
+    genres_json = (
+        json.dumps(raw_genres, ensure_ascii=False)
+        if isinstance(raw_genres, list) and raw_genres
+        else None
+    )
+
+    conn.execute(
+        "INSERT INTO users (google_sub, email, name, password_hash, bubble_color, "
+        "level, genres, terms_version, terms_accepted_at, email_verified, "
+        "verification_token, verification_expires_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+        (
+            sub,
+            email,
+            record.get("name"),
+            password_hash,
+            random_bubble_color(),
+            level if isinstance(level, str) and level else None,
+            genres_json,
+            record.get("terms_version"),
+            record.get("terms_accepted_at"),
+            token,
+            record.get("verification_expires_at"),
+        ),
+    )
+    conn.commit()
+    return _user_row(conn, sub)  # type: ignore[return-value]
+
+
+def find_user_by_verification_token(
+    conn: sqlite3.Connection, token: str
+) -> sqlite3.Row | None:
+    """Lee la cuenta pendiente cuyo token de verificación coincide (U-006)."""
+    if not token or not token.strip():
+        return None
+    return conn.execute(
+        "SELECT * FROM users WHERE verification_token = ?", (token.strip(),)
+    ).fetchone()
+
+
+def mark_email_verified(conn: sqlite3.Connection, google_sub: str) -> None:
+    """Activa la cuenta del registro: consume el token y verifica (U-006)."""
+    conn.execute(
+        "UPDATE users SET email_verified = 1, verification_token = NULL, "
+        "verification_expires_at = NULL, updated_at = datetime('now') "
+        "WHERE google_sub = ?",
+        (google_sub,),
+    )
+    conn.commit()
+
+
+def regenerate_verification_token(
+    conn: sqlite3.Connection, google_sub: str, token: str, expires_at: str
+) -> None:
+    """Reemite el token de un registro pendiente (reenvío del email, U-006)."""
+    conn.execute(
+        "UPDATE users SET verification_token = ?, verification_expires_at = ?, "
+        "updated_at = datetime('now') WHERE google_sub = ?",
+        (token, expires_at, google_sub),
+    )
+    conn.commit()
+
+
+def update_pending_registration(
+    conn: sqlite3.Connection, google_sub: str, record: Mapping[str, object]
+) -> None:
+    """Refresca los datos de un registro pendiente y reemite el token (U-006).
+
+    Es lo que concede el reenvío: quien repite el formulario con un correo
+    pendiente sobrescribe su contraseña, nivel, géneros y términos con los
+    nuevos y recibe un token fresco. Nunca toca una cuenta verificada.
+    """
+    conn.execute(
+        "UPDATE users SET name = ?, password_hash = ?, level = ?, genres = ?, "
+        "terms_version = ?, terms_accepted_at = ?, verification_token = ?, "
+        "verification_expires_at = ?, updated_at = datetime('now') "
+        "WHERE google_sub = ? AND email_verified = 0",
+        (
+            record.get("name"),
+            record.get("password_hash"),
+            record.get("level"),
+            (
+                json.dumps(record.get("genres"), ensure_ascii=False)
+                if isinstance(record.get("genres"), list) and record.get("genres")
+                else None
+            ),
+            record.get("terms_version"),
+            record.get("terms_accepted_at"),
+            record.get("verification_token"),
+            record.get("verification_expires_at"),
+            google_sub,
+        ),
+    )
+    conn.commit()
 
 
 def list_pieces(

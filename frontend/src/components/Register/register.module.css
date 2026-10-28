@@ -1,0 +1,209 @@
+.page {
+  --bg: #0e1522;
+  --surface: #131c2d;
+  --surface-2: #19243a;
+  --line: #26334d;
+  --text: #e8edf7;
+  --muted: #8693ad;
+  --accent: #f5a524;      /* naranja del logo / "Chat" / mano derecha */
+  --accent-soft: #c9923a; /* dorado de los bordes */
+  --blue: #6ea8ff;        /* mano izquierda / foco */
+  --danger: #ff8f8f;
+
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.card {
+  width: min(960px, 100%);
+  min-height: 560px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Panel izquierdo con piano de fondo ── */
+.aside {
+  position: relative;
+  /* Coloca la foto en /public/assets/images/piano-keys.jpg */
+  background: linear-gradient(180deg, rgba(14, 21, 34, 0.55), rgba(14, 21, 34, 0.8)),
+    url("/assets/images/piano-keys.jpg") center / cover no-repeat;
+}
+
+/* Sombra interna muy difuminada hacia el centro */
+.aside::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px 28px rgba(8, 12, 22, 0.9);
+}
+
+.asideContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand b { color: var(--accent); }
+
+.asideIntro h2 { margin: 0 0 6px; font-size: 1.35rem; }
+.asideIntro p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
+
+.stepList {
+  list-style: none;
+  margin: auto 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.stepItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.stepItem:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 34px;
+  width: 2px;
+  height: 22px;
+  background: var(--line);
+}
+.bullet {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: rgba(14, 21, 34, 0.7);
+  font-size: 0.85rem;
+}
+.stepItem.active { color: var(--text); font-weight: 600; }
+.stepItem.active .bullet { border-color: var(--accent); color: var(--accent); }
+.stepItem.done { color: var(--text); }
+.stepItem.done .bullet { border-color: var(--accent-soft); background: var(--accent-soft); color: var(--bg); }
+.stepItem.done::after { background: var(--accent-soft); }
+
+/* ── Panel derecho ── */
+.panel {
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.progressWrap { display: flex; align-items: center; gap: 14px; }
+.progressLabel { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.progress { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-soft), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.form { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.title { margin: 0; font-size: 1.6rem; font-weight: 600; }
+.fields { display: flex; flex-direction: column; gap: 16px; }
+.question { margin: 0; color: var(--muted); }
+
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--muted); }
+.field input,
+.option,
+.chip {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+}
+.field input { padding: 11px 14px; }
+
+.field input:focus-visible,
+.chip:focus-visible,
+.primary:focus-visible,
+.ghost:focus-visible,
+.option:focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.option { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.option input { accent-color: var(--accent); }
+.selected { border-color: var(--accent); background: rgba(245, 165, 36, 0.1); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { padding: 9px 16px; cursor: pointer; }
+
+.check { display: flex; gap: 12px; align-items: flex-start; font-size: 0.92rem; line-height: 1.4; }
+.check input { margin-top: 3px; accent-color: var(--accent); }
+.check a, .alt a { color: var(--blue); }
+
+/* Errores suaves a pie de campo */
+.error { margin: 0; font-size: 0.8rem; color: var(--danger); }
+
+.sent { display: flex; flex-direction: column; gap: 18px; line-height: 1.5; }
+.sent p { margin: 0; }
+
+.actions { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+
+.primary,
+.ghost {
+  display: inline-block;
+  padding: 11px 24px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+}
+.primary { background: var(--accent); color: #1a1205; border: 1px solid var(--accent); }
+.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.primary:disabled { opacity: 0.6; cursor: wait; }
+.ghost { background: transparent; color: var(--text); border: 1px solid var(--accent-soft); }
+
+.alt { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+/* ── Móvil: el panel de pasos pasa arriba y se compacta ── */
+@media (max-width: 760px) {
+  .card { grid-template-columns: 1fr; }
+  .asideContent { padding: 20px; gap: 14px; }
+  .asideIntro, .stepItem span:last-child { display: none; }
+  .stepList { flex-direction: row; margin: 0; gap: 14px; }
+  .stepItem:not(:last-child)::after { display: none; }
+  .panel { padding: 24px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressBar { transition: none; }
+}
