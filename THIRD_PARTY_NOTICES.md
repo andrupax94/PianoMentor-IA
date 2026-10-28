@@ -17,5 +17,6 @@ Este documento recoge los recursos de terceros que viajan con el proyecto (muest
 | Instrumento grabado | Yamaha C5, captado con dos AKG C414 en AB a ~12 cm de las cuerdas |
 | Derivación | Selección de dos capas de las 16 grabadas (v4 suave y v13 fuerte) en las 30 teclas muestreadas en terceras menores (A0–C8), recorte de cola variable según registro y trascodificación a MP3 mono con `ffmpeg` (128 kbit/s para el rango visible, 64 kbit/s para el resto) |
 | Regeneración | `npm run samples` en `frontend/` (`scripts/fetch-piano-samples.mjs`) |
+| Piano Image |Foto de <a href="https://unsplash.com/es/@noemierssl?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Noémie Roussel</a> en <a href="https://unsplash.com/es/fotos/piano-vertical-en-blanco-y-negro-29_GYAQqHx0?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a> |
 
 La licencia CC BY 3.0 permite usar, remezclar y redistribuir el material, incluso con fines comerciales, **siempre que se cite al autor**. Esta atribución, el enlace a la licencia y la nota de derivación cumplen ese requisito; si los ficheros se mueven a un almacén externo (por ejemplo Cloudflare R2), la atribución debe viajar con ellos, por ejemplo en la propia carpeta y en la interfaz.

@@ -96,6 +96,7 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
             onChange={(event) => setPassword(event.target.value)}
             disabled={busy}
           />
+          <a>Recuperar Contraseña no disponible actualmente marco :(</a>
           {error && (
             <p className={styles.error} role="alert" data-testid="auth-error">
               {error}
@@ -104,11 +105,13 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
           <button type="submit" className={styles.enter} disabled={busy}>
             {busy ? "Entrando…" : "Entrar"}
           </button>
+
         </form>
         <div className={styles.divider}>
           <span className={styles.dividerText}>o</span>
         </div>
         <button type="button" className={styles.google} onClick={handleGoogle} disabled={busy}>
+          <span></span>
           Continuar con Google
         </button>
       </div>
