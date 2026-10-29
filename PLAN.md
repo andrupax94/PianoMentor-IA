@@ -68,6 +68,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-028 | P1 | Detectar duplicados por hash y marcar procedencia | 1 |
 | B-029 | P2 | Control de MIDIs por usuario y subidas anónimas | 5 |
 | B-030 | P2 | Pulir el motor de sonido del piano (sampler, voz de reserva y transporte) | 5 |
+| B-031 | P1 | Persistencia de la BD del backend (Litestream + R2) | 5 |
 | U-001 | P2 | Configurar el depurador en VS Code y Docker | — |
 | U-005 | P2 | Autenticación con Google y tabla users | — |
 | U-006 | P2 | Formulario de registro de usuarios | — |
