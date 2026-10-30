@@ -18,6 +18,7 @@ export function SessionStatusLive() {
       error={session.error}
       action={session.agentAction}
       step={session.lastStep}
+      latencyMs={session.latencyMs}
     />
   );
 }

@@ -1,5 +1,5 @@
-/* description: Estilos globales de la aplicación: paleta de tokens, tipografía, botones y el estilo base de los inputs numéricos (flechitas del spinner en tono con la página). */
-/* context: Base visual de la web. */
+/* description: Estilos globales de la aplicación: paleta de tokens (incluidos los colores de mano de la cascada, con el violeta de la IA del acompañamiento — B-012.7), tipografía, botones y el estilo base de los inputs numéricos (flechitas del spinner en tono con la página). */
+/* context: Base visual de la web; los tokens de D-002.1 y B-012.7 viven aquí para que los componentes solo consuman var(...). */
 
 /* Paleta del diseño (navy profundo + oro). Los tokens que comparten la página
    principal y la Library viven aquí; los componentes solo los consumen. */
@@ -60,10 +60,12 @@
 
     /* Barras de la cascada por mano (D-002.1): azules a la izquierda y ámbar a
        la derecha, tomados de las paradas 25 % y 75 % de --gradient3 para casar
-       con la línea .final__line. Reserva verde = partitura sin mano. */
+       con la línea .final__line. Reserva verde = partitura sin mano. Violeta =
+       la mano que toca la IA durante el acompañamiento (B-012.7). */
     --hand-left: #a4d1fd;
     --hand-right: #fbcb7e;
     --hand-unknown: #62e6c7;
+    --hand-agent: #b388ff;
     --shadow1: white 0px 0px 50px -40px inset;
 }
 

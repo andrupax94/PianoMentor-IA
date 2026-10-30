@@ -50,6 +50,7 @@ describe("session-store", () => {
       connection: "open",
       error: null,
       agentAction: null,
+      latencyMs: null,
       lastStep: null,
     });
   });

@@ -1,5 +1,5 @@
 "use client";
-// description: Cuadrícula con las notas cayendo hacia el teclado.
+// description: Cuadrícula con las notas cayendo, con la mano que toca la IA pintada en su color durante el acompañamiento (B-012.7).
 // context: B-007.3; React pinta solo el chrome estático (líneas y etiquetas). Las
 // notas las mueve un bucle rAF local escribiendo transform directamente en el DOM,
 // así no se re-renderiza el árbol por frame. La velocidad deriva de la posición del
@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { fallingNotes, type FallingNote } from "../../../lib/falling-notes";
-import { handColor } from "../../../lib/hand-color";
+import { handColor, type AgentHand } from "../../../lib/hand-color";
 import { createKeyGeometry, type KeyGeometry } from "../../../lib/key-geometry";
 import { HORIZON_S } from "../../../lib/key-states";
 import { countWhiteKeys } from "../../../lib/pitch";
@@ -38,6 +38,7 @@ function placeNote(
   geometry: KeyGeometry,
   horizon_s: number,
   layerHeight: number,
+  agentHand: AgentHand | null,
 ): void {
   const center = geometry.centerFraction(note.pitch);
   const width = geometry.widthFraction(note.pitch);
@@ -48,11 +49,13 @@ function placeNote(
   block.style.transform = `translateY(${note.progress * layerHeight - blockHeight}px)`;
   block.style.opacity = String(noteOpacity(note.velocity));
   // El pool reutiliza bloques entre notas distintas: el color solo se reescribe
-  // si cambia la mano, para no tocar el estilo en cada frame (D-002.1).
+  // si cambia la mano o si empieza/termina el acompañamiento (D-002.1/B-012.7).
   const hand = note.hand ?? "unknown";
-  if (block.dataset.hand !== hand) {
-    block.dataset.hand = hand;
-    block.style.background = handColor(hand);
+  const agent = agentHand !== null && (agentHand === "both" || hand === agentHand);
+  const key = `${hand}|${agent ? "agent" : "score"}`;
+  if (block.dataset.hand !== key) {
+    block.dataset.hand = key;
+    block.style.background = handColor(hand, agent ? agentHand : null);
   }
 }
 
@@ -62,6 +65,7 @@ export function NoteFallGrid({
   status = "stopped",
   horizon_s,
   getPosition = () => 0,
+  agentHand = null,
 }: NoteFallGridProps) {
   const { fromKey, toKey } = useVisibleRange();
   const columns = Math.max(MIN_COLUMNS, countWhiteKeys(fromKey, toKey));
@@ -81,6 +85,9 @@ export function NoteFallGrid({
   getPositionRef.current = getPosition;
   const horizonRef = useRef(horizon);
   horizonRef.current = horizon;
+  // La mano de la IA se lee en cada frame: cambiar de acompañamiento no reinicia el bucle.
+  const agentHandRef = useRef<AgentHand | null>(agentHand);
+  agentHandRef.current = agentHand;
 
   // Altura del lienzo: los bloques se desplazan en píxeles (transform va por GPU).
   useEffect(() => {
@@ -130,7 +137,14 @@ export function NoteFallGrid({
           layer.appendChild(block);
           pool.set(note.id, block);
         }
-        placeNote(block, note, geometryRef.current, horizonRef.current, heightRef.current);
+        placeNote(
+          block,
+          note,
+          geometryRef.current,
+          horizonRef.current,
+          heightRef.current,
+          agentHandRef.current,
+        );
       }
       // Fuera de la ventana: se recicla el bloque.
       for (const [id, block] of pool) {

@@ -1,5 +1,5 @@
-// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control y su ventana), y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent y parseServerMessage.
-// context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el temporizador se inyectan en los tests. Un cierre pedido con close() no reconecta.
+// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5/B-012.7): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control/accompany, su ventana, su mano y sus notas), mide la latencia del canal con ping/pong y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent y parseServerMessage.
+// context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el reloj se inyectan en los tests. Un cierre pedido con close() no reconecta. La RTT medida decide si el acompañamiento se degrada a demostración (B-012.7).
 
 import type { SessionState } from "./api-client";
 
@@ -30,11 +30,23 @@ export interface SessionErrorMessage {
 }
 
 /**
- * Acción del agente en la sesión (B-012.5): el backend la emite al validarla y
- * ejecutarla. `demonstrate` arranca la demostración y bloquea el control del
- * estudiante; `return_control` lo devuelve. Los parámetros de la ventana
- * demostrada (`from_measure`, `to_measure`, `tempo_factor`) llegan
- * opcionalmente en el propio sobre y solo para `demonstrate`.
+ * Nota del acompañamiento que empuja el backend (B-012.7), con el tiempo
+ * relativo al inicio de la sección.
+ */
+export interface AgentAccompanyNote {
+  pitch: number;
+  start_s: number;
+  duration_s: number;
+  velocity: number;
+}
+
+/**
+ * Acción del agente en la sesión (B-012.5/B-012.7): el backend la emite al
+ * validarla y ejecutarla. `demonstrate` arranca la demostración y bloquea el
+ * control del estudiante; `accompany` hace sonar una mano de la IA sin
+ * bloquearlo; `return_control` devuelve el control. Los parámetros de la
+ * ventana (`from_measure`, `to_measure`, `tempo_factor`) llegan opcionalmente
+ * en el propio sobre; el acompañamiento añade la mano y sus notas.
  */
 export interface AgentActionMessage {
   type: "agent_action";
@@ -42,9 +54,27 @@ export interface AgentActionMessage {
   from_measure?: number;
   to_measure?: number;
   tempo_factor?: number;
+  /** `accompany` (B-012.7): mano que toca la IA y la que le queda al estudiante. */
+  hand?: string;
+  student_hand?: string | null;
+  /** Inicio de la sección en segundos de partitura y su duración. */
+  from_s?: number;
+  duration_s?: number;
+  /** Notas de la IA, con tiempos relativos al inicio de la sección. */
+  notes?: AgentAccompanyNote[];
 }
 
-export type ServerMessage = SessionStateMessage | SessionErrorMessage | AgentActionMessage;
+/** Respuesta al `ping` del cliente: sirve para medir la latencia del canal. */
+export interface PongMessage {
+  type: "pong";
+  t_s: number;
+}
+
+export type ServerMessage =
+  | SessionStateMessage
+  | SessionErrorMessage
+  | AgentActionMessage
+  | PongMessage;
 
 /**
  * Subconjunto de `WebSocket` que usa el cliente: permite inyectar un doble en
@@ -72,6 +102,10 @@ export interface SessionSocketOptions {
   createSocket?: (url: string) => WebSocketLike;
   /** Inyectable en tests para no depender del reloj real. */
   schedule?: (run: () => void, delayMs: number) => void;
+  /** Reloj en milisegundos para medir la latencia del canal (B-012.7). */
+  now?: () => number;
+  /** Latencia de ida y vuelta del último `ping`, en milisegundos (B-012.7). */
+  onLatency?: (rttMs: number) => void;
   baseDelayMs?: number;
   maxDelayMs?: number;
   /** `false` deja el socket cerrado cuando el servidor se cae. */
@@ -168,13 +202,23 @@ export class SessionSocket {
   private attempts = 0;
   private closedByUs = false;
   private readonly url: string;
+  private readonly now: () => number;
+  /** Pings enviados y todavía sin `pong`, por su `t_s`. */
+  private readonly pendingPings = new Map<number, number>();
+  private rttMs: number | null = null;
 
   constructor(private readonly options: SessionSocketOptions) {
     this.url = options.url ?? sessionSocketUrl(options.sessionId);
+    this.now = options.now ?? (() => Date.now());
   }
 
   get connectionStatus(): ConnectionStatus {
     return this.status;
+  }
+
+  /** Latencia medida del canal; `null` hasta el primer `pong` (B-012.7). */
+  get latencyMs(): number | null {
+    return this.rttMs;
   }
 
   /** Abre el socket; repetirlo con uno abierto no hace nada. */
@@ -207,11 +251,24 @@ export class SessionSocket {
     this.send(encodeNoteEvent("note_off", event));
   }
 
+  /**
+   * Mide la latencia del canal (B-012.7): manda el instante actual y espera su
+   * eco en `pong`. Es lo que decide si el acompañamiento puede sonar junto al
+   * estudiante o hay que degradarlo a demostración.
+   */
+  ping(): void {
+    if (!this.socket || this.status !== "open") return;
+    const sentAt = this.now();
+    this.pendingPings.set(sentAt, sentAt);
+    this.send({ type: "ping", t_s: sentAt });
+  }
+
   /** Cierra a propósito: libera el socket y corta las reconexiones. */
   close(): void {
     this.closedByUs = true;
     const socket = this.socket;
     this.socket = null;
+    this.pendingPings.clear();
     socket?.close();
     this.setStatus("closed");
   }
@@ -230,6 +287,16 @@ export class SessionSocket {
     if (message.type === "state") this.options.onState?.(message);
     else if (message.type === "error") this.options.onError?.(message);
     else if (message.type === "agent_action") this.options.onAction?.(message);
+    else if (message.type === "pong") this.handlePong(message);
+  }
+
+  private handlePong(message: PongMessage): void {
+    const sentAt = this.pendingPings.get(message.t_s);
+    // Eco de un ping que ya no esperamos (reconexión, reloj movido): se ignora.
+    if (sentAt === undefined) return;
+    this.pendingPings.delete(message.t_s);
+    this.rttMs = Math.max(0, this.now() - sentAt);
+    this.options.onLatency?.(this.rttMs);
   }
 
   private scheduleReconnect(): void {

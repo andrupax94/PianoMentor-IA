@@ -1,5 +1,5 @@
-# description: Máquina de estados y reglas deterministas del agente (B-012.3).
-# context: decide() recibe estado + evaluación + historial y devuelve acción. Sin LLM.
+# description: Máquina de estados y reglas deterministas del agente (B-012.3/B-012.4): decide() y validate_action() sobre la lista blanca de acciones.
+# context: decide() recibe estado + evaluación + historial y devuelve acción. Sin LLM. DEFAULT_PARAMS rellena los parámetros que faltan (accompany fija hand=left, B-012.7) para que una propuesta ejecutable no se rechace por un campo opcional.
 
 """Máquina de estados y reglas deterministas del agente pedagógico (B-012.3).
 
@@ -82,7 +82,9 @@ DEFAULT_PARAMS: dict[str, dict[str, object]] = {
     "give_hint": {"hint_type": "measure_focus"},
     "slow_down": {"tempo_factor": 0.7},
     "demonstrate": {"tempo_factor": 0.8},
-    "accompany": {"tempo_factor": 0.9},
+    # `hand` es obligatorio para ejecutar el acompañamiento (B-012.7): la IA
+    # toca la izquierda y el estudiante la derecha, que es el reparto por defecto.
+    "accompany": {"hand": "left", "tempo_factor": 0.9},
     "return_control": {},
 }
 

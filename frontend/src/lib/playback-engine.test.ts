@@ -1,5 +1,5 @@
-// description: Tests del motor de transporte con reloj falso y voz que graba.
-// context: Criterio de B-006.2; verifica play/pausa/stop/seek/tempo sin audio real.
+// description: Tests del motor de transporte con reloj falso y voz que graba: programación, pausa, seek, fin, tempo y la parte audible del acompañamiento (B-012.7).
+// context: Criterio de B-006.2/B-012.7; verifica play/pausa/stop/seek/tempo sin audio real.
 
 import { describe, expect, it } from "vitest";
 
@@ -201,5 +201,35 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().tempo_bpm).toBeNull();
     harness.engine.load(SCORE, { tempo_bpm: Number.NaN });
     expect(harness.engine.snapshot().tempo_bpm).toBeNull();
+  });
+
+  it("el acompañamiento suena solo la mano audible sin acortar la pieza (B-012.7)", () => {
+    const harness = makeHarness();
+    // La IA toca la izquierda; la partitura entera sigue midiendo el transporte.
+    const left = [note({ pitch: 48, start_seconds: 1.0, duration_seconds: 0.5 })];
+    harness.engine.load(SCORE, { audible: left });
+
+    expect(harness.engine.snapshot().duration_s).toBeCloseTo(2.5, 9);
+
+    harness.engine.play();
+    harness.advance(2.4);
+    harness.engine.tick();
+
+    expect(harness.scheduled.map((item) => item.event.pitch)).toEqual([48]);
+  });
+
+  it("cambiar el tempo conserva la mano audible y su duración (B-012.7)", () => {
+    const harness = makeHarness();
+    const left = [note({ pitch: 48, start_seconds: 1.0 })];
+    harness.engine.load(SCORE, { audible: left, duration_s: 10 });
+    harness.engine.setTempoFactor(0.5);
+
+    harness.engine.play();
+    harness.advance(4.2);
+    harness.engine.tick();
+
+    expect(harness.scheduled.map((item) => item.event.pitch)).toEqual([48]);
+    // La duración explícita se escala con el factor: 10 s al 50 % son 20 s.
+    expect(harness.engine.snapshot().duration_s).toBeCloseTo(20, 9);
   });
 });

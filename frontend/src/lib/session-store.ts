@@ -1,5 +1,5 @@
-// description: Almacén de la sesión de práctica abierta en la portada, con `agentAction`: la última acción del agente por WebSocket (B-012.5), y `lastStep`: la procedencia de la última pista pedida al agente (B-012.6), solo para diagnóstico.
-// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado y las acciones que llegan por WebSocket y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia. `agentAction` decide el bloqueo del teclado y el indicador IA demostrando; `lastStep` lo escribe MentorChat al pedir la pista y updateSession avisa también cuando solo cambia uno de esos campos.
+// description: Almacén de la sesión de práctica abierta en la portada, con `agentAction`: la última acción del agente por WebSocket (B-012.5/B-012.7), `latencyMs`: la latencia medida del canal (B-012.7) y `lastStep`: la procedencia de la última pista pedida al agente (B-012.6), solo para diagnóstico.
+// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado, las acciones y la latencia que llegan por WebSocket y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia. `agentAction` decide el bloqueo del teclado y el indicador de la intervención; `latencyMs` se pinta como diagnóstico y `lastStep` lo escribe MentorChat al pedir la pista; updateSession avisa también cuando solo cambia uno de esos campos.
 
 import type { AgentStepResponse, SessionState } from "./api-client";
 import type { AgentActionMessage, ConnectionStatus } from "./websocket-client";
@@ -21,6 +21,11 @@ export interface SessionSnapshot {
    */
   agentAction: AgentActionMessage | null;
   /**
+   * Latencia de ida y vuelta del WebSocket en milisegundos (B-012.7); null
+   * hasta el primer `pong`. Con más de 50 ms el acompañamiento se degrada.
+   */
+  latencyMs: number | null;
+  /**
    * Quién propuso la última pista pedida desde el chat y si hubo que caer al
    * fallback (B-012.6); null hasta que se pida la primera. Es diagnóstico:
    * solo lo enseña el estado de sesión fuera de producción.
@@ -35,6 +40,7 @@ export const EMPTY_SESSION: SessionSnapshot = {
   connection: "closed",
   error: null,
   agentAction: null,
+  latencyMs: null,
   lastStep: null,
 };
 
@@ -63,6 +69,7 @@ export function updateSession(patch: Partial<SessionSnapshot>): void {
     next.connection === current.connection &&
     next.error === current.error &&
     next.agentAction === current.agentAction &&
+    next.latencyMs === current.latencyMs &&
     next.lastStep === current.lastStep
   ) {
     return;

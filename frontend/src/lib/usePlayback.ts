@@ -1,6 +1,5 @@
-// description: Hook React del transporte; viste PlaybackEngine con WebAudio y estado.
-// context: B-006.2 y B-007.5; la lógica testeable vive en playback-engine.ts, aquí solo el
-// cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva.
+// description: Hook React del transporte (B-006.2): snapshot, notas, rejilla de compases (measures), acciones, audición y getPosition; load acepta `audible` para el acompañamiento (B-012.7).
+// context: B-006.2/B-007.5/B-012.7; la lógica testeable vive en playback-engine.ts, aquí solo el cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -107,6 +106,8 @@ export function usePlayback(tickMs = 25) {
         tempoFactor?: number;
         duration_s?: number;
         tempo_bpm?: number;
+        /** Notas que suenan si no es toda la partitura (B-012.7). */
+        audible?: PlayableNote[];
         measures?: PieceMeasures | null;
       },
     ) => {

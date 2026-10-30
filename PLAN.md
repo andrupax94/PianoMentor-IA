@@ -69,6 +69,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-029 | P2 | Control de MIDIs por usuario y subidas anónimas | 5 |
 | B-030 | P2 | Pulir el motor de sonido del piano (sampler, voz de reserva y transporte) | 5 |
 | B-031 | P1 | Persistencia de la BD del backend (Litestream + R2) | 5 |
+| B-032 | P0 | La sesión manda en el piano: reloj único, modos de práctica y modo espera | — |
 | U-001 | P2 | Configurar el depurador en VS Code y Docker | — |
 | U-005 | P2 | Autenticación con Google y tabla users | — |
 | U-006 | P2 | Formulario de registro de usuarios | — |
@@ -125,6 +126,10 @@ Sus cuatro bloques quedan cerrados. El bloque D entrega el **guion de demo** (`d
 La misma tanda deja dos fixtures MIDI **versionados y regenerables** con `backend/scripts/build_midi_fixtures.py`: la **escala de tres notas** que fijan los números de la carga de piezas (`test_scale.mid`, antes un archivo local ignorado por git del que dependían siete tests) y la **frase de práctica** propia (`practice_phrase.mid`, 4 compases, 22 notas), que el catálogo ofrece como pieza `p16` para probar la sesión desde el navegador.
 
 **B-012.2** (evaluación determinista) deja de medir en abstracto y compara la interpretación con la partitura: `PerformanceEvaluator` recibe las notas normalizadas y los `note_on` de la sesión y los empareja con **tolerancia por nota** (±100 ms por defecto, configurable entre 1 y 1000) en tres pasadas deterministas —misma altura a tiempo (`correct`), misma altura fuera de tolerancia pero dentro de una **ventana de detección** de 500 ms (`early`/`late`, en vez de convertir una nota tardía en dos fallos) y altura equivocada en el instante justo (`wrong_pitch`)—. Un **acorde de B-009 es la unidad de comparación**: si falta una tecla, el acorde entero cuenta como `omitted`, y una altura repetida por dos pistas se compara una sola vez. Salen `notes_score` y `timing_score` de 0 a 1 (lo que consumirán las reglas de B-012.3), `accuracy_pct`, `timing_ms` (desviación absoluta media), `drift_ms` (media con signo: positivo = tarde, negativo = pronto) y `score_total` de 0 a 100, con **penalización de 2 puntos por nota de más** (hasta 5). `POST /sessions/{id}/evaluation` admite ventana opcional **por segundos o por compases** (la rejilla de B-008 resuelve `from_measure`/`to_measure`) y devuelve resumen más detalle por nota; tocar más allá del trozo pedido no penaliza. `EvaluationService` resuelve sesión, pieza y log con las dependencias inyectadas, así que el motor sigue siendo puro y sigue funcionando sin LLM.
+
+**B-012.7** (acompañamiento) cierra la vertical: `accompany` elige una mano (`hand`, izquierda por defecto), recorta la sección con la rejilla de B-008 y manda por WebSocket sus notas con tiempos **relativos al inicio de la sección**; el motor determinista (`accompaniment.py`) filtra por `hand_by_track` y **no cambia el control**, así que el estudiante sigue tocando la otra mano mientras la IA suena la suya. La sincronía la mide el cliente con `ping`/`pong` sobre el WS: por encima de **50 ms** de RTT (o si el sobre no trae plan) el front pide `demonstrate` de la misma sección, y el backend sigue validando y difundiendo. En la interfaz la mano de la IA se tiñe en violeta (`--hand-agent`), el audio sale solo de esa mano (`audible` en el motor) mientras la cascada muestra la pieza entera, y al acabar la sección vuelve la pieza normal sin bloquear el teclado. Queda anotado como límite conocido que la evaluación (B-012.2) compara con la partitura entera y no filtra por mano, y como pendiente del usuario el clip de evidencia y la prueba en Docker Compose.
+
+Al probar **B-012.7** en el navegador se abrió la vertical **B-032** (P0, **sin semana**: sus seis fases desbordan la semana 5 y obligan a re-basar el calendario de B-020..B-026). El piano es la vista de la sesión, pero el código lo contradecía en nueve puntos: «Practicar esta pieza» creaba la sesión sin publicar la pieza en `piece-store` y el piano se quedaba en la demo `p17` (y una intervención del agente la cambiaba dos veces por sesión); convivían **dos relojes**, porque `session-clock` anclaba `t_s` en la primera tecla y el transporte en `play()`; `current_measure` y `position_s` existían en la tabla pero nadie los escribía, así que el compás salía `—` y `accompany` sin compases empezaba en 0; la evaluación no filtraba por mano; el piano en pantalla solo hacía `audition` y no mandaba notas; la cascada no podía enseñar lo que se aproxima; el socket se cerraba en `CONNECTING` y ensuciaba la consola; el mapa del teclado del PC cubría 16 semitonos y `p16` va de F2 a G5 (39), de modo que «dos manos» no era jugable sin hardware aunque la pieza solo pida **3 teclas a la vez** (medido); y el rango visible elegido por ancho dejaba fuera tres notas de la mano izquierda. La vertical se parte en seis sub-issues: **B-032.1** publica la pieza de la sesión y cierra el socket de forma ordenada; **B-032.2** sube el transporte a contexto y convierte `t_s` en **posición musical sin escalar** (`position_s * tempoFactor`, la convención de `measureIndexAt`), con la posición enviada al backend, un **puerto de entrada único** (teclado del PC, piano en pantalla y Web MIDI), una **distribución partida** del teclado del PC para tocar a dos manos y un rango visible que cubra la pieza; **B-032.3** filtra la evaluación por mano; **B-032.4** introduce los modos **observar / una mano / dos manos** como estado de la sesión, gobernando cascada, audio y evaluación sin reiniciar la posición; **B-032.5** añade los **gates** del modo espera con cuenta atrás, decididos en el navegador porque el WS ya se degrada por encima de 50 ms; y **B-032.6** convierte los fallos en **strikes** agregados por compás y en intervenciones deterministas del agente (2 fallos → tempo lento, 3 → pista, silencio → demostración del compás), con el LLM narrando pero sin tocar nunca el reloj ni el MIDI.
 
 ## 4. Plan por semanas
 
@@ -207,14 +212,14 @@ pieza MIDI
 
 **Criterio de cierre**
 
-- [ ] Los compases se calculan de forma inicial.
-- [ ] Polifonía, acordes y estrategia de tracks definidos y probados.
-- [ ] El usuario puede tocar con el teclado del ordenador.
-- [ ] Las notas pulsadas aparecen en la interfaz.
-- [ ] Sesión + WS real funcionando (crear, estado, eventos).
-- [ ] Chat del agente operando sobre lo implementado: lista blanca de funciones, memoria a corto plazo y panel en la interfaz (B-012.8).
-- [ ] Evaluación determinista produciendo scoring.
-- [ ] La reproducción funciona con las estructuras MIDI de prueba.
+- [x] Los compases se calculan de forma inicial.
+- [x] Polifonía, acordes y estrategia de tracks definidos y probados.
+- [x] El usuario puede tocar con el teclado del ordenador.
+- [x] Las notas pulsadas aparecen en la interfaz.
+- [x] Sesión + WS real funcionando (crear, estado, eventos).
+- [x] Chat del agente operando sobre lo implementado: lista blanca de funciones, memoria a corto plazo y panel en la interfaz (B-012.8).
+- [x] Evaluación determinista produciendo scoring.
+- [x] La reproducción funciona con las estructuras MIDI de prueba.
 
 ### Semana 3 — Continuación agente vertical y feedback UI
 
@@ -239,11 +244,11 @@ agente vertical
 
 **Criterio de cierre**
 
-- [ ] Máquina de estados transita y selecciona acción válida.
-- [ ] Acciones rechazadas si violan límites.
-- [ ] Demo visible, duración limitada, control vuelve al estudiante.
+- [x] Máquina de estados transita y selecciona acción válida.
+- [x] Acciones rechazadas si violan límites.
+- [x] Demo visible, duración limitada, control vuelve al estudiante.
 - [ ] UI muestra puntuación, errores, compás actual, debilidades.
-- [ ] La evaluación funciona sin LLM.
+- [x] La evaluación funciona sin LLM.
 
 ### Semana 4 — Agente: Groq, acompañamiento e integración
 
@@ -258,10 +263,10 @@ agente vertical
 
 **Criterio de cierre**
 
-- [ ] Groq propone acciones estructuradas; fallback a MockProvider si falla.
-- [ ] Acompañamiento básico funcional (o documentado como post-MVP).
-- [ ] Flujo agente completo funciona sin LLM.
-- [ ] Tests de validación, transiciones y evaluación pasan.
+- [x] Groq propone acciones estructuradas; fallback a MockProvider si falla.
+- [x] Acompañamiento básico funcional (IA toca una mano, el estudiante la otra, con degradación a demostración por latencia).
+- [x] Flujo agente completo funciona sin LLM.
+- [x] Tests de validación, transiciones y evaluación pasan.
 
 ### Semana 5 — Integración, despliegue, vídeo y LinkedIn
 

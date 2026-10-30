@@ -1,11 +1,12 @@
-# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado.
-# context: Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí.
+# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado. POST /sessions/{id}/actions valida y ejecuta la acción del agente (B-012.4–B-012.7): demonstrate/return_control cambian el control y accompany difunde la mano de la IA y sus notas; el WS responde ping con pong para medir la latencia.
+# context: Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí. El acompañamiento no cambia el control (el estudiante sigue tocando) y sus notas viajan con tiempos relativos al inicio de la sección.
 
 import logging
 import re
 import secrets
 import sqlite3
 import tempfile
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse
 
+from .accompaniment import AccompanimentService
 from .agent import AgentService, DecisionContext
 from .auth import (
     AuthTokenError,
@@ -102,6 +104,7 @@ router = APIRouter(prefix="/api/v1")
 practice_service = PracticeService()
 agent_service = AgentService()
 evaluation_service = EvaluationService()
+accompaniment_service = AccompanimentService()
 midi_service = MidiService()
 storage = LocalPieceStorage(Path(settings.midi_storage_path))
 
@@ -917,17 +920,20 @@ def get_session_state(session_id: str) -> SessionStateResponse:
 
 @router.post("/sessions/{session_id}/actions", response_model=ActionResponse)
 async def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
-    """Valida y ejecuta una acción del agente en la sesión (B-012.4/B-012.5).
+    """Valida y ejecuta una acción del agente en la sesión (B-012.4–B-012.7).
 
     Rechaza con 400 y código estable si la acción o sus params son inválidos.
-    `demonstrate` y `return_control` actualizan el control del piano y notifican
-    por WebSocket a todas las conexiones de la sesión.
+    `demonstrate` y `return_control` cambian quién tiene el control del piano;
+    `accompany` (B-012.7) no lo cambia —el estudiante sigue tocando— y difunde
+    por WebSocket la mano de la IA y sus notas con tiempos relativos al inicio
+    de la sección, que es lo que el navegador necesita para sonarla.
     """
     session_state = _session_state_or_404(session_id)
+    # La mano por defecto se fija antes de validar: el agente puede proponer
+    # `accompany` sin `hand` y la acción tiene que seguir siendo ejecutable.
+    params = _with_accompany_defaults(payload.action, payload.params)
     try:
-        agent_service.validate_action(
-            payload.action, payload.params, session_state=session_state
-        )
+        agent_service.validate_action(payload.action, params, session_state=session_state)
     except ValidationError as exc:
         raise HTTPException(
             status_code=400, detail={"code": exc.code, "message": exc.message}
@@ -936,9 +942,40 @@ async def execute_action(session_id: str, payload: ActionRequest) -> ActionRespo
     if payload.action in ("demonstrate", "return_control"):
         new_control = "agent" if payload.action == "demonstrate" else "student"
         practice_service.set_control(session_id, new_control)
-        await _broadcast_agent_action(session_id, payload.action, **payload.params)
+        await _broadcast_agent_action(session_id, payload.action, **params)
+    elif payload.action == "accompany":
+        try:
+            plan = accompaniment_service.plan(
+                session_id,
+                hand=str(params.get("hand", "left")),
+                from_measure=_optional_measure(params.get("from_measure")),
+                to_measure=_optional_measure(params.get("to_measure")),
+                tempo_factor=float(params.get("tempo_factor", 1.0)),
+            )
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+                detail={"code": exc.code, "message": exc.message},
+            ) from exc
+        await _broadcast_agent_action(session_id, "accompany", **plan.as_payload())
 
     return ActionResponse(action=payload.action, status="validated")
+
+
+def _with_accompany_defaults(
+    action: str, params: dict[str, object]
+) -> dict[str, object]:
+    """Añade la mano por defecto del acompañamiento si la acción no la trae."""
+    if action != "accompany" or "hand" in params:
+        return params
+    return {**params, "hand": "left"}
+
+
+def _optional_measure(value: object) -> int | None:
+    """Compás opcional de una acción: `None` deja que la sección sea la de defecto."""
+    if value is None:
+        return None
+    return int(value)  # `validate_action` ya comprobó que es convertible
 
 
 def _evaluation_or_none(session_id: str, session_state: dict[str, object]) -> dict[str, object] | None:
@@ -1048,8 +1085,9 @@ def agent_chat(payload: ChatMessageRequest) -> ChatMessageResponse:
 async def session_socket(websocket: WebSocket, session_id: str) -> None:
     """Sesión en tiempo real: estado al entrar y tras cada evento MIDI (B-012.1).
 
-    Los mensajes van envueltos en `type` porque el mismo canal llevará las
-    acciones del agente (`agent_action`) en B-012.5.
+    Los mensajes van envueltos en `type` porque el mismo canal lleva las
+    acciones del agente (`agent_action`: `demonstrate`, `accompany` y
+    `return_control`) y el `pong` que mide la latencia del canal (B-012.7).
     """
     await websocket.accept()
     try:
@@ -1073,6 +1111,13 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
                         "message": "El mensaje no es JSON válido",
                     }
                 )
+                continue
+
+            # `ping`/`pong` mide la latencia del canal sin tocar la sesión: el
+            # front lo usa para degradar el acompañamiento a demostración si el
+            # WebSocket no es lo bastante rápido (B-012.7).
+            if isinstance(event, Mapping) and event.get("type") == "ping":
+                await websocket.send_json({"type": "pong", "t_s": event.get("t_s")})
                 continue
 
             try:

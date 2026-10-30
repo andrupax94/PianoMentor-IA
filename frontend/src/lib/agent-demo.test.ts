@@ -1,7 +1,7 @@
-// description: Tests de la demostración: control efectivo (demostrar bloquea y return_control desbloquea aunque el estado diga lo contrario), ventana, parámetros ausentes y etiqueta; del canal de reproducción (entrega con seq creciente, baja de suscriptores y publicación sin nadie escuchando) y de demoSubScore (recorte de notas y rejilla, desplazado al 0, ventana invertida, índices acotados, sin rejilla y sin notas).
-// context: Criterio de B-012.5 (front muestra IA demostrando, bloquea input y hace sonar la ventana); se ejecutan con `npm run test` (Vitest) sin DOM.
+// description: Tests de la demostración: control efectivo (demostrar bloquea y return_control desbloquea aunque el estado diga lo contrario), ventana, parámetros ausentes y etiqueta; y de demoSubScore (recorte de notas y rejilla, desplazado al 0, ventana invertida, índices acotados, sin rejilla y sin notas).
+// context: Criterio de B-012.5 (front muestra IA demostrando, bloquea input y hace sonar la ventana); se ejecutan con `npm run test` (Vitest) sin DOM. El canal de reproducción se prueba en agent-playback.test.ts.
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   demoLabel,
@@ -9,10 +9,8 @@ import {
   demoWindow,
   effectiveControl,
   isDemonstrating,
-  publishDemoPlayback,
-  subscribeDemoPlayback,
 } from "./agent-demo";
-import type { DemoPlaybackMessage, DemoScore } from "./agent-demo";
+import type { DemoScore } from "./agent-demo";
 import type { PlayableNote, PieceMeasures } from "./api-client";
 import type { AgentActionMessage } from "./websocket-client";
 
@@ -105,56 +103,6 @@ describe("demoLabel", () => {
 
   it("sin ventana también nombra la demostración", () => {
     expect(demoLabel(null)).toBe("IA demostrando");
-  });
-});
-
-/** Suscripciones vivas: se dan de baja tras cada test para no cruzarlas. */
-const pendingUnsubs: (() => void)[] = [];
-
-afterEach(() => {
-  while (pendingUnsubs.length > 0) pendingUnsubs.pop()?.();
-});
-
-function subscribe(listener: (message: DemoPlaybackMessage) => void): void {
-  pendingUnsubs.push(subscribeDemoPlayback(listener));
-}
-
-describe("canal de reproducción de la demostración", () => {
-  it("entrega la orden con su contador y la de parada a los suscritos", () => {
-    const seen: { kind: string; seq: number }[] = [];
-    subscribe((message) => seen.push({ kind: message.event.kind, seq: message.seq }));
-
-    publishDemoPlayback({
-      kind: "start",
-      pieceId: "p16",
-      window: { fromMeasure: 0, toMeasure: 4, tempoFactor: 0.7 },
-    });
-    publishDemoPlayback({ kind: "stop" });
-
-    expect(seen).toHaveLength(2);
-    expect(seen[0].kind).toBe("start");
-    expect(seen[1].kind).toBe("stop");
-    // Dos demos seguidas nunca son "la misma": el contador solo sube.
-    expect(seen[1].seq).toBeGreaterThan(seen[0].seq);
-  });
-
-  it("quien se da de baja deja de recibir órdenes", () => {
-    const fuera = vi.fn();
-    const fueraAlta = subscribeDemoPlayback(fuera);
-    const dentro = vi.fn();
-    subscribeDemoPlayback(dentro);
-
-    fueraAlta();
-    publishDemoPlayback({ kind: "stop" });
-
-    expect(fuera).not.toHaveBeenCalled();
-    expect(dentro).toHaveBeenCalledTimes(1);
-  });
-
-  it("sin suscritos no se pierde nada (es un evento, no un estado)", () => {
-    // Ningún listener vivo: la orden no debe reventar ni dejarte pensando
-    // que alguien la recogió.
-    expect(() => publishDemoPlayback({ kind: "stop" })).not.toThrow();
   });
 });
 

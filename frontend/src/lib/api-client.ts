@@ -475,6 +475,33 @@ export async function runAgentStep(sessionId: string): Promise<AgentStepResponse
   );
 }
 
+/** Acción ya validada y ejecutada por el backend, alineada con `ActionResponse`. */
+export interface AgentActionResponse {
+  action: string;
+  status: string;
+}
+
+/**
+ * Ejecuta una acción del agente en la sesión (POST /sessions/{id}/actions).
+ * La usa el front para degradar el acompañamiento a demostración cuando el
+ * WebSocket no es lo bastante rápido (B-012.7): la decisión sigue siendo del
+ * backend, que valida la acción y la difunde por el socket.
+ */
+export async function executeAgentAction(
+  sessionId: string,
+  action: string,
+  params: Record<string, unknown> = {},
+): Promise<AgentActionResponse> {
+  return request<AgentActionResponse>(
+    `/api/v1/sessions/${encodeURIComponent(sessionId)}/actions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, params }),
+    },
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Chat del agente (B-012.8)
 // ---------------------------------------------------------------------------

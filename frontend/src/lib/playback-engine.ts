@@ -1,5 +1,5 @@
-// description: Motor de transporte sin framework (play/pausa/stop/seek) con reloj y voz inyectados.
-// context: B-006.2; testeable con tiempo falso. usePlayback lo viste con React+WebAudio.
+// description: Motor de transporte sin framework (play/pausa/stop/seek) con reloj y voz inyectados; con `audible` (B-012.7) la cascada sigue midiendo la pieza entera pero el audio sale solo de una parte (la mano de la IA).
+// context: B-006.2/B-012.7; testeable con tiempo falso. usePlayback lo viste con React+WebAudio.
 
 import {
   buildSchedule,
@@ -55,6 +55,17 @@ function cleanTempo(tempo_bpm: number | null | undefined): number | null {
   return tempo_bpm;
 }
 
+/** Fin de la partitura: el mayor `start + duration` de sus notas (0 si no hay). */
+function scoreEnd(notes: PlayableNote[]): number {
+  return notes.reduce(
+    (max, note) =>
+      Number.isFinite(note.start_seconds) && Number.isFinite(note.duration_seconds)
+        ? Math.max(max, note.start_seconds + note.duration_seconds)
+        : max,
+    0,
+  );
+}
+
 /**
  * Reproductor determinista: la posición solo depende del reloj inyectado.
  * Los tiempos internos van en segundos de partitura ya escalados por el factor.
@@ -65,6 +76,10 @@ export class PlaybackEngine {
   private readonly horizon_s: number;
 
   private notes: PlayableNote[] = [];
+  /** Notas que suenan: por defecto la partitura entera; el acompañamiento (B-012.7) suena solo una mano. */
+  private audible: PlayableNote[] = [];
+  /** Fin de la partitura cargada (no solo de lo audible): el transporte no se corta a media pieza. */
+  private scoreEnd_s = 0;
   private events: ScheduledEvent[] = [];
   private status: PlaybackStatus = "stopped";
   private tempoFactor = 1.0;
@@ -85,13 +100,25 @@ export class PlaybackEngine {
   /** Carga una partitura y deja el transporte parado al inicio, a factor 1.0 salvo indicación. */
   load(
     notes: PlayableNote[],
-    options?: { tempoFactor?: number; duration_s?: number; tempo_bpm?: number },
+    options?: {
+      tempoFactor?: number;
+      duration_s?: number;
+      tempo_bpm?: number;
+      /**
+       * Notas que suenan, si no es toda la partitura (B-012.7): la cascada y el
+       * compás siguen leyendo `notes`, pero el audio sale de esta lista. Es lo
+       * que permite que la IA acompañe con una mano sin borrar la otra de la vista.
+       */
+      audible?: PlayableNote[];
+    },
   ): void {
     this.voice.silence();
     this.notes = notes;
+    this.audible = options?.audible ?? notes;
     this.tempoFactor = clampTempoFactor(options?.tempoFactor ?? 1.0);
     this.baseTempo_bpm = cleanTempo(options?.tempo_bpm);
-    this.events = buildSchedule(notes, this.tempoFactor);
+    this.events = buildSchedule(this.audible, this.tempoFactor);
+    this.scoreEnd_s = scoreEnd(notes);
     this.baseDuration_s = Math.max(options?.duration_s ?? 0, 0);
     this.duration_s = this.scaledDuration();
     this.status = "stopped";
@@ -142,7 +169,7 @@ export class PlaybackEngine {
       this.position_s = this.currentPosition();
     }
     this.tempoFactor = clampTempoFactor(factor);
-    this.events = buildSchedule(this.notes, this.tempoFactor);
+    this.events = buildSchedule(this.audible, this.tempoFactor);
     this.duration_s = this.scaledDuration();
     this.scheduledUpto_s = this.position_s;
     this.voice.silence();
@@ -197,7 +224,14 @@ export class PlaybackEngine {
       (max, event) => Math.max(max, event.time_s + event.duration_s),
       0,
     );
-    return Math.max(lastEnd, this.baseDuration_s / this.tempoFactor);
+    // `scoreEnd_s` cubre el caso del acompañamiento: la IA suena una mano, pero
+    // el transporte sigue midiendo la pieza entera (B-012.7). Va en tiempo de
+    // partitura, así que se escala igual que la duración explícita.
+    return Math.max(
+      lastEnd,
+      this.scoreEnd_s / this.tempoFactor,
+      this.baseDuration_s / this.tempoFactor,
+    );
   }
 
   private toWallTime(scoreTime_s: number): number {
