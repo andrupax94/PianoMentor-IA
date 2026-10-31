@@ -19,6 +19,10 @@ SESSION_STATUSES = ("idle", "playing", "paused")
 
 EVENT_TYPES = ("note_on", "note_off")
 
+# Mensaje de posición del transporte (B-032.2): no es un evento MIDI y no entra
+# en `session_events`, solo actualiza el estado vivo de la sesión.
+POSITION_TYPE = "position"
+
 PITCH_MIN = 0
 PITCH_MAX = 127
 VELOCITY_MIN = 1
@@ -93,6 +97,42 @@ def _validate_event(event: object) -> dict[str, object]:
     return {"type": event_type, "pitch": pitch, "velocity": velocity, "t_s": float(t_s)}
 
 
+def _validate_position(message: object) -> dict[str, object]:
+    """Normaliza y valida un mensaje `position`; lanza `invalid_event_payload` si no lo es.
+
+    El contrato (B-032.2) es `{type: "position", t_s, measure}`: `t_s` son
+    segundos de partitura **sin escalar** por el tempo (la misma línea temporal
+    que la rejilla y la evaluación) y `measure` es el índice 0-based del compás
+    o `None` si la pieza no trae rejilla.
+
+    El límite superior del compás no se puede validar aquí: la rejilla vive en
+    el navegador, que es quien la obtuvo de `GET /pieces/{id}/notes`. Se exige
+    que sea un entero no negativo y se confía en el cliente, igual que con el
+    `t_s` de las notas.
+    """
+    if not isinstance(message, Mapping):
+        raise ValidationError("invalid_event_payload", "La posición debe ser un objeto JSON")
+
+    t_s = message.get("t_s")
+    if isinstance(t_s, bool) or not isinstance(t_s, (int, float)) or not math.isfinite(t_s):
+        raise ValidationError(
+            "invalid_event_payload", "`t_s` de la posición debe ser un número finito de segundos"
+        )
+    if t_s < 0:
+        raise ValidationError(
+            "invalid_event_payload", "`t_s` de la posición no puede ser negativo"
+        )
+
+    measure = message.get("measure")
+    if measure is not None and (not _is_int(measure) or measure < 0):
+        raise ValidationError(
+            "invalid_event_payload",
+            "`measure` debe ser un entero no negativo o null",
+        )
+
+    return {"t_s": float(t_s), "measure": measure}
+
+
 class PracticeService:
     """Casos de uso de una sesión: crear, consultar estado y registrar eventos."""
 
@@ -149,6 +189,35 @@ class PracticeService:
             if payload["type"] == "note_on" and row["status"] != "playing":
                 database.update_session_state(conn, session_id, status="playing")
                 row = database.get_session(conn, session_id)
+
+        assert row is not None
+        return _session_state(row)
+
+    def receive_position(self, session_id: str, message: object) -> dict[str, object]:
+        """Valida la posición del transporte y la guarda en el estado de la sesión (B-032.2).
+
+        No escribe en `session_events` (no es una nota) ni cambia `status`: el
+        reloj es del navegador y esto solo mantiene al día `position_s` y
+        `current_measure`, que es lo que leen el panel, `accompany` sin compases
+        y la regla de `return_control` del agente.
+
+        Devuelve el estado actualizado. La decisión de difundirlo —o no, para no
+        inundar el canal— es del WebSocket, no del servicio.
+        """
+        payload = _validate_position(message)
+
+        with database.open_db() as conn:
+            row = database.get_session(conn, session_id)
+            if row is None:
+                raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
+
+            database.update_session_state(
+                conn,
+                session_id,
+                position_s=payload["t_s"],
+                current_measure=payload["measure"],
+            )
+            row = database.get_session(conn, session_id)
 
         assert row is not None
         return _session_state(row)

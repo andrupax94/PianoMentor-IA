@@ -301,6 +301,132 @@ class TestWebSocket:
         assert session_id not in api._session_sockets
 
 
+class TestPosition:
+    """Posición del transporte (B-032.2): estado vivo, no log de eventos."""
+
+    def test_updates_measure_and_position(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 2.5, "measure": 1})
+
+            message = websocket.receive_json()
+
+        assert message["type"] == "state"
+        assert message["position_s"] == 2.5
+        assert message["current_measure"] == 1
+
+        state = client.get(f"/api/v1/sessions/{session_id}/state").json()
+        assert state["position_s"] == 2.5
+        assert state["current_measure"] == 1
+
+    def test_measure_can_be_null(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 0.5, "measure": None})
+
+            message = websocket.receive_json()
+
+        assert message["position_s"] == 0.5
+        assert message["current_measure"] is None
+
+    def test_position_is_not_stored_as_an_event(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 1.0, "measure": 0})
+            websocket.receive_json()
+
+        assert _stored_events(session_id) == []
+
+    def test_position_does_not_change_the_status(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 1.0, "measure": 0})
+
+            assert websocket.receive_json()["status"] == "idle"
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            {"type": "position", "t_s": -1, "measure": 0},
+            {"type": "position", "t_s": "luego", "measure": 0},
+            {"type": "position", "t_s": True, "measure": 0},
+            {"type": "position", "measure": 0},
+            {"type": "position", "t_s": 1.0, "measure": -1},
+            {"type": "position", "t_s": 1.0, "measure": 1.5},
+            {"type": "position", "t_s": 1.0, "measure": "uno"},
+            {"type": "position", "t_s": 1.0, "measure": True},
+        ],
+    )
+    def test_invalid_position_is_rejected_without_closing(
+        self, session_id: str, message: dict[str, object]
+    ) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json(message)
+
+            error = websocket.receive_json()
+
+            assert error["type"] == "error"
+            assert error["code"] == "invalid_event_payload"
+
+            # La sesión sigue viva: una posición buena después de la mala funciona.
+            websocket.send_json({"type": "position", "t_s": 0.0, "measure": 0})
+            assert websocket.receive_json()["position_s"] == 0.0
+
+    def test_same_measure_inside_the_window_is_not_broadcast(self, session_id: str) -> None:
+        """Dos posiciones seguidas del mismo compás solo emiten un `state`.
+
+        Se comprueba por orden: si la segunda también se difundiera, el segundo
+        mensaje sería su `state` (idle) y no el del `note_on` (playing).
+        """
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 1.0, "measure": 0})
+            websocket.send_json({"type": "position", "t_s": 1.2, "measure": 0})
+            websocket.send_json({"type": "note_on", "pitch": 60, "velocity": 80, "t_s": 1.2})
+
+            first = websocket.receive_json()
+            second = websocket.receive_json()
+
+        assert (first["status"], first["position_s"]) == ("idle", 1.0)
+        assert second["status"] == "playing"
+        # La posición sí se guardó aunque no se difundiera.
+        assert second["position_s"] == 1.2
+
+    def test_a_measure_change_is_broadcast_immediately(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "position", "t_s": 1.0, "measure": 0})
+            websocket.send_json({"type": "position", "t_s": 1.1, "measure": 1})
+
+            first = websocket.receive_json()
+            second = websocket.receive_json()
+
+        assert first["current_measure"] == 0
+        assert second["current_measure"] == 1
+
+
+class TestPositionPushThrottle:
+    """Umbral del broadcast, puro y con el instante inyectado."""
+
+    def test_first_position_always_pushes(self) -> None:
+        assert api.position_push_due(None, 0, 10.0) is True
+
+    def test_same_measure_inside_the_window_does_not_push(self) -> None:
+        assert api.position_push_due((10.0, 2), 2, 10.2) is False
+
+    def test_same_measure_after_the_window_pushes(self) -> None:
+        assert api.position_push_due((10.0, 2), 2, 10.5) is True
+        assert api.position_push_due((10.0, 2), 2, 11.0) is True
+
+    def test_a_new_measure_pushes_immediately(self) -> None:
+        assert api.position_push_due((10.0, 2), 3, 10.01) is True
+        assert api.position_push_due((10.0, 2), None, 10.01) is True
+
+    def test_a_null_measure_repeated_does_not_push(self) -> None:
+        assert api.position_push_due((10.0, None), None, 10.1) is False
+
+
 class _RecordingSocket:
     """Doble de WebSocket que solo apunta lo que le llega."""
 
@@ -322,6 +448,7 @@ class _BrokenSocket:
 def clean_registry() -> None:
     """El registro de conexiones es estado de módulo: cada test parte vacío."""
     api._session_sockets.clear()
+    api._last_position_push.clear()
 
 
 class TestBroadcast:

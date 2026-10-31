@@ -1,6 +1,7 @@
 // description: Panel de detalle de la pieza seleccionada, con acceso al piano, la práctica y carga de MIDI (B-027.3).
 // context: "Continuar en Learn" manda la pieza al piano por el almacén del navegador;
-// "Practicar" abre una sesión real (B-012.1) y lleva a su vista.
+// "Practicar" abre una sesión real (B-012.1), publica la pieza en el almacén para que el
+// piano la cargue al entrar (B-032.1) y lleva a su vista.
 
 "use client";
 
@@ -9,6 +10,7 @@ import { useState } from "react";
 
 import { ApiError, createSession } from "../../../lib/api-client";
 import { publishPianoPiece } from "../../../lib/piece-store";
+import { publishPracticePiece } from "../../../lib/session-piece";
 import { MidiUploader } from "../../MidiUploader";
 
 import type { SongDetailPanelProps } from "./SongDetailPanel.types";
@@ -53,6 +55,10 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
     setError(null);
     try {
       const session = await createSession(song.id);
+      // B-032.1: el piano es la vista de la sesión. La pieza se publica antes
+      // de navegar, cargada y parada, para que al entrar no se vea la demo
+      // `p17` mientras se practica y se evalúa otra pieza.
+      publishPracticePiece(song);
       router.push(`/${session.id}`);
     } catch (failure: unknown) {
       setError(failure instanceof ApiError ? failure.message : "No se pudo abrir la sesión.");

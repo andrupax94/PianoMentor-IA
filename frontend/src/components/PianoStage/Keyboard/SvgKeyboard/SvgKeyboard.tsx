@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { keyShadow, shadowGradientId } from "../../../../lib/key-shadow";
-import { isKeyInRange } from "../../../../lib/pitch";
+import { isKeyInRange, keyIdToPitch } from "../../../../lib/pitch";
 import PianoSvg from "./PianoVirtual88Pressed";
 import styles from "./SvgKeyboard.module.css";
 import type { SvgKeyboardProps } from "./SvgKeyboard.types";
@@ -173,11 +173,16 @@ export function SvgKeyboard({
   toKey = DEFAULT_TO_KEY,
   activeIds = [],
   labels = {},
+  onKeyDown,
+  onKeyUp,
 }: SvgKeyboardProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const normalizedRef = useRef(false);
   // Fuerza repintado al redimensionar (la deformación de las letras cambia).
   const [tick, setTick] = useState(0);
+  // Callbacks de puntero siempre frescos sin volver a enganchar los listeners.
+  const pointerHandlers = useRef({ onKeyDown, onKeyUp });
+  pointerHandlers.current = { onKeyDown, onKeyUp };
   // Claves estables para no repintar en cada render del padre.
   const activeKey = activeIds.join(",");
   const labelsKey = Object.entries(labels)
@@ -192,6 +197,58 @@ export function SvgKeyboard({
     const observer = new ResizeObserver(() => setTick((t) => t + 1));
     observer.observe(root);
     return () => observer.disconnect();
+  }, []);
+
+  // Pulsación con ratón, dedo o lápiz (B-032.2): una tecla por puntero, para
+  // que el táctil pueda mantener varias. `pointerleave` suelta todo lo que
+  // quede, para no dejar notas colgadas al salir del teclado.
+  useEffect(() => {
+    const root = svgRef.current;
+    if (!root) return;
+
+    const pressed = new Map<number, number>();
+
+    const pitchAt = (target: EventTarget | null): number | null => {
+      if (!(target instanceof Element)) return null;
+      const group = target.closest("g[data-key-id]");
+      const id = group?.getAttribute("data-key-id");
+      return id ? keyIdToPitch(id) : null;
+    };
+
+    const release = (pointerId: number) => {
+      const pitch = pressed.get(pointerId);
+      if (pitch === undefined) return;
+      pressed.delete(pointerId);
+      pointerHandlers.current.onKeyUp?.(pitch);
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      // Solo el botón principal del ratón; táctil y lápiz siempre.
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      const pitch = pitchAt(event.target);
+      if (pitch === null || pressed.has(event.pointerId)) return;
+      event.preventDefault();
+      pressed.set(event.pointerId, pitch);
+      pointerHandlers.current.onKeyDown?.(pitch);
+    };
+
+    const onPointerUp = (event: PointerEvent) => release(event.pointerId);
+    const onPointerCancel = (event: PointerEvent) => release(event.pointerId);
+    const releaseAll = () => {
+      for (const pointerId of [...pressed.keys()]) release(pointerId);
+    };
+
+    root.addEventListener("pointerdown", onPointerDown);
+    root.addEventListener("pointerup", onPointerUp);
+    root.addEventListener("pointercancel", onPointerCancel);
+    root.addEventListener("pointerleave", releaseAll);
+    return () => {
+      root.removeEventListener("pointerdown", onPointerDown);
+      root.removeEventListener("pointerup", onPointerUp);
+      root.removeEventListener("pointercancel", onPointerCancel);
+      root.removeEventListener("pointerleave", releaseAll);
+      releaseAll();
+    };
   }, []);
 
   useEffect(() => {

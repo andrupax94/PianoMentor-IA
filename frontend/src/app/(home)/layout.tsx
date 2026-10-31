@@ -1,5 +1,5 @@
 // description: Layout de la portada, con y sin sesión de práctica activa.
-// context: La práctica es la propia portada: al compartir layout entre / y /{id}, la navegación no remonta el piano ni el panel del mentor y el chat se queda donde estaba. La sesión la monta la página [sessionId] con PracticeBridge.
+// context: La práctica es la propia portada: al compartir layout entre / y /{id}, la navegación no remonta el piano ni el panel del mentor y el chat se queda donde estaba. La sesión la monta la página [sessionId] con PracticeBridge. El transporte vive en TransportProvider (B-032.2), por encima del piano y de las páginas, para que la sesión y el piano compartan un solo reloj.
 
 import type { ReactNode } from "react";
 
@@ -7,17 +7,20 @@ import AppFooter from "../../components/AppFooter/AppFooter";
 import { AppHeader } from "../../components/AppHeader/AppHeader";
 import { MentorPanel } from "../../components/MentorPanel/MentorPanel";
 import { PlaybackArea } from "../../components/PlaybackArea/PlaybackArea";
+import { TransportProvider } from "../../components/TransportProvider/TransportProvider";
 import styles from "./layout.module.css";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <AppHeader />
-      <div className={styles.layout}>
-        <PlaybackArea />
-        <MentorPanel />
-      </div>
-      {children}
+      <TransportProvider>
+        <div className={styles.layout}>
+          <PlaybackArea />
+          <MentorPanel />
+        </div>
+        {children}
+      </TransportProvider>
       <AppFooter />
     </div>
   );

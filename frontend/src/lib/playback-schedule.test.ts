@@ -10,6 +10,7 @@ import {
   eventsInWindow,
   MAX_TEMPO_FACTOR,
   MIN_TEMPO_FACTOR,
+  musicalPosition,
   pitchToFrequency,
   tempoFactorFor,
 } from "./playback-schedule";
@@ -105,6 +106,23 @@ describe("clampPosition", () => {
     expect(clampTempoFactor(0.1)).toBe(MIN_TEMPO_FACTOR);
     expect(clampTempoFactor(99)).toBe(MAX_TEMPO_FACTOR);
     expect(clampTempoFactor(Number.NaN)).toBe(1.0);
+  });
+});
+
+describe("musicalPosition", () => {
+  it("deshace el escalado del tempo: la posición vuelve a tiempo de partitura (B-032.2)", () => {
+    // A 0.5 el motor tarda el doble: 2 s de transporte son 1 s de partitura.
+    expect(musicalPosition(2, 0.5)).toBe(1);
+    // A 2.0 va al doble: 1 s de transporte son 2 s de partitura.
+    expect(musicalPosition(1, 2.0)).toBe(2);
+    expect(musicalPosition(3.5, 1.0)).toBe(3.5);
+  });
+
+  it("recorta factor y posición como el resto del motor", () => {
+    expect(musicalPosition(2, 0.1)).toBe(2 * MIN_TEMPO_FACTOR);
+    expect(musicalPosition(2, 99)).toBe(2 * MAX_TEMPO_FACTOR);
+    expect(musicalPosition(2, Number.NaN)).toBe(2);
+    expect(musicalPosition(-5, 1)).toBe(0);
   });
 });
 

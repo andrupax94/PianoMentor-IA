@@ -1,10 +1,12 @@
 /* description: Estilos del marco del teclado SVG. */
-/* context: B-007.1; el SVG se estira (preserveAspectRatio none) para llenar el
-   contenedor con teclas planas como el diseño; la altura es plana y controlada. */
+/* context: B-007.1; el SVG se estira (preserveAspectRatio none) para llenar el contenedor con teclas planas como el diseño; la altura es plana y controlada. B-032.2: `touch-action: none` para que tocar el piano en pantalla no haga scroll ni zoom y el puntero llegue entero a la tecla. */
 
 .frame {
   width: 100%;
   overflow-x: hidden;
+  /* El teclado se toca con ratón, dedo o lápiz: nada de gestos del navegador. */
+  touch-action: none;
+  user-select: none;
 }
 
 .svg {

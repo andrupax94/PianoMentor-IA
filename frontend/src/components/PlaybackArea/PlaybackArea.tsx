@@ -1,7 +1,9 @@
-"use client";
-// description: Columna principal: nace el transporte (usePlayback) y decide qué suena, por este orden: la pieza publicada en el almacén (subida a mano, o pieza del catálogo elegida en la Library, que pide sus notas al backend), o la demo p17 (la reducción para piano de la Sinfonía n.º 5). Además gestiona las intervenciones del agente: la demostración (B-012.5) recorta con demoSubScore la ventana de compases de la pieza de la sesión y la carga al tempo pedido; el acompañamiento (B-012.7) suena solo la mano que mandó el backend desde el inicio de la sección, con la pieza entera aún en la cascada, y al acabar la sección vuelve la pieza normal. Reparte player a PlayerBar y PianoStage, se suscribe al canal de comandos del agente para pausar, reanudar y parar, y decide la portada de la barra con coverForPiece (exportada y con test).
-// context: B-007.3/B-027.3/B-012.5/B-012.7; client component para no arrastrar AppHeader ni MentorPanel al bundle de cliente (page.tsx sigue siendo servidor). Si la pieza llega con autoPlay, arranca sola al cargarla. Como el transporte vive aquí, es el único punto que puede tocar el reloj de reproducción: el agente le manda órdenes por agent-commands y sus intervenciones llegan por agent-playback, sin que el WS toque el motor. Mientras una intervención está activa la carga normal no la pisa (agentActiveRef) y al terminar se fuerza con reloadKey. El título y la portada de la barra también nacen aquí (la demo, el nombre del archivo subido o la ficha elegida), así que siempre nombran la pieza que suena.
+// description: Columna principal: consume el transporte único de la portada (useTransport) y decide qué suena, por este orden: la pieza publicada en el almacén (subida a mano, o pieza del catálogo elegida en la Library, que pide sus notas al backend), o la demo p17 (la reducción para piano de la Sinfonía n.º 5). Además gestiona las intervenciones del agente: la demostración (B-012.5) recorta con demoSubScore la ventana de compases de la pieza de la sesión y la carga al tempo pedido; el acompañamiento (B-012.7) suena solo la mano que mandó el backend desde el inicio de la sección, con la pieza entera aún en la cascada, y al acabar la sección vuelve la pieza normal. Reparte player a PlayerBar y PianoStage, se suscribe al canal de comandos del agente para pausar, reanudar y parar, y decide la portada de la barra con coverForPiece (exportada y con test).
+// context: B-007.3/B-027.3/B-012.5/B-012.7/B-032.2; client component para no arrastrar AppHeader ni MentorPanel al bundle de cliente (page.tsx sigue siendo servidor). Si la pieza llega con autoPlay, arranca sola al cargarla. El transporte ya no nace aquí sino en TransportProvider (layout), así que la sesión y el piano comparten reloj; este componente sigue siendo el único punto que decide qué se carga y quién puede tocar el reloj, y el agente le manda órdenes por agent-commands y sus intervenciones llegan por agent-playback, sin que el WS toque el motor. En una ruta de sesión no carga la demo mientras la pieza de la sesión viaja al almacén (B-032.2). Mientras una intervención está activa la carga normal no la pisa (agentActiveRef) y al terminar se fuerza con reloadKey. El título y la portada de la barra también nacen aquí (la demo, el nombre del archivo subido o la ficha elegida), así que siempre nombran la pieza que suena.
 
+"use client";
+
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { demoSubScore } from "../../lib/agent-demo";
@@ -12,7 +14,7 @@ import { subscribeAgentCommand } from "../../lib/agent-commands";
 import type { AgentHand } from "../../lib/hand-color";
 import { getPianoPiece, subscribePianoPiece } from "../../lib/piece-store";
 import type { PianoPiece } from "../../lib/piece-store";
-import { usePlayback } from "../../lib/usePlayback";
+import { useTransport } from "../../lib/transport-context";
 import { PlayerBar } from "../PlayerBar/PlayerBar";
 import { PianoStage } from "../PianoStage/PianoStage";
 import styles from "./PlaybackArea.module.css";
@@ -40,8 +42,16 @@ export function coverForPiece(piece: PianoPiece | null): string | null {
   return piece.cover;
 }
 
+/** Ruta de una sesión de práctica: el id es un UUID4 (POST /sessions). */
+const SESSION_PATH =
+  /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps) {
-  const player = usePlayback();
+  const player = useTransport();
+  const pathname = usePathname();
+  // B-032.2: en una ruta de sesión no se carga la demo mientras la pieza de la
+  // sesión viaja al almacén; antes se veía `p17` un instante en cada F5.
+  const inSession = SESSION_PATH.test(pathname ?? "");
   const { load, play, pause, seek, stop } = player;
   // La pieza llega por el almacén: quien la elige puede estar en la Library y,
   // tras navegar, el transporte la encuentra ya puesta.
@@ -74,6 +84,10 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     // manda el agente: la carga normal espera (y se re-ejecuta al terminar,
     // vía reloadKey).
     if (agentActiveRef.current) return;
+
+    // B-032.2: en /{id} sin pieza publicada todavía (F5, URL directa) se espera
+    // a la reconciliación de PracticeBridge; cargar la demo hacía parpadear p17.
+    if (inSession && piece === null) return;
 
     // Partitura ya en memoria (subida a mano): se carga tal cual, sin backend.
     if (piece?.kind === "upload") {
@@ -109,7 +123,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     return () => {
       cancelled = true;
     };
-  }, [load, play, piece, reloadKey]);
+  }, [inSession, load, play, piece, reloadKey]);
 
   // Las intervenciones del agente (B-012.5/B-012.7): la demostración recorta la
   // ventana de compases; el acompañamiento deja sonando solo la mano de la IA
@@ -203,7 +217,9 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
   // en la Library: el título siempre es la pieza que suena, nunca un marcador.
   const songTitle =
     piece === null
-      ? DEMO_SONG_TITLE
+      ? inSession
+        ? "Cargando pieza…"
+        : DEMO_SONG_TITLE
       : piece.kind === "upload"
         ? piece.filename
         : piece.title;

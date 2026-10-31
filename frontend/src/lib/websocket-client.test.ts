@@ -1,11 +1,12 @@
-// description: Tests del cliente WebSocket con socket falso: composición de la URL (barra final, escapado y variable vacía), backoff exponencial con tope, redondeo del reloj, forma de note_on/note_off, normalización del sobre del servidor, estados de conexión, envío solo con el socket abierto, entrega de estado, errores y acciones del agente (B-012.5/B-012.7, incluido el acompañamiento con su mano y sus notas), medida de la latencia con ping/pong (B-012.7), reconexión con retardo creciente, reinicio del contador cuando la sesión vuelve a estar viva y ausencia de reconexión al cerrar a propósito.
-// context: Criterio de B-012.1/B-012.5/B-012.7; se ejecutan con `npm run test` (Vitest) sin DOM.
+// description: Tests del cliente WebSocket con socket falso: composición de la URL (barra final, escapado y variable vacía), backoff exponencial con tope, redondeo del reloj, forma de note_on/note_off, normalización del sobre del servidor, estados de conexión, envío solo con el socket abierto, entrega de estado, errores y acciones del agente (B-012.5/B-012.7, incluido el acompañamiento con su mano y sus notas), medida de la latencia con ping/pong (B-012.7), reconexión con retardo creciente, reinicio del contador cuando la sesión vuelve a estar viva, ausencia de reconexión al cerrar a propósito y cierre aplazado de un socket en CONNECTING (B-032.1).
+// context: Criterio de B-012.1/B-012.5/B-012.7/B-032.1; se ejecutan con `npm run test` (Vitest) sin DOM.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   SessionSocket,
   encodeNoteEvent,
+  encodePosition,
   parseServerMessage,
   reconnectDelay,
   roundSeconds,
@@ -112,6 +113,24 @@ describe("encodeNoteEvent", () => {
   });
 });
 
+describe("encodePosition", () => {
+  it("manda la posición sin pitch y redondea el reloj (B-032.2)", () => {
+    expect(encodePosition({ t_s: 1.23456, measure: 2 })).toEqual({
+      type: "position",
+      t_s: 1.235,
+      measure: 2,
+    });
+  });
+
+  it("acepta una pieza sin rejilla de compases", () => {
+    expect(encodePosition({ t_s: 0, measure: null })).toEqual({
+      type: "position",
+      t_s: 0,
+      measure: null,
+    });
+  });
+});
+
 describe("parseServerMessage", () => {
   it("acepta el texto JSON del servidor", () => {
     const message = parseServerMessage('{"type":"state","session_id":"s1","status":"playing"}');
@@ -202,6 +221,23 @@ describe("SessionSocket", () => {
     expect(sockets[0].sent).toEqual([
       '{"type":"note_on","pitch":60,"velocity":80,"t_s":1}',
       '{"type":"note_off","pitch":60,"velocity":0,"t_s":1.5}',
+    ]);
+  });
+
+  it("manda la posición del transporte solo con el socket abierto (B-032.2)", () => {
+    const { client, sockets } = harness();
+    client.connect();
+
+    client.sendPosition({ t_s: 1.2, measure: 0 });
+    expect(sockets[0].sent).toEqual([]);
+
+    sockets[0].open();
+    client.sendPosition({ t_s: 1.2, measure: 0 });
+    client.sendPosition({ t_s: 2.4, measure: null });
+
+    expect(sockets[0].sent).toEqual([
+      '{"type":"position","t_s":1.2,"measure":0}',
+      '{"type":"position","t_s":2.4,"measure":null}',
     ]);
   });
 
@@ -375,6 +411,34 @@ describe("SessionSocket", () => {
     sockets[0].serverClose();
 
     expect(sockets[0].closed).toEqual([undefined]);
+    expect(scheduled).toEqual([]);
+    expect(client.connectionStatus).toBe("closed");
+  });
+
+  it("aplaza el cierre de un socket en CONNECTING hasta que abre (B-032.1)", () => {
+    const { client, sockets, statuses, scheduled } = harness();
+    client.connect();
+
+    // Cerrar en CONNECTING haría que el navegador avisara por consola.
+    client.close();
+    expect(sockets[0].closed).toEqual([]);
+    expect(client.connectionStatus).toBe("closed");
+
+    sockets[0].open();
+    expect(sockets[0].closed).toEqual([undefined]);
+    // No se anuncia «open» ni se reintenta: el cierre era cosa nuestra.
+    expect(statuses).toEqual(["connecting", "closed"]);
+    expect(scheduled).toEqual([]);
+  });
+
+  it("tras cerrar en CONNECTING, el onclose del socket no reconecta", () => {
+    const { client, sockets, scheduled } = harness();
+    client.connect();
+
+    client.close();
+    sockets[0].open();
+    sockets[0].serverClose();
+
     expect(scheduled).toEqual([]);
     expect(client.connectionStatus).toBe("closed");
   });

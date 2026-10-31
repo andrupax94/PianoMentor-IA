@@ -1,10 +1,8 @@
 // description: Compás actual a partir de la rejilla y la posición del transporte.
-// context: B-008.3; puro y sin DOM. La posición va escalada por el factor de tempo,
-// así que se compara contra los inicios originales multiplicando por el factor: el
-// mismo criterio que buildSchedule y la cascada de notas.
+// context: B-008.3; puro y sin DOM. La posición va escalada por el factor de tempo, así que se compara contra los inicios originales multiplicando por el factor: el mismo criterio que buildSchedule y la cascada de notas.
 
 import type { PieceMeasures } from "./api-client";
-import { clampTempoFactor } from "./playback-schedule";
+import { musicalPosition } from "./playback-schedule";
 
 /**
  * Índice 0-based del compás que contiene `position_s`, o `null` sin rejilla.
@@ -21,7 +19,7 @@ export function measureIndexAt(
 ): number | null {
   const starts = measures?.starts_s;
   if (!starts || starts.length === 0) return null;
-  const target = Math.max(position_s, 0) * clampTempoFactor(tempoFactor);
+  const target = musicalPosition(position_s, tempoFactor);
   let lo = 0;
   let hi = starts.length;
   while (lo < hi) {

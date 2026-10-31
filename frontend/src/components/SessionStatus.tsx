@@ -68,7 +68,8 @@ export function SessionStatus({
             Control: <strong>{CONTROL_LABELS[effectiveControl(state, action)]}</strong>
           </p>
           <p>
-            Compás: <strong>{state.current_measure ?? "—"}</strong>
+            {/* El backend guarda el índice 0-based; el panel cuenta como la gente: 1-based. */}
+            Compás: <strong>{state.current_measure == null ? "—" : state.current_measure + 1}</strong>
           </p>
         </>
       )}

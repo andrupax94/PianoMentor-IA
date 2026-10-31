@@ -6,6 +6,7 @@ import re
 import secrets
 import sqlite3
 import tempfile
+import time
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -117,9 +118,36 @@ NOT_FOUND_CODES = {"session_not_found", "piece_not_found", "piece_file_not_found
 WS_CLOSE_SESSION_NOT_FOUND = 4404
 WS_CLOSE_INTERNAL_ERROR = 1011
 
+# Cada cuánto se difunde la posición del transporte (B-032.2). El navegador la
+# manda a 4 Hz, pero el `state` solo sale cuando cambia el compás o cada 500 ms:
+# un mensaje por frame saturaría el canal y competiría con el `ping`/`pong` que
+# decide si el acompañamiento se degrada (B-012.7).
+POSITION_PUSH_MS = 500
+
 # Conexiones WS abiertas por sesión, solo para el broadcast del estado (B-012.1).
 # Vive en la memoria del proceso: el MVP corre con un worker (ver ARCHITECTURE.md).
 _session_sockets: dict[str, set[WebSocket]] = {}
+
+# Última posición difundida por sesión: (instante monotónico, compás). Solo
+# decide el ritmo del broadcast; la posición real vive en SQLite.
+_last_position_push: dict[str, tuple[float, int | None]] = {}
+
+
+def position_push_due(
+    previous: tuple[float, int | None] | None,
+    measure: int | None,
+    now_s: float,
+) -> bool:
+    """True si toca difundir la posición: es la primera, cambia el compás o pasaron 500 ms.
+
+    Pura y con el instante inyectado para poder probar el umbral sin dormir.
+    """
+    if previous is None:
+        return True
+    last_s, last_measure = previous
+    if measure != last_measure:
+        return True
+    return now_s - last_s >= POSITION_PUSH_MS / 1000
 
 
 def _register_socket(session_id: str, websocket: WebSocket) -> None:
@@ -133,6 +161,8 @@ def _unregister_socket(session_id: str, websocket: WebSocket) -> None:
     sockets.discard(websocket)
     if not sockets:
         _session_sockets.pop(session_id, None)
+        # Sin conexiones no hay a quién difundir: el próximo cliente empieza limpio.
+        _last_position_push.pop(session_id, None)
 
 
 async def _broadcast_state(session_id: str, state: dict[str, object]) -> None:
@@ -1118,6 +1148,27 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
             # WebSocket no es lo bastante rápido (B-012.7).
             if isinstance(event, Mapping) and event.get("type") == "ping":
                 await websocket.send_json({"type": "pong", "t_s": event.get("t_s")})
+                continue
+
+            # Posición del transporte (B-032.2): se guarda siempre, pero el
+            # `state` solo se difunde cuando cambia el compás o cada 500 ms.
+            if isinstance(event, Mapping) and event.get("type") == "position":
+                try:
+                    state = practice_service.receive_position(session_id, event)
+                except ValidationError as exc:
+                    await websocket.send_json(
+                        {"type": "error", "code": exc.code, "message": exc.message}
+                    )
+                    continue
+
+                measure = state.get("current_measure")
+                measure_index = measure if isinstance(measure, int) else None
+                now_s = time.monotonic()
+                if position_push_due(
+                    _last_position_push.get(session_id), measure_index, now_s
+                ):
+                    _last_position_push[session_id] = (now_s, measure_index)
+                    await _broadcast_state(session_id, state)
                 continue
 
             try:

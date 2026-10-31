@@ -1,6 +1,5 @@
 // description: Props del contenedor del piano completo.
-// context: B-007.3/B-012.7; el transporte nace en PlaybackArea y llega por props, porque la
-// cuadrícula y el teclado son hermanos y comparten la misma posición. `agentHand` tiñe la mano de la IA.
+// context: B-007.3/B-012.7/B-032.2; el transporte nace en TransportProvider (layout) y PlaybackArea lo reparte por props, porque la cuadrícula y el teclado son hermanos y comparten la misma posición. `agentHand` tiñe la mano de la IA.
 
 import type { AgentHand } from "../../lib/hand-color";
 import type { PlaybackHandle } from "../../lib/usePlayback";

@@ -1,5 +1,5 @@
-// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5/B-012.7): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control/accompany, su ventana, su mano y sus notas), mide la latencia del canal con ping/pong y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent y parseServerMessage.
-// context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el reloj se inyectan en los tests. Un cierre pedido con close() no reconecta. La RTT medida decide si el acompañamiento se degrada a demostración (B-012.7).
+// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5/B-012.7/B-032.1/B-032.2): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s} y la posición del transporte con {type: "position", t_s, measure}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control/accompany, su ventana, su mano y sus notas), mide la latencia del canal con ping/pong y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent, encodePosition y parseServerMessage.
+// context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el reloj se inyectan en los tests. Un cierre pedido con close() no reconecta, y si el socket aún está en CONNECTING el cierre se aplaza a onopen para no disparar el aviso del navegador (B-032.1). La RTT medida decide si el acompañamiento se degrada a demostración (B-012.7).
 
 import type { SessionState } from "./api-client";
 
@@ -16,6 +16,16 @@ export interface NoteEvent {
 }
 
 export type NoteEventType = "note_on" | "note_off";
+
+/**
+ * Posición del transporte (B-032.2). `t_s` va en segundos de partitura **sin
+ * escalar** por el tempo, la misma línea temporal que la rejilla y la
+ * evaluación; `measure` es el índice 0-based del compás, o `null` sin rejilla.
+ */
+export interface PositionEvent {
+  t_s: number;
+  measure: number | null;
+}
 
 /** Estado que empuja el servidor tras cada evento. */
 export interface SessionStateMessage extends SessionState {
@@ -160,6 +170,25 @@ export function encodeNoteEvent(
 }
 
 /**
+ * Da forma al mensaje de posición del transporte (B-032.2).
+ *
+ * No se envía `pitch` ni `velocity`: no es un evento MIDI. El redondeo es el
+ * mismo que el de las notas para que `t_s` de una nota y de la posición se
+ * puedan comparar sin sorpresas de coma flotante.
+ */
+export function encodePosition(position: PositionEvent): {
+  type: "position";
+  t_s: number;
+  measure: number | null;
+} {
+  return {
+    type: "position",
+    t_s: roundSeconds(position.t_s),
+    measure: position.measure,
+  };
+}
+
+/**
  * Normaliza un mensaje del servidor; `null` si no es un objeto con `type`.
  * Acepta texto o el objeto ya parseado.
  */
@@ -201,6 +230,8 @@ export class SessionSocket {
   private status: ConnectionStatus = "closed";
   private attempts = 0;
   private closedByUs = false;
+  /** Cierre pedido mientras el socket estaba en `CONNECTING` (B-032.1). */
+  private closeWhenOpen = false;
   private readonly url: string;
   private readonly now: () => number;
   /** Pings enviados y todavía sin `pong`, por su `t_s`. */
@@ -231,6 +262,14 @@ export class SessionSocket {
     const socket = (this.options.createSocket ?? defaultCreateSocket)(this.url);
     this.socket = socket;
     socket.onopen = () => {
+      // Cierre pedido mientras conectaba (B-032.1): se cierra ahora, sin
+      // anunciar «open» ni reconectar.
+      if (this.closeWhenOpen) {
+        this.closeWhenOpen = false;
+        this.socket = null;
+        socket.close();
+        return;
+      }
       this.setStatus("open");
     };
     socket.onmessage = (event) => this.handleMessage(event.data);
@@ -252,6 +291,14 @@ export class SessionSocket {
   }
 
   /**
+   * Manda la posición del transporte (B-032.2). Se descarta si el socket no
+   * está abierto, igual que las notas: la posición no se encola.
+   */
+  sendPosition(position: PositionEvent): void {
+    this.send(encodePosition(position));
+  }
+
+  /**
    * Mide la latencia del canal (B-012.7): manda el instante actual y espera su
    * eco en `pong`. Es lo que decide si el acompañamiento puede sonar junto al
    * estudiante o hay que degradarlo a demostración.
@@ -263,13 +310,30 @@ export class SessionSocket {
     this.send({ type: "ping", t_s: sentAt });
   }
 
-  /** Cierra a propósito: libera el socket y corta las reconexiones. */
+  /**
+   * Cierra a propósito: libera el socket y corta las reconexiones.
+   *
+   * Cerrar un socket en `CONNECTING` hace que el navegador avise por consola
+   * («WebSocket is closed before the connection is established»), y en
+   * desarrollo React monta el efecto dos veces (StrictMode). Por eso el cierre
+   * se aplaza a `onopen`: el estado lógico ya es `closed` y no se reconecta,
+   * pero el socket real se cierra cuando la conexión termina de abrirse.
+   */
   close(): void {
     this.closedByUs = true;
-    const socket = this.socket;
-    this.socket = null;
     this.pendingPings.clear();
-    socket?.close();
+    const socket = this.socket;
+    if (!socket) {
+      this.setStatus("closed");
+      return;
+    }
+    if (this.status === "connecting") {
+      this.closeWhenOpen = true;
+      this.setStatus("closed");
+      return;
+    }
+    this.socket = null;
+    socket.close();
     this.setStatus("closed");
   }
 

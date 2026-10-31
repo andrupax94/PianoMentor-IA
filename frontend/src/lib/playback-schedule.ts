@@ -75,3 +75,15 @@ export function clampPosition(position_s: number, duration_s: number): number {
   if (!Number.isFinite(position_s)) return 0;
   return Math.min(Math.max(position_s, 0), Math.max(duration_s, 0));
 }
+
+/**
+ * Posición musical en segundos de partitura **sin escalar** (B-032.2).
+ *
+ * `position_s` del motor va escalado por el factor de tempo; la rejilla, la
+ * evaluación y el `t_s` de las notas hablan en tiempo de partitura. Multiplicar
+ * por el factor es la única conversión válida, y con factor ≠ 1 se nota: un
+ * `position_s` de 2 s a 0.5 son 1 s de partitura.
+ */
+export function musicalPosition(position_s: number, tempoFactor: number): number {
+  return Math.max(position_s, 0) * clampTempoFactor(tempoFactor);
+}
