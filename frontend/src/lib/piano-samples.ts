@@ -125,10 +125,13 @@ export function createPianoSampler(
     return null;
   }
 
-  function loadFile(file: SampleFile): Promise<AudioBuffer | null> {
+  function loadFile(file: SampleFile, onFileProgress?: (p: number) => void): Promise<AudioBuffer | null> {
     const key = keyOf(file.pitch, file.layer, file.tier);
     const already = loading.get(key) ?? decoded.get(key);
-    if (already && !(already instanceof Promise)) return Promise.resolve(already);
+    if (already && !(already instanceof Promise)) {
+      onFileProgress?.(1);
+      return Promise.resolve(already);
+    }
     if (already instanceof Promise) return already;
 
     stats.loading += 1;
@@ -143,22 +146,60 @@ export function createPianoSampler(
           if (cached) response = cached;
           else {
             response = await fetchImpl(url);
-            if (response && response.ok) void cache.put(url, response.clone());
+            if (response && response.ok) {
+              try { void cache.put(url, response.clone()); } catch { /* ignore */ }
+            }
           }
         } catch {
           response = await fetchImpl(url);
         }
-        if (!response || !response.ok) return null;
-        const buffer = await decode(ctx, await response.arrayBuffer());
-        decoded.set(key, buffer);
-        while (decoded.size > maxDecoded) {
-          const oldest = decoded.keys().next();
-          if (oldest.done) break;
-          decoded.delete(oldest.value);
+        if (!response || !response.ok) {
+          onFileProgress?.(1);
+          return null;
         }
+        // Medir bytes descargados para un progreso realista (U-004).
+        let buffer: AudioBuffer | null = null;
+        const contentLength = Number(response.headers?.get?.("content-length") || "0");
+        if (response.body && contentLength > 0) {
+          const reader = response.body.getReader();
+          const chunks: Uint8Array[] = [];
+          let loaded = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+              chunks.push(value);
+              loaded += value.length;
+              onFileProgress?.((loaded / contentLength) * 0.5);
+            }
+          }
+          const total = chunks.reduce((n, c) => n + c.length, 0);
+          const data = new Uint8Array(total);
+          let offset = 0;
+          for (const c of chunks) {
+            data.set(c, offset);
+            offset += c.length;
+          }
+          onFileProgress?.(0.5);
+          buffer = await decode(ctx, data.buffer);
+        } else {
+          const arrayBuffer = await response.arrayBuffer();
+          onFileProgress?.(0.5);
+          buffer = await decode(ctx, arrayBuffer);
+        }
+        if (buffer) {
+          decoded.set(key, buffer);
+          while (decoded.size > maxDecoded) {
+            const oldest = decoded.keys().next();
+            if (oldest.done) break;
+            decoded.delete(oldest.value);
+          }
+        }
+        onFileProgress?.(1);
         return buffer;
       } catch {
-        // Red o decodificación caída: la voz de reserva cubre esta tecla.
+        // Red o decodificacion caida: la voz de reserva cubre esta tecla.
+        onFileProgress?.(1);
         return null;
       } finally {
         stats.loading -= 1;
@@ -339,13 +380,15 @@ export function createPianoSampler(
       await ready;
       const wanted = [...(manifest?.files ?? [])];
       const total = wanted.length || 1;
-      let done = 0;
+      let completed = 0;
       options.onProgress?.(0);
-      // Carga secuencial simple para reportar progreso estable (U-004).
       for (const file of wanted) {
-        await loadFile(file);
-        done += 1;
-        options.onProgress?.(done / total);
+        await loadFile(file, (p) => {
+          const global = (completed + p) / total;
+          options.onProgress?.(global);
+        });
+        completed += 1;
+        options.onProgress?.(completed / total);
       }
       if (wanted.length === 0) options.onProgress?.(1);
     },
