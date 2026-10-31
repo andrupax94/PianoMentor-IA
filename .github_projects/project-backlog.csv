@@ -28,7 +28,7 @@ U-006,Formulario de registro de usuarios,"Registro abierto con wizard de página
 B-032,"La sesión manda en el piano: reloj único, modos de práctica y modo espera","Padre con sub-issues .1 pieza de la sesión y cierre del WebSocket, .2 transporte en contexto, reloj único, posición musical y puerto de entrada, .3 evaluación por mano, .4 modos de práctica, .5 gates y modo espera con cuenta atrás, .6 strikes y escalado determinista del agente.",P0,Semana 5,Arquitectura,Alto,L,In Progress,B-012
 B-032.1,La pieza de la sesion y el cierre ordenado del WebSocket,"Pieza de la sesion, publishPracticePiece, syncSessionPiece, SessionSocket.close() diferido.",P0,Semana 5,Frontend,Medio,M,Done,B-012;B-032
 B-032.2,"Transporte en contexto, reloj unico y posicion musical","TransportProvider, note-input, pc-keyboard-store, session-piece, transport-context, web-midi. t_s musical sin escalar.",P0,Semana 5,Frontend,Medio,M,Done,B-032.1
-B-032.3,Evaluacion por mano,Filtro hand en PerformanceEvaluator y EvaluationService.,P0,Semana 5,Backend,Alto,M,Backlog,B-032.2
+B-032.3,Evaluacion por mano,Filtro hand en PerformanceEvaluator y EvaluationService.,P0,Semana 5,Backend,Alto,M,Done,B-032.2
 B-032.4,"Modos de practica: observar, una mano y dos manos","Selector que gobierna cascada, audio y evaluacion.",P0,Semana 5,Frontend,Alto,M,Backlog,B-032.3
 B-032.5,Gates y modo espera con cuenta atras,Transporte no avanza sin la tecla con margen; count-in visible.,P0,Semana 5,Frontend,Alto,M,Backlog,B-032.4
 B-032.6,Strikes y escalado determinista del agente,3 fallos en el mismo compas -> intervencion determinista.,P0,Semana 5,Backend,Alto,M,Backlog,B-032.5

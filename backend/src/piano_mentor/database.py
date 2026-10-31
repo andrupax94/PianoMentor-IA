@@ -449,12 +449,14 @@ SESSION_COLUMNS = (
     "control",
     "current_measure",
     "position_s",
+    "mode",
+    "hand",
     "created_at",
     "updated_at",
 )
 
 # Campos que el servicio puede cambiar una vez creada la sesión (B-012.1).
-SESSION_UPDATABLE = ("status", "control", "current_measure", "position_s")
+SESSION_UPDATABLE = ("status", "control", "current_measure", "position_s", "mode", "hand")
 
 SESSION_EVENT_COLUMNS = ("session_id", "type", "pitch", "velocity", "t_s")
 

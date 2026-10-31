@@ -43,6 +43,8 @@ def _session_state(row: sqlite3.Row) -> dict[str, object]:
         "control": row["control"],
         "current_measure": row["current_measure"],
         "position_s": row["position_s"],
+        "mode": row["mode"],
+        "hand": row["hand"],
     }
 
 

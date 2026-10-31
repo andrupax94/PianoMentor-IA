@@ -1055,6 +1055,7 @@ def evaluate_session(
     from_measure: int | None = Query(default=None, ge=0),
     to_measure: int | None = Query(default=None, ge=0),
     tolerance_ms: int | None = Query(default=None),
+    hand: str | None = Query(default=None),
 ) -> EvaluationResponse:
     """Evalúa la interpretación registrada contra la partitura (B-012.2).
 
@@ -1071,6 +1072,7 @@ def evaluate_session(
             from_measure=from_measure,
             to_measure=to_measure,
             tolerance_ms=DEFAULT_TOLERANCE_MS if tolerance_ms is None else tolerance_ms,
+            hand=hand,
         )
     except ValidationError as exc:
         raise HTTPException(

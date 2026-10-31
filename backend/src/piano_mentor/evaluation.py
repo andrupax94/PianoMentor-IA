@@ -11,7 +11,7 @@ from pathlib import Path
 
 from . import database
 from .config import settings
-from .midi import MidiParseError, MidiService, NormalizedNote, group_chords
+from .midi import MidiParseError, MidiService, NormalizedNote, group_chords, hand_by_track, HAND_LEFT, HAND_RIGHT, HAND_UNKNOWN
 from .storage import LocalPieceStorage
 from .validators import ValidationError
 
@@ -67,6 +67,61 @@ def _expected_units(expected: Sequence[NormalizedNote]) -> list[tuple[float, tup
         (chord.start_seconds, tuple(sorted({note.pitch for note in chord.notes})))
         for chord in group_chords(expected)
     ]
+
+
+def _pitch_hands(notes: Sequence[NormalizedNote]) -> dict[int, set[str]]:
+    """Mapa altura -> conjunto de manos a las que pertenece (según la pieza).
+
+    Una altura que solo aparece en una pista de mano conocida pertenece a esa
+    mano; si la pista es ``unknown`` (una sola pista, sin comparación) la
+    altura se acepta en ambas manos; si la misma altura aparece en pistas de
+    las dos manos, se acepta en ambas.
+    """
+    hands_map = hand_by_track(notes)
+    result: dict[int, set[str]] = {}
+    for note in notes:
+        track_hand = hands_map.get(note.track, HAND_UNKNOWN)
+        if track_hand == HAND_UNKNOWN:
+            result.setdefault(note.pitch, set()).update({HAND_LEFT, HAND_RIGHT})
+        else:
+            result.setdefault(note.pitch, set()).add(track_hand)
+    return result
+
+
+def _filter_expected_by_hand(
+    notes: Sequence[NormalizedNote], hand: str
+) -> list[NormalizedNote]:
+    """Notas de la partitura que pertenecen a la mano pedida (o a ambas)."""
+    if hand == "both":
+        return list(notes)
+    hands_map = hand_by_track(notes)
+    result: list[NormalizedNote] = []
+    for note in notes:
+        track_hand = hands_map.get(note.track, HAND_UNKNOWN)
+        if track_hand == HAND_UNKNOWN or track_hand == hand:
+            result.append(note)
+    return result
+
+
+def _filter_received_by_hand(
+    events: Sequence[Mapping[str, object]], hand: str, pitch_hands: Mapping[int, set[str]]
+) -> list[Mapping[str, object]]:
+    """Eventos tocados cuya altura pertenece a la mano pedida.
+
+    Una altura que solo pertenece a la otra mano se ignora (no es ``extra``).
+    """
+    if hand == "both":
+        return list(events)
+    result: list[Mapping[str, object]] = []
+    for event in events:
+        if event.get("type") != "note_on":
+            result.append(event)
+            continue
+        pitch = int(event["pitch"])
+        hands = pitch_hands.get(pitch)
+        if hands is None or hand in hands or HAND_UNKNOWN in hands:
+            result.append(event)
+    return result
 
 
 def _received_notes(received: Sequence[Mapping[str, object]]) -> list[tuple[int, float]]:
@@ -208,6 +263,7 @@ class PerformanceEvaluator:
         received: Sequence[Mapping[str, object]],
         tolerance_ms: int = DEFAULT_TOLERANCE_MS,
         extras_window: tuple[float | None, float | None] | None = None,
+        hand: str = "both",
     ) -> dict[str, object]:
         """Devuelve el detalle por nota y el resumen de la interpretación.
 
@@ -218,7 +274,21 @@ class PerformanceEvaluator:
         `extras_window` acota qué sobras cuentan como `extra`: útil cuando la
         evaluación mira solo un trozo de la pieza, porque tocar más allá de la
         ventana pedida no es un error del estudiante.
+
+        `hand` filtra la evaluación a una mano (``"left"``, ``"right"`` o
+        ``"both"``). Con ``"both"`` (por defecto) se conserva el comportamiento
+        actual: se evalúa la partitura entera contra todo lo tocado.
         """
+        if hand not in ("left", "right", "both"):
+            raise ValidationError("invalid_hand", f"Mano inválida: {hand!r}")
+
+        # Filtro por mano ANTES de agrupar acordes, para que un acorde con notas
+        # de las dos manos se reparta entre las dos evaluaciones.
+        pitch_hands = _pitch_hands(expected)
+        if hand != "both":
+            expected = _filter_expected_by_hand(expected, hand)
+            received = _filter_received_by_hand(received, hand, pitch_hands)
+
         tolerance_s, detection_s = _tolerance_windows(tolerance_ms)
         units = _expected_units(expected)
         notes = _received_notes(received)
@@ -377,6 +447,7 @@ class EvaluationService:
         from_measure: int | None = None,
         to_measure: int | None = None,
         tolerance_ms: int = DEFAULT_TOLERANCE_MS,
+        hand: str | None = None,
     ) -> dict[str, object]:
         """Evalúa lo registrado en la sesión; ventana opcional por s o compases."""
         # Valida la tolerancia antes de tocar la base de datos: un valor fuera
@@ -387,13 +458,29 @@ class EvaluationService:
         row = self._piece_lookup(str(session["piece_id"]))
         if row is None:
             raise ValidationError("piece_not_found", f"No existe la pieza: {session['piece_id']}")
+
+        # Mano a evaluar: la explícita tiene prioridad; si no, la persistida en
+        # la sesión (por defecto "both").
+        if hand is None:
+            try:
+                hand = session["hand"]
+            except (KeyError, IndexError):
+                hand = "both"
+            if not hand:
+                hand = "both"
+        if hand not in ("left", "right", "both"):
+            raise ValidationError("invalid_hand", f"Mano inválida: {hand!r}")
+
         window = self._resolve_window(row, from_s, to_s, from_measure, to_measure)
 
         notes = self._note_reader(row)
-        expected = _filter_expected(notes, window)
-        received = _filter_received(self._event_reader(session_id), window, detection_s)
+        window_notes = _filter_expected(notes, window)
+        pitch_hands = _pitch_hands(window_notes)
+        expected = _filter_expected_by_hand(window_notes, hand)
+        received_window = _filter_received(self._event_reader(session_id), window, detection_s)
+        received = _filter_received_by_hand(received_window, hand, pitch_hands)
 
-        result = self._evaluator.evaluate(expected, received, tolerance_ms, extras_window=window)
+        result = self._evaluator.evaluate(expected, received, tolerance_ms, extras_window=window, hand="both")
         result.update(
             session_id=session_id,
             piece_id=row["id"],
