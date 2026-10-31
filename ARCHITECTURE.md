@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-10-31 15:32 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-10-31 15:59 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -855,6 +855,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/migrations/0007_create_users.sql
 ├── backend/src/piano_mentor/migrations/0008_add_password_and_color.sql
 ├── backend/src/piano_mentor/migrations/0009_add_registration.sql
+├── backend/src/piano_mentor/migrations/0011_add_practice_mode_and_hand.sql
 ├── backend/src/piano_mentor/passwords.py
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/schemas.py
@@ -1040,6 +1041,8 @@ piano-mentor-ai/
 ├── docs/issues/P-001/P-001.md
 ├── docs/issues/U-001/
 ├── docs/issues/U-001/U-001.md
+├── docs/issues/U-004/
+├── docs/issues/U-004/U-004.md
 ├── docs/issues/U-005/
 ├── docs/issues/U-005/U-005.md
 ├── docs/issues/U-006/
@@ -1644,7 +1647,7 @@ piano-mentor-ai/
 | `frontend/scripts/fetch-piano-samples.mjs` | Script idempotente (`npm run samples`) que descarga el banco Salamander (SHA-1 fijado), extrae 30 teclas x 2 capas y trascodifica a MP3 en dos calidades. | B-007.5; requiere ffmpeg en el PATH; --force regenera; el banco de 78 MB queda en frontend/.cache (ignorado por git). |
 | `frontend/src/lib/piano-model.ts` | Modelo de piano puro: elección de la muestra más cercana, detune en céntimos, mezcla de capas por velocity y voz aditiva de reserva (parciales, pesos y decaimientos). | B-007.5; sin WebAudio ni DOM: toda la matemática del timbre vive aquí para poder testearla. |
 | `frontend/src/lib/piano-model.test.ts` | Tests del modelo: cercanía y empates, tope de detune, cruce de capas con potencia constante, calidades por rango y voz aditiva. | Criterio de B-007.5; se ejecutan con `npm run test` (Vitest). |
-| `frontend/src/lib/piano-samples.ts` | Cargador perezoso de muestras (manifiesto, descargas deduplicadas, poda LRU y precarga por capas) y sampler que reproduce MP3 con detune y crossfade, con voz de reserva. | B-007.5; implementa el contrato PolySynth; la base es configurable con NEXT_PUBLIC_AUDIO_BASE_URL. |
+| `frontend/src/lib/piano-samples.ts` | Cargador de muestras de piano y sampler que las reproduce (carga simple con progreso, U-004). | B-007.5/U-004; expone el mismo contrato PolySynth que synth.ts, así el transporte de B-006 y el teclado del PC no cambian. Carga simple: todas las muestras de una vez con barra de progreso; si una muestra no está decodificada, suena la voz aditiva de reserva. |
 | `frontend/src/lib/piano-samples.test.ts` | Tests del sampler con dobles de WebAudio y fetch: manifiesto caído, semitonaje, mezcla de capas, reserva y poda de memoria. | Criterio de B-007.5; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/synth.test.ts` | Tests de la voz aditiva de reserva: parciales, envolvente, sostenido, silencio y robo de voces al saturar. | Criterio de B-007.5; con AudioContext doble, sin DOM. |
 | `frontend/src/lib/audio-doubles.ts` | Dobles de WebAudio y de fetch para tests (contexto, ganancias, osciladores, fuentes de buffer y rutas falsas). | Solo lo usan los tests de synth.ts y piano-samples.ts; la app no lo importa, así que no entra en el bundle. |

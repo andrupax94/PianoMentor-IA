@@ -1,7 +1,5 @@
-// description: Cargador perezoso de muestras de piano y sampler que las reproduce.
-// context: B-007.5; expone el mismo contrato PolySynth que synth.ts, así el transporte de
-// B-006 y el teclado del PC no cambian. Si una muestra aún no está decodificada, suena la
-// voz aditiva de reserva: la app nunca queda muda ni vuelve al timbre viejo.
+// description: Cargador de muestras de piano y sampler que las reproduce (carga simple con progreso, U-004).
+// context: B-007.5/U-004; expone el mismo contrato PolySynth que synth.ts, así el transporte de B-006 y el teclado del PC no cambian. Carga simple: todas las muestras de una vez con barra de progreso; si una muestra no está decodificada, suena la voz aditiva de reserva.
 
 import {
   clampDetune,
