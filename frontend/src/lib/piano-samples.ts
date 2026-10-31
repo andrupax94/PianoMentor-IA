@@ -382,14 +382,21 @@ export function createPianoSampler(
       const total = wanted.length || 1;
       let completed = 0;
       options.onProgress?.(0);
-      for (const file of wanted) {
-        await loadFile(file, (p) => {
-          const global = (completed + p) / total;
-          options.onProgress?.(global);
-        });
-        completed += 1;
-        options.onProgress?.(completed / total);
-      }
+      // Concurrencia limitada para acelerar la carga (U-004). El progreso se
+      // reporta por archivo completado. Si todo esta en cache, termina rapido.
+      const CONC = 6;
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(CONC, wanted.length) }, async () => {
+        while (cursor < wanted.length) {
+          const file = wanted[cursor];
+          cursor += 1;
+          if (!file) break;
+          await loadFile(file);
+          completed += 1;
+          options.onProgress?.(completed / total);
+        }
+      });
+      await Promise.all(workers);
       if (wanted.length === 0) options.onProgress?.(1);
     },
     get ready(): Promise<void> {
