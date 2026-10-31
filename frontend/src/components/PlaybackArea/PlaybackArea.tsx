@@ -229,6 +229,31 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
   return (
     <div className={styles.area}>
       <PlayerBar player={player} songTitle={songTitle} songCover={songCover} />
+      {player.soundProgress < 1 && (
+        <div
+          style={{
+            height: 4,
+            background: "rgba(255,255,255,0.15)",
+            borderRadius: 2,
+            overflow: "hidden",
+            margin: "4px 0",
+          }}
+          aria-label="Cargando sonidos del piano"
+          role="progressbar"
+          aria-valuenow={Math.round(player.soundProgress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            style={{
+              width: `${Math.round(player.soundProgress * 100)}%`,
+              height: "100%",
+              background: "#d4af37",
+              transition: "width 0.2s ease",
+            }}
+          />
+        </div>
+      )}
       <PianoStage player={player} octaves={octaves} agentHand={agentHand} />
     </div>
   );

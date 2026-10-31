@@ -36,6 +36,8 @@ export interface PianoSamplerOptions {
   fetchImpl?: typeof fetch;
   /** Tope de buffers decodificados; por defecto MAX_DECODED_BUFFERS. */
   maxDecoded?: number;
+  /** Callback de progreso de carga (0..1). */
+  onProgress?: (progress: number) => void;
 }
 
 export interface PianoSamplerStats {
@@ -54,6 +56,8 @@ export interface PianoSamplerStats {
 export interface PianoSampler extends PolySynth {
   /** Precarga en segundo plano una calidad (hq = ventana visible, lq = resto del teclado). */
   preload(tier: SampleTier): Promise<void>;
+  /** Carga simple: descarga todas las muestras reportando progreso (U-004). */
+  loadAll(): Promise<void>;
   /** Se resuelve cuando el manifiesto está cargado, haya ido bien o no. */
   readonly ready: Promise<void>;
   stats(): PianoSamplerStats;
@@ -319,6 +323,20 @@ export function createPianoSampler(
         }
       });
       await Promise.all(workers);
+    },
+    async loadAll(): Promise<void> {
+      await ready;
+      const wanted = [...(manifest?.files ?? [])];
+      const total = wanted.length || 1;
+      let done = 0;
+      options.onProgress?.(0);
+      // Carga secuencial simple para reportar progreso estable (U-004).
+      for (const file of wanted) {
+        await loadFile(file);
+        done += 1;
+        options.onProgress?.(done / total);
+      }
+      if (wanted.length === 0) options.onProgress?.(1);
     },
     get ready(): Promise<void> {
       return ready;

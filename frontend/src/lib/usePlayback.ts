@@ -50,6 +50,8 @@ export function usePlayback(tickMs = 25) {
   const [measures, setMeasures] = useState<PieceMeasures | null>(null);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
+  const [soundProgress, setSoundProgress] = useState(0);
+  const [soundReady, setSoundReady] = useState(false);
   const samplerRef = useRef<PianoSampler | null>(null);
   const statusRef = useRef<PlaybackSnapshot["status"]>("stopped");
   statusRef.current = snapshot.status;
@@ -86,11 +88,14 @@ export function usePlayback(tickMs = 25) {
       // La voz de reserva suena mientras no hay muestra decodificada: nunca silencio.
       const sampler = createPianoSampler(ctx, master, {
         fallback: createPolySynth(ctx, master),
+        onProgress: (p) => {
+          setSoundProgress(p);
+          if (p >= 1) setSoundReady(true);
+        },
       });
       samplerRef.current = sampler;
-      // Capa 0 (ventana visible) ya; el resto del teclado en el primer hueco libre.
-      void sampler.preload("hq");
-      runWhenIdle(() => void sampler.preload("lq"));
+      // Carga simple con barra de progreso (U-004): todas las muestras de una vez.
+      void sampler.ready.then(() => sampler.loadAll()).catch(() => setSoundReady(true));
       engineRef.current = new PlaybackEngine(
         { now: () => ctx.currentTime },
         createEngineVoice(sampler),
@@ -207,5 +212,7 @@ export function usePlayback(tickMs = 25) {
     auditionOn,
     auditionOff,
     getPosition,
+    soundProgress,
+    soundReady,
   };
 }
