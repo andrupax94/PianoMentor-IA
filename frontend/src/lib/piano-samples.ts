@@ -134,8 +134,21 @@ export function createPianoSampler(
     stats.loading += 1;
     const promise = (async () => {
       try {
-        const response = await fetchImpl(`${baseUrl}/${file.file}`);
-        if (!response.ok) return null;
+        const url = `${baseUrl}/${file.file}`;
+        // Cache persistente (U-004): evita re-descargar los MP3 al refrescar.
+        let response: Response | null = null;
+        try {
+          const cache = await caches.open("piano-samples-v1");
+          const cached = await cache.match(url);
+          if (cached) response = cached;
+          else {
+            response = await fetchImpl(url);
+            if (response && response.ok) void cache.put(url, response.clone());
+          }
+        } catch {
+          response = await fetchImpl(url);
+        }
+        if (!response || !response.ok) return null;
         const buffer = await decode(ctx, await response.arrayBuffer());
         decoded.set(key, buffer);
         while (decoded.size > maxDecoded) {
