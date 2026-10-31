@@ -20,7 +20,7 @@ import type { PolySynth } from "./synth";
 export const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_AUDIO_BASE_URL ?? "/audio/piano";
 
 /** Tope de buffers decodificados en memoria; al superarlo se poda lo menos usado. */
-export const MAX_DECODED_BUFFERS = 48;
+export const MAX_DECODED_BUFFERS = 512;
 
 /** Descargas concurrentes al precargar una capa. */
 const PRELOAD_CONCURRENCY = 4;
