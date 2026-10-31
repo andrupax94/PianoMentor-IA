@@ -1,7 +1,5 @@
 // description: Panel de detalle de la pieza seleccionada, con acceso al piano, la práctica y carga de MIDI (B-027.3).
-// context: "Continuar en Learn" manda la pieza al piano por el almacén del navegador;
-// "Practicar" abre una sesión real (B-012.1), publica la pieza en el almacén para que el
-// piano la cargue al entrar (B-032.1) y lleva a su vista.
+// context: "Continuar en Learn" manda la pieza al piano por el almacén del navegador; "Practicar" abre una sesión real (B-012.1), publica la pieza en el almacén para que el piano la cargue al entrar (B-032.1) y lleva a su vista.
 
 "use client";
 

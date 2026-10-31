@@ -1,5 +1,5 @@
 // description: Hook React del transporte (B-006.2): snapshot, notas, rejilla de compases (measures), acciones, audición y getPosition; load acepta `audible` para el acompañamiento (B-012.7).
-// context: B-006.2/B-007.5/B-012.7; la lógica testeable vive en playback-engine.ts, aquí solo el cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva.
+// context: B-006.2/B-007.5/B-012.7; la lógica testeable vive en playback-engine.ts, aquí solo el cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva. `audible` deja el audio en la mano de la IA sin borrar la pieza de la cascada (B-012.7).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
