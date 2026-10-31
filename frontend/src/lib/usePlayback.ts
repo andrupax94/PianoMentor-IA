@@ -73,6 +73,7 @@ export function usePlayback(tickMs = 25) {
     if (!engineRef.current) {
       const ctx = createAudioContext();
       ctxRef.current = ctx;
+      if (ctx.state === "suspended") void ctx.resume();
       const master = ctx.createGain();
       master.gain.value = 0.9;
       // Un acorde de muestras pica más fuerte que una onda simple: el limitador
@@ -94,8 +95,8 @@ export function usePlayback(tickMs = 25) {
         },
       });
       samplerRef.current = sampler;
-      // Carga simple con barra de progreso (U-004): todas las muestras de una vez.
-      void sampler.ready.then(() => sampler.loadAll()).catch(() => setSoundReady(true));
+      // La carga se dispara al montar (useEffect), no aquí, para que la barra
+      // avance aunque no se pulse ninguna tecla.
       engineRef.current = new PlaybackEngine(
         { now: () => ctx.currentTime },
         createEngineVoice(sampler),
@@ -176,6 +177,23 @@ export function usePlayback(tickMs = 25) {
   const auditionOff = useCallback((pitch: number) => {
     samplerRef.current?.noteOff(pitch);
   }, []);
+
+  // Carga las muestras al montar para que la barra de progreso avance aunque no
+  // se haya pulsado ninguna tecla (U-004). El AudioContext puede arrancar
+  // suspendido; el resume se hace en el primer gesto del usuario.
+  useEffect(() => {
+    const engine = ensureEngine();
+    void engine;
+    const sampler = samplerRef.current;
+    if (sampler) {
+      void sampler.ready
+        .then(() => sampler.loadAll())
+        .then(() => setSoundReady(true))
+        .catch(() => setSoundReady(true));
+    } else {
+      setSoundReady(true);
+    }
+  }, [ensureEngine]);
 
   // Mientras suena, un intervalo avanza el motor y refresca la posición para la UI.
   useEffect(() => {
