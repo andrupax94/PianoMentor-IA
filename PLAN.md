@@ -57,19 +57,19 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | B-009 | P0 | Polifonía, acordes y estrategia de tracks | 2 |
 | B-011 | P0 | Capturar teclado del ordenador | 2 |
 | B-012 | P0 | Agente vertical: sesión, evaluación, estados, acciones, demo, Groq, acompañamiento | 2–4 |
-| B-020 | P0 | Integración final y pruebas end-to-end | 5 |
-| B-021 | P1 | Desplegar backend en Render (Docker; sustituye a Hugging Face Spaces) | 5 |
-| B-022 | P1 | Desplegar frontend en Vercel | 5 |
-| B-023 | P1 | Ejecutar prueba pública end-to-end | 5 |
-| B-024 | P1 | Crear vídeo demo | 5 |
-| B-025 | P1 | Preparar publicación de LinkedIn | 5 |
-| B-026 | P1 | Documentar estado final del MVP | 5 |
+| B-020 | P0 | Integración final y pruebas end-to-end | 6 |
+| B-021 | P1 | Desplegar backend en Render (Docker; sustituye a Hugging Face Spaces) | 6 |
+| B-022 | P1 | Desplegar frontend en Vercel | 6 |
+| B-023 | P1 | Ejecutar prueba pública end-to-end | 6 |
+| B-024 | P1 | Crear vídeo demo | 6 |
+| B-025 | P1 | Preparar publicación de LinkedIn | 6 |
+| B-026 | P1 | Documentar estado final del MVP | 6 |
 | B-027 | P1 | Crear corpus de piezas MIDI de licencia compatible | 2 |
 | B-028 | P1 | Detectar duplicados por hash y marcar procedencia | 1 |
 | B-029 | P2 | Control de MIDIs por usuario y subidas anónimas | 5 |
 | B-030 | P2 | Pulir el motor de sonido del piano (sampler, voz de reserva y transporte) | 5 |
 | B-031 | P1 | Persistencia de la BD del backend (Litestream + R2) | 5 |
-| B-032 | P0 | La sesión manda en el piano: reloj único, modos de práctica y modo espera | — |
+| B-032 | P0 | La sesión manda en el piano: reloj único, modos de práctica y modo espera | 5 |
 | U-001 | P2 | Configurar el depurador en VS Code y Docker | — |
 | U-005 | P2 | Autenticación con Google y tabla users | — |
 | U-006 | P2 | Formulario de registro de usuarios | — |
@@ -97,6 +97,7 @@ Tomando el **6 de octubre de 2026** como inicio de referencia, el Project usa es
 | Semana 3 | 2026-10-26 |
 | Semana 4 | 2026-11-02 |
 | Semana 5 | 2026-11-09 |
+| Semana 6 | 2026-11-16 |
 
 Estas fechas son una línea base operativa, no una obligación inamovible. Si se modifica el calendario, actualizar GitHub Projects y conservar el cambio en el respaldo local.
 
@@ -107,7 +108,7 @@ Estas fechas son una línea base operativa, no una obligación inamovible. Si se
 - Mantener separadas interfaz, API, dominio musical, infraestructura y agente según [ARCHITECTURE.md](ARCHITECTURE.md).
 - Acompañar cualquier cambio en parsing, compases, polifonía, timing, evaluación, validación o estados con tests.
 - Mantener Docker reproducible desde el inicio.
-- Reservar parte de la semana 5 para integración, despliegue, vídeo y LinkedIn; no dejar estos entregables para el último día.
+- Reservar parte de la semana 6 para integración, despliegue, vídeo y LinkedIn; no dejar estos entregables para el último día.
 - Recortar primero acompañamiento avanzado, memoria, Web MIDI físico y feedback largo del LLM si aparece retraso.
 
 Tras la revisión de **B-005** se añadieron **B-028** (duplicados por hash) y **B-029** (control por usuario).  
@@ -130,6 +131,8 @@ La misma tanda deja dos fixtures MIDI **versionados y regenerables** con `backen
 **B-012.7** (acompañamiento) cierra la vertical: `accompany` elige una mano (`hand`, izquierda por defecto), recorta la sección con la rejilla de B-008 y manda por WebSocket sus notas con tiempos **relativos al inicio de la sección**; el motor determinista (`accompaniment.py`) filtra por `hand_by_track` y **no cambia el control**, así que el estudiante sigue tocando la otra mano mientras la IA suena la suya. La sincronía la mide el cliente con `ping`/`pong` sobre el WS: por encima de **50 ms** de RTT (o si el sobre no trae plan) el front pide `demonstrate` de la misma sección, y el backend sigue validando y difundiendo. En la interfaz la mano de la IA se tiñe en violeta (`--hand-agent`), el audio sale solo de esa mano (`audible` en el motor) mientras la cascada muestra la pieza entera, y al acabar la sección vuelve la pieza normal sin bloquear el teclado. Queda anotado como límite conocido que la evaluación (B-012.2) compara con la partitura entera y no filtra por mano, y como pendiente del usuario el clip de evidencia y la prueba en Docker Compose.
 
 Al probar **B-012.7** en el navegador se abrió la vertical **B-032** (P0, **sin semana**: sus seis fases desbordan la semana 5 y obligan a re-basar el calendario de B-020..B-026). El piano es la vista de la sesión, pero el código lo contradecía en nueve puntos: «Practicar esta pieza» creaba la sesión sin publicar la pieza en `piece-store` y el piano se quedaba en la demo `p17` (y una intervención del agente la cambiaba dos veces por sesión); convivían **dos relojes**, porque `session-clock` anclaba `t_s` en la primera tecla y el transporte en `play()`; `current_measure` y `position_s` existían en la tabla pero nadie los escribía, así que el compás salía `—` y `accompany` sin compases empezaba en 0; la evaluación no filtraba por mano; el piano en pantalla solo hacía `audition` y no mandaba notas; la cascada no podía enseñar lo que se aproxima; el socket se cerraba en `CONNECTING` y ensuciaba la consola; el mapa del teclado del PC cubría 16 semitonos y `p16` va de F2 a G5 (39), de modo que «dos manos» no era jugable sin hardware aunque la pieza solo pida **3 teclas a la vez** (medido); y el rango visible elegido por ancho dejaba fuera tres notas de la mano izquierda. La vertical se parte en seis sub-issues: **B-032.1** publica la pieza de la sesión y cierra el socket de forma ordenada; **B-032.2** sube el transporte a contexto y convierte `t_s` en **posición musical sin escalar** (`position_s * tempoFactor`, la convención de `measureIndexAt`), con la posición enviada al backend, un **puerto de entrada único** (teclado del PC, piano en pantalla y Web MIDI), una **distribución partida** del teclado del PC para tocar a dos manos y un rango visible que cubra la pieza; **B-032.3** filtra la evaluación por mano; **B-032.4** introduce los modos **observar / una mano / dos manos** como estado de la sesión, gobernando cascada, audio y evaluación sin reiniciar la posición; **B-032.5** añade los **gates** del modo espera con cuenta atrás, decididos en el navegador porque el WS ya se degrada por encima de 50 ms; y **B-032.6** convierte los fallos en **strikes** agregados por compás y en intervenciones deterministas del agente (2 fallos → tempo lento, 3 → pista, silencio → demostración del compás), con el LLM narrando pero sin tocar nunca el reloj ni el MIDI.
+
+Con el cierre de **B-032.1** y **B-032.2** (2026-10-31) el calendario se **rebasó**: la **Semana 5** (fecha objetivo 2026-11-09) se dedica al **cierre de la vertical B-032** (**B-032.3…B-032.6**) y los entregables finales del MVP (**B-020** integración… **B-026** documentación final) pasan a la **Semana 6** (fecha objetivo 2026-11-16), porque B-020..B-026 dependen de que B-032 esté cerrada.
 
 **B-032.1** ya está hecho y verificado en el navegador (2026-10-31): «Practicar esta pieza» publica la pieza en `piece-store` antes de navegar y `PracticeBridge` la reconcilia por `id` con el `piece_id` de la sesión, así que ni la URL directa ni el F5 dejan el piano en la demo `p17`, y `return_control` recarga la pieza de la sesión en vez de la demo. La reconciliación es idempotente (no recarga la partitura en cada mensaje de estado) y el cierre del WebSocket en `CONNECTING` se aplaza a `onopen`, con lo que desaparece el aviso de la consola en desarrollo. Queda anotado como límite que en F5 la demo se carga un instante antes de la reconciliación; lo cierra **B-032.2** al subir el transporte al layout.
 
@@ -272,7 +275,25 @@ agente vertical
 - [x] Flujo agente completo funciona sin LLM.
 - [x] Tests de validación, transiciones y evaluación pasan.
 
-### Semana 5 — Integración, despliegue, vídeo y LinkedIn
+### Semana 5 — Cierre de la vertical B-032: modos, gates y strikes
+
+**Objetivo:** cerrar la vertical **B-032** (sub-issues **B-032.3** a **B-032.6**) para que el piano sea la vista de la sesión con reloj único, modos de práctica y modo espera.
+
+**Tareas**
+
+- Evaluación por mano (`hand` en la evaluación y la sesión, **B-032.3**).
+- Modos **observar / una mano / dos manos**: selector que gobierna cascada, audio y evaluación, y se restaura tras la intervención (**B-032.4**).
+- Gates y modo espera con cuenta atrás: el transporte no avanza sin la tecla con margen, con count-in visible (**B-032.5**).
+- Strikes y escalado determinista del agente (**B-032.6**).
+
+**Criterio de cierre**
+
+- [ ] La evaluación puntúa solo la mano del modo sin contar la otra como omitida.
+- [ ] Los tres modos cambian cascada, audio y evaluación sin reiniciar la posición.
+- [ ] En modo espera el transporte no avanza sin la tecla, con margen, y el count-in enseña las notas antes de la primera tecla.
+- [ ] Tres fallos en el mismo compás llevan a intervención determinista y el control vuelve al alumno.
+
+### Semana 6 — Integración, despliegue, vídeo y LinkedIn
 
 **Objetivo:** cerrar una demo completa, publicarla y preparar su presentación.
 
