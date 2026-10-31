@@ -77,3 +77,10 @@ Omitidos automáticamente: `*.json` (rompería contratos), `.gitkeep`, `LICENSE`
 - [ ] Si la decisión es arquitectónica, existe su ADR (o el que la sustituye) en `docs/decisions/`.
 - [ ] Se ejecutó el script y `ARCHITECTURE.md` contiene el filetree actualizado.
 - [ ] No se editó `ARCHITECTURE.md` directamente.
+
+
+## Lecciones de sincronizacion (B-032)
+
+- El dry-run reporta `[escribiria]` si la cabecera del fichero (colapsada a una linea por `one_line`) no coincide con el CSV. Para que una fila reporte `[igual]`, el fichero debe tener la cabecera en una sola linea (sin saltos extra).
+- Filas basura `f,"r","o"` pueden aparecer en `files.csv`; filtrarlas antes de sincronizar. Restaurar desde HEAD y reescribir limpio si aparecen.
+- Los ficheros nuevos de una vertical deben insertarse en `files.csv` (no solo modificarse). Verificar con el dry-run que todas las filas tocadas reporten `[igual]`.

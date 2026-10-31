@@ -235,3 +235,14 @@ Tratar los MIDI cargados como privados. No subir audio si no es necesario. No ej
 - [ ] Se añadieron o actualizaron tests.
 - [ ] Se ejecutaron las validaciones locales afectadas (tests y build); Docker queda para el usuario.
 - [ ] Se documentaron decisiones de arquitectura.
+
+
+## Vertical B-032 (la sesion manda en el piano)
+
+- **Transporte unico:** `TransportProvider` sube `usePlayback` al layout; `useTransport()` es el unico reloj. `PracticeBridge` consume y empuja posicion al backend.
+- **t_s sin escalar:** `musicalPosition(position_s, tempoFactor)`; el motor guarda `position_s` escalado. WS envia `{type:position, t_s, measure}`; backend guarda y difunde por cambio de compas o cada 500 ms.
+- **Puerto de entrada unico:** `note-input` (bus de modulo con puerta `setNoteInputEnabled`); la puerta corta solo `note_on` (audio+envio), `note_off` pasa siempre. PC keyboard, piano en pantalla y Web MIDI entran por ahi. El adaptador del teclado del PC vive en `TransportProvider`.
+- **Distribucion partida:** `splitLayoutFor` con ventanas de 17 semitonos por mano, alineadas a la nota mas grave de cada mano (no a Do).
+- **Gate en navegador, backend decide:** `control: agent` bloquea `note_on`; `return_control` reabre. Strikes: grano=gate, decision por compas (2 fallos->slow_down, 3->give_hint, silencio->demonstrate).
+- **Evaluacion por mano (B-032.3):** `PerformanceEvaluator`/`EvaluationService` aceptan `hand` (left/right/both, default both). Filtro de notas esperadas por `hand_by_track` antes de `group_chords`. Filtro de recibidas por altura (`pitch_hands`). Contrato HTTP `hand` opcional + `invalid_hand` (400). Migracion `0011` anade columnas `mode`/`hand` a `sessions` (defaults observe/both).
+- **Modos (B-032.4 pendiente):** observar/una mano/dos manos; selector gobierna cascada, audio y evaluacion; se restaura tras intervencion.

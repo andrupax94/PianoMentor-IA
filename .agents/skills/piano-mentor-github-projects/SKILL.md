@@ -163,3 +163,11 @@ Comprobar que el Project tenga campos llamados `Priority` y `Target date`. El si
 - No solicitar al usuario que pegue tokens en el chat.
 - No eliminar datos del Project automáticamente.
 - Mantener respaldos locales sin secretos y revisar su contenido antes de publicarlos.
+
+
+## Cierre de issues hechas (B-032)
+
+- Al cerrar una issue hecha y verificada, usar `gh issue close <n> --comment "..."` con evidencia (tests, navegador).
+- Anadir la issue al Project con `gh project item-add <project> --owner <owner> --url <issue_url>`.
+- Sincronizar `project-backlog.csv` local (Status Done/In Progress) y `docs/issues/B-xxx/B-xxx.md` (Estado: hecho) en el mismo commit.
+- Mantener coherencia: issue cerrada en GitHub = Status Done en CSV local = "hecho" en el .md.
