@@ -145,16 +145,13 @@ export function createPianoSampler(
           const cached = await cache.match(url);
           if (cached) {
             response = cached;
-            console.log("[U-004] cache HIT:", file.file);
           } else {
             response = await fetchImpl(url);
             if (response && response.ok) {
               try { void cache.put(url, response.clone()); } catch { /* ignore */ }
             }
-            console.log("[U-004] cache MISS:", file.file);
           }
         } catch (e) {
-          console.warn("[U-004] cache error:", e);
           response = await fetchImpl(url);
         }
         if (!response || !response.ok) {
