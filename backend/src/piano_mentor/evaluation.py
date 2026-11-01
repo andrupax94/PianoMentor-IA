@@ -459,15 +459,23 @@ class EvaluationService:
         if row is None:
             raise ValidationError("piece_not_found", f"No existe la pieza: {session['piece_id']}")
 
-        # Mano a evaluar: la explícita tiene prioridad; si no, la persistida en
-        # la sesión (por defecto "both").
+        # Mano a evaluar: la explícita tiene prioridad; si no, la del modo de
+        # práctica de la sesión (B-032.4). En «observar» no se evalúa nada, así
+        # que se evalúan las dos manos (quien lo pida con `hand` manda).
         if hand is None:
             try:
-                hand = session["hand"]
+                mode = session["mode"]
             except (KeyError, IndexError):
+                mode = "observe"
+            if mode == "observe":
                 hand = "both"
-            if not hand:
-                hand = "both"
+            else:
+                try:
+                    hand = session["hand"]
+                except (KeyError, IndexError):
+                    hand = "both"
+                if not hand:
+                    hand = "both"
         if hand not in ("left", "right", "both"):
             raise ValidationError("invalid_hand", f"Mano inválida: {hand!r}")
 

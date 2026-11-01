@@ -138,6 +138,8 @@ Con el cierre de **B-032.1** y **B-032.2** (2026-10-31) el calendario se **rebas
 
 **B-032.2** (2026-10-31) cerrada y verificada en el navegador: el transporte sube al layout (`TransportProvider` → `useTransport`), el `t_s` de una nota es la **posición musical sin escalar** (`musicalPosition(position_s, tempoFactor)`), la posición viaja al backend por WS (`{"type": "position", "t_s", "measure"}`, guardado siempre y difundido al cambiar compás o cada 500 ms) y `GET /sessions/{id}/state` devuelve `position_s`/`current_measure` reales (la sesión de prueba `p16` llegó a `position_s 8`, compás 3). Nuevo **puerto de entrada único**: teclado del PC, piano en pantalla (puntero `pointerdown`/`pointerup` + `touch-action: none`) y Web MIDI (`MIDIAccess` falso) entran por `note-input`, con la **puerta** que corta audio y envío mientras el agente demuestra. La distribución partida del teclado (`splitLayoutFor`, dos ventanas ajustadas a las manos: izquierda F2–A3, derecha G4–B5) y el **rango visible que cubre la pieza** (`pitchSpan` + `resolveVisibleRange`) completan la fase; `session-clock` se retira. Verificación en navegador: la pieza de sesión se mantiene, la pulsación del piano en pantalla llega a `session_events` del backend, el compás avanza y la puerta bloquea durante la demostración. Queda para B-032.3+ el disparo del `return_control` por compases en el bucle del agente.
 
+**B-032.4** (2026-10-31) implementada y verificada con los tests locales (la comprobación en el navegador y el clip quedan para el usuario): el modo de práctica es **estado de la sesión**, no un evento —`PATCH /api/v1/sessions/{id}` con `{mode, hand}` lo persiste (columnas `mode`/`hand` de la migración `0011`), lo valida (`invalid_mode`, `invalid_hand`, 400) y lo difunde por el WebSocket como un `state` más. El estado viaja en `SessionStateResponse` y en el `state` del socket, así que la evaluación usa **la mano del modo** cuando la petición no la lleva (en «observar» no se evalúa nada y se evalúan las dos manos). En el navegador, `lib/practice-mode.ts` (puro) decide el reparto de cada modo: **observar** suena la pieza entera y no evalúa; **una mano** suena solo la mano contraria, **atenúa** (sin borrar) la del alumno en la cascada y evalúa solo esa mano; **dos manos** calla el transporte (referencia solo al pulsar play), no atenúa nada y evalúa todo. El selector `PracticeModeSelector` vive en la `PlayerBar` y **solo aparece con sesión activa**; publica el cambio en `session-store` y `PracticeModeBridge` lo manda al backend (el WS nunca toca el motor). Cambiar de modo **no reinicia la posición**: el motor gana `setAudible()`, que reconstruye el schedule audible conservando la posición y la partitura, y al terminar una intervención del agente el audio vuelve al **modo del alumno** (no a «la pieza normal»).
+
 ## 4. Plan por semanas
 
 ### Semana 1 — Base técnica, MIDI inicial, reproducción y piano virtual
@@ -283,15 +285,15 @@ agente vertical
 
 - Evaluación por mano (`hand` en la evaluación y la sesión, **B-032.3**).
 - Modos **observar / una mano / dos manos**: selector que gobierna cascada, audio y evaluación, y se restaura tras la intervención (**B-032.4**).
-- Gates y modo espera con cuenta atrás: el transporte no avanza sin la tecla con margen, con count-in visible (**B-032.5**).
-- Strikes y escalado determinista del agente (**B-032.6**).
+- [x] Gates y modo espera con cuenta atrás: el transporte no avanza sin la tecla con margen, con count-in visible (**B-032.5**).
+- [x] Strikes y escalado determinista del agente: 2 fallos → `slow_down`, 3 → `give_hint`, silencio → `demonstrate` del compás, con topes anti-bucle y devolución automática del control (**B-032.6**).
 
 **Criterio de cierre**
 
 - [ ] La evaluación puntúa solo la mano del modo sin contar la otra como omitida.
 - [ ] Los tres modos cambian cascada, audio y evaluación sin reiniciar la posición.
-- [ ] En modo espera el transporte no avanza sin la tecla, con margen, y el count-in enseña las notas antes de la primera tecla.
-- [ ] Tres fallos en el mismo compás llevan a intervención determinista y el control vuelve al alumno.
+- [x] En modo espera el transporte no avanza sin la tecla, con margen, y el count-in enseña las notas antes de la primera tecla.
+- [x] Tres fallos en el mismo compás llevan a intervención determinista y el control vuelve al alumno (la verificación en navegador queda pendiente del usuario, como el resto de la vertical).
 
 ### Semana 6 — Integración, despliegue, vídeo y LinkedIn
 

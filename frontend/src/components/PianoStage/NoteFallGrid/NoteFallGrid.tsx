@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { fallingNotes, type FallingNote } from "../../../lib/falling-notes";
-import { handColor, type AgentHand } from "../../../lib/hand-color";
+import { handColor, handOpacity, type AgentHand } from "../../../lib/hand-color";
 import { createKeyGeometry, type KeyGeometry } from "../../../lib/key-geometry";
 import { HORIZON_S } from "../../../lib/key-states";
 import { countWhiteKeys } from "../../../lib/pitch";
@@ -39,6 +39,7 @@ function placeNote(
   horizon_s: number,
   layerHeight: number,
   agentHand: AgentHand | null,
+  dimmedHand: "left" | "right" | null,
 ): void {
   const center = geometry.centerFraction(note.pitch);
   const width = geometry.widthFraction(note.pitch);
@@ -47,7 +48,6 @@ function placeNote(
   block.style.width = `${width * 100}%`;
   block.style.height = `${blockHeight}px`;
   block.style.transform = `translateY(${note.progress * layerHeight - blockHeight}px)`;
-  block.style.opacity = String(noteOpacity(note.velocity));
   // El pool reutiliza bloques entre notas distintas: el color solo se reescribe
   // si cambia la mano o si empieza/termina el acompañamiento (D-002.1/B-012.7).
   const hand = note.hand ?? "unknown";
@@ -57,6 +57,10 @@ function placeNote(
     block.dataset.hand = key;
     block.style.background = handColor(hand, agent ? agentHand : null);
   }
+  // B-032.4: la mano que no se practica se atenúa (no se borra). La opacidad
+  // depende de la mano, así que se escribe aparte del color.
+  const opacity = noteOpacity(note.velocity) * handOpacity(hand, agent ? agentHand : null, dimmedHand);
+  block.style.opacity = String(opacity);
 }
 
 export function NoteFallGrid({
@@ -66,6 +70,7 @@ export function NoteFallGrid({
   horizon_s,
   getPosition = () => 0,
   agentHand = null,
+  dimmedHand = null,
 }: NoteFallGridProps) {
   const { fromKey, toKey } = useVisibleRange();
   const columns = Math.max(MIN_COLUMNS, countWhiteKeys(fromKey, toKey));
@@ -88,6 +93,9 @@ export function NoteFallGrid({
   // La mano de la IA se lee en cada frame: cambiar de acompañamiento no reinicia el bucle.
   const agentHandRef = useRef<AgentHand | null>(agentHand);
   agentHandRef.current = agentHand;
+  // La mano atenuada del modo de práctica (B-032.4) también se lee por frame.
+  const dimmedHandRef = useRef<"left" | "right" | null>(dimmedHand);
+  dimmedHandRef.current = dimmedHand;
 
   // Altura del lienzo: los bloques se desplazan en píxeles (transform va por GPU).
   useEffect(() => {
@@ -112,9 +120,9 @@ export function NoteFallGrid({
       pool.clear();
       return;
     }
-    // En pausa se salen sin borrar: los bloques quedan congelados donde estaban,
-    // que es lo que pide B-007.3 ("en pausa nada se mueve").
-    if (status !== "playing") return;
+    // En pausa o esperando se salen sin borrar: los bloques quedan congelados
+    // donde estaban (B-007.3/B-032.5).
+    if (status !== "playing" && status !== "preroll") return;
 
     const layer = layerRef.current;
     if (!layer) return;
@@ -144,6 +152,7 @@ export function NoteFallGrid({
           horizonRef.current,
           heightRef.current,
           agentHandRef.current,
+          dimmedHandRef.current,
         );
       }
       // Fuera de la ventana: se recicla el bloque.

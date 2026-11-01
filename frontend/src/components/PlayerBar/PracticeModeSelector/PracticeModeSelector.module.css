@@ -1,0 +1,75 @@
+/* description: Estilos del selector de modo de práctica (observar / una mano / dos manos). */
+/* context: B-032.4; píldora discreta junto a los controles del transporte, con los tokens de la paleta y el color de mano para la opción activa. */
+.selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  color: var(--text-soft);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.modes,
+.hands {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.mode,
+.hand {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mode:hover:not(:disabled),
+.hand:hover:not(:disabled) {
+  background: var(--panel-soft);
+  color: var(--text);
+}
+
+.mode[aria-pressed="true"] {
+  background: var(--gradient1);
+  color: var(--bg);
+}
+
+.hand[aria-pressed="true"] {
+  background: var(--hand-right);
+  color: var(--bg);
+}
+
+.hands .hand[aria-pressed="true"][data-hand="left"] {
+  background: var(--hand-left);
+}
+
+.mode:disabled,
+.hand:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.suspended {
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.selector[data-suspended="true"] .modes,
+.selector[data-suspended="true"] .hands {
+  opacity: 0.5;
+}

@@ -343,6 +343,10 @@ class ToolRegistry:
             "control": row["control"],
             "current_measure": row["current_measure"],
             "position_s": row["position_s"],
+            # B-032.4: el agente necesita el modo de práctica para decidir con
+            # el mismo dato que el alumno ve.
+            "mode": row["mode"],
+            "hand": row["hand"],
         }
 
 

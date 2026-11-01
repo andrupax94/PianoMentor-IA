@@ -69,6 +69,14 @@ export function usePlayback(tickMs = 25) {
     [],
   );
 
+  /**
+   * Posición para la cascada, incluyendo el preroll negativo (B-032.5).
+   */
+  const getDisplayPosition = useCallback(
+    () => engineRef.current?.displayPosition_s() ?? 0,
+    [],
+  );
+
   const ensureEngine = useCallback((): PlaybackEngine => {
     if (!engineRef.current) {
       const ctx = createAudioContext();
@@ -123,6 +131,62 @@ export function usePlayback(tickMs = 25) {
       sync();
     },
     [ensureEngine, sync],
+  );
+
+  /**
+   * Cambia la parte audible sin recargar la partitura (B-032.4): el modo de
+   * práctica decide qué mano suena y el cambio no reinicia la posición.
+   */
+  const setAudible = useCallback(
+    (audible: PlayableNote[]) => {
+      ensureEngine().setAudible(audible);
+      sync();
+    },
+    [ensureEngine, sync],
+  );
+
+  /**
+   * Activa o desactiva los gates del modo espera (B-032.5).
+   */
+  const setGateOptions = useCallback(
+    (options: { enabled: boolean; hand?: import("./practice-gate").GateHand }) => {
+      ensureEngine().setGateOptions(options);
+      sync();
+    },
+    [ensureEngine, sync],
+  );
+
+  /**
+   * Duración de la cuenta atrás antes del primer gate (B-032.5).
+   */
+  const setPreroll = useCallback(
+    (seconds: number) => {
+      ensureEngine().setPreroll(seconds);
+      sync();
+    },
+    [ensureEngine, sync],
+  );
+
+  /**
+   * Reanuda el transporte tras satisfacer un gate (B-032.5).
+   */
+  const resolveGate = useCallback(() => {
+    engineRef.current?.resolveGate();
+    sync();
+  }, [sync]);
+
+  /**
+   * Salta al gate siguiente (recuperación manual; B-032.5).
+   */
+  const skipGate = useCallback(() => {
+    engineRef.current?.skipGate();
+    sync();
+  }, [sync]);
+
+  /** Snapshot actual del motor, útil para controladores puros (B-032.5). */
+  const getEngineSnapshot = useCallback(
+    () => engineRef.current?.snapshot() ?? INITIAL_SNAPSHOT,
+    [],
   );
 
   const play = useCallback(async () => {
@@ -226,10 +290,17 @@ export function usePlayback(tickMs = 25) {
     pause,
     stop,
     seek,
+    setAudible,
     setTempoFactor,
+    setGateOptions,
+    setPreroll,
+    resolveGate,
+    skipGate,
     auditionOn,
     auditionOff,
     getPosition,
+    getDisplayPosition,
+    getEngineSnapshot,
     soundProgress,
     soundReady,
   };

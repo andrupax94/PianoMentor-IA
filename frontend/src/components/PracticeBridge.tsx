@@ -3,18 +3,26 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { accompanyPlan, demoParamsFor, shouldDegradeToDemo } from "../lib/agent-accompany";
 import { fetchPieceInfo } from "../lib/agent-commands";
 import { demoWindow, effectiveControl, type AgentDemoWindow } from "../lib/agent-demo";
 import { publishAgentPlayback } from "../lib/agent-playback";
 import { ApiError, executeAgentAction, getSessionState } from "../lib/api-client";
+import { createGateController, type GateController } from "../lib/gate-controller";
 import { measureIndexAt } from "../lib/measures";
 import { setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
+import { evaluatedHand } from "../lib/practice-mode";
 import { musicalPosition } from "../lib/playback-schedule";
 import { syncSessionPiece } from "../lib/session-piece";
-import { clearSession, updateSession, type SessionSnapshot } from "../lib/session-store";
+import {
+  clearSession,
+  getSessionSnapshot,
+  subscribeSession,
+  updateSession,
+  type SessionSnapshot,
+} from "../lib/session-store";
 import { useTransport } from "../lib/transport-context";
 import { SessionSocket, type AgentActionMessage } from "../lib/websocket-client";
 
@@ -41,7 +49,7 @@ const WHOLE_PIECE: AgentDemoWindow = {
  * al pedir una pista y este componente no debe pisarlo en cada actualización.
  * `agentAction` y `latencyMs` sí los publica este puente (B-012.5/B-012.7).
  */
-type PracticeSnapshot = Omit<SessionSnapshot, "lastStep">;
+type PracticeSnapshot = Omit<SessionSnapshot, "lastStep" | "practiceMode" | "studentHand">;
 
 /** Foto inicial mientras el socket y el REST contestan. */
 function connectingSnapshot(sessionId: string): PracticeSnapshot {
@@ -59,13 +67,25 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
   const [snapshot, setSnapshot] = useState<PracticeSnapshot>(() => connectingSnapshot(sessionId));
   /** Transporte único de la portada (B-032.2): de aquí sale el `t_s` musical. */
   const transport = useTransport();
+  /** Modo de práctica vigente en el almacén (selector + confirmación del servidor). */
+  const sessionStore = useSyncExternalStore(
+    subscribeSession,
+    getSessionSnapshot,
+    getSessionSnapshot,
+  );
 
   const socketRef = useRef<SessionSocket | null>(null);
+  const gateControllerRef = useRef<GateController | null>(null);
   /**
    * Último estado visto: el sobre `agent_action` no trae la pieza, así que la
    * intervención la saca de aquí (B-012.5).
    */
   const stateRef = useRef<PracticeSnapshot["state"]>(null);
+  /**
+   * B-032.6: la ventana que se estaba demostrando. Al devolver el control, el
+   * transporte reanuda la práctica en su inicio y el gate se rearma.
+   */
+  const lastDemoWindowRef = useRef<AgentDemoWindow | null>(null);
   /**
    * Última latencia medida del canal: decide si el acompañamiento puede sonar
    * junto al estudiante o hay que degradarlo a demostración (B-012.7).
@@ -98,6 +118,14 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
         stateRef.current = message;
         setSnapshot((previous) => ({ ...previous, state: message }));
         ensureSessionPiece(message.piece_id);
+        // B-032.4: el modo del servidor manda sobre el local (otra pestaña, o
+        // un cambio hecho desde el chat): el selector refleja el estado real.
+        if (message.mode) {
+          updateSession({
+            practiceMode: message.mode,
+            studentHand: message.hand === "left" ? "left" : "right",
+          });
+        }
       },
       onStatusChange: (status) => {
         setSnapshot((previous) => ({ ...previous, connection: status }));
@@ -123,11 +151,19 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
 
         if (message.action === "demonstrate") {
           if (pieceId) {
-            publishAgentPlayback({
-              kind: "demo",
-              pieceId,
-              window: demoWindow(message) ?? WHOLE_PIECE,
-            });
+            const window = demoWindow(message) ?? WHOLE_PIECE;
+            lastDemoWindowRef.current = window;
+            publishAgentPlayback({ kind: "demo", pieceId, window });
+          }
+          return;
+        }
+
+        if (message.action === "slow_down") {
+          // B-032.6: bajar el tempo de la práctica. El tiempo no es del WS:
+          // pide el factor y el transporte único lo aplica, como haría el usuario.
+          const factor = message.tempo_factor;
+          if (typeof factor === "number" && Number.isFinite(factor) && factor > 0) {
+            transportRef.current.setTempoFactor(factor);
           }
           return;
         }
@@ -149,7 +185,15 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
         }
 
         if (message.action === "return_control") {
-          publishAgentPlayback({ kind: "stop" });
+          // B-032.6: la práctica reanuda al inicio del compás demostrado, con
+          // el tempo vigente (el `slow_down` no se pierde al recargar la pieza).
+          const window = lastDemoWindowRef.current;
+          lastDemoWindowRef.current = null;
+          publishAgentPlayback({
+            kind: "stop",
+            resumeFromMeasure: window?.fromMeasure ?? null,
+            tempoFactor: transportRef.current.tempoFactor,
+          });
         }
       },
     });
@@ -186,6 +230,41 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       clearSession();
     };
   }, [sessionId]);
+
+  // B-032.5: gate-controller del modo espera. Solo está activo en modos de
+  // práctica (one_hand / both_hands), nunca en observar.
+  useEffect(() => {
+    const mode = sessionStore.practiceMode;
+    const hand = evaluatedHand(mode, sessionStore.studentHand) ?? "both";
+    const enabled = mode === "one_hand" || mode === "both_hands";
+
+    gateControllerRef.current?.setOptions({ enabled, hand });
+    if (!enabled) {
+      gateControllerRef.current?.stop();
+      gateControllerRef.current = null;
+      return;
+    }
+    if (gateControllerRef.current) return;
+
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const controller = createGateController({
+      getSnapshot: () => transport.getEngineSnapshot(),
+      subscribeNoteInput,
+      sendPracticeEvent: (event) => socket.sendPracticeEvent(event),
+      clockMs: () => performance.now(),
+      onHit: () => transport.resolveGate(),
+      options: { enabled: true, hand },
+    });
+    controller.start();
+    gateControllerRef.current = controller;
+
+    return () => {
+      controller.stop();
+      gateControllerRef.current = null;
+    };
+  }, [sessionStore.practiceMode, sessionStore.studentHand, transport, sessionId]);
 
   // El mini cuadro del panel del mentor se suscribe al almacén, no a este componente.
   useEffect(() => {

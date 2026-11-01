@@ -1,5 +1,5 @@
-// description: Color de relleno de las barras de la cascada según la mano, con un color propio para la mano que toca la IA durante el acompañamiento (B-012.7).
-// context: D-002.1/B-012.7; puro y sin DOM. Los tokens viven en globals.css para que la línea .final__line y las barras compartan la misma fuente de verdad.
+// description: Color de relleno de las barras de la cascada según la mano, con un color propio para la mano que toca la IA durante el acompañamiento (B-012.7) y la atenuación de la mano que no se practica (B-032.4).
+// context: D-002.1/B-012.7/B-032.4; puro y sin DOM. Los tokens viven en globals.css para que la línea .final__line y las barras compartan la misma fuente de verdad.
 
 import type { NoteHand } from "./api-client";
 
@@ -28,6 +28,28 @@ export function handColor(hand: NoteHand | undefined, agentHand?: AgentHand | nu
   if (hand === "right") return HAND_COLORS.right;
   return HAND_COLORS.unknown;
 }
+
+/**
+ * Opacidad de una nota de la cascada (B-032.4): la mano que no se practica se
+ * atenúa (no se borra), así que el alumno sigue viendo la pieza entera.
+ * La mano de la IA conserva su color y su opacidad (B-012.7).
+ */
+export function handOpacity(
+  hand: NoteHand | undefined,
+  agentHand?: AgentHand | null,
+  dimmedHand?: "left" | "right" | null,
+): number {
+  if (dimmedHand && !isAgentNote(hand, agentHand) && hand === dimmedHand) {
+    return DIMMED_OPACITY;
+  }
+  return FULL_OPACITY;
+}
+
+/** Opacidad de una nota normal. */
+export const FULL_OPACITY = 1;
+
+/** Opacidad de la mano que no se practica (B-032.4): se atenúa, no desaparece. */
+export const DIMMED_OPACITY = 0.28;
 
 /**
  * ¿Esta nota la toca la IA? Durante el acompañamiento (B-012.7) la mano que

@@ -1,9 +1,17 @@
-// description: Tests del color de mano de la cascada y del color propio de la mano que toca la IA en el acompañamiento (B-012.7).
-// context: D-002.1/B-012.7; verifica el mapeo mano → token y que no se cuele ningún hexadecimal fuera de globals.css.
+// description: Tests del color de mano de la cascada, del color propio de la mano que toca la IA en el acompañamiento (B-012.7) y de la atenuación de la mano que no se practica (B-032.4).
+// context: D-002.1/B-012.7/B-032.4; verifica el mapeo mano → token, que no se cuele ningún hexadecimal fuera de globals.css y la opacidad de la mano atenuada.
 
 import { describe, expect, it } from "vitest";
 
-import { AGENT_COLOR, handColor, isAgentNote, HAND_COLORS } from "./hand-color";
+import {
+  AGENT_COLOR,
+  DIMMED_OPACITY,
+  FULL_OPACITY,
+  handColor,
+  handOpacity,
+  isAgentNote,
+  HAND_COLORS,
+} from "./hand-color";
 
 describe("handColor", () => {
   it("tiñe la mano izquierda y la derecha con su token", () => {
@@ -28,6 +36,26 @@ describe("handColor", () => {
     expect(handColor("right", "left")).toBe("var(--hand-right)");
     expect(handColor("left", "both")).toBe(AGENT_COLOR);
     expect(handColor("unknown", "both")).toBe(AGENT_COLOR);
+  });
+});
+
+describe("handOpacity", () => {
+  it("sin mano atenuada, todas las notas van a opacidad completa", () => {
+    expect(handOpacity("left")).toBe(FULL_OPACITY);
+    expect(handOpacity("right", null, null)).toBe(FULL_OPACITY);
+  });
+
+  it("atenúa la mano que no se practica (B-032.4)", () => {
+    expect(handOpacity("right", null, "right")).toBe(DIMMED_OPACITY);
+    expect(handOpacity("left", null, "right")).toBe(FULL_OPACITY);
+  });
+
+  it("la mano de la IA no se atenúa aunque coincida", () => {
+    expect(handOpacity("left", "left", "left")).toBe(FULL_OPACITY);
+  });
+
+  it("una nota sin mano conocida no se atenúa", () => {
+    expect(handOpacity("unknown", null, "right")).toBe(FULL_OPACITY);
   });
 });
 

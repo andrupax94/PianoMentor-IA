@@ -50,6 +50,27 @@ function finiteOrNull(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * Etiqueta de las intervenciones de strikes (B-032.6) en el panel de sesión;
+ * `null` si el sobre no es de las reglas deterministas del modo espera.
+ * `return_control` no es una intervención visible: cierra la anterior.
+ */
+export function strikeLabel(
+  action: AgentActionMessage | null | undefined,
+): string | null {
+  if (action?.action === "slow_down") {
+    const factor = action.tempo_factor;
+    if (typeof factor === "number" && Number.isFinite(factor)) {
+      return `IA bajando el tempo (${Math.round(factor * 100)} % del tempo)`;
+    }
+    return "IA bajando el tempo";
+  }
+  if (action?.action === "give_hint") {
+    return "El mentor te da una pista para este compás";
+  }
+  return null;
+}
+
 /* --- La ventana recortada que suena en el transporte (B-012.5) ------------ */
 
 /** Partitura completa con su rejilla; lo que necesita el transporte para recortar la ventana. */

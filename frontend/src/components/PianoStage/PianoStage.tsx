@@ -1,5 +1,5 @@
 "use client";
-// description: Contenedor del piano completo (cuadrícula + teclado), con la mano de la IA del acompañamiento teñida en la cascada (B-012.7).
+// description: Contenedor del piano completo (cuadrícula + teclado), con la mano de la IA del acompañamiento teñida en la cascada (B-012.7) y la mano que no se practica atenuada (B-032.4).
 // context: B-007.3; es una vista del transporte que nace en PlaybackArea: sus dos
 // hijos son hermanos y por eso comparten posición y schedule por props.
 
@@ -15,6 +15,7 @@ export function PianoStage({
   player,
   octaves = ["C1", "C2", "C3"],
   agentHand = null,
+  dimmedHand = null,
 }: PianoStageProps) {
   // El schedule solo se reconstruye al cambiar de pieza o de factor (no en cada tick).
   const schedule = useMemo(
@@ -28,8 +29,9 @@ export function PianoStage({
         octaves={octaves}
         schedule={schedule}
         status={player.status}
-        getPosition={player.getPosition}
+        getPosition={player.getDisplayPosition}
         agentHand={agentHand}
+        dimmedHand={dimmedHand}
       />
       <Keyboard player={player} schedule={schedule} />
     </section>

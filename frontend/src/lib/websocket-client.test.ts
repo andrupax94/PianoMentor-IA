@@ -256,6 +256,19 @@ describe("SessionSocket", () => {
     expect(errors[0]).toMatchObject({ type: "error", code: "invalid_event_payload" });
   });
 
+  it("entrega el estado con el modo de práctica (B-032.4)", () => {
+    const { client, sockets, states } = harness();
+    client.connect();
+    sockets[0].open();
+
+    sockets[0].deliver(
+      '{"type":"state","session_id":"s1","status":"playing","mode":"one_hand","hand":"left"}',
+    );
+
+    expect(states).toHaveLength(1);
+    expect(states[0]).toMatchObject({ mode: "one_hand", hand: "left" });
+  });
+
   it("entrega las acciones del agente con sus parámetros (B-012.5)", () => {
     const { client, sockets, actions } = harness();
     client.connect();

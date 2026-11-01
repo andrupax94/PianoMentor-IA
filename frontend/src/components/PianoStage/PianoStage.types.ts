@@ -11,4 +11,9 @@ export interface PianoStageProps {
   octaves?: string[];
   /** Mano que toca la IA durante el acompañamiento (B-012.7); se pinta en otro color. */
   agentHand?: AgentHand | null;
+  /**
+   * Mano que se atenúa en la cascada (B-032.4): la que el alumno no está
+   * practicando en el modo «una mano».
+   */
+  dimmedHand?: "left" | "right" | null;
 }

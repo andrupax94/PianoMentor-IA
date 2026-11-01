@@ -16,3 +16,22 @@
   background-color: var(--text-soft);
   border-radius: 10px;
 }
+
+.waitingBadge,
+.prerollBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.waitingBadge {
+  color: #0e1522;
+  background: #f5a524;
+}
+
+.prerollBadge {
+  color: #e8edf7;
+  background: rgba(255, 255, 255, 0.15);
+}

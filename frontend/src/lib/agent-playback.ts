@@ -25,6 +25,13 @@ export interface AccompanyPlaybackStart {
 /** La intervención del agente termina: se restaura la pieza normal. */
 export interface AgentPlaybackStop {
   kind: "stop";
+  /**
+   * B-032.6: compás donde reanuda la práctica del estudiante (el inicio de la
+   * ventana que se estaba demostrando). Sin él el transporte queda donde está.
+   */
+  resumeFromMeasure?: number | null;
+  /** B-032.6: factor de tempo vigente, para no perder un `slow_down` al recargar. */
+  tempoFactor?: number | null;
 }
 
 export type AgentPlaybackEvent = DemoPlaybackStart | AccompanyPlaybackStart | AgentPlaybackStop;

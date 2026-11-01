@@ -393,6 +393,32 @@ class TestEvaluationEndpoint:
         assert result["score_total"] == 100.0
         assert result["extras"] == []
 
+    def test_the_mode_of_the_session_decides_the_hand_evaluated(self, session_id: str) -> None:
+        """B-032.4: en «una mano» se evalúa la mano del alumno, no la otra."""
+        _play(_perfect_take(), session_id)
+        client.patch(
+            f"/api/v1/sessions/{session_id}", json={"mode": "one_hand", "hand": "right"}
+        )
+
+        response = client.post(f"/api/v1/sessions/{session_id}/evaluation")
+
+        assert response.status_code == 200
+        result = response.json()
+        # Solo se evalúa la mano del alumno: la otra no cuenta como omitida.
+        assert result["counts"]["omitted"] == 0
+        # La mano derecha son 14 notas agrupadas en 12 unidades (acordes).
+        assert result["expected_total"] == 12
+        assert result["received_total"] == 14
+
+    def test_in_observe_mode_nothing_is_filtered_by_hand(self, session_id: str) -> None:
+        """B-032.4: en «observar» no se evalúa nada, así que se evalúa todo."""
+        _play(_perfect_take(), session_id)
+
+        response = client.post(f"/api/v1/sessions/{session_id}/evaluation")
+
+        assert response.status_code == 200
+        assert response.json()["expected_total"] == 12
+
     def test_a_session_without_events_scores_zero(self, session_id: str) -> None:
         response = client.post(f"/api/v1/sessions/{session_id}/evaluation")
 

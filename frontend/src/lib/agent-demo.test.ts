@@ -9,6 +9,7 @@ import {
   demoWindow,
   effectiveControl,
   isDemonstrating,
+  strikeLabel,
 } from "./agent-demo";
 import type { DemoScore } from "./agent-demo";
 import type { PlayableNote, PieceMeasures } from "./api-client";
@@ -103,6 +104,32 @@ describe("demoLabel", () => {
 
   it("sin ventana también nombra la demostración", () => {
     expect(demoLabel(null)).toBe("IA demostrando");
+  });
+});
+
+describe("strikeLabel (B-032.6)", () => {
+  it("el slow_down se enseña con su porcentaje de tempo", () => {
+    expect(
+      strikeLabel({ type: "agent_action", action: "slow_down", tempo_factor: 0.7 }),
+    ).toBe("IA bajando el tempo (70 % del tempo)");
+  });
+
+  it("sin factor el slow_down sigue siendo visible", () => {
+    expect(strikeLabel({ type: "agent_action", action: "slow_down" })).toBe(
+      "IA bajando el tempo",
+    );
+  });
+
+  it("el give_hint nombra la pista", () => {
+    expect(
+      strikeLabel({ type: "agent_action", action: "give_hint", hint_type: "measure_focus" }),
+    ).toBe("El mentor te da una pista para este compás");
+  });
+
+  it("los sobre que no son de strikes no enseñan nada", () => {
+    expect(strikeLabel(DEMONSTRATE)).toBeNull();
+    expect(strikeLabel(RETURN_CONTROL)).toBeNull();
+    expect(strikeLabel(null)).toBeNull();
   });
 });
 

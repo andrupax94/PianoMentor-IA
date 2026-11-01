@@ -1,7 +1,12 @@
-// description: Almacén de la sesión de práctica abierta en la portada, con `agentAction`: la última acción del agente por WebSocket (B-012.5/B-012.7), `latencyMs`: la latencia medida del canal (B-012.7) y `lastStep`: la procedencia de la última pista pedida al agente (B-012.6), solo para diagnóstico.
-// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado, las acciones y la latencia que llegan por WebSocket y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia. `agentAction` decide el bloqueo del teclado y el indicador de la intervención; `latencyMs` se pinta como diagnóstico y `lastStep` lo escribe MentorChat al pedir la pista; updateSession avisa también cuando solo cambia uno de esos campos.
+// description: Almacén de la sesión de práctica abierta en la portada, con `agentAction`: la última acción del agente por WebSocket (B-012.5/B-012.7), `latencyMs`: la latencia medida del canal (B-012.7), `practiceMode`/`studentHand`: el modo de práctica y la mano del alumno (B-032.4) y `lastStep`: la procedencia de la última pista pedida al agente (B-012.6), solo para diagnóstico.
+// context: La práctica es la portada con el id en la ruta (/{id}); PracticeBridge publica aquí el estado, las acciones, la latencia y el modo que llegan por WebSocket, el selector de modos lo escribe y el mini cuadro del panel del mentor se suscribe, igual que piece-store con la pieza. Vive solo en memoria: al salir de la ruta se limpia. `agentAction` decide el bloqueo del teclado y el indicador de la intervención; `latencyMs` se pinta como diagnóstico y `lastStep` lo escribe MentorChat al pedir la pista; updateSession avisa también cuando solo cambia uno de esos campos o el modo.
 
-import type { AgentStepResponse, SessionState } from "./api-client";
+import type {
+  AgentStepResponse,
+  PracticeMode,
+  SessionState,
+  StudentHand,
+} from "./api-client";
 import type { AgentActionMessage, ConnectionStatus } from "./websocket-client";
 
 /** Fotografía completa de la sesión visible en el mini cuadro del mentor. */
@@ -26,6 +31,15 @@ export interface SessionSnapshot {
    */
   latencyMs: number | null;
   /**
+   * Modo de práctica de la sesión (B-032.4): observar, una mano o dos manos.
+   * Lo escribe el selector y lo confirma el estado del servidor.
+   */
+  practiceMode: PracticeMode;
+  /**
+   * Mano que practica el alumno (B-032.4); solo tiene sentido en `one_hand`.
+   */
+  studentHand: StudentHand;
+  /**
    * Quién propuso la última pista pedida desde el chat y si hubo que caer al
    * fallback (B-012.6); null hasta que se pida la primera. Es diagnóstico:
    * solo lo enseña el estado de sesión fuera de producción.
@@ -41,6 +55,8 @@ export const EMPTY_SESSION: SessionSnapshot = {
   error: null,
   agentAction: null,
   latencyMs: null,
+  practiceMode: "observe",
+  studentHand: "right",
   lastStep: null,
 };
 
@@ -70,6 +86,8 @@ export function updateSession(patch: Partial<SessionSnapshot>): void {
     next.error === current.error &&
     next.agentAction === current.agentAction &&
     next.latencyMs === current.latencyMs &&
+    next.practiceMode === current.practiceMode &&
+    next.studentHand === current.studentHand &&
     next.lastStep === current.lastStep
   ) {
     return;

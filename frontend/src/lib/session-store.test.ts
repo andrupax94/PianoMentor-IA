@@ -21,6 +21,8 @@ const STATE: SessionState = {
   control: "student",
   current_measure: null,
   position_s: 0,
+  mode: "observe",
+  hand: "both",
 };
 
 const DEMONSTRATE: AgentActionMessage = {
@@ -51,6 +53,8 @@ describe("session-store", () => {
       error: null,
       agentAction: null,
       latencyMs: null,
+      practiceMode: "observe",
+      studentHand: "right",
       lastStep: null,
     });
   });
@@ -69,6 +73,18 @@ describe("session-store", () => {
     updateSession({ agentAction: { type: "agent_action", action: "return_control" } });
     expect(listener).toHaveBeenCalledTimes(2);
     expect(getSessionSnapshot().agentAction?.action).toBe("return_control");
+  });
+
+  it("avisa también cuando cambia el modo de práctica (B-032.4)", () => {
+    updateSession({ sessionId: "s-1" });
+    const listener = vi.fn();
+    subscribeSession(listener);
+
+    updateSession({ practiceMode: "one_hand", studentHand: "left" });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getSessionSnapshot().practiceMode).toBe("one_hand");
+    expect(getSessionSnapshot().studentHand).toBe("left");
   });
 
   it("avisa también cuando solo cambia la procedencia de la última pista", () => {

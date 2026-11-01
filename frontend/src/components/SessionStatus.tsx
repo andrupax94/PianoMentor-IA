@@ -2,8 +2,9 @@
 // context: Sustituye el marcador estático que usaba el armazón del piano (B-006.4) y lo pinta SessionStatusLive con el estado que llega por WebSocket. El control y las intervenciones salen de la lógica pura de agent-demo y agent-accompany: el backend cambia el control sin re-empujar state, así que el sobre agent_action manda. La latencia y la procedencia son diagnóstico: se ocultan en producción.
 
 import { accompanyLabel, accompanyPlan, isAccompanying } from "../lib/agent-accompany";
-import { demoLabel, demoWindow, effectiveControl, isDemonstrating } from "../lib/agent-demo";
+import { demoLabel, demoWindow, effectiveControl, isDemonstrating, strikeLabel } from "../lib/agent-demo";
 import { providerLabel } from "../lib/agent-hint";
+import { PRACTICE_MODE_LABELS, STUDENT_HAND_LABELS } from "../lib/practice-mode";
 import type { AgentStepResponse, SessionState } from "../lib/api-client";
 import type { AgentActionMessage, ConnectionStatus } from "../lib/websocket-client";
 import styles from "./SessionStatus.module.css";
@@ -64,6 +65,13 @@ export function SessionStatus({
           <p>
             Modo: <strong>{STATUS_LABELS[state.status]}</strong>
           </p>
+          {/* B-032.4: el modo de práctica y la mano que se practica. */}
+          <p>
+            Práctica: <strong>{PRACTICE_MODE_LABELS[state.mode]}</strong>
+            {state.mode === "one_hand" && (
+              <> ({STUDENT_HAND_LABELS[state.hand === "left" ? "left" : "right"]})</>
+            )}
+          </p>
           <p>
             Control: <strong>{CONTROL_LABELS[effectiveControl(state, action)]}</strong>
           </p>
@@ -84,6 +92,13 @@ export function SessionStatus({
       {isAccompanying(action) && (
         <p className={styles.demo} role="status">
           <strong>{accompanyLabel(accompanyPlan(action))}</strong>
+        </p>
+      )}
+
+      {/* B-032.6: las reglas de strikes también son visibles al practicante. */}
+      {strikeLabel(action) !== null && (
+        <p className={styles.demo} role="status">
+          <strong>{strikeLabel(action)}</strong>
         </p>
       )}
 

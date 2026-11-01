@@ -16,6 +16,7 @@ from piano_mentor.config import settings
 from piano_mentor.database import connect, init_db
 from piano_mentor.main import app
 from piano_mentor.midi import MidiService
+from piano_mentor import practice_rules
 from piano_mentor.storage import LocalPieceStorage
 
 client = TestClient(app)
@@ -122,6 +123,9 @@ class TestCreateSession:
             "control": "student",
             "current_measure": None,
             "position_s": 0.0,
+            # B-032.4: el modo y la mano nacen en observar/both.
+            "mode": "observe",
+            "hand": "both",
         }
 
     def test_persists_the_session(self, session_id: str) -> None:
@@ -148,6 +152,69 @@ class TestGetState:
 
         assert response.status_code == 404
         assert response.json()["detail"]["code"] == "session_not_found"
+
+
+class TestPracticeMode:
+    """Modos de práctica (B-032.4): estado de la sesión, no evento."""
+
+    def test_the_mode_starts_in_observe(self, session_id: str) -> None:
+        response = client.get(f"/api/v1/sessions/{session_id}/state")
+
+        assert response.status_code == 200
+        assert response.json()["mode"] == "observe"
+        assert response.json()["hand"] == "both"
+
+    def test_the_mode_can_be_changed_and_is_persisted(self, session_id: str) -> None:
+        response = client.patch(
+            f"/api/v1/sessions/{session_id}", json={"mode": "one_hand", "hand": "left"}
+        )
+
+        assert response.status_code == 200
+        assert response.json()["mode"] == "one_hand"
+        assert response.json()["hand"] == "left"
+
+        state = client.get(f"/api/v1/sessions/{session_id}/state").json()
+        assert state["mode"] == "one_hand"
+        assert state["hand"] == "left"
+
+    def test_both_hands_normalises_the_hand(self, session_id: str) -> None:
+        client.patch(f"/api/v1/sessions/{session_id}", json={"mode": "one_hand", "hand": "left"})
+
+        response = client.patch(
+            f"/api/v1/sessions/{session_id}", json={"mode": "both_hands", "hand": "left"}
+        )
+
+        assert response.status_code == 200
+        assert response.json()["mode"] == "both_hands"
+        assert response.json()["hand"] == "both"
+
+    def test_an_invalid_mode_is_rejected(self, session_id: str) -> None:
+        response = client.patch(f"/api/v1/sessions/{session_id}", json={"mode": "tocando"})
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == "invalid_mode"
+
+    def test_an_invalid_hand_is_rejected(self, session_id: str) -> None:
+        response = client.patch(f"/api/v1/sessions/{session_id}", json={"hand": "middle"})
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == "invalid_hand"
+
+    def test_an_unknown_session_returns_404(self) -> None:
+        response = client.patch("/api/v1/sessions/no-existe", json={"mode": "observe"})
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["code"] == "session_not_found"
+
+    def test_the_new_mode_is_broadcast_by_the_websocket(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()  # estado inicial
+            client.patch(f"/api/v1/sessions/{session_id}", json={"mode": "both_hands"})
+            message = websocket.receive_json()
+
+        assert message["type"] == "state"
+        assert message["mode"] == "both_hands"
+        assert message["hand"] == "both"
 
 
 class TestPracticeFixture:
@@ -427,6 +494,74 @@ class TestPositionPushThrottle:
         assert api.position_push_due((10.0, None), None, 10.1) is False
 
 
+
+def _stored_signals(session_id: str) -> list[dict[str, object]]:
+    """Lee las señales de práctica persistidas (B-032.5)."""
+    conn = connect(settings.database_url)
+    try:
+        init_db(conn)
+        return [
+            dict(row)
+            for row in conn.execute(
+                "SELECT gate, measure, outcome, wait_ms, hand FROM practice_signals WHERE session_id = ? ORDER BY id",
+                (session_id,),
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+
+
+class TestPracticeSignals:
+    """Eventos de práctica del modo espera (B-032.5)."""
+
+    def test_hit_is_persisted(self, session_id: str) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json(
+                {
+                    "type": "practice",
+                    "gate": "gate-1.0000",
+                    "measure": 2,
+                    "outcome": "hit",
+                    "wait_ms": 120,
+                    "hand": "left",
+                }
+            )
+
+        assert _stored_signals(session_id) == [
+            {
+                "gate": "gate-1.0000",
+                "measure": 2,
+                "outcome": "hit",
+                "wait_ms": 120,
+                "hand": "left",
+            }
+        ]
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            {"type": "practice", "gate": "", "outcome": "hit"},
+            {"type": "practice", "gate": "g1", "outcome": "casi"},
+            {"type": "practice", "gate": "g1", "outcome": "hit", "wait_ms": -1},
+            {"type": "practice", "gate": "g1", "outcome": "hit", "hand": "middle"},
+        ],
+    )
+    def test_invalid_practice_event_is_rejected(
+        self, session_id: str, message: dict[str, object]
+    ) -> None:
+        with client.websocket_connect(f"/api/v1/ws/sessions/{session_id}") as websocket:
+            websocket.receive_json()
+            websocket.send_json(message)
+
+            error = websocket.receive_json()
+
+            assert error["type"] == "error"
+            assert error["code"] == "invalid_event_payload"
+
+        assert _stored_signals(session_id) == []
+
+
 class _RecordingSocket:
     """Doble de WebSocket que solo apunta lo que le llega."""
 
@@ -449,6 +584,36 @@ def clean_registry() -> None:
     """El registro de conexiones es estado de módulo: cada test parte vacío."""
     api._session_sockets.clear()
     api._last_position_push.clear()
+    api._auto_return_tasks.clear()
+
+
+def _stored_decisions(session_id: str) -> list[dict[str, object]]:
+    """Lee las decisiones ejecutadas del agente (B-032.6)."""
+    conn = connect(settings.database_url)
+    try:
+        init_db(conn)
+        return [
+            dict(row)
+            for row in conn.execute(
+                "SELECT measure, action, reason, baseline_signal_id FROM agent_decisions"
+                " WHERE session_id = ? ORDER BY id",
+                (session_id,),
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+
+
+def _practice(gate: str, outcome: str, measure: int | None) -> dict[str, object]:
+    """Sobre `practice` como lo manda el gate-controller del navegador."""
+    return {
+        "type": "practice",
+        "gate": gate,
+        "measure": measure,
+        "outcome": outcome,
+        "wait_ms": 0,
+        "hand": "both",
+    }
 
 
 class TestBroadcast:
@@ -479,3 +644,123 @@ class TestBroadcast:
         await api._broadcast_state("s1", {"session_id": "s1", "status": "playing"})
 
         assert "s1" not in api._session_sockets
+
+
+class TestStrikeLoop:
+    """El bucle completo: señales del navegador → decisión determinista → `agent_action` (B-032.6)."""
+
+    def _connect(self, session_id: str):
+        """Contexto de WebSocket ya con el primer `state` recibido (usar `with`)."""
+        return client.websocket_connect(f"/api/v1/ws/sessions/{session_id}")
+
+    def test_two_failed_gates_slow_down_the_tempo(self, session_id: str) -> None:
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g2", "wrong", 0))
+
+            action = websocket.receive_json()
+            assert action["type"] == "agent_action"
+            assert action["action"] == "slow_down"
+            assert action["reason"] == "gate_repeated_strikes"
+            assert action["tempo_factor"] == 0.7
+
+            state = websocket.receive_json()
+            assert state["type"] == "state"
+            assert state["control"] == "student"  # el tempo baja sin quitar el control
+
+    def test_a_repeated_gate_does_not_count_twice(self, session_id: str) -> None:
+        # Tres señales del mismo gate fallado: el reintento del front no es strike nuevo.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g1", "wrong", 0))
+
+        assert _stored_decisions(session_id) == []  # un solo gate distinto: sin intervención
+
+    def test_three_failed_gates_ask_for_a_hint(self, session_id: str) -> None:
+        # La escalera completa: con dos fallos baja el tempo y con tres da una pista.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g2", "wrong", 0))
+            websocket.receive_json()  # slow_down (2 fallos)
+            websocket.receive_json()  # state
+
+            websocket.send_json(_practice("g3", "wrong", 0))
+            hint = websocket.receive_json()
+            assert hint["action"] == "give_hint"
+            assert hint["reason"] == "gate_repeated_strikes"
+            assert hint["hint_type"] == "measure_focus"
+            websocket.receive_json()  # state del evento
+
+    def test_a_timeout_demonstrates_and_returns_the_control(self, session_id: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        # La ventana demostrada dura su medida; en test se acorta la espera.
+        monkeypatch.setattr(api, "demo_return_delay_s", lambda *args, **kwargs: 0.1)
+
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "timeout", 0))
+
+            demo = websocket.receive_json()
+            assert demo["type"] == "agent_action"
+            assert demo["action"] == "demonstrate"
+            assert demo["from_measure"] == 0
+            assert demo["to_measure"] == 0
+            assert demo["reason"] == "gate_timeout_silence"
+
+            state = websocket.receive_json()
+            assert state["control"] == "agent"
+
+            return_action = websocket.receive_json()
+            assert return_action["action"] == "return_control"
+            return_state = websocket.receive_json()
+            assert return_state["control"] == "student"
+
+        decisions = _stored_decisions(session_id)
+        assert [decision["action"] for decision in decisions] == ["demonstrate", "return_control"]
+        assert decisions[0]["baseline_signal_id"] > 0
+        assert decisions[1]["reason"] == "demo_return"
+
+    def test_a_hint_after_a_struck_measure_resets_the_ladder(self, session_id: str) -> None:
+        # Se interviene; desde entonces el contador de ese compás parte de cero
+        # (baseline), y hasta que vuelvan a fallar gates no hay segunda acción.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            # El compás vivo manda dónde se cuenta: sin posición no hay baseline.
+            websocket.send_json({"type": "position", "t_s": 0.0, "measure": 0})
+            websocket.receive_json()  # el cambio de compás difunde el estado
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g2", "wrong", 0))
+            websocket.receive_json()  # slow_down
+            websocket.receive_json()  # state
+
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g3", "wrong", 0))
+
+        actions = [decision["action"] for decision in _stored_decisions(session_id)]
+        assert actions == ["slow_down"]  # un solo gate nuevo: no llega al umbral 2
+
+    def test_the_session_has_a_global_cap(
+        self, session_id: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Con el tope de sesión a 1, la segunda señal de silencio ya no demuestra.
+        monkeypatch.setattr(api, "demo_return_delay_s", lambda *args, **kwargs: 0.1)
+        monkeypatch.setattr(practice_rules, "MAX_STRIKE_ACTIONS_PER_SESSION", 1)
+
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "timeout", 0))
+            websocket.receive_json()  # agent_action demonstrate
+            websocket.receive_json()  # state control=agent
+            websocket.receive_json()  # return_control
+            websocket.receive_json()  # state control=student
+
+            websocket.send_json(_practice("g1", "timeout", 0))
+            # Sin cabos colgando: llega el estado del evento, ninguna acción.
+
+        decisions = _stored_decisions(session_id)
+        demos = [decision for decision in decisions if decision["action"] == "demonstrate"]
+        assert len(demos) == 1

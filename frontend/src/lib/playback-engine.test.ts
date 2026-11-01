@@ -232,4 +232,171 @@ describe("PlaybackEngine", () => {
     // La duración explícita se escala con el factor: 10 s al 50 % son 20 s.
     expect(harness.engine.snapshot().duration_s).toBeCloseTo(20, 9);
   });
+
+  it("setAudible cambia lo que suena sin reiniciar la posición (B-032.4)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.play();
+    harness.advance(1.2);
+    harness.engine.tick();
+
+    const position = harness.engine.snapshot().position_s;
+    expect(position).toBeGreaterThan(0);
+
+    // Cambia el modo: ahora suena solo la otra mano (una nota por delante).
+    harness.engine.setAudible([note({ pitch: 48, start_seconds: 2.5 })]);
+
+    // La posición se conserva: cambiar de modo no reinicia el transporte.
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(position, 6);
+    // Y lo que se programa es la parte nueva.
+    harness.advance(2.0);
+    harness.engine.tick();
+    expect(harness.scheduled.map((item) => item.event.pitch)).toContain(48);
+  });
+
+  it("setAudible con una lista vacía deja el transporte mudo (B-032.4)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.play();
+    harness.advance(0.5);
+
+    harness.engine.setAudible([]);
+
+    expect(harness.scheduled.map((item) => item.event.pitch)).not.toContain(60);
+    // La partitura sigue midiendo el transporte: no se acorta.
+    expect(harness.engine.snapshot().duration_s).toBeCloseTo(2.5, 9);
+  });
+
+  it("con gates activados, play desde el inicio arranca el preroll (B-032.5)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE, { tempo_bpm: 120 });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(1);
+
+    harness.engine.play();
+    expect(harness.engine.snapshot().status).toBe("preroll");
+    expect(harness.engine.snapshot().prerollRemaining_s).toBeCloseTo(1, 6);
+
+    harness.advance(0.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().prerollRemaining_s).toBeCloseTo(0.5, 6);
+
+    harness.advance(0.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().currentGate).not.toBeNull();
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([60]);
+  });
+
+  it("durante el preroll la posición de display es negativa (B-032.5)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(2);
+
+    harness.engine.play();
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(-2, 6);
+
+    harness.advance(1);
+    harness.engine.tick();
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(-1, 6);
+  });
+
+  it("al llegar a un gate congela el transporte en waiting (B-032.5)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.95);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
+  });
+
+  it("resolveGate reanuda el transporte desde el gate (B-032.5)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.95);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+
+    harness.engine.resolveGate();
+    expect(harness.engine.snapshot().status).toBe("playing");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
+
+    harness.advance(1.1);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(2.1, 6);
+  });
+
+  it("en modo observe los gates no se activan (B-032.5)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: false, hand: "both" });
+
+    harness.engine.play();
+    harness.advance(1.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("playing");
+  });
+
+  it("los gates llegan con el compás real cuando la pieza trae rejilla (B-032.6)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE, {
+      measures: { count: 2, starts_s: [0, 2], signatures: [[4, 4], [4, 4]], end_s: 4 },
+    });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.95);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().currentGate?.measure).toBe(0);
+
+    harness.engine.resolveGate();
+    harness.advance(0.9);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().currentGate?.measure).toBe(1);
+  });
+
+  it("sin rejilla los gates siguen funcionando con compás nulo (B-032.5/B-032.6)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.95);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().currentGate?.measure).toBeNull();
+  });
+
+  it("los compases de los gates salen escalados por el factor de tempo (B-032.6)", () => {
+    // Con factor 0.5 el gate de 2 s de partitura suena en el segundo 1 del motor.
+    const harness = makeHarness();
+    harness.engine.load(
+      [note({ pitch: 62, start_seconds: 2.0 })],
+      {
+        duration_s: 4,
+        tempoFactor: 0.5,
+        measures: { count: 2, starts_s: [0, 2], signatures: [[4, 4], [4, 4]], end_s: 4 },
+      },
+    );
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(7.9); // 3,95 s escala×: el gate de 2 s de partitura pisa el congelado
+    harness.engine.tick();
+    const gate = harness.engine.snapshot().currentGate;
+    expect(gate?.time_s).toBeCloseTo(4.0, 6); // 2 s de partitura / factor 0,5
+    expect(gate?.measure).toBe(1);
+  });
 });

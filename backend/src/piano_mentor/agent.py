@@ -18,11 +18,12 @@ Reglas deterministas (por prioridad, de mayor a menor):
 
     1. Agente tiene control + periodo demonstrate/slow_down terminado → return_control
     2. Agente tiene control → wait (no interferir)
-    3. Estudiante silencioso > SILENCE_TIMEOUT_S → wait
-    4. Precisión < LOW_PRECISION_THRESHOLD → demonstrate
-    5. wrong_pitch >= REPEATED_ERRORS_THRESHOLD → give_hint
-    6. timing_ms > TIMING_THRESHOLD_MS → slow_down
-    7. Default → wait
+    3. Señales de práctica del modo espera (B-032.6): strikes de gates
+    4. Estudiante silencioso > SILENCE_TIMEOUT_S → wait
+    5. Precisión < LOW_PRECISION_THRESHOLD → demonstrate
+    6. wrong_pitch >= REPEATED_ERRORS_THRESHOLD → give_hint
+    7. timing_ms > TIMING_THRESHOLD_MS → slow_down
+    8. Default → wait
 
 El LLM (B-012.6/B-012.8) puede proponer acciones, pero estas reglas son el
 fallback obligatorio que garantiza que el flujo funciona sin red.
@@ -34,6 +35,9 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .validators import ValidationError
+
+if TYPE_CHECKING:
+    from .practice_rules import StrikeContext
 
 if TYPE_CHECKING:
     from .llm import ActionProposal, LLMProvider
@@ -135,12 +139,15 @@ class DecisionContext:
     - `evaluation`: resultado de la evaluación (B-012.2); `None` si aún no hay.
     - `history`: decisiones previas del agente (cada entrada con `action` y `measure`).
     - `seconds_since_last_note`: segundos desde la última nota del estudiante.
+    - `strikes`: contexto de señales de práctica del modo espera (B-032.6);
+      `None` si no hay señales en juego.
     """
 
     session_state: dict[str, object]
     evaluation: dict[str, object] | None = None
     history: list[dict[str, object]] = field(default_factory=list)
     seconds_since_last_note: float = 0.0
+    strikes: StrikeContext | None = None
 
 
 class AgentService:
@@ -168,11 +175,23 @@ class AgentService:
                     return self._decide("return_control", "demo_period_ended")
             return self._decide("wait", "agent_has_control")
 
-        # --- Regla 3: estudiante silencioso ---
+        # --- Regla 3: señales de práctica del modo espera (B-032.6) ---
+        # La única vía de las señales: si las reglas de strikes piden algo,
+        # manda antes que la evaluación batch (decide en vivo) y antes del
+        # corte por silencio (en el modo espera el alumno está en silencio;
+        # es el `timeout` del gate lo que sale del atasco, no `wait`).
+        if context.strikes is not None:
+            from .practice_rules import decide_strikes  # import local para evitar ciclo
+
+            strike_decision = decide_strikes(context.strikes)
+            if strike_decision is not None:
+                return strike_decision
+
+        # --- Regla 4: estudiante silencioso ---
         if context.seconds_since_last_note > SILENCE_TIMEOUT_S:
             return self._decide("wait", "student_silent")
 
-        # --- Reglas 4-6: dependen de la evaluación ---
+        # --- Reglas 5-7: dependen de la evaluación ---
         evaluation = context.evaluation
         if evaluation is not None:
             accuracy = float(evaluation.get("accuracy_pct", 100.0) or 0.0)
@@ -347,7 +366,11 @@ class AgentService:
 
     @staticmethod
     def _validate_measure_range(action: str, params: dict[str, object]) -> None:
-        """Valida from_measure/to_measure y el máximo de compases de la sección."""
+        """Valida from_measure/to_measure y el máximo de compases de la sección.
+
+        `demonstrate` admite `to == from`: demostrar un único compás es justo lo
+        que hacen las reglas de strikes de B-032.6.
+        """
         max_measures = MAX_MEASURES[action]
         try:
             frm = int(params.get("from_measure", 0))
@@ -361,7 +384,7 @@ class AgentService:
             raise ValidationError(
                 "action_params_out_of_range", "from_measure no puede ser negativo"
             )
-        if to <= frm:
+        if to < frm or (to == frm and action != "demonstrate"):
             raise ValidationError(
                 "action_params_out_of_range",
                 f"to_measure ({to}) debe ser mayor que from_measure ({frm})",

@@ -64,6 +64,10 @@ export interface AgentActionMessage {
   from_measure?: number;
   to_measure?: number;
   tempo_factor?: number;
+  /** B-032.6: el motivo de la regla determinista que decidió la acción. */
+  reason?: string;
+  /** `give_hint` (B-032.6): el tipo de pista decidida. */
+  hint_type?: string;
   /** `accompany` (B-012.7): mano que toca la IA y la que le queda al estudiante. */
   hand?: string;
   student_hand?: string | null;
@@ -85,6 +89,19 @@ export type ServerMessage =
   | SessionErrorMessage
   | AgentActionMessage
   | PongMessage;
+
+/** Evento de práctica enviado al backend (B-032.5). */
+export interface PracticeEvent {
+  type: "practice";
+  gate: string;
+  measure: number | null;
+  outcome: "hit" | "miss" | "wrong" | "timeout";
+  wait_ms: number;
+  hand: string;
+}
+
+/** Evento de práctica tal y como lo envía el cliente (sin type). */
+export type PracticeEventPayload = Omit<PracticeEvent, "type">;
 
 /**
  * Subconjunto de `WebSocket` que usa el cliente: permite inyectar un doble en
@@ -185,6 +202,18 @@ export function encodePosition(position: PositionEvent): {
     type: "position",
     t_s: roundSeconds(position.t_s),
     measure: position.measure,
+  };
+}
+
+/** Da forma al evento de práctica del modo espera (B-032.5). */
+export function encodePracticeEvent(event: PracticeEventPayload): PracticeEvent {
+  return {
+    type: "practice",
+    gate: event.gate,
+    measure: event.measure,
+    outcome: event.outcome,
+    wait_ms: Math.max(0, Math.round(event.wait_ms)),
+    hand: event.hand,
   };
 }
 
@@ -296,6 +325,13 @@ export class SessionSocket {
    */
   sendPosition(position: PositionEvent): void {
     this.send(encodePosition(position));
+  }
+
+  /**
+   * Manda el resultado de un gate del modo espera (B-032.5).
+   */
+  sendPracticeEvent(event: PracticeEventPayload): void {
+    this.send(encodePracticeEvent(event));
   }
 
   /**

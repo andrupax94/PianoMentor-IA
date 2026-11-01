@@ -6,12 +6,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   createSession,
+  evaluateSession,
   getPieceNotes,
   getSessionState,
   previewPiece,
   registerUser,
   runAgentStep,
   sendAgentMessage,
+  updateSessionPracticeMode,
   uploadPiece,
   type AgentChatResponse,
 } from "./api-client";
@@ -257,6 +259,8 @@ describe("getSessionState", () => {
     control: "student",
     current_measure: null,
     position_s: 0,
+    mode: "observe",
+    hand: "both",
   };
 
   it("lee el estado de la sesión", async () => {
@@ -288,6 +292,86 @@ describe("getSessionState", () => {
       code: "session_not_found",
       status: 404,
     });
+  });
+});
+
+describe("updateSessionPracticeMode", () => {
+  const STATE = {
+    session_id: "s-1",
+    piece_id: "p01",
+    status: "playing",
+    control: "student",
+    current_measure: null,
+    position_s: 0,
+    mode: "observe",
+    hand: "both",
+  };
+
+  it("manda el modo y la mano por PATCH y devuelve el estado nuevo (B-032.4)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ...STATE, mode: "one_hand", hand: "left" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state = await updateSessionPracticeMode("s-1", { mode: "one_hand", hand: "left" });
+
+    expect(state.mode).toBe("one_hand");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/sessions\/s-1$/);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(String(init.body))).toEqual({ mode: "one_hand", hand: "left" });
+  });
+
+  it("traduce un modo inválido a invalid_mode", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          detail: { code: "invalid_mode", message: "Modo de práctica inválido: 'x'" },
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      updateSessionPracticeMode("s-1", { mode: "x" as never }),
+    ).rejects.toMatchObject({ code: "invalid_mode", status: 400 });
+  });
+});
+
+describe("evaluateSession", () => {
+  it("pide la evaluación con la mano del modo (B-032.4)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ session_id: "s-1", counts: {} }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await evaluateSession("s-1", { hand: "right" });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/sessions\/s-1\/evaluation\?hand=right$/);
+    expect(init.method).toBe("POST");
+  });
+
+  it("sin mano no manda ninguna (manda el backend la del modo)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ session_id: "s-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await evaluateSession("s-1");
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toMatch(/\/api\/v1\/sessions\/s-1\/evaluation$/);
   });
 });
 

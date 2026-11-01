@@ -669,3 +669,79 @@ class TestEsquemaDeAcciones:
         """Evita que el modelo proponga devolver el control sin tenerlo."""
         assert "return_control" in _esquema_de_acciones()
         assert "control` = agent" in _esquema_de_acciones()
+
+
+# --- Señales de práctica (B-032.6) -------------------------------------------
+
+from piano_mentor.practice_rules import InterventionLimits, StrikeContext  # noqa: E402
+
+
+def _strikes(window: list[dict], measure: int | None = 2) -> StrikeContext:
+    """Contexto de strikes mínimo para las reglas de B-032.6."""
+    return StrikeContext(window=window, measure=measure)
+
+
+def _signal(gate: str, outcome: str, measure: int | None = 2) -> dict:
+    return {"gate": gate, "measure": measure, "outcome": outcome, "wait_ms": 0, "hand": "both"}
+
+
+class TestStrikesRule:
+    """Las señales del navegador entran por una sola puerta: decide()."""
+
+    def test_strikes_win_over_the_silence_rule(self) -> None:
+        # En el modo espera el alumno "está en silencio": son los fallos del
+        # gate lo que manda, no `student_silent`.
+        ctx = _ctx(
+            seconds_since_last_note=SILENCE_TIMEOUT_S + 60,
+        )
+        ctx.strikes = StrikeContext(
+            window=[_signal("g1", "wrong"), _signal("g2", "wrong")],
+            measure=2,
+        )
+        decision = AgentService().decide(ctx)
+        assert decision.action == "slow_down"
+        assert decision.reason == "gate_repeated_strikes"
+
+    def test_three_failed_gates_ask_for_a_hint(self) -> None:
+        ctx = _ctx()
+        ctx.strikes = StrikeContext(
+            window=[
+                _signal("g1", "wrong"),
+                _signal("g2", "wrong"),
+                _signal("g3", "wrong"),
+            ],
+            measure=2,
+        )
+        decision = AgentService().decide(ctx)
+        assert decision.action == "give_hint"
+
+    def test_a_timeout_demonstrates_the_measure(self) -> None:
+        ctx = _ctx()
+        ctx.strikes = StrikeContext(window=[_signal("g1", "timeout", 3)], measure=3)
+        decision = AgentService().decide(ctx)
+        assert decision.action == "demonstrate"
+        assert decision.params["from_measure"] == 3
+        assert decision.params["to_measure"] == 3
+
+    def test_agent_control_beats_the_strikes(self) -> None:
+        # Mientras la IA interviene las señales no cambian el plan (reglas 1-2).
+        ctx = _ctx(control="agent", history=[{"action": "demonstrate", "measure": 0}])
+        ctx.strikes = StrikeContext(
+            window=[_signal("g1", "timeout")],
+            limits=InterventionLimits(),
+        )
+        decision = AgentService().decide(ctx)
+        assert decision.action == "wait"
+        assert decision.reason == "agent_has_control"
+
+    def test_a_clean_measure_falls_through_to_the_old_rules(self) -> None:
+        ctx = _ctx()
+        ctx.strikes = StrikeContext(window=[_signal("g1", "hit")])
+        decision = AgentService().decide(ctx)
+        assert decision.action == "wait"
+
+    def test_still_no_strikes_keeps_the_default(self) -> None:
+        # Sin sobre de señales, decide() es exactamente la máquina de B-012.3.
+        decision = AgentService().decide(_ctx(evaluation=_eval(accuracy_pct=1.0)))
+        assert decision.action == "demonstrate"
+        assert decision.reason == "low_precision"
