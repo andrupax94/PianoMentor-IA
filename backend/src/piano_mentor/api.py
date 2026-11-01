@@ -1,7 +1,10 @@
 # description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado. POST /sessions/{id}/actions valida y ejecuta la acción del agente (B-012.4–B-012.7): demonstrate/return_control cambian el control y accompany difunde la mano de la IA y sus notas; el WS responde ping con pong para medir la latencia.
 # context: Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí. El acompañamiento no cambia el control (el estudiante sigue tocando) y sus notas viajan con tiempos relativos al inicio de la sección.
 
+import asyncio
+import json
 import logging
+import math
 import re
 import secrets
 import sqlite3
@@ -13,6 +16,7 @@ from pathlib import Path
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     File,
     Header,
     HTTPException,
@@ -24,7 +28,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse
 
 from .accompaniment import AccompanimentService
-from .agent import AgentService, DecisionContext
+from .agent import AgentDecision, AgentService, DecisionContext
 from .auth import (
     AuthTokenError,
     create_pm_token,
@@ -35,21 +39,27 @@ from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .config import settings
 from .database import (
+    consume_auth_token,
+    create_auth_token,
     create_pending_registration,
     find_existing_piece,
     find_piece_by_id,
     find_pieces,
+    find_user_by_auth_token,
     find_user_by_email,
     find_user_by_google_sub,
     find_user_by_verification_token,
+    insert_agent_decision,
     mark_email_verified,
+    max_signal_id_at,
     open_db,
     save_piece,
+    update_password_changed_at,
     update_pending_registration,
     upsert_user,
 )
-from .evaluation import DEFAULT_TOLERANCE_MS, EvaluationService
-from .mailer import send_verification_email
+from .evaluation import DEFAULT_TOLERANCE_MS, EvaluationService, resolve_measure_window
+from .mailer import send_password_changed_notification, send_password_reset_email, send_verification_email
 from .midi import (
     HAND_UNKNOWN,
     Hand,
@@ -70,8 +80,12 @@ from .schemas import (
     ActionResponse,
     AuthLoginRequest,
     AuthLoginResponse,
+    AuthForgotPasswordRequest,
+    AuthForgotPasswordResponse,
     AuthRegisterRequest,
     AuthRegisterResponse,
+    AuthResetPasswordRequest,
+    AuthResetPasswordResponse,
     AuthSessionResponse,
     AuthUser,
     ChatMessageRequest,
@@ -87,6 +101,7 @@ from .schemas import (
     PieceResponse,
     PieceSummary,
     SessionCreate,
+    SessionPracticeModeRequest,
     SessionResponse,
     SessionStateResponse,
     ToolCallResult,
@@ -178,13 +193,186 @@ async def _broadcast_agent_action(session_id: str, action: str, **params: object
     """Notifica una acción del agente a todas las conexiones de la sesión (B-012.5).
 
     El front escucha `agent_action` para mostrar el indicador de demostración,
-    bloquear el teclado o devolver el control al estudiante.
+    bloquear el teclado o devolver el control al estudiante. Desde B-032.6 las
+    reglas de strikes también viajan por aquí, con su `reason` para la interfaz.
     """
     for websocket in list(_session_sockets.get(session_id, ())):
         try:
             await websocket.send_json({"type": "agent_action", "action": action, **params})
         except (WebSocketDisconnect, RuntimeError):
             _unregister_socket(session_id, websocket)
+
+
+# --- B-032.6: ejecución determinista de las reglas de strikes -----------------
+
+# Tareas de devolución de control programadas por sesión (B-032.6): la
+# demostración terminada se devuelve sola, sin que el chat ni el front lo pidan.
+_auto_return_tasks: dict[str, asyncio.Task[None]] = {}
+
+# Margen extra sobre la duración de la ventana demostrada: el front arranca la
+# demo un poco después de recibirla y el canal puede tardar (B-012.7).
+DEMO_RETURN_MARGIN_S = 1.5
+
+# Duración de reserva cuando la pieza no deja medir la ventana (sin rejilla).
+DEMO_RETURN_FALLBACK_S = 30.0
+
+# Acciones que las reglas de strikes pueden pedir (B-032.6): la lista blanca
+# está en agent.py; este subconjunto es el que se ejecuta en vivo por WS.
+STRIKE_ACTIONS = ("slow_down", "give_hint", "demonstrate")
+
+
+def _event_measure(event: Mapping[str, object]) -> int | None:
+    """Compás que trae el evento de práctica (o `None` si la pieza no tiene rejilla)."""
+    measure = event.get("measure")
+    return int(measure) if isinstance(measure, int) else None
+
+
+def _record_agent_decision(
+    session_id: str,
+    action: str,
+    params: Mapping[str, object],
+    *,
+    reason: str = "",
+    provider: str = "deterministic",
+    measure: int | None = None,
+) -> None:
+    """Registra la intervención ejecutada y congela el contador de strikes.
+
+    `baseline_signal_id` es la última señal vista al ejecutar la acción: las
+    reglas de B-032.6 cuentan fallos nuevos a partir de ahí, sin borrar el
+    historial de `practice_signals`.
+    """
+    with open_db() as conn:
+        insert_agent_decision(
+            conn,
+            {
+                "session_id": session_id,
+                "measure": measure,
+                "action": action,
+                "params_json": json.dumps(dict(params), ensure_ascii=False),
+                "reason": reason,
+                "provider": provider,
+                "baseline_signal_id": max_signal_id_at(conn, session_id),
+            },
+        )
+
+
+def demo_return_delay_s(
+    decision: AgentDecision | Mapping[str, object],
+    *,
+    row: Mapping[str, object] | None = None,
+) -> float:
+    """Segundos que faltan para devolver el control tras una demostración (B-032.6).
+
+    Pura con dependencias inyectadas para probar el cálculo sin tocar el disco:
+    la ventana demostrada en segundos (de `from_measure` inclusive hasta el fin
+    de `to_measure`) dividida por el factor de tempo, más el margen del canal.
+    Sin pieza, sin rejilla o con compases fuera de límites queda la reserva.
+
+    Acepta una decisión del agente o un mapeo equivalente (params completos),
+    para que preguntas distintas a la misma función no dupliquen la lógica.
+    """
+    params = decision.params if isinstance(decision, AgentDecision) else decision
+
+    from_measure = params.get("from_measure")
+    to_measure = params.get("to_measure", from_measure)
+    tempo_factor = params.get("tempo_factor", 1.0)
+    try:
+        factor = float(tempo_factor)
+        frm = int(from_measure)
+        to = int(to_measure)
+    except (TypeError, ValueError):
+        return DEMO_RETURN_FALLBACK_S
+    if not math.isfinite(factor) or factor <= 0:
+        factor = 1.0
+    if row is None:
+        return DEMO_RETURN_FALLBACK_S
+
+    try:
+        from_s, to_s = resolve_measure_window(row, frm, to + 1)  # type: ignore[arg-type]
+    except ValidationError:
+        return DEMO_RETURN_FALLBACK_S
+    duration_s = max(to_s - from_s, 0.0)
+    return duration_s / factor + DEMO_RETURN_MARGIN_S
+
+
+def _schedule_demo_return(session_id: str, decision: AgentDecision, row: Mapping[str, object] | None) -> None:
+    """Programa la devolución de control al acabar la demostración (B-032.6).
+
+    Una decisión de `demonstrate` cierra el bucle sola: pasado el tiempo de la
+    ventana demostrada (más margen), el backend devuelve el control y difunde
+    `return_control`. Si la sesión ya volvió a manos del estudiante por otra
+    vía, la tarea no hace nada.
+    """
+    previous = _auto_return_tasks.get(session_id)
+    if previous is not None and not previous.done():
+        previous.cancel()
+    delay_s = demo_return_delay_s(decision, row=row)
+
+    async def _return_control() -> None:
+        try:
+            await asyncio.sleep(delay_s)
+            state = practice_service.get_state(session_id)
+            if state.get("control") != "agent":
+                return
+            new_state = practice_service.set_control(session_id, "student")
+            demo_measure = decision.params.get("from_measure")
+            _record_agent_decision(
+                session_id,
+                "return_control",
+                {},
+                reason="demo_return",
+                measure=int(demo_measure) if isinstance(demo_measure, int) else None,
+            )
+            await _broadcast_agent_action(session_id, "return_control")
+            await _broadcast_state(session_id, new_state)
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            logger.exception("Devolución de control falló en la sesión %s", session_id)
+
+    _auto_return_tasks[session_id] = asyncio.create_task(_return_control())
+
+
+async def _execute_strike_decision(
+    session_id: str,
+    decision: AgentDecision,
+    state: dict[str, object],
+) -> dict[str, object]:
+    """Valida, persiste y ejecuta una decisión de strikes en vivo (B-032.6).
+
+    Devuelve el estado actualizado de la sesión. Las decisiones inválidas se
+    callan (no cuentan como intervención): el front no recibe `agent_action`
+    si la acción acabara bloqueando o duplicando (topes de las reglas).
+    """
+    try:
+        agent_service.validate_action(decision.action, decision.params, session_state=state)
+    except ValidationError as exc:
+        logger.debug(
+            "Decisión de strikes descartada en la sesión %s: %s (%s)",
+            session_id,
+            decision.action,
+            exc.message,
+        )
+        return state
+
+    if decision.action == "demonstrate":
+        new_state = practice_service.set_control(session_id, "agent")
+    else:
+        new_state = state
+
+    _record_agent_decision(
+        session_id,
+        decision.action,
+        decision.params,
+        reason=decision.reason,
+        measure=_measure_from_params(decision.params, state),
+    )
+    await _broadcast_agent_action(session_id, decision.action, reason=decision.reason, **decision.params)
+    if decision.action == "demonstrate":
+        row = find_piece_by_id(str(state.get("piece_id") or ""))
+        _schedule_demo_return(session_id, decision, row)
+    return new_state
 
 
 def _session_state_or_404(session_id: str) -> dict[str, object]:
@@ -638,6 +826,169 @@ def auth_verify(token: str = Query(min_length=1)) -> HTMLResponse:
     )
 
 
+# ---------------------------- Recuperación de contraseña (U-007) -----------------------------
+
+RESET_TOKEN_TTL_MIN = 30
+RATE_LIMIT_WINDOW_MIN = 60
+RATE_LIMIT_MAX_REQUESTS = 5
+
+
+def _rate_limited(
+    conn: sqlite3.Connection, *, email: str, ip: str | None
+) -> bool:
+    """Comprueba si se supera el límite de solicitudes por email/IP (ventana simple)."""
+    since = (datetime.now(UTC) - timedelta(minutes=RATE_LIMIT_WINDOW_MIN)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    email_count = conn.execute(
+        "SELECT COUNT(*) FROM auth_tokens "
+        "WHERE user_sub = (SELECT google_sub FROM users WHERE lower(email) = lower(?)) "
+        "AND purpose = 'reset' AND created_at > ?",
+        (email, since),
+    ).fetchone()[0]
+    if email_count >= RATE_LIMIT_MAX_REQUESTS:
+        return True
+    if ip:
+        ip_count = conn.execute(
+            "SELECT COUNT(*) FROM auth_tokens "
+            "WHERE user_sub = ? AND purpose = 'reset' AND created_at > ?",
+            (f"ip:{ip}", since),
+        ).fetchone()[0]
+        if ip_count >= RATE_LIMIT_MAX_REQUESTS:
+            return True
+    return False
+
+
+def _reset_link(token: str) -> str:
+    """Enlace absoluto del email de restablecimiento (U-007). Apunta al front."""
+    base = settings.app_public_url.rstrip("/")
+    return f"{base}/recuperar/{token}"
+
+
+@router.post("/auth/forgot-password", response_model=AuthForgotPasswordResponse)
+async def auth_forgot_password(
+    payload: AuthForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    x_forwarded_for: str | None = Header(default=None),
+) -> AuthForgotPasswordResponse:
+    """Solicita enlace de restablecimiento (U-007).
+
+    Respuesta **idéntica** exista o no la cuenta (no enumeración). El envío
+    del email se lanza en segundo plano (BackgroundTasks) para tiempo de
+    respuesta uniforme. Cuenta pendiente de verificación → reenvía enlace
+    de verificación (U-006). Cuenta solo Google → email sugiere entrar con Google.
+    """
+    email = payload.email.strip().lower()
+    if not EMAIL_RE.match(email):
+        # Respuesta neutra igual que si existiera
+        return AuthForgotPasswordResponse()
+
+    with open_db() as conn:
+        # Rate limiting básico por email/IP
+        if _rate_limited(conn, email=email, ip=x_forwarded_for):
+            raise HTTPException(
+                status_code=429,
+                detail={"code": "auth_rate_limited", "message": "Demasiadas solicitudes. Espera unos minutos."},
+            )
+
+        row = find_user_by_email(conn, email)
+
+        # Caso 1: cuenta no existe → respuesta neutra, sin email
+        if row is None:
+            return AuthForgotPasswordResponse()
+
+        # Caso 2: cuenta pendiente de verificación (email_verified = 0)
+        # → reenvía enlace de verificación (U-006), no de reset
+        if not row["email_verified"]:
+            token = secrets.token_urlsafe(32)
+            expires_at = (
+                datetime.now(UTC) + timedelta(hours=settings.verification_token_ttl_h)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            create_auth_token(
+                conn, purpose="verify", user_sub=str(row["google_sub"]), token=token, expires_at=expires_at
+            )
+            verification_link = _verification_link(token)
+            background_tasks.add_task(send_verification_email, email, verification_link)
+            return AuthForgotPasswordResponse()
+
+        # Caso 3: cuenta con contraseña → genera token de reset
+        if row["password_hash"]:
+            token = secrets.token_urlsafe(32)
+            expires_at = (
+                datetime.now(UTC) + timedelta(minutes=RESET_TOKEN_TTL_MIN)
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            create_auth_token(
+                conn, purpose="reset", user_sub=str(row["google_sub"]), token=token, expires_at=expires_at
+            )
+            reset_link = _reset_link(token)
+            background_tasks.add_task(send_password_reset_email, email, reset_link)
+            return AuthForgotPasswordResponse()
+
+        # Caso 4: cuenta solo Google (sin password_hash) → email sugiere Google
+        # Mismo mensaje neutro; el email indica que use Google
+        reset_link = _reset_link("google-only")
+        background_tasks.add_task(send_password_reset_email, email, reset_link)
+        return AuthForgotPasswordResponse()
+
+
+@router.post("/auth/reset-password", response_model=AuthResetPasswordResponse)
+def auth_reset_password(payload: AuthResetPasswordRequest) -> AuthResetPasswordResponse:
+    """Consume el token y establece la nueva contraseña (U-007).
+
+    Valida: token existe, no usado, no caducado. Aplica la misma política
+    de contraseña que el registro (MIN_PASSWORD_LEN). Guarda hash PBKDF2,
+    marca token como usado, actualiza password_changed_at (invalida JWTs
+    previos) y manda email de aviso. No abre sesión automática.
+    """
+    token = payload.token.strip()
+    password = payload.password
+
+    if not token:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "auth_invalid_token", "message": "Token requerido."},
+        )
+
+    # Misma política que registro
+    if len(password) < MIN_PASSWORD_LEN:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "auth_weak_password",
+                "message": f"Usa al menos {MIN_PASSWORD_LEN} caracteres en la contraseña.",
+            },
+        )
+
+    with open_db() as conn:
+        row = find_user_by_auth_token(conn, purpose="reset", token=token)
+
+        # Token inválido, usado o caducado → mismo error neutro
+        if row is None:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "auth_invalid_token",
+                    "message": "Este enlace ya no es válido. Pide uno nuevo para continuar.",
+                },
+            )
+
+        # Actualiza contraseña
+        password_hash = hash_password(password)
+        conn.execute(
+            "UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), "
+            "updated_at = datetime('now') WHERE google_sub = ?",
+            (password_hash, str(row["google_sub"])),
+        )
+        # Marca token como usado
+        consume_auth_token(conn, purpose="reset", token=token)
+        conn.commit()
+
+    # Email de aviso (no bloqueante)
+    send_password_changed_notification(row["email"])
+
+    return AuthResetPasswordResponse()
+
+
 @router.get("/pieces", response_model=list[PieceSummary])
 def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
     """Lista las piezas disponibles para el selector (B-027.3).
@@ -948,6 +1299,30 @@ def get_session_state(session_id: str) -> SessionStateResponse:
     return SessionStateResponse(**_session_state_or_404(session_id))
 
 
+@router.patch("/sessions/{session_id}", response_model=SessionStateResponse)
+async def update_session_practice(
+    session_id: str, payload: SessionPracticeModeRequest
+) -> SessionStateResponse:
+    """Cambia el modo de práctica de la sesión (B-032.4).
+
+    Es estado, no un evento: no entra en `session_events` ni viaja por
+    `agent_action`. Un modo o una mano que no existen se rechazan con 400 y
+    código estable (`invalid_mode`, `invalid_hand`); el estado nuevo se
+    difunde por el WebSocket para que todos los clientes lo vean.
+    """
+    try:
+        state = practice_service.set_practice_mode(
+            session_id, mode=payload.mode, hand=payload.hand
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    await _broadcast_state(session_id, state)
+    return SessionStateResponse(**state)
+
+
 @router.post("/sessions/{session_id}/actions", response_model=ActionResponse)
 async def execute_action(session_id: str, payload: ActionRequest) -> ActionResponse:
     """Valida y ejecuta una acción del agente en la sesión (B-012.4–B-012.7).
@@ -972,6 +1347,12 @@ async def execute_action(session_id: str, payload: ActionRequest) -> ActionRespo
     if payload.action in ("demonstrate", "return_control"):
         new_control = "agent" if payload.action == "demonstrate" else "student"
         practice_service.set_control(session_id, new_control)
+        _record_agent_decision(
+            session_id,
+            payload.action,
+            params,
+            measure=_measure_from_params(params, session_state),
+        )
         await _broadcast_agent_action(session_id, payload.action, **params)
     elif payload.action == "accompany":
         try:
@@ -987,9 +1368,38 @@ async def execute_action(session_id: str, payload: ActionRequest) -> ActionRespo
                 status_code=404 if exc.code in NOT_FOUND_CODES else 400,
                 detail={"code": exc.code, "message": exc.message},
             ) from exc
-        await _broadcast_agent_action(session_id, "accompany", **plan.as_payload())
+        params = plan.as_payload()
+        _record_agent_decision(
+            session_id,
+            payload.action,
+            params,
+            measure=_measure_from_params(params, session_state),
+        )
+        await _broadcast_agent_action(session_id, "accompany", **params)
+    else:
+        # `wait`, `give_hint` y `slow_down` no cambian el control ni el sonido
+        # del servidor: registrarlos y notificarlos es todo lo que toca hacer.
+        _record_agent_decision(
+            session_id,
+            payload.action,
+            params,
+            measure=_measure_from_params(params, session_state),
+        )
+        await _broadcast_agent_action(session_id, payload.action, **params)
 
     return ActionResponse(action=payload.action, status="validated")
+
+
+def _measure_from_params(
+    params: Mapping[str, object],
+    session_state: Mapping[str, object],
+) -> int | None:
+    """Compás de la decisión: la sección pedida o el compás vivo de la sesión."""
+    measure = params.get("from_measure")
+    if isinstance(measure, int):
+        return measure
+    live = session_state.get("current_measure")
+    return int(live) if isinstance(live, int) else None
 
 
 def _with_accompany_defaults(
@@ -1036,6 +1446,12 @@ def agent_step(session_id: str) -> ActionResponse:
     context = DecisionContext(
         session_state=session_state,
         evaluation=_evaluation_or_none(session_id, session_state),
+        strikes=practice_service.build_strike_context(
+            session_id,
+            int(session_state["current_measure"])
+            if isinstance(session_state.get("current_measure"), int)
+            else None,
+        ),
     )
     proposal = agent_service.propose_action(context, provider=get_fallback_provider())
     return ActionResponse(
@@ -1171,6 +1587,29 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
                 ):
                     _last_position_push[session_id] = (now_s, measure_index)
                     await _broadcast_state(session_id, state)
+                continue
+
+            # Evento de práctica del modo espera (B-032.5): se valida y se
+            # guarda. Después las reglas de strikes (B-032.6) deciden en vivo:
+            # bajar el tempo, dar una pista o demostrar el compás.
+            if isinstance(event, Mapping) and event.get("type") == "practice":
+                try:
+                    state = practice_service.receive_practice_event(session_id, event)
+                except ValidationError as exc:
+                    await websocket.send_json(
+                        {"type": "error", "code": exc.code, "message": exc.message}
+                    )
+                    continue
+
+                strikes_context = practice_service.build_strike_context(
+                    session_id, _event_measure(event)
+                )
+                decision = agent_service.decide(
+                    DecisionContext(session_state=state, strikes=strikes_context)
+                )
+                if decision is not None and decision.action in STRIKE_ACTIONS:
+                    new_state = await _execute_strike_decision(session_id, decision, state)
+                    await _broadcast_state(session_id, new_state)
                 continue
 
             try:

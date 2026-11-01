@@ -52,6 +52,11 @@ class SessionStateResponse(BaseModel):
     `status` recorre idle/playing/paused y `control` indica quién tiene el piano
     (student/agent); `current_measure` y `position_s` sitúan al estudiante en la
     partitura y los rellenará el transporte de reproducción.
+
+    `mode` y `hand` son el modo de práctica (B-032.4): `observe` (escuchar),
+    `one_hand` (el alumno toca una mano y suena la otra) o `both_hands` (el
+    alumno toca las dos y el transporte calla). `hand` es la mano que practica
+    el alumno.
     """
 
     session_id: str
@@ -60,6 +65,20 @@ class SessionStateResponse(BaseModel):
     control: str = "student"
     current_measure: int | None = None
     position_s: float = 0.0
+    mode: str = "observe"
+    hand: str = "both"
+
+
+class SessionPracticeModeRequest(BaseModel):
+    """Cambio del modo de práctica de la sesión (B-032.4).
+
+    Es estado, no un evento: no viaja por `agent_action` ni entra en el log de
+    eventos. `mode` y `hand` son opcionales: el que no viene conserva su valor
+    vigente. `hand` solo tiene sentido en `one_hand` (la mano del alumno).
+    """
+
+    mode: str | None = None
+    hand: str | None = None
 
 
 class ActionRequest(BaseModel):
@@ -382,3 +401,33 @@ class AuthRegisterResponse(BaseModel):
 
     status: str = "verification_sent"
     email: str
+
+
+class AuthForgotPasswordRequest(BaseModel):
+    """Cuerpo de POST /api/v1/auth/forgot-password (U-007)."""
+
+    email: str
+
+
+class AuthForgotPasswordResponse(BaseModel):
+    """Respuesta de POST /api/v1/auth/forgot-password (U-007).
+
+    Siempre igual (mensaje neutro) para no revelar si el correo existe.
+    """
+
+    status: str = "sent"
+    message: str = "Si el correo está registrado, te hemos enviado un enlace para restablecer la contraseña."
+
+
+class AuthResetPasswordRequest(BaseModel):
+    """Cuerpo de POST /api/v1/auth/reset-password (U-007)."""
+
+    token: str
+    password: str
+
+
+class AuthResetPasswordResponse(BaseModel):
+    """Respuesta de POST /api/v1/auth/reset-password (U-007)."""
+
+    status: str = "done"
+    message: str = "Contraseña actualizada. Por seguridad, hemos cerrado tus otras sesiones: inicia sesión con la nueva."

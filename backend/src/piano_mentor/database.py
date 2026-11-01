@@ -515,6 +515,117 @@ def list_session_events(conn: sqlite3.Connection, session_id: str) -> list[sqlit
     ).fetchall()
 
 
+PRACTICE_SIGNAL_COLUMNS = ("session_id", "gate", "measure", "outcome", "wait_ms", "hand")
+
+
+def insert_practice_signal(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Añade una señal de práctica del modo espera (B-032.5)."""
+    columns = [name for name in PRACTICE_SIGNAL_COLUMNS if name in record]
+    if "session_id" not in columns or "gate" not in columns or "outcome" not in columns:
+        raise ValueError("insert_practice_signal requiere al menos 'session_id', 'gate' y 'outcome'")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO practice_signals ({', '.join(columns)}) VALUES ({placeholders})",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
+def list_practice_signals_since(
+    conn: sqlite3.Connection,
+    session_id: str,
+    min_signal_id: int = 0,
+) -> list[sqlite3.Row]:
+    """Señales de una sesión por encima de un id, viejas primero (B-032.6).
+
+    `min_signal_id` es la marca que dejó la última decisión del agente: las
+    señales anteriores ya la motivaron y no cuentan otra vez.
+    """
+    return conn.execute(
+        "SELECT id, gate, measure, outcome, wait_ms, hand FROM practice_signals"
+        " WHERE session_id = ? AND id > ? ORDER BY id",
+        (session_id, min_signal_id),
+    ).fetchall()
+
+
+def max_signal_id_at(
+    conn: sqlite3.Connection,
+    session_id: str,
+) -> int:
+    """Último id de señal de la sesión (marca para reiniciar el contador)."""
+    row = conn.execute(
+        "SELECT COALESCE(MAX(id), 0) FROM practice_signals WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()
+    return int(row[0] if row else 0)
+
+
+def last_strikes_baseline(
+    conn: sqlite3.Connection,
+    session_id: str,
+    measure: int | None,
+) -> int:
+    """Marca de reinicio de strikes de un compás: la última decisión de ese compás.
+
+    `measure IS ?` para que `None` paree con `None` (pieza sin rejilla).
+    """
+    row = conn.execute(
+        "SELECT COALESCE(MAX(baseline_signal_id), 0) FROM agent_decisions"
+        " WHERE session_id = ? AND measure IS ?",
+        (session_id, measure),
+    ).fetchone()
+    return int(row[0] if row else 0)
+
+
+def count_agent_actions(
+    conn: sqlite3.Connection,
+    session_id: str,
+    measure: int | None,
+) -> dict[str, int]:
+    """Intervenciones ya ejecutadas, por acción: en el compás y en la sesión (B-032.6)."""
+    counts: dict[str, int] = {}
+    for statement, args in (
+        (
+            "SELECT action, COUNT(*) FROM agent_decisions"
+            " WHERE session_id = ? AND measure IS ? GROUP BY action",
+            (session_id, measure),
+        ),
+    ):
+        for action, total in conn.execute(statement, args).fetchall():
+            counts[str(action)] = int(total)
+    row = conn.execute(
+        "SELECT COUNT(*) FROM agent_decisions"
+        " WHERE session_id = ? AND action IN ('slow_down', 'give_hint', 'demonstrate')",
+        (session_id,),
+    ).fetchone()
+    counts["__session__"] = int(row[0] if row else 0)
+    return counts
+
+
+AGENT_DECISION_COLUMNS = (
+    "session_id",
+    "measure",
+    "action",
+    "params_json",
+    "reason",
+    "provider",
+    "baseline_signal_id",
+)
+
+
+def insert_agent_decision(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
+    """Registra una intervención ejecutada del agente (B-012.4/B-032.6)."""
+    columns = [name for name in AGENT_DECISION_COLUMNS if name in record]
+    if "session_id" not in columns or "action" not in columns:
+        raise ValueError("insert_agent_decision requiere al menos 'session_id' y 'action'")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(
+        f"INSERT INTO agent_decisions ({', '.join(columns)}) VALUES ({placeholders})",
+        [record[name] for name in columns],
+    )
+    conn.commit()
+
+
 CHAT_MESSAGE_COLUMNS = ("chat_id", "role", "content", "tool_name")
 
 
@@ -553,6 +664,83 @@ def get_chat_history(chat_id: str, limit: int = 20) -> list[sqlite3.Row]:
     with open_db() as conn:
         rows = list_chat_messages(conn, chat_id, limit)
         return list(reversed(rows))
+
+
+# --- Tokens de autenticación (U-007) ----------------------------------------
+# Tabla auth_tokens: propósito (verify | reset), hash SHA-256, user_sub, expiración, uso.
+
+import hashlib
+
+
+def _hash_token(token: str) -> str:
+    """SHA-256 del token en claro; solo el hash se guarda en BD."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_auth_token(
+    conn: sqlite3.Connection,
+    *,
+    purpose: str,
+    user_sub: str,
+    token: str,
+    expires_at: str,
+) -> None:
+    """Guarda un nuevo token (solo su hash) e invalida los anteriores del mismo propósito."""
+    if purpose not in ("verify", "reset"):
+        raise ValueError("purpose debe ser 'verify' o 'reset'")
+    token_hash = _hash_token(token)
+    # Invalida tokens previos del mismo usuario y propósito (no usados ni caducados)
+    conn.execute(
+        "UPDATE auth_tokens SET used_at = datetime('now') "
+        "WHERE user_sub = ? AND purpose = ? AND used_at IS NULL "
+        "AND (expires_at IS NULL OR expires_at > datetime('now'))",
+        (user_sub, purpose),
+    )
+    conn.execute(
+        "INSERT INTO auth_tokens (purpose, token_hash, user_sub, expires_at) "
+        "VALUES (?, ?, ?, ?)",
+        (purpose, token_hash, user_sub, expires_at),
+    )
+    conn.commit()
+
+
+def find_user_by_auth_token(
+    conn: sqlite3.Connection, *, purpose: str, token: str
+) -> sqlite3.Row | None:
+    """Busca el usuario cuyo token coincide (hash), sin usar y no caducado."""
+    if purpose not in ("verify", "reset"):
+        return None
+    token_hash = _hash_token(token)
+    return conn.execute(
+        "SELECT u.* FROM users u "
+        "JOIN auth_tokens t ON u.google_sub = t.user_sub "
+        "WHERE t.purpose = ? AND t.token_hash = ? "
+        "AND t.used_at IS NULL AND (t.expires_at IS NULL OR t.expires_at > datetime('now'))",
+        (purpose, token_hash),
+    ).fetchone()
+
+
+def consume_auth_token(conn: sqlite3.Connection, *, purpose: str, token: str) -> None:
+    """Marca el token como usado (one-time)."""
+    if purpose not in ("verify", "reset"):
+        return
+    token_hash = _hash_token(token)
+    conn.execute(
+        "UPDATE auth_tokens SET used_at = datetime('now') "
+        "WHERE purpose = ? AND token_hash = ? AND used_at IS NULL",
+        (purpose, token_hash),
+    )
+    conn.commit()
+
+
+def update_password_changed_at(conn: sqlite3.Connection, google_sub: str) -> None:
+    """Actualiza la marca de cambio de contraseña para invalidar JWTs previos."""
+    conn.execute(
+        "UPDATE users SET password_changed_at = datetime('now'), updated_at = datetime('now') "
+        "WHERE google_sub = ?",
+        (google_sub,),
+    )
+    conn.commit()
 
 
 def init_db(conn: sqlite3.Connection) -> list[str]:

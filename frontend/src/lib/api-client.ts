@@ -1,7 +1,6 @@
 // description: Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso, ahora con id_token opcional de Google para owner_id); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback); desde U-005 añade registerAuthSession (POST /auth/session) con AuthUser/AuthSessionResponse y los códigos auth_*, y loginWithPassword (POST /auth/login) para el login simple con contraseña (AuthLoginResponse con access_token).
 // context: Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. La subida persistente se conserva a propósito, aunque hoy la interfaz use previewPiece. Los campos de B-009.3 son opcionales en los tipos y no los pide ningún componente todavía: el uso visible (manos, acordes) es de B-012. Los códigos session_not_found, invalid_event_payload y ws_error se reconocen como errores estables, al igual que invalid_chat_payload, unknown_tool y tool_failed del chat; los auth_* de identidad llegan con U-005.
 
-/** Metadatos de una pieza MIDI; los campos pueden ser nulos hasta que B-005 los rellene. */
 export interface PieceMetadata {
   tracks: number | null;
   duration_seconds: number | null;
@@ -144,6 +143,16 @@ export type SessionStatus = "idle" | "playing" | "paused";
 /** Quién tiene el piano: el estudiante o el agente (B-012.1). */
 export type SessionControl = "student" | "agent";
 
+/**
+ * Modo de práctica de la sesión (B-032.4): `observe` es escuchar y ver, sin
+ * evaluación; `one_hand` practica una mano mientras suena la otra; `both_hands`
+ * practica las dos con el transporte callado (referencia solo al pulsar play).
+ */
+export type PracticeMode = "observe" | "one_hand" | "both_hands";
+
+/** Mano que practica el alumno (B-032.4); solo tiene sentido en `one_hand`. */
+export type StudentHand = "left" | "right";
+
 /** Respuesta de POST /api/v1/sessions, alineada con SessionResponse (B-012.1). */
 export interface SessionResponse {
   id: string;
@@ -162,6 +171,16 @@ export interface SessionState {
   control: SessionControl;
   current_measure: number | null;
   position_s: number;
+  /** Modo de práctica (B-032.4). */
+  mode: PracticeMode;
+  /** Mano que practica el alumno (B-032.4). */
+  hand: StudentHand | "both";
+}
+
+/** Cambio de modo de práctica (B-032.4): lo que manda el selector. */
+export interface PracticeModeChange {
+  mode?: PracticeMode;
+  hand?: StudentHand;
 }
 
 const ERROR_CODES = [  "invalid_extension",
@@ -175,6 +194,8 @@ const ERROR_CODES = [  "invalid_extension",
   "invalid_midi_content",
   "session_not_found",
   "invalid_event_payload",
+  "invalid_mode",
+  "invalid_hand",
   "ws_error",
   "auth_missing_header",
   "auth_invalid_header",
@@ -367,6 +388,55 @@ export async function registerUser(payload: AuthRegisterRequest): Promise<AuthRe
 }
 
 /**
+ * Solicita enlace de restablecimiento (U-007): POST /api/v1/auth/forgot-password.
+ * Respuesta siempre neutra (mismo mensaje/código) para no revelar si el correo existe.
+ * Códigos: 429 (rate limit), 422 (email inválido), 500 (servidor).
+ */
+export interface AuthForgotPasswordRequest {
+  email: string;
+}
+
+export interface AuthForgotPasswordResponse {
+  status: "sent";
+  message: string;
+}
+
+export async function requestPasswordReset(
+  payload: AuthForgotPasswordRequest,
+): Promise<AuthForgotPasswordResponse> {
+  return request<AuthForgotPasswordResponse>("/api/v1/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Consume el token y fija la nueva contraseña (U-007): POST /api/v1/auth/reset-password.
+ * Códigos: 400/404/410 (token inválido/caducado/usado), 422 (contraseña débil),
+ * 429 (rate limit), 500 (servidor).
+ */
+export interface AuthResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export interface AuthResetPasswordResponse {
+  status: "done";
+  message: string;
+}
+
+export async function resetPassword(
+  payload: AuthResetPasswordRequest,
+): Promise<AuthResetPasswordResponse> {
+  return request<AuthResetPasswordResponse>("/api/v1/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * Prepara un MIDI a mano para escucharlo en el piano sin guardarlo (B-027.3).
  * El backend lo lee en memoria: no entra en el almacén ni en el catálogo, así que
  * la Library sigue mostrando solo las piezas del corpus. Con `options` puede
@@ -445,8 +515,69 @@ export async function createSession(pieceId: string): Promise<SessionResponse> {
  * Es el mismo estado que el WebSocket empuja en tiempo real; sirve para el
  * primer pintado sin esperar a que abra el socket.
  */
+/**
+ * Pide la evaluación de la sesión (POST /sessions/{id}/evaluation). La mano
+ * decide qué se evalúa (B-032.3) y, si no se manda, el backend usa la del
+ * modo de práctica de la sesión (B-032.4).
+ */
+export async function evaluateSession(
+  sessionId: string,
+  options: { hand?: StudentHand | "both"; from_measure?: number; to_measure?: number } = {},
+): Promise<SessionEvaluation> {
+  const params = new URLSearchParams();
+  if (options.hand) params.set("hand", options.hand);
+  if (options.from_measure !== undefined) params.set("from_measure", String(options.from_measure));
+  if (options.to_measure !== undefined) params.set("to_measure", String(options.to_measure));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return request<SessionEvaluation>(
+    `/api/v1/sessions/${encodeURIComponent(sessionId)}/evaluation${query}`,
+    { method: "POST" },
+  );
+}
+
+/** Resumen de la evaluación (B-012.2), alineado con EvaluationResponse. */
+export interface SessionEvaluation {
+  session_id: string;
+  piece_id: string;
+  status: string;
+  tolerance_ms: number;
+  expected_total: number;
+  received_total: number;
+  counts: {
+    correct: number;
+    early: number;
+    late: number;
+    wrong_pitch: number;
+    omitted: number;
+    extra: number;
+  };
+  notes_score: number;
+  timing_score: number;
+  accuracy_pct: number;
+  timing_ms: number;
+  drift_ms: number;
+  score_total: number;
+}
+
 export async function getSessionState(sessionId: string): Promise<SessionState> {
   return request<SessionState>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/state`);
+}
+
+/**
+ * Cambia el modo de práctica de la sesión en PATCH /api/v1/sessions/{id}
+ * (B-032.4). Es estado, no un evento: el backend lo persiste y lo difunde por
+ * el WebSocket. Un modo o una mano inválidos se rechazan con `invalid_mode` o
+ * `invalid_hand`.
+ */
+export async function updateSessionPracticeMode(
+  sessionId: string,
+  change: PracticeModeChange,
+): Promise<SessionState> {
+  return request<SessionState>(`/api/v1/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change),
+  });
 }
 
 /**
