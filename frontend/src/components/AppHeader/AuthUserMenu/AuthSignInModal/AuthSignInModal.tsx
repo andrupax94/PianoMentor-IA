@@ -2,11 +2,13 @@
 // context: Se abre desde "Iniciar sesión" de la cabecera y oscurece el fondo
 // levemente. El login simple va al backend por Auth.js (Credentials en
 // lib/auth.ts); el botón de Google reutiliza el flujo de U-005. El registro
-// simple queda de lado: solo hay entrar con credenciales ya existentes.
+// propio (U-006) vive en la página /registro (ruta propia, sin box ni modal) y
+// desde aquí se enlaza: el wizard mantiene el paso inverso al volver al login.
 
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 
 import styles from "./AuthSignInModal.module.css";
@@ -64,6 +66,14 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
     window.location.reload();
   };
 
+  /** Si ya estamos en /registro, "Regístrate" solo cierra el modal; si no, navega. */
+  const handleRegisterClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (typeof window !== "undefined" && window.location.pathname === "/registro") {
+      event.preventDefault();
+      onClose();
+    }
+  };
+
   return (
     <div className={styles.overlay} onMouseDown={handleOverlayDown} role="presentation">
       <div className={styles.box} role="dialog"
@@ -107,6 +117,10 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
           </button>
 
         </form>
+        <p className={styles.alt}>
+          ¿No tienes cuenta?{" "}
+          <Link href="/registro" onClick={handleRegisterClick}>Regístrate</Link>
+        </p>
         <div className={styles.divider}>
           <span className={styles.dividerText}>o</span>
         </div>

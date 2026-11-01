@@ -27,6 +27,15 @@ export function AuthUserMenu({ fallbackInitial = "A" }: AuthUserMenuProps) {
   const [user, setUser] = useState<AuthUserInfo | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Escucha evento global para abrir el modal desde componentes hermanos (p.ej. RegisterWizard).
+  useEffect(() => {
+    function onOpenLogin() {
+      setModalOpen(true);
+    }
+    window.addEventListener("piano-mentor:open-login", onOpenLogin);
+    return () => window.removeEventListener("piano-mentor:open-login", onOpenLogin);
+  }, []);
+
   // Una única consulta al montar. El sign-in y el sign-out recargan la
   // página entera (redirect de Google o del login con contraseña), con lo
   // que este efecto vuelve a ejecutarse: no hace falta escuchar la sesión.

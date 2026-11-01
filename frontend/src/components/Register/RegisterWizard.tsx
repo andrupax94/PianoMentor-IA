@@ -284,7 +284,16 @@ export default function RegisterWizard() {
 
           {index === 0 && (
             <p className={styles.alt}>
-              ¿Ya tienes cuenta? <Link href="/">Inicia sesión</Link>
+              ¿Ya tienes cuenta?{" "}
+              <button
+                type="button"
+                className={styles.ghostLink}
+                onClick={() =>
+                  window.dispatchEvent(new Event("piano-mentor:open-login"))
+                }
+              >
+                Inicia sesión
+              </button>
             </p>
           )}
         </section>

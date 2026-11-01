@@ -187,6 +187,16 @@
   letter-spacing: 0.08em;
 }
 
+.alt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--m-soft);
+  text-align: center;
+}
+.alt a {
+  color: var(--m-blue);
+}
+
 .google {
   position: relative;
   width: 100%;
