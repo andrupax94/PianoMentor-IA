@@ -61,6 +61,10 @@ export const EMPTY_SESSION: SessionSnapshot = {
 };
 
 let current: SessionSnapshot = EMPTY_SESSION;
+/** Marca del último cambio de modo pedido por el usuario (B-032.4). */
+let lastPracticeModeChangeAt = 0;
+/** Modo pedido en ese último cambio. */
+let lastRequestedPracticeMode: SessionSnapshot["practiceMode"] = "observe";
 const listeners = new Set<() => void>();
 
 /** Fotografía vigente; inmutable para quien la recibe (useSyncExternalStore). */
@@ -96,7 +100,24 @@ export function updateSession(patch: Partial<SessionSnapshot>): void {
   for (const listener of listeners) listener();
 }
 
+/** Marca que el usuario acaba de pedir un cambio de modo (B-032.4). */
+export function markPracticeModeChanged(mode: SessionSnapshot["practiceMode"]): void {
+  lastPracticeModeChangeAt = Date.now();
+  lastRequestedPracticeMode = mode;
+}
+
+/** true si el cambio es reciente (ventana de 2 s). */
+export function isPracticeModeChanging(): boolean {
+  return Date.now() - lastPracticeModeChangeAt < 2000;
+}
+
+/** Modo pedido en el último cambio del usuario. */
+export function getLastRequestedPracticeMode(): SessionSnapshot["practiceMode"] {
+  return lastRequestedPracticeMode;
+}
+
 /** Vuelve al estado vacío: la ruta de práctica ya no está montada. */
 export function clearSession(): void {
+  lastPracticeModeChangeAt = 0;
   updateSession(EMPTY_SESSION);
 }

@@ -55,6 +55,14 @@ export function usePlayback(tickMs = 25) {
   const samplerRef = useRef<PianoSampler | null>(null);
   const statusRef = useRef<PlaybackSnapshot["status"]>("stopped");
   statusRef.current = snapshot.status;
+  /**
+   * Época del motor: cambia cada vez que `ensureEngine` crea uno nuevo. Con el
+   * doble montaje de StrictMode en desarrollo el primer motor se destruye (su
+   * partitura va con él) y el que sobrevive está vacío; un consumidor que aún
+   * no vuelva a montarse se quedaría a play mudo. Subir esta época obliga al
+   * efecto de carga del piano a volver a ejecutarse contra el motor vigente.
+   */
+  const [engineEpoch, setEngineEpoch] = useState(1);
 
   const sync = useCallback(() => {
     if (engineRef.current) setSnapshot(engineRef.current.snapshot());
@@ -109,6 +117,9 @@ export function usePlayback(tickMs = 25) {
         { now: () => ctx.currentTime },
         createEngineVoice(sampler),
       );
+      // Motor nuevo: se notifica a los consumidores para que la partitura se
+      // cargue aquí también (los consumers del contexto se re-renderizan).
+      setEngineEpoch((epoch) => epoch + 1);
     }
     return engineRef.current;
   }, []);
@@ -261,7 +272,8 @@ export function usePlayback(tickMs = 25) {
 
   // Mientras suena, un intervalo avanza el motor y refresca la posición para la UI.
   useEffect(() => {
-    if (statusRef.current !== "playing") return;
+    // El preroll también necesita tick para avanzar la cuenta atrás (B-032.5).
+    if (statusRef.current !== "playing" && statusRef.current !== "preroll") return;
     const timer = window.setInterval(() => {
       engineRef.current?.tick();
       sync();
@@ -303,5 +315,6 @@ export function usePlayback(tickMs = 25) {
     getEngineSnapshot,
     soundProgress,
     soundReady,
+    engineEpoch,
   };
 }

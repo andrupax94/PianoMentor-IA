@@ -6,7 +6,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 import { updateSessionPracticeMode } from "../lib/api-client";
 import type { PracticeMode, StudentHand } from "../lib/api-client";
-import { getSessionSnapshot, subscribeSession, updateSession } from "../lib/session-store";
+import { getSessionSnapshot, markPracticeModeChanged, subscribeSession, updateSession } from "../lib/session-store";
 
 /**
  * Publica el cambio del modo en el almacén y lo manda al backend. Es estado,
@@ -24,9 +24,10 @@ export function usePracticeModeChange(): (
   return useCallback(
     (next: { mode: PracticeMode; hand: StudentHand }) => {
       if (sessionId === null) return;
-      // Optimista: el selector responde al instante. Si el backend rechaza, el
-      // `state` que llega por el socket devuelve el modo bueno.
-      updateSession({ practiceMode: next.mode, studentHand: next.hand });
+      // El servidor es la fuente de verdad: se manda el cambio y el estado que
+      // llega por el socket actualiza el almacén local (evita carreras con un
+      // `state` inicial tardío que sobrescribía el modo del alumno).
+      markPracticeModeChanged(next.mode);
       updateSessionPracticeMode(sessionId, next).catch(() => undefined);
     },
     [sessionId],

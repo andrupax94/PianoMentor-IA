@@ -11,6 +11,10 @@ export function SoundLoadingOverlay() {
   const player = useTransport();
   const [visible, setVisible] = useState(false);
 
+  // En desarrollo no se muestra: el delay de 200 ms tapa constantemente la
+  // pantalla si se recarga mucho y ensucia los cambios de la cascada.
+  if (process.env.NODE_ENV !== "production") return null;
+
   useEffect(() => {
     if (player.soundReady) {
       setVisible(false);

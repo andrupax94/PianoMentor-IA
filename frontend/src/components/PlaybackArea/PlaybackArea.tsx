@@ -189,8 +189,9 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     };
     // `practiceMode` y `studentHand` no entran: cambiar de modo no recarga la
     // partitura (eso lo hace el efecto de `setAudible` de más abajo), así que
-    // la posición del transporte no se reinicia (B-032.4).
-  }, [inSession, load, play, piece, reloadKey, resumeReturn]);
+    // la posición del transporte no se reinicia (B-032.4). `engineEpoch` entra
+    // para que, si el motor se recrea, la partitura se vuelva a cargar en él.
+  }, [inSession, load, play, piece, reloadKey, resumeReturn, player.engineEpoch]);
 
   /**
    * B-032.4: cambiar de modo o de mano cambia solo lo que suena. La partitura
@@ -221,7 +222,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     const hand = evaluatedHand(practiceMode, studentHand) ?? "both";
     setGateOptions({ enabled: true, hand });
     setPreroll(defaultPreroll_s(player.tempo_bpm));
-  }, [practiceMode, studentHand, setGateOptions, setPreroll, player.tempo_bpm]);
+  }, [practiceMode, studentHand, setGateOptions, setPreroll, player.tempo_bpm, player.engineEpoch]);
 
   // Las intervenciones del agente (B-012.5/B-012.7): la demostración recorta la
   // ventana de compases; el acompañamiento deja sonando solo la mano de la IA
@@ -359,7 +360,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         practiceSuspended={agentHand !== null}
         onPracticeModeChange={changePracticeMode}
       />
-      {player.soundProgress < 1 && (
+      {process.env.NODE_ENV === "production" && player.soundProgress < 1 && (
         <div
           style={{
             height: 4,

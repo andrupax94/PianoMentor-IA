@@ -88,6 +88,8 @@ export class PlaybackEngine {
   private notes: PlayableNote[] = [];
   /** Notas que suenan: por defecto la partitura entera; el acompañamiento (B-012.7) suena solo una mano. */
   private audible: PlayableNote[] = [];
+  /** Notas usadas para los gates del modo espera (B-032.5): siempre la partitura entera, filtrada por mano por `gateHand`. */
+  private gateEvents: ScheduledEvent[] = [];
   /** Fin de la partitura cargada (no solo de lo audible): el transporte no se corta a media pieza. */
   private scoreEnd_s = 0;
   private events: ScheduledEvent[] = [];
@@ -168,6 +170,7 @@ export class PlaybackEngine {
     this.tempoFactor = clampTempoFactor(options?.tempoFactor ?? 1.0);
     this.baseTempo_bpm = cleanTempo(options?.tempo_bpm);
     this.events = buildSchedule(this.audible, this.tempoFactor);
+    this.gateEvents = buildSchedule(this.notes, this.tempoFactor);
     this.measureStarts = [...(options?.measures?.starts_s ?? [])];
     this.scoreEnd_s = scoreEnd(notes);
     this.baseDuration_s = Math.max(options?.duration_s ?? 0, 0);
@@ -181,7 +184,7 @@ export class PlaybackEngine {
   }
 
   play(): void {
-    if (this.status === "playing" || this.status === "preroll" || this.status === "waiting" || this.events.length === 0) return;
+    if (this.status === "playing" || this.status === "preroll" || this.status === "waiting" || this.notes.length === 0) return;
     if (this.position_s >= this.duration_s) {
       this.position_s = 0;
       this.scheduledUpto_s = 0;
@@ -251,6 +254,7 @@ export class PlaybackEngine {
     }
     this.tempoFactor = clampTempoFactor(factor);
     this.events = buildSchedule(this.audible, this.tempoFactor);
+    this.gateEvents = buildSchedule(this.notes, this.tempoFactor);
     this.duration_s = this.scaledDuration();
     this.scheduledUpto_s = this.position_s;
     this.voice.silence();
@@ -387,7 +391,7 @@ export class PlaybackEngine {
    * rejilla no: se escala el mapa de inicios antes de asignar el compás.
    */
   private nextGate(position_s: number): Gate | null {
-    const gate = gateAt(this.events, position_s, this.gateHand);
+    const gate = gateAt(this.gateEvents, position_s, this.gateHand);
     if (gate === null || this.measureStarts.length === 0) return gate;
     const scaledStarts = this.measureStarts.map((start) => start / this.tempoFactor);
     return assignMeasure([gate], scaledStarts)[0] ?? null;

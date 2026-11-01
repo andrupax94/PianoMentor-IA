@@ -39,8 +39,10 @@ export function fallingNotes(
   const notes: FallingNote[] = [];
   for (const event of events) {
     const remaining_s = event.time_s - position_s;
-    // Fuera de la ventana: aún no aparece, o ya está sonando (la pinta el teclado).
-    if (remaining_s < 0 || remaining_s > horizon_s) continue;
+    // Fuera de la ventana: aún no aparece (más allá del horizonte), o ya ha
+    // cruzado el teclado por completo (la nota entera ha pasado la línea).
+    if (remaining_s > horizon_s) continue;
+    if (remaining_s <= -event.duration_s) continue;
     notes.push({
       id: `${event.pitch}@${event.time_s}`,
       pitch: event.pitch,

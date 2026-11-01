@@ -19,6 +19,8 @@ import { syncSessionPiece } from "../lib/session-piece";
 import {
   clearSession,
   getSessionSnapshot,
+  isPracticeModeChanging,
+  getLastRequestedPracticeMode,
   subscribeSession,
   updateSession,
   type SessionSnapshot,
@@ -120,11 +122,19 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
         ensureSessionPiece(message.piece_id);
         // B-032.4: el modo del servidor manda sobre el local (otra pestaña, o
         // un cambio hecho desde el chat): el selector refleja el estado real.
+        // Se ignora un `state` tardío que contradiga un cambio reciente del
+        // alumno, para no revertirlo por una carrera con el estado inicial.
         if (message.mode) {
-          updateSession({
-            practiceMode: message.mode,
-            studentHand: message.hand === "left" ? "left" : "right",
-          });
+          const recent = isPracticeModeChanging();
+          const requested = getLastRequestedPracticeMode();
+          const stale =
+            recent && message.mode !== requested;
+          if (!stale) {
+            updateSession({
+              practiceMode: message.mode,
+              studentHand: message.hand === "left" ? "left" : "right",
+            });
+          }
         }
       },
       onStatusChange: (status) => {
@@ -250,11 +260,11 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
     if (!socket) return;
 
     const controller = createGateController({
-      getSnapshot: () => transport.getEngineSnapshot(),
+      getSnapshot: () => transportRef.current.getEngineSnapshot(),
       subscribeNoteInput,
       sendPracticeEvent: (event) => socket.sendPracticeEvent(event),
       clockMs: () => performance.now(),
-      onHit: () => transport.resolveGate(),
+      onHit: () => transportRef.current.resolveGate(),
       options: { enabled: true, hand },
     });
     controller.start();
@@ -264,7 +274,7 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       controller.stop();
       gateControllerRef.current = null;
     };
-  }, [sessionStore.practiceMode, sessionStore.studentHand, transport, sessionId]);
+  }, [sessionStore.practiceMode, sessionStore.studentHand, sessionId]);
 
   // El mini cuadro del panel del mentor se suscribe al almacén, no a este componente.
   useEffect(() => {

@@ -8,7 +8,8 @@
 import { measureIndexAt } from "../../lib/measures";
 import { tempoFactorFor } from "../../lib/playback-schedule";
 import { PlaybackControls } from "./PlaybackControls/PlaybackControls";
-import { PracticeModeSelector } from "./PracticeModeSelector/PracticeModeSelector";
+// PracticeModeSelector se retira de la barra: el modo de práctica ahora se gobierna
+// desde el ModeSelector del panel del mentor (B-032.4), que es el switcher único.
 import { ProgressBar } from "./ProgressBar/ProgressBar";
 import { SongInfo } from "./SongInfo/SongInfo";
 import { TempoMeasure } from "./TempoMeasure/TempoMeasure";
@@ -43,7 +44,6 @@ export function PlayerBar({
   } = player;
 
   const isPlaying = status === "playing" || status === "preroll";
-  const isWaiting = status === "waiting";
 
   // Redondeado aquí: la barra pinta un entero, no 25.131969576413994%.
   const progress = duration_s > 0 ? Math.round((position_s / duration_s) * 100) : 0;
@@ -90,26 +90,10 @@ export function PlayerBar({
         measureCount={measureCount}
         signature={signature}
       />
-      {/* B-032.5: indicador de espera y cuenta atrás. */}
-      {isWaiting && (
-        <span className={styles.waitingBadge} aria-live="polite">
-          Toca para continuar
-        </span>
-      )}
-      {status === "preroll" && (
-        <span className={styles.prerollBadge} aria-live="polite">
-          Cuenta atrás…
-        </span>
-      )}
-      {/* B-032.4: el selector de modo solo aparece con sesión activa. */}
-      {practiceMode !== null && onPracticeModeChange && (
-        <PracticeModeSelector
-          mode={practiceMode}
-          hand={studentHand}
-          suspended={practiceSuspended}
-          onChange={onPracticeModeChange}
-        />
-      )}
+      {/* B-032.5: el indicador de espera/cuenta atrás vive ahora en el estado
+          de sesión del panel del mentor, para no duplicar la información. */}
+      {/* B-032.4: el modo de práctica se gobierna desde el ModeSelector del panel
+          del mentor; aquí ya no se duplica el selector (evita dos fuentes de verdad). */}
       <ProgressBar value={progress} />
     </section>
   );

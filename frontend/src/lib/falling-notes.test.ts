@@ -28,12 +28,15 @@ describe("fallingNotes", () => {
     expect(fallingNotes(events, 5)[0].remaining_s).toBeCloseTo(0, 6);
   });
 
-  it("la ventana es [inicio, inicio + horizonte]: ni antes ni ya sonando", () => {
-    const events = [note(5)];
+  it("la ventana es [inicio - horizonte, inicio + duración]: aparece antes y se va al cruzar del todo", () => {
+    const events = [note(5, 1)];
     expect(fallingNotes(events, 2.99)).toHaveLength(0);
     expect(fallingNotes(events, 3)).toHaveLength(1);
     expect(fallingNotes(events, 5)).toHaveLength(1);
-    expect(fallingNotes(events, 5.01)).toHaveLength(0);
+    // Mientras suena (aún no ha cruzado del todo) sigue visible.
+    expect(fallingNotes(events, 5.01)).toHaveLength(1);
+    // Desaparece cuando la nota entera ha pasado el teclado.
+    expect(fallingNotes(events, 6)).toHaveLength(0);
   });
 
   it("en pausa nada se mueve: sin avanzar la posición, la cascada es idéntica", () => {

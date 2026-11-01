@@ -41,6 +41,8 @@ export interface SessionStatusProps {
   step?: Pick<AgentStepResponse, "provider" | "used_fallback"> | null;
   /** Latencia del WebSocket en ms (B-012.7); solo se pinta fuera de producción. */
   latencyMs?: number | null;
+  /** Estado del transporte (B-032.5): espera o cuenta atrás, para mostrarlo aquí. */
+  transportStatus?: "stopped" | "playing" | "paused" | "waiting" | "preroll";
 }
 
 export function SessionStatus({
@@ -50,6 +52,7 @@ export function SessionStatus({
   action = null,
   step = null,
   latencyMs = null,
+  transportStatus,
 }: SessionStatusProps) {
   return (
     <section className={styles.panel}>
@@ -79,6 +82,17 @@ export function SessionStatus({
             {/* El backend guarda el índice 0-based; el panel cuenta como la gente: 1-based. */}
             Compás: <strong>{state.current_measure == null ? "—" : state.current_measure + 1}</strong>
           </p>
+          {/* B-032.5: el modo espera se anuncia aquí, junto al estado de la sesión. */}
+          {transportStatus === "waiting" && (
+            <p>
+              Espera: <strong>Toca para continuar</strong>
+            </p>
+          )}
+          {transportStatus === "preroll" && (
+            <p>
+              <strong>Cuenta atrás…</strong>
+            </p>
+          )}
         </>
       )}
 

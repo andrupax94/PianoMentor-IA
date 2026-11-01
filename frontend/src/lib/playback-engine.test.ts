@@ -267,6 +267,38 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().duration_s).toBeCloseTo(2.5, 9);
   });
 
+  it("en «una mano» el gate es la mano del alumno aunque el audio sea el contrario (B-032.4/B-032.5)", () => {
+    const harness = makeHarness();
+    // El alumno practica la mano derecha (pitch bajo): el audio manda la izquierda,
+    // pero el transporte se congela en la nota que el alumno debe tocar.
+    harness.engine.load(SCORE, { audible: [] });
+    harness.engine.setGateOptions({ enabled: true, hand: "right" });
+    harness.engine.setPreroll(1);
+
+    harness.engine.play();
+    expect(harness.engine.snapshot().status).toBe("preroll");
+    harness.advance(1);
+    harness.engine.tick();
+
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([60]);
+  });
+
+  it("«dos manos» arranca con el audio mudo y espera la primera nota (B-032.4/B-032.5)", () => {
+    const harness = makeHarness();
+    // En «dos manos» el transporte calla (audible vacía) pero el transporte viva.
+    harness.engine.load(SCORE, { audible: [] });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(1);
+
+    harness.engine.play();
+    harness.advance(1);
+    harness.engine.tick();
+
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().currentGate).not.toBeNull();
+  });
+
   it("con gates activados, play desde el inicio arranca el preroll (B-032.5)", () => {
     const harness = makeHarness();
     harness.engine.load(SCORE, { tempo_bpm: 120 });

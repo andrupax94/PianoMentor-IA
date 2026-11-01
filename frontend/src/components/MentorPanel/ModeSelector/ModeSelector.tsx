@@ -3,8 +3,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
+import { effectiveControl } from "../../../lib/agent-demo";
+import { getSessionSnapshot, subscribeSession } from "../../../lib/session-store";
+import { usePracticeModeChange } from "../../PracticeModeBridge";
 import styles from "./ModeSelector.module.css";
 import type { MentorMode, ModeSelectorProps } from "./ModeSelector.types";
 
@@ -22,9 +25,46 @@ const MODES: Opcion[] = [
   { id: "derecha", label: "Mano derecha", clase: styles.derecha },
 ];
 
+/** Convierte el modo de práctica de la sesión al modo del switch visual. */
+function practiceToMentor(mode: string, hand: string): MentorMode {
+  if (mode === "one_hand") return hand === "left" ? "izquierda" : "derecha";
+  if (mode === "both_hands") return "dos";
+  return "observar";
+}
+
+/** Convierte la opción del switch al cambio de modo de práctica. */
+function mentorToPractice(mode: MentorMode, hand: string): { mode: "observe" | "one_hand" | "both_hands"; hand: "left" | "right" } {
+  if (mode === "izquierda") return { mode: "one_hand", hand: "left" };
+  if (mode === "derecha") return { mode: "one_hand", hand: "right" };
+  if (mode === "dos") return { mode: "both_hands", hand: hand === "left" ? "left" : "right" };
+  return { mode: "observe", hand: hand === "left" ? "left" : "right" };
+}
+
 export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) {
-  const [modo, setModo] = useState<MentorMode>(inicial);
+  const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
+  const inSession = session.sessionId !== null;
+  const changePracticeMode = usePracticeModeChange();
+
+  const [internal, setInternal] = useState<MentorMode>(inicial);
+
+  // Con sesión abierta manda el estado de la sesión; sin ella, el estado interno
+  // cosmético de siempre (B-006.4/D-002.3).
+  const modo: MentorMode = inSession
+    ? practiceToMentor(session.practiceMode, session.studentHand)
+    : internal;
+
+  const suspended =
+    inSession && effectiveControl(session.state, session.agentAction) === "agent";
+
   const indice = MODES.findIndex((m) => m.id === modo);
+
+  const handleSelect = (next: MentorMode) => {
+    if (inSession) {
+      changePracticeMode(mentorToPractice(next, session.studentHand));
+    } else {
+      setInternal(next);
+    }
+  };
 
   /** Contenido visual de una opción: se reutiliza en la barra real y en el clon. */
   const contenido = (item: Opcion) => (
@@ -55,7 +95,8 @@ export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) 
             type="button"
             className={`${styles.opcion} ${item.clase}`}
             aria-pressed={item.id === modo}
-            onClick={() => setModo(item.id)}
+            disabled={suspended}
+            onClick={() => handleSelect(item.id)}
           >
             {contenido(item)}
           </button>
