@@ -106,7 +106,7 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
             onChange={(event) => setPassword(event.target.value)}
             disabled={busy}
           />
-          <a>Recuperar Contraseña no disponible actualmente marco :(</a>
+          <Link href="/recuperar">¿Olvidaste tu contraseña?</Link>
           {error && (
             <p className={styles.error} role="alert" data-testid="auth-error">
               {error}

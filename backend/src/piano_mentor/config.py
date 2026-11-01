@@ -38,12 +38,13 @@ class Settings(BaseSettings):
     api_public_url: str = ""
     verification_token_ttl_h: int = 24
 
-    # --- Email vía Resend (U-006) ------------------------------------------
+    # --- Email vía Resend (U-006/U-007) ------------------------------------------
     # Con RESEND_API_KEY el mailer manda de verdad; sin ella queda hermético
-    # (enlace en el log). Mientras no haya dominio propio en Resend, el
-    # remitente es onboarding@resend.dev y solo entrega a tu propio correo.
+    # (enlace en el log). El remitente usa el dominio pianomentoria.com
+    # que está verificado en Resend (eu-west-1). Cualquier correo del sistema
+    # (verificación, reset, notificación de cambio) saldrá de aquí.
     resend_api_key: str = ""
-    email_from: str = "PianoMentor AI <onboarding@resend.dev>"
+    email_from: str = "PianoMentor AI <onboarding@pianomentoria.com>"
 
     # --- Proveedor LLM para el chat del agente (B-012.8) ------------------
     # "mock" por defecto: CI y desarrollo son herméticos (sin red ni clave).
