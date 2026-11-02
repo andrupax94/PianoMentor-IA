@@ -22,6 +22,10 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "PianoMentor AI",
   description: "Práctica de piano adaptativa con IA",
+  icons: {
+    icon: "/assets/icons/Logo.svg",
+    apple: "/assets/icons/Logo.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
