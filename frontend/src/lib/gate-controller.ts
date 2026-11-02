@@ -27,6 +27,8 @@ export interface GateControllerDeps {
   clockMs: () => number;
   /** Se llama cuando el gate se satisface; quien escucha reanuda el motor. */
   onHit: () => void;
+  /** B-032.8: se llama con una tecla errónea; el transporte pega la cascada a la línea. */
+  onWrong?: () => void;
   /** Opciones iniciales. */
   options: GateControllerOptions;
 }
@@ -52,6 +54,7 @@ export interface GateController {
 export function createGateController(deps: GateControllerDeps): GateController {
   let { getSnapshot, subscribeNoteInput: subscribeInput, sendPracticeEvent, clockMs, onHit, options } =
     deps;
+  const onWrong = deps.onWrong ?? ((): void => {});
   let unsubscribeNotes: (() => void) | null = null;
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   const pressed = new Set<number>();
@@ -104,6 +107,10 @@ export function createGateController(deps: GateControllerDeps): GateController {
     const timedOut = elapsedMs >= timeoutMs;
 
     const outcome = strikeFor(gate, pressed, timedOut);
+    // B-032.8: onWrong solo en la transición. El sondeo repite el outcome cada
+    // 100 ms; si el callback saliera siempre, el desvanecimiento del rebote se
+    // reiniciaba sin parar y la cascada se quedaba pasada de la línea.
+    const repeatOfSameGate = lastOutcome === outcome && lastGateId === gate.id;
 
     if (outcome === "hit") {
       sendOutcome(gate, "hit");
@@ -113,6 +120,7 @@ export function createGateController(deps: GateControllerDeps): GateController {
 
     if (outcome === "wrong") {
       sendOutcome(gate, "wrong");
+      if (!repeatOfSameGate) onWrong();
       return;
     }
 

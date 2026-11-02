@@ -25,6 +25,7 @@ function snapshot(
     currentGate: {
       id: "gate-1.0000",
       time_s: 1.0,
+      duration_s: 0.5,
       pitches: [60],
       hands: ["left"],
       measure: 0,

@@ -120,9 +120,9 @@ export function NoteFallGrid({
       pool.clear();
       return;
     }
-    // En pausa o esperando se salen sin borrar: los bloques quedan congelados
-    // donde estaban (B-007.3/B-032.5).
-    if (status !== "playing" && status !== "preroll") return;
+    // En pausa se quedan congelados donde estaban (B-007.3). En waiting la
+    // cascada sí anima: es el rebote del gate (B-032.8), presentación pura.
+    if (status !== "playing" && status !== "preroll" && status !== "waiting") return;
 
     const layer = layerRef.current;
     if (!layer) return;

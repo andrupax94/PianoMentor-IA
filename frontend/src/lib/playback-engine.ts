@@ -9,6 +9,7 @@ import {
   type ScheduledEvent,
 } from "./playback-schedule";
 import { assignMeasure, gateAt, type Gate, type GateHand } from "./practice-gate";
+import { decayOffset_s, gateOvershoot_s, waitingGateOffset_s } from "./gate-display";
 import type { PieceMeasures, PlayableNote } from "./api-client";
 
 export type { ScheduledEvent };
@@ -107,6 +108,17 @@ export class PlaybackEngine {
   private gateHand: GateHand = "both";
   private currentGate: Gate | null = null;
   private waitingSince_wall_s: number | null = null;
+  /**
+   * B-032.8: sobresalto del gate congelado (el margen fijo con el que se
+   * entró; un cambio de factor de tempo mientras se espera no lo reescala).
+   */
+  private waitingOvershoot_s = 0;
+  /** B-032.8: tecla errónea en Marcha (offset que se desvanece hasta la línea). */
+  private wrongResetSince_wall_s: number | null = null;
+  private wrongResetOffset_s = 0;
+  /** B-032.8: exceso visual que la barra lleva cuando el hit llega antes del rebobinado. */
+  private hitLead_s = 0;
+  private hitLeadSince_wall_s: number = 0;
   /** Preroll antes del inicio real (B-032.5). */
   private preroll_s = 0;
   private prerollElapsed_s = 0;
@@ -180,6 +192,10 @@ export class PlaybackEngine {
     this.scheduledUpto_s = 0;
     this.currentGate = null;
     this.waitingSince_wall_s = null;
+    this.waitingOvershoot_s = 0;
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.hitLead_s = 0;
     this.prerollElapsed_s = 0;
   }
 
@@ -231,6 +247,10 @@ export class PlaybackEngine {
     this.prerollElapsed_s = 0;
     this.currentGate = null;
     this.waitingSince_wall_s = null;
+    this.waitingOvershoot_s = 0;
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.hitLead_s = 0;
     this.voice.silence();
   }
 
@@ -240,6 +260,10 @@ export class PlaybackEngine {
     this.scheduledUpto_s = this.position_s;
     this.currentGate = null;
     this.waitingSince_wall_s = null;
+    this.waitingOvershoot_s = 0;
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.hitLead_s = 0;
     this.voice.silence();
     if (this.status === "playing" || this.status === "waiting") {
       this.anchorWall_s = this.clock.now();
@@ -271,6 +295,10 @@ export class PlaybackEngine {
     if (!this.gateEnabled) {
       this.currentGate = null;
       this.waitingSince_wall_s = null;
+      this.waitingOvershoot_s = 0;
+      this.wrongResetSince_wall_s = null;
+      this.wrongResetOffset_s = 0;
+      this.hitLead_s = 0;
     }
   }
 
@@ -282,6 +310,15 @@ export class PlaybackEngine {
   /** El gate actual se ha satisfecho: el transporte reanuda desde ahí (B-032.5). */
   resolveGate(): void {
     if (this.status !== "waiting" || !this.currentGate) return;
+    // B-032.8: si el hit llega antes del rebobinado, la barra lleva un exceso
+    // por encima de la línea; se desvanece al reanudar para que la cascada no
+    // salte de regreso.
+    const display = this.waitingDisplayPosition_s();
+    this.hitLead_s = Math.max(0, display - this.position_s);
+    this.hitLeadSince_wall_s = this.clock.now();
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.waitingOvershoot_s = 0;
     this.status = "playing";
     this.position_s = this.currentGate.time_s;
     this.scheduledUpto_s = this.position_s;
@@ -299,10 +336,16 @@ export class PlaybackEngine {
     if (next) {
       this.position_s = next.time_s;
       this.waitingSince_wall_s = this.clock.now();
+      // B-032.8: el rebote del siguiente gate lo dimensiona su propia duración.
+      this.waitingOvershoot_s = gateOvershoot_s(next.duration_s);
     } else {
       this.status = "playing";
       this.waitingSince_wall_s = null;
+      this.waitingOvershoot_s = 0;
     }
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.hitLead_s = 0;
     this.scheduledUpto_s = this.position_s;
     this.anchorWall_s = this.clock.now();
     this.anchorPos_s = this.position_s;
@@ -373,7 +416,30 @@ export class PlaybackEngine {
     if (this.status === "preroll") {
       return -(this.preroll_s - this.prerollElapsed_s);
     }
+    // B-032.8: en espera la cascada rebota — sobrepasa la línea, rebobina
+    // suave y queda quieta en el punto de pulsación; una tecla errónea pega
+    // la barra a la línea desvaneciendo el exceso.
+    if (this.status === "waiting") {
+      return this.waitingDisplayPosition_s();
+    }
+    if (this.hitLead_s > 0) {
+      const sinceLead = Math.max(0, this.clock.now() - this.hitLeadSince_wall_s);
+      const lead = decayOffset_s(this.hitLead_s, sinceLead);
+      if (lead > 0) return this.position_s + lead;
+    }
     return this.position_s;
+  }
+
+  /** El sobresalto/rewind/held del gate congelado; puramente presentación. */
+  private waitingDisplayPosition_s(): number {
+    if (!this.currentGate || this.waitingSince_wall_s === null) return this.position_s;
+    const elapsed = Math.max(0, this.clock.now() - this.waitingSince_wall_s);
+    let offset = waitingGateOffset_s(elapsed, this.waitingOvershoot_s);
+    if (this.wrongResetSince_wall_s !== null) {
+      const sinceWrong = Math.max(0, this.clock.now() - this.wrongResetSince_wall_s);
+      offset = decayOffset_s(this.wrongResetOffset_s, sinceWrong);
+    }
+    return this.currentGate.time_s + offset;
   }
 
   private enterWaiting(gate: Gate): void {
@@ -381,8 +447,25 @@ export class PlaybackEngine {
     this.status = "waiting";
     this.currentGate = gate;
     this.waitingSince_wall_s = this.clock.now();
+    // B-032.8: el margen se fija al entrar; un cambio de factor de tempo
+    // mientras se espera no lo reescala (límite de la issue).
+    this.waitingOvershoot_s = gateOvershoot_s(gate.duration_s);
+    this.wrongResetSince_wall_s = null;
+    this.wrongResetOffset_s = 0;
+    this.hitLead_s = 0;
     this.scheduledUpto_s = this.position_s;
     this.voice.silence();
+  }
+
+  /**
+   * B-032.8: tecla errónea durante la espera. La cascada pegada a la línea:
+   * el exceso que llevara (sobresalto en marcha) se desvanece en el rebobo.
+   */
+  wrongGate(): void {
+    if (this.status !== "waiting" || !this.currentGate || this.waitingSince_wall_s === null) return;
+    const elapsed = Math.max(0, this.clock.now() - this.waitingSince_wall_s);
+    this.wrongResetOffset_s = waitingGateOffset_s(elapsed, this.waitingOvershoot_s);
+    this.wrongResetSince_wall_s = this.clock.now();
   }
 
   /**

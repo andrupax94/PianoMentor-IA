@@ -187,6 +187,14 @@ export function usePlayback(tickMs = 25) {
   }, [sync]);
 
   /**
+   * B-032.8: tecla errónea durante la espera; la cascada pegada a la línea.
+   */
+  const wrongGate = useCallback(() => {
+    engineRef.current?.wrongGate();
+    sync();
+  }, [sync]);
+
+  /**
    * Salta al gate siguiente (recuperación manual; B-032.5).
    */
   const skipGate = useCallback(() => {
@@ -307,6 +315,7 @@ export function usePlayback(tickMs = 25) {
     setGateOptions,
     setPreroll,
     resolveGate,
+    wrongGate,
     skipGate,
     auditionOn,
     auditionOff,

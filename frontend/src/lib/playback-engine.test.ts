@@ -432,3 +432,114 @@ describe("PlaybackEngine", () => {
     expect(gate?.measure).toBe(1);
   });
 });
+
+// --- B-032.8: la cascada rebota en el gate -----------------------------------
+
+/**
+ * Partitura con gates de 1 s de duración (el 25 % cae dentro del rango, sin
+ * recortes): tras el hit la barra sigue con el exceso que desvanece.
+ */
+function makeGateHarness(): Harness {
+  const harness = makeHarness();
+  harness.engine.load([
+    note({ pitch: 60, start_seconds: 1.0, duration_seconds: 1.0 }),
+    note({ pitch: 62, start_seconds: 3.0, duration_seconds: 1.0 }),
+  ]);
+  harness.engine.setGateOptions({ enabled: true, hand: "both" });
+  harness.engine.setPreroll(0);
+  harness.engine.play();
+  harness.advance(0.95);
+  harness.engine.tick(); // congelado en el gate 1,0 desde t=0,95
+  return harness;
+}
+
+function freezeElapsed(harness: Harness, seconds: number): void {
+  harness.advance(seconds);
+}
+
+describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
+  it("en waiting la cascada sobrepasa la línea durante el margen (25 % de la nota)", () => {
+    const harness = makeGateHarness();
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 6);
+
+    freezeElapsed(harness, 0.05);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.05, 6);
+
+    freezeElapsed(harness, 0.15);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.20, 6); // 0,20 del margen (0,25)
+  });
+
+  it("rebobina suave hasta la línea y se queda quieta", () => {
+    const harness = makeGateHarness();
+    freezeElapsed(harness, 0.25); // cima del sobresalto
+    freezeElapsed(harness, 0.075); // mitad del rebobinado: ease-out quad
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0 + 0.0625, 9);
+
+    freezeElapsed(harness, 0.075); // rebobinado terminado
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
+
+    freezeElapsed(harness, 30); // quieta en el punto de pulsación
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
+  });
+
+  it("una tecla errónea devuelve la barra a la línea desvaneciendo (150 ms)", () => {
+    const harness = makeGateHarness();
+    freezeElapsed(harness, 0.1); // en pleno sobresalto, offset 0,1
+    harness.engine.wrongGate();
+    // El evento de practice 'wrong' ya salió; el motor solo arma el rebote.
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.1, 9);
+
+    freezeElapsed(harness, 0.075);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.05, 9);
+
+    freezeElapsed(harness, 0.075);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
+    freezeElapsed(harness, 5);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
+  });
+
+  it("el hit antes del rebobinado continúa sin salto: el exceso se desvanece", () => {
+    const harness = makeGateHarness();
+    freezeElapsed(harness, 0.1); // la barra está en 1,1 cuando el alumno acierta
+    harness.engine.resolveGate();
+
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.1, 9); // nada de salto
+
+    freezeElapsed(harness, 0.075);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.05, 9);
+
+    freezeElapsed(harness, 0.075);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
+
+    freezeElapsed(harness, 1.1);
+    harness.engine.tick();
+    // 0,15 s de reproducción tras el hit + 1,1: el exceso ya desvanecido no esconde nada.
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(2.25, 6);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(2.25, 6);
+  });
+
+  it("al saltar el gate, el rebote lo dimensiona el gate nuevo", () => {
+    const harness = makeHarness();
+    harness.engine.load([
+      note({ pitch: 60, start_seconds: 1.0, duration_seconds: 4.0 }),
+      note({ pitch: 62, start_seconds: 3.0, duration_seconds: 0.5 }),
+    ]);
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.95);
+    harness.engine.tick();
+    // Duración 4 s → sobresalto al tope de 0,5 s.
+    harness.advance(0.3);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.3, 9);
+
+    harness.engine.skipGate(); // gate siguiente: 3,0 con duración 0,5 → margen 0,15
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0, 9);
+    harness.advance(0.2);
+    // 0,2 s > margen 0,15: rebobinado al 33 % → queda el 25 % del margen por encima.
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0 + 0.15 * (4 / 9), 9);
+  });
+});

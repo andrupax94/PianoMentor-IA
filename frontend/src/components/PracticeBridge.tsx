@@ -276,6 +276,8 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       sendPracticeEvent: (event) => socket.sendPracticeEvent(event),
       clockMs: () => performance.now(),
       onHit: () => transportRef.current.resolveGate(),
+      // B-032.8: con una tecla errónea la cascada regresa al punto de pulsación.
+      onWrong: () => transportRef.current.wrongGate(),
       options: { enabled: true, hand },
     });
     controller.start();

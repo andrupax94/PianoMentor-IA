@@ -73,21 +73,21 @@ describe("practice-gate", () => {
   });
 
   it("detecta un gate satisfecho", () => {
-    const gate = { id: "g1", time_s: 1.0, pitches: [60, 64], hands: ["left" as const], measure: 0 };
+    const gate = { id: "g1", time_s: 1.0, duration_s: 0.5, pitches: [60, 64], hands: ["left" as const], measure: 0 };
     expect(gateSatisfied(gate, [60, 64])).toBe(true);
     expect(gateSatisfied(gate, [60])).toBe(false);
     expect(gateSatisfied(gate, [60, 64, 67])).toBe(true);
   });
 
   it("detecta tecla equivocada", () => {
-    const gate = { id: "g1", time_s: 1.0, pitches: [60], hands: ["left" as const], measure: 0 };
+    const gate = { id: "g1", time_s: 1.0, duration_s: 0.5, pitches: [60], hands: ["left" as const], measure: 0 };
     expect(gateWrong(gate, [61])).toBe(true);
     expect(gateWrong(gate, [60])).toBe(false);
     expect(gateWrong(gate, [])).toBe(false);
   });
 
   it("strikeFor prioriza timeout, luego hit, luego wrong, luego miss", () => {
-    const gate = { id: "g1", time_s: 1.0, pitches: [60], hands: ["left" as const], measure: 0 };
+    const gate = { id: "g1", time_s: 1.0, duration_s: 0.5, pitches: [60], hands: ["left" as const], measure: 0 };
     expect(strikeFor(gate, [60], true)).toBe("timeout");
     expect(strikeFor(gate, [60], false)).toBe("hit");
     expect(strikeFor(gate, [61], false)).toBe("wrong");
@@ -106,8 +106,8 @@ describe("practice-gate", () => {
 
   it("assignMeasure asigna el compás correcto", () => {
     const gates = [
-      { id: "g0", time_s: 0.5, pitches: [60], hands: ["left" as const], measure: null },
-      { id: "g1", time_s: 2.5, pitches: [62], hands: ["left" as const], measure: null },
+      { id: "g0", time_s: 0.5, duration_s: 0.5, pitches: [60], hands: ["left" as const], measure: null },
+      { id: "g1", time_s: 2.5, duration_s: 0.5, pitches: [62], hands: ["left" as const], measure: null },
     ];
     const withMeasure = assignMeasure(gates, [0, 2, 4]);
     expect(withMeasure[0].measure).toBe(0);

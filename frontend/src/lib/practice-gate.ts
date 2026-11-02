@@ -16,6 +16,11 @@ export interface Gate {
   id: string;
   /** Tiempo en segundos de partitura ya escalados (misma línea temporal que el schedule). */
   time_s: number;
+  /**
+   * Duración escalada de la unidad (la más larga del acorde). Dimensiona el
+   * margen visual del gate en la cascada (B-032.8).
+   */
+  duration_s: number;
   /** Pitches MIDI que deben sonar para satisfacer el gate. */
   pitches: number[];
   /** Manos presentes en el gate (puede cruzarse en un acorde). */
@@ -57,7 +62,7 @@ export function gatesForSchedule(schedule: readonly ScheduledEvent[], hand: Gate
 
   const sorted = [...filtered].sort((a, b) => a.time_s - b.time_s);
   const gates: Gate[] = [];
-  let current: { time_s: number; pitches: number[]; hands: NoteHand[] } | null = null;
+  let current: { time_s: number; duration_s: number; pitches: number[]; hands: NoteHand[] } | null = null;
 
   const addHand = (hands: NoteHand[], handValue: NoteHand) => {
     if (!hands.includes(handValue)) hands.push(handValue);
@@ -70,6 +75,7 @@ export function gatesForSchedule(schedule: readonly ScheduledEvent[], hand: Gate
         gates.push({
           id: gateId(current.time_s),
           time_s: current.time_s,
+          duration_s: current.duration_s,
           pitches: [...current.pitches].sort((a, b) => a - b),
           hands: current.hands,
           measure: null,
@@ -77,10 +83,13 @@ export function gatesForSchedule(schedule: readonly ScheduledEvent[], hand: Gate
       }
       current = {
         time_s: event.time_s,
+        duration_s: Math.max(0, event.duration_s),
         pitches: [event.pitch],
         hands: [eventHand],
       };
     } else {
+      // El acorde entera dura hasta que su nota más larga termina.
+      current.duration_s = Math.max(current.duration_s, Math.max(0, event.duration_s));
       if (!current.pitches.includes(event.pitch)) {
         current.pitches.push(event.pitch);
       }
@@ -92,6 +101,7 @@ export function gatesForSchedule(schedule: readonly ScheduledEvent[], hand: Gate
     gates.push({
       id: gateId(current.time_s),
       time_s: current.time_s,
+      duration_s: current.duration_s,
       pitches: [...current.pitches].sort((a, b) => a - b),
       hands: current.hands,
       measure: null,
