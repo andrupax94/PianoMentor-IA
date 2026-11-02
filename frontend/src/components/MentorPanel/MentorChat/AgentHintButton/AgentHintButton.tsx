@@ -1,10 +1,15 @@
-// description: Chip «Pedir pista al agente» que pide un paso al agente cuando hay sesión abierta.
-// context: B-012.6; sustituye al antiguo panel de la columna de sesión y su respuesta se muestra en la burbuja del chat.
+// description: Chip píldora del chat para acciones hacia el agente: por defecto «Pedir pista al agente» (B-012.6) y, desde B-032.7, reutilizado para las respuestas a la oferta del mentor («Sí, muéstralo», «Otra vez») cambiando la etiqueta y el icono.
+// context: B-012.6/B-032.7; la propuesta la escribe MentorChat en la burbuja y la posición la pone el hospedador: el chip no se sitúa a sí mismo. La píldora solo pinta etiqueta y estrella.
 
 import styles from "./AgentHintButton.module.css";
 import type { AgentHintButtonProps } from "./AgentHintButton.types";
 
-export function AgentHintButton({ onAsk, disabled = false }: AgentHintButtonProps) {
+export function AgentHintButton({
+  label = "Pedir pista al agente",
+  icon = true,
+  onAsk,
+  disabled = false,
+}: AgentHintButtonProps) {
   return (
     <button
       className={styles.chip}
@@ -13,8 +18,8 @@ export function AgentHintButton({ onAsk, disabled = false }: AgentHintButtonProp
       disabled={disabled}
       aria-busy={disabled}
     >
-      <span className={styles.stars}></span>
-      Pedir pista al agente
+      {icon && <span className={styles.stars} aria-hidden="true" />}
+      {label}
     </button>
   );
 }

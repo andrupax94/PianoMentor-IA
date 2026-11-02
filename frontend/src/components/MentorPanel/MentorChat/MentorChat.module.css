@@ -1,5 +1,5 @@
-/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center: centra mensajes cortos, alinea arriba y hace scroll al desbordar), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, botón de cierre circular del flotante (D-002.5) y estilo del input. */
-/* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. */
+/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7), botón de cierre circular del flotante (D-002.5) y estilo del input. */
+/* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. Con B-032.7 el chip no se posiciona a sí mismo: lo encaja .hintSlot dentro de la burbuja. */
 
 .chat {
   display: flex;
@@ -158,6 +158,16 @@
 
 .bubble::-webkit-scrollbar-thumb:hover {
   background: #4a5a70;
+}
+
+/* Hueco absoluto del chip «Pedir pista al agente» (B-012.6): la píldora ya
+   no se posiciona a sí misma, este span decide dónde vive dentro de la
+   burbuja (B-032.7). */
+.hintSlot {
+  position: absolute;
+  display: flex;
+  bottom: 5px;
+  right: 5px;
 }
 
 /* Tamaño dinámico: mensajes cortos en grande, largos en pequeño. */

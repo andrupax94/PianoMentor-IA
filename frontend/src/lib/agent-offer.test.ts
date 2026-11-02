@@ -1,9 +1,16 @@
-// description: Tests de la oferta de demostración (B-032.7): la oferta pendiente del sobre, la pregunta determinista por compás/rango/pieza, la ventana reutilizada sin recalcular y la etiqueta del mini cuadro.
+// description: Tests de la oferta de demostración (B-032.7): la oferta pendiente del sobre, la pregunta determinista por compás/rango/pieza, la ventana reutilizada sin recalcular, la etiqueta del mini cuadro y la frase fija del «Otra vez».
 // context: Módulo puro sin DOM; la misma señal produce siempre la misma frase (feed determinista, B-032.10).
 import { describe, expect, it } from "vitest";
 
 import type { AgentActionMessage } from "./websocket-client";
-import { isPendingOffer, offerDemoWindow, offerLabel, offerMeasure, offerMessage } from "./agent-offer";
+import {
+  isPendingOffer,
+  offerDemoWindow,
+  offerLabel,
+  offerMeasure,
+  offerMessage,
+  repeatOfferMessage,
+} from "./agent-offer";
 
 const OFFER = (params: Record<string, number | undefined>): AgentActionMessage =>
   ({ type: "agent_action", action: "offer_demo", ...params });
@@ -71,5 +78,11 @@ describe("offerLabel", () => {
       "El mentor pregunta si te muestra el compás 2",
     );
     expect(offerLabel(OFFER({}))).toBe("El mentor pregunta si te muestra cómo se toca");
+  });
+});
+
+describe("repeatOfferMessage", () => {
+  it("la frase del «Otra vez» es la misma siempre (no viene del backend)", () => {
+    expect(repeatOfferMessage).toBe("¿Repetimos la demostración?");
   });
 });

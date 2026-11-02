@@ -1,4 +1,4 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 muestra también la oferta del mentor (OfferCard): «Sí, muéstralo», «Sigo yo» y el «Otra vez» tras una demostración ya ejecutada, publicando la decisión en offer-choice.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice.
 // context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS.
 
 "use client";
@@ -25,12 +25,12 @@ import {
   runAgentStep,
   sendAgentMessage,
 } from "../../../lib/api-client";
-import { isPendingOffer, offerMessage } from "../../../lib/agent-offer";
+import { isPendingOffer, offerMessage, repeatOfferMessage } from "../../../lib/agent-offer";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishOfferChoice } from "../../../lib/offer-choice";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
-import { OfferCard } from "./OfferCard/OfferCard";
+import { OfferActions } from "./OfferActions/OfferActions";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
 
@@ -100,13 +100,16 @@ export function MentorChat({
     if (!action) return;
 
     if (action.action === "offer_demo") {
-      // Oferta nueva (o de otro compás): la tarjeta de repetición se apaga.
+      // Oferta nueva (o de otro compás): la repetición se apaga.
       acceptedRef.current = false;
       setRepeatAvailable(false);
       setRepeatUsed(false);
       setAnswered(false);
       return;
     }
+    // Cualquier otro aviso limpia el «ya respondí»: si el clic no produjo
+    // efecto (canal caído) los botones vuelven a estar disponibles.
+    setAnswered(false);
     if (action.action === "demonstrate") {
       setDemoPlaying(true);
       return;
@@ -244,7 +247,25 @@ export function MentorChat({
 
   // El tamaño se decide sobre la respuesta completa (no sobre lo ya revelado)
   // para que no salte de tamaño mientras se escribe.
-  const shown = reply ?? exampleMessage;
+  /**
+   * B-032.7: la pregunta del mentor se escribe EN la burbuja (no en una caja
+   * aparte): «¿Te muestro el compás 3?» sin contestar, «¿Repetimos la
+   * demostración?» tras una demo aceptada. Durante una demo, calla.
+   */
+  const offerPending =
+    session.sessionId !== null &&
+    !demoPlaying &&
+    isPendingOffer(session.agentAction) &&
+    !answered;
+  const offerRepeating =
+    session.sessionId !== null && !demoPlaying && repeatAvailable && !answered;
+  const offerQuestion = offerPending
+    ? offerMessage(session.agentAction)
+    : offerRepeating
+      ? repeatOfferMessage
+      : null;
+
+  const shown = offerQuestion ?? reply ?? exampleMessage;
   const visible = reply === null ? exampleMessage : typedSlice(reply, visibleChars);
   const typing = reply !== null && visibleChars < reply.length;
 
@@ -274,40 +295,32 @@ export function MentorChat({
         aria-live="polite"
         aria-busy={busy || typing}
       >
-        {busy && reply === null ? "Pensando…" : visible}
-        {typing && <span className={styles.cursor}>{TYPING_CURSOR}</span>}
-        {/* Solo con práctica abierta: sin sesión no hay estado que observar. */}
-        {session.sessionId !== null && (
-          <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
-        )}
-      </p>
-
-      {/* B-032.7: la oferta del mentor es contenido del chat. Una demo en
-          marcha la calla; la respuesta queda escondida hasta que contesta el
-          backend, y el «Otra vez» solo vive tras una demostración aceptada. */}
-      {session.sessionId !== null && !demoPlaying && (
-        <>
-          {isPendingOffer(session.agentAction) && !answered && (
-            <OfferCard
-              mode="pending"
-              question={offerMessage(session.agentAction)}
-              onAccept={acceptOffer}
-              onDismiss={dismissOffer}
-              onRepeat={repeatDemo}
-            />
-          )}
-          {repeatAvailable && (
-            <OfferCard
-              mode="repeat"
-              question="¿Repetimos la demostración?"
+        {/* B-032.7: la pregunta del mentor ocupa la burbuja entera, sin
+            tecleo (es texto determinista del feed, B-032.10). */}
+        {offerQuestion !== null
+          ? offerQuestion
+          : busy && reply === null
+            ? "Pensando…"
+            : visible}
+        {!offerQuestion && typing && <span className={styles.cursor}>{TYPING_CURSOR}</span>}
+        {/* Con oferta en juego las píldoras de respuesta van a lo ancho de la
+            burbuja; sin ella, el chip de pista de toda la vida. */}
+        {session.sessionId !== null &&
+          (offerPending || offerRepeating ? (
+            <OfferActions
+              mode={offerPending ? "pending" : "repeat"}
               repeatUsed={repeatUsed}
+              disabled={answered || busy}
               onAccept={acceptOffer}
               onDismiss={dismissOffer}
               onRepeat={repeatDemo}
             />
-          )}
-        </>
-      )}
+          ) : (
+            <span className={styles.hintSlot}>
+              <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
+            </span>
+          ))}
+      </p>
 
       {error && (
         <p className={styles.error} role="alert">

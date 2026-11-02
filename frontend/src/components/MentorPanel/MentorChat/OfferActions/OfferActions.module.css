@@ -1,0 +1,58 @@
+/* description: Estilos de la franja de respuestas a la oferta del mentor dentro de la burbuja del chat (B-032.7). */
+/* context: B-032.7; franja absoluta sobre el ancho de la burbuja, en una sola línea (nowrap): si el espacio no da, con container query baja el font-size y se oculta el icono de la píldora reutilizada, nunca se apila hacia abajo. */
+
+.actions {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  container-type: inline-size;
+}
+
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Cada respuesta crece a lo ancho disponible: la burbuja queda toda usada. */
+.row > * {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* La píldora callada: familia del chip pero en tono secundario. */
+.dismissPill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: solid 1px var(--line-strong);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.dismissPill:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-mute);
+}
+
+/* Si el ancho no da: letra más pequeña y sin icono, sin pasar a dos líneas. */
+@container (max-width: 300px) {
+  .row {
+    font-size: 0.72rem;
+    gap: 6px;
+  }
+
+  .row button {
+    padding: 5px 10px;
+  }
+
+  /* La estrella del chip reutilizado es el único span dentro del botón. */
+  .row button span {
+    display: none;
+  }
+}

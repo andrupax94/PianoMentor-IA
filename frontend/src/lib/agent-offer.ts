@@ -1,4 +1,4 @@
-// description: Lógica pura de la oferta de demostración (B-032.7/ADR 0008): la oferta pendiente del sobre agent_action (isPendingOffer), el compás ofertado (offerMeasure), la pregunta determinista del mentor (offerMessage), la ventana que se ejecutaría al aceptar (offerDemoWindow) y la etiqueta del mini cuadro (offerLabel).
+// description: Lógica pura de la oferta de demostración (B-032.7/ADR 0008): la oferta pendiente del sobre agent_action (isPendingOffer), el compás ofertado (offerMeasure), la pregunta determinista del mentor (offerMessage), la ventana que se ejecutaría al aceptar (offerDemoWindow), la etiqueta del mini cuadro (offerLabel) y la frase fija del «Otra vez» (repeatOfferMessage).
 // context: Puro y sin DOM; MentorChat decide qué se muestra en la burbuja y SessionStatus usa solo la etiqueta. La propuesta ya decidió el backend (la oferta llega por el WS con los parámetros guardados); aquí solo se traduce y se lee.
 
 import type { AgentActionMessage } from "./websocket-client";
@@ -52,3 +52,9 @@ export function offerLabel(action: AgentActionMessage | null | undefined): strin
   if (measure !== null) return `El mentor pregunta si te muestra el compás ${measure + 1}`;
   return "El mentor pregunta si te muestra cómo se toca";
 }
+
+/**
+ * La pregunta de repetición («Otra vez»): es la única frase del mentor que no
+ * viene del backend — la demo ya pasó y repepetirla es cosa del chat.
+ */
+export const repeatOfferMessage = "¿Repetimos la demostración?";

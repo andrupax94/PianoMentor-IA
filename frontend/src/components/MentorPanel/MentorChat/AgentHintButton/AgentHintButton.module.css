@@ -1,13 +1,10 @@
-/* description: Estilos del chip «Pedir pista al agente» del chat. */
-/* context: B-012.6; píldora alineada a la derecha sobre el input, para no ocupar columna propia en el panel. */
+/* description: Estilos del chip píldora del chat (por defecto «Pedir pista al agente»; reutilizado por la oferta del mentor, B-032.7). */
+/* context: B-012.6/B-032.7; píldora sin posicionarse a sí misma: el hospedador decide dónde va (hueco absoluto en MentorChat, franja inferior en OfferActions). */
 
 .chip {
-  position: absolute;
   display: flex;
   align-items: center;
-  bottom: 5px;
-  right: 5px;
-  align-self: flex-end;
+  justify-content: center;
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--gradient1);
@@ -33,6 +30,7 @@
   display: flex;
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
   mask-image: url("/assets/icons/stars.svg");
   mask-repeat: no-repeat;
   mask-position: center;
@@ -40,5 +38,4 @@
   background-color: white;
   margin-right: 10px;
   margin-left: 5px;
-
 }
