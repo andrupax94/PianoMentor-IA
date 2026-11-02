@@ -55,8 +55,12 @@ function Get-ProjectItemUrl {
 function Get-ItemId {
     param($Item)
     $title = Get-ProjectItemTitle -Item $Item
-    if ($title -match '\[((?:B|U|D)-\d+)\]') { return $Matches[1] }
-    if ($title -match '(?<![A-Za-z0-9])((?:B|U|D)-\d+)(?![A-Za-z0-9])') { return $Matches[1] }
+    # Cambios de B-032.7: el ID estable admite sufijo de sub-issue (.N) y la
+    # serie P- (P-001 legal). Sin ambos, un hijo como "[B-032.1]" extraía
+    # "B-032" y su fila del CSV no encontraba nunca su elemento del Project
+    # (aviso "No se encontró"); P-001 se omitía por la clase de serie fija.
+    if ($title -match '\[((?:B|U|D|P)-\d+(?:\.\d+)?)\]') { return $Matches[1] }
+    if ($title -match '(?<![A-Za-z0-9])((?:B|U|D|P)-\d+(?:\.\d+)?)(?![A-Za-z0-9])') { return $Matches[1] }
     return $null
 }
 

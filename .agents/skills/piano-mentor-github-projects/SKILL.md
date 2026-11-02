@@ -157,6 +157,22 @@ No es un límite diario. Es una cuota GraphQL por hora que se restablece en `res
 
 Comprobar que el Project tenga campos llamados `Priority` y `Target date`. El sincronizador adapta `P0/P1/P2` a opciones estándar (`Urgent/High`, `High/Medium`, `Medium/Low`) cuando no existen opciones P0/P1/P2.
 
+## El patrón que se repetía al sincronizar (y cómo se cortó de raíz, 2026-11-02)
+
+Varias sesiones pasaron por lo mismo: sub-issues llamadas `[B-032.1]`, `[B-032.7]`… existed en el repo y en el Project, y el sincronizador escupía «No se encontró el elemento B-032.N en el respaldo/localización del Project» una y otra vez. La causas y sus cortes:
+
+1. **El extractor de ID estable no miraba el sufijo `.N` ni la serie `P-`.** En `sync-github-project.ps1`, la regex `\[((?:B|U|D)-\d+)\]` extraía `B-032` de `[B-032.1]` (y las líneas con P- caían fuera de la clase). Resultado: el hijo nunca casaba con su fila del CSV (aviso repetido) y el padre casaba con **once** elementos de golpe, aplicando los campos del padre en masa. Corregido a `\d+(?:\.\d+)?` con serie `B|U|D|P`. Si se toca ese script de nuevo, los invariantes a respetar son:
+   - el ID estable abarca `B|U|D|P` **más el sufijo `.N` completo**;
+   - `create-github-subissues.ps1` ya usa `([A-Z]+-\d+(?:\.\d+)*)`: no degradarlo;
+   - comprobar el extractor con un título de sub-issue antes de lanzar un sync masivo (`"B-032.7" -match "\[((?:B|U|D|P)-\d+(?:\.\d+)?)\]"`).
+2. **El sync es local-first contra `project-backup.json`.** Si el respaldo es viejo, el sincronizador no ve items nuevos aunque existan en el Project. Orden correcto: `export-github-project.ps1` **justo antes** de `sync-github-project.ps1`; si no hay cuota, `-RefreshRemote`. Exportar después de crear no basta si el sync se ejecuta entre medias.
+3. **Existir como issue no es existir en el Project.** `gh issue create`/`gh issue edit` no añaden items. Tras crear o reutilizar: verificar con el export que el número de items creó lo esperado (si «Items exportados» no subió tras añadir, sospechar del `item-add`), y añadir a pelo con `gh project item-add 1 --owner andrupax94 --url <issue_url>` (crea y devuelve el item id; es reejecutable: los repetidos devuelven `already exists`).
+4. **Refrescar cuerpos desde los `.md` — la vía única:**
+   - sub-issues: `create-github-subissues.ps1 -ParentId B-032` crea las que falten **y actualiza el cuerpo de las existentes desde su `.md`**; el export a continuación verifica que el `body` del respaldo quedó con el texto versionado;
+   - padre: `gh issue edit <n> --body-file docs/issues/B-xxx/B-xxx.md`;
+   - capturar la salida de `gh` para compararla después con **cmd** (passthrough de bytes), no con `comando | comando` de PowerShell, que destruye tildes (regla ya documentada en AGENTS.md).
+5. **Verificar el sync leyendo el Project, no el stdout del script.** Tras un sync, re-exportar y comprobar con Python/JSON que los `Priority`/`Target date` de los items cambian a los valores del CSV (semestre 5 → `2026-11-09`). El `-Preview` del sync lee el respaldo stale al preverlo, así que en previsualización solo se fían de textos tipo «sin cambios» después de un export fresco.
+
 ## Seguridad
 
 - No mostrar valores de `GH_TOKEN`, `GITHUB_TOKEN` ni `.env`.
