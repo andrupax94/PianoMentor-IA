@@ -172,6 +172,9 @@ export function MentorChat({
               void router.push(path);
             },
             resolvePiece: fetchPieceInfo,
+            // B-032.7: «otra vez», «muéstralo» y «sigo yo» conversados viajan
+            // por el bus de la oferta, igual que las píldoras de la burbuja.
+            chooseOffer: publishOfferChoice,
           }),
       },
     );
@@ -250,7 +253,9 @@ export function MentorChat({
   /**
    * B-032.7: la pregunta del mentor se escribe EN la burbuja (no en una caja
    * aparte): «¿Te muestro el compás 3?» sin contestar, «¿Repetimos la
-   * demostración?» tras una demo aceptada. Durante una demo, calla.
+   * demostración?» tras una demo aceptada. La conversación manda: si hay
+   * respuesta (o el turno está pensando), el texto de la oferta se aparta,
+   * pero las píldoras de respuesta siguen disponibles. Durante una demo, calla.
    */
   const offerPending =
     session.sessionId !== null &&
@@ -259,14 +264,22 @@ export function MentorChat({
     !answered;
   const offerRepeating =
     session.sessionId !== null && !demoPlaying && repeatAvailable && !answered;
-  const offerQuestion = offerPending
-    ? offerMessage(session.agentAction)
-    : offerRepeating
-      ? repeatOfferMessage
-      : null;
+  /**
+   * La pregunta solo ocupa la burbuja cuando no hay conversación que mostrar:
+   * «hola» y sus respuestas nunca se pierden por una oferta (skill
+   * piano-mentor-chat-burbuja, principio 1).
+   */
+  const offerQuestion =
+    reply !== null
+      ? null
+      : offerPending
+        ? offerMessage(session.agentAction)
+        : offerRepeating
+          ? repeatOfferMessage
+          : null;
 
-  const shown = offerQuestion ?? reply ?? exampleMessage;
-  const visible = reply === null ? exampleMessage : typedSlice(reply, visibleChars);
+  const shown = reply ?? offerQuestion ?? exampleMessage;
+  const visible = reply === null ? offerQuestion ?? exampleMessage : typedSlice(reply, visibleChars);
   const typing = reply !== null && visibleChars < reply.length;
 
   return (

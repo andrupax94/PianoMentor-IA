@@ -1,8 +1,8 @@
-# description: Registro de funciones del agente (B-012.8).
+# description: Registro de funciones del chat con lista blanca cerrada (B-012.8): ToolDef y REGISTRY con 12 funciones (4 de servidor, 5 de navegador y, desde B-032.7, aceptar_oferta/descartar_oferta/repetir_demo de navegador).
 # context: Lista blanca de órdenes que el modelo puede elegir. Cada función
 # declara nombre, descripción (en español, es lo que lee el modelo), parámetros
 # (JSON Schema) y si su ejecución es del servidor (lectura de catálogo/estado) o
-# del navegador (reproducción, pausa, abrir práctica). Solo el servidor ejecuta.
+# del navegador (reproducción, pausa, abrir práctica, responder la oferta del mentor B-032.7). Solo el servidor ejecuta; las de navegador viajan como client_action.
 
 from __future__ import annotations
 
@@ -241,6 +241,56 @@ class ToolRegistry:
                         }
                     },
                     "required": ["piece_id"],
+                    "additionalProperties": False,
+                },
+                side="client",
+            )
+        )
+        # --- B-032.7: la oferta del mentor también se contesta con el chat -----
+        # La ejecución es del navegador: publica la decisión en offer-choice y
+        # el puente de la sesión la manda por el WS. Sin parámetros: los de la
+        # demo los guarda el backend al ofrecer.
+        self.register(
+            FunctionTool(
+                name="aceptar_oferta",
+                description=(
+                    "Acepta la oferta pendiente del mentor y muestra la demostración "
+                    "del compás en la sesión de práctica («Sí, muéstralo»)."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+                side="client",
+            )
+        )
+        self.register(
+            FunctionTool(
+                name="descartar_oferta",
+                description=(
+                    "Rechaza la oferta pendiente del mentor y continúa la práctica "
+                    "del alumno sin demostración («Sigo yo»)."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+                side="client",
+            )
+        )
+        self.register(
+            FunctionTool(
+                name="repetir_demo",
+                description=(
+                    "Repite la última demostración que el mentor ya tocó en la "
+                    "sesión de práctica («otra vez»). Solo tiene sentido después "
+                    "de que se haya demostrado algo."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {},
                     "additionalProperties": False,
                 },
                 side="client",

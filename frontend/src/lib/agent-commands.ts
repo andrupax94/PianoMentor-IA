@@ -1,11 +1,9 @@
-// description: Acciones que el agente manda al navegador: canal al transporte y ejecución de client_action.
-// context: B-012.8 bloque C; el backend solo devuelve la intención y valida contra la lista blanca,
-// aquí se convierte en efectos reales con las dependencias inyectadas (piece-store, agent-commands,
-// createSession, navegación), igual que piece-store: publicar/suscribirse, en memoria y sin persistencia.
-// El LLM nunca toca el reloj de reproducción: solo elige el nombre de la función.
+// description: Acciones que el agente manda al navegador: canal al transporte, ejecución de client_action y, desde B-032.7, las respuestas del alumno a la oferta del mentor conversadas con el chat.
+// context: B-012.8 bloque C; el backend solo devuelve la intención y valida contra la lista blanca, aquí se convierte en efectos reales con las dependencias inyectadas (piece-store, agent-commands, createSession, navegación, offer-choice), igual que piece-store: publicar/suscribirse, en memoria y sin persistencia. El LLM nunca toca el reloj de reproducción: solo elige el nombre de la función.
 
 import { getPieceList } from "./api-client";
 import type { AgentClientAction } from "./api-client";
+import { publishOfferChoice, type OfferChoice } from "./offer-choice";
 import type { PianoPiece } from "./piece-store";
 
 /** Órdenes de transporte que viajan por este canal; las aplica PlaybackArea. */
@@ -65,6 +63,8 @@ export interface AgentActionDeps {
   navigate: (path: string) => void;
   /** Título y portada de una pieza del catálogo para la barra del reproductor. */
   resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
+  /** B-032.7: publica la respuesta del alumno a la oferta del mentor (bus offer-choice). */
+  chooseOffer: (choice: OfferChoice) => void;
 }
 
 /**
@@ -118,6 +118,22 @@ export async function executeClientAction(
     // La práctica es la portada con el id en la URL: al entrar, PracticeBridge
     // abre el WebSocket de la sesión y el mini cuadro del mentor la muestra viva.
     deps.navigate(`/${sessionId}`);
+    return true;
+  }
+
+  // B-032.7: la respuesta del alumno a la oferta del mentor conversada
+  // («otra vez», «muéstralo», «sigo yo») viaja por el mismo bus que la
+  // burbuja: PracticeBridge la traduce a los sobres WS sin parámetros.
+  if (action.name === "repetir_demo") {
+    deps.chooseOffer("repeat");
+    return true;
+  }
+  if (action.name === "aceptar_oferta") {
+    deps.chooseOffer("accept");
+    return true;
+  }
+  if (action.name === "descartar_oferta") {
+    deps.chooseOffer("dismiss");
     return true;
   }
 

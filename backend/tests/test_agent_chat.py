@@ -1,4 +1,4 @@
-# description: Chat del agente: registro de funciones, MockProvider, memoria y endpoint (B-012.8).
+# description: Chat del agente: registro de funciones (con las respuestas a la oferta del mentor, B-032.7), MockProvider, memoria y endpoint (B-012.8).
 # context: Todo probado con MockProvider (sin red ni clave), incluido su bucle de dos pasos
 # (buscar -> decidir con el resultado -> acción del navegador); el proveedor real se prueba aparte.
 
@@ -121,6 +121,33 @@ def test_funciones_servidor_y_cliente() -> None:
     assert REGISTRY.get("listar_piezas").side == "server"
     assert REGISTRY.get("pausar").side == "client"
     assert REGISTRY.get("reproducir_pieza").side == "client"
+
+
+def test_respuesta_a_la_oferta_viaja_como_accion_de_navegador() -> None:
+    # B-032.7: «otra vez», «muéstralo» y «sigo yo» conversados con el chat.
+    assert REGISTRY.get("repetir_demo").side == "client"
+    assert REGISTRY.get("aceptar_oferta").side == "client"
+    assert REGISTRY.get("descartar_oferta").side == "client"
+    for name in ("repetir_demo", "aceptar_oferta", "descartar_oferta"):
+        assert REGISTRY.get(name).parameters == {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        }
+
+
+def test_chat_entiende_otra_vez_muéstralo_y_sigo_yo() -> None:
+    provider = MockProvider()
+    for frase, esperado in (
+        ("quiero que le des otra vez", "repetir_demo"),
+        ("repite la demostración", "repetir_demo"),
+        ("sí, muéstralo", "aceptar_oferta"),
+        ("muéstrame cómo se toca", "aceptar_oferta"),
+        ("prefiero ir con sigo yo", "descartar_oferta"),
+    ):
+        respuesta = provider.chat([{"content": frase, "role": "user"}], [])
+        assert respuesta.tool_call is not None
+        assert respuesta.tool_call["name"] == esperado, frase
 
 
 def test_listar_piezas_devuelve_catalogo(piece_id: str) -> None:

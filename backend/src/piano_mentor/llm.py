@@ -239,8 +239,34 @@ class MockProvider(LLMProvider):
                 text=(
                     "Puedo buscar piezas del catálogo, reproducirlas en el piano, "
                     "pausar, reanudar, parar y abrir una sesión de práctica. "
-                    "Dime qué necesitas."
+                    "En la práctica también contesto a la oferta del mentor: "
+                    "«muéstralo» para aceptarla, «sigo yo» para rechazarla y "
+                    "«otra vez» para repetir la demostración. Dime qué necesitas."
                 ),
+                provider="mock",
+            )
+
+        # B-032.7: la oferta del mentor también se contesta conversando.
+        if "otra vez" in texto or self._palabra(texto, "repite") or self._palabra(
+            texto, "repetir"
+        ):
+            return LLMResponse(
+                text="Repetimos la demostración.",
+                tool_call={"name": "repetir_demo", "arguments": {}},
+                provider="mock",
+            )
+
+        if "muéstralo" in texto or "muestralo" in texto or "muéstrame" in texto:
+            return LLMResponse(
+                text="Muestro el compás tal y como lo prometí.",
+                tool_call={"name": "aceptar_oferta", "arguments": {}},
+                provider="mock",
+            )
+
+        if "sigo yo" in texto or "lo intento yo" in texto or "sigue yo" in texto:
+            return LLMResponse(
+                text="De acuerdo, sigue tú: dejo la oferta pendiente cerrada.",
+                tool_call={"name": "descartar_oferta", "arguments": {}},
                 provider="mock",
             )
 
@@ -318,7 +344,8 @@ class MockProvider(LLMProvider):
         return LLMResponse(
             text=(
                 "Eso todavía no sé hacerlo. Puedo buscar piezas, reproducir, pausar, "
-                "reanudar, parar y abrir una sesión de práctica."
+                "reanudar, parar, abrir una sesión de práctica y contestar a la "
+                "oferta del mentor («otra vez», «muéstralo», «sigo yo»)."
             ),
             provider="mock",
         )

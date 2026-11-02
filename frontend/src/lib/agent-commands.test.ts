@@ -1,6 +1,5 @@
-// description: Tests del canal de comandos del agente y del despacho de client_action.
-// context: Criterio de B-012.8 bloque C; el navegador ejecuta las órdenes y el backend no
-// toca el reloj. Sin DOM: los efectos llegan inyectados y se comprueban como fakes.
+// description: Tests del canal de comandos del agente y del despacho de client_action, incluidas las respuestas a la oferta del mentor (B-032.7).
+// context: Criterio de B-012.8 bloque C y B-032.7; el navegador ejecuta las órdenes y el backend no toca el reloj. Sin DOM: los efectos llegan inyectados y se comprueban como fakes.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -30,6 +29,7 @@ function makeDeps(overrides: Partial<AgentActionDeps> = {}): AgentActionDeps {
       title: "Minueto en Sol",
       cover: "/assets/covers/bach.jpg",
     })),
+    chooseOffer: vi.fn(),
     ...overrides,
   };
 }
@@ -125,6 +125,21 @@ describe("executeClientAction", () => {
       autoPlay: true,
     });
     expect(deps.navigate).toHaveBeenCalledWith("/");
+  });
+
+  it("las respuestas a la oferta del mentor van al bus offer-choice (B-032.7)", async () => {
+    // «otra vez», «muéstralo» y «sigo yo» conversados con el chat.
+    const deps = makeDeps();
+
+    expect(await executeClientAction(action("repetir_demo"), deps)).toBe(true);
+    expect(deps.chooseOffer).toHaveBeenLastCalledWith("repeat");
+    expect(await executeClientAction(action("aceptar_oferta"), deps)).toBe(true);
+    expect(deps.chooseOffer).toHaveBeenLastCalledWith("accept");
+    expect(await executeClientAction(action("descartar_oferta"), deps)).toBe(true);
+    expect(deps.chooseOffer).toHaveBeenLastCalledWith("dismiss");
+    // Los argumentos son indiferentes: los parámetros los guarda el backend.
+    expect(await executeClientAction(action("repetir_demo", { from_measure: 2 }), deps)).toBe(true);
+    expect(deps.chooseOffer).toHaveBeenLastCalledWith("repeat");
   });
 
   it("respeta auto_play en false: carga la pieza sin arrancar", async () => {
