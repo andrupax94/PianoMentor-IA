@@ -209,6 +209,25 @@ def new_user_google(
     return _user_row(conn, google_sub)  # type: ignore[return-value]
 
 
+def _seed_user_piece_library(conn: sqlite3.Connection, user_sub: str, email: object) -> None:
+    """Siembra piezas adicionales según la cuenta (U-008.2)."""
+    if not email:
+        return
+    em = str(email).strip().lower()
+    if em == "palenciadj94@gmail.com":
+        conn.execute(
+            "INSERT OR IGNORE INTO user_piece_library (user_sub, piece_id) "
+            "SELECT ?, id FROM pieces WHERE id != 'p16'",
+            (user_sub,),
+        )
+    elif em == "eduardoandresp94@gmail.com":
+        conn.execute(
+            "INSERT OR IGNORE INTO user_piece_library (user_sub, piece_id) VALUES (?, 'p16')",
+            (user_sub,),
+        )
+    conn.commit()
+
+
 def upsert_user(
     conn: sqlite3.Connection, record: Mapping[str, object]
 ) -> sqlite3.Row:
@@ -237,6 +256,7 @@ def upsert_user(
             (email, record.get("name"), record.get("picture"), sub),
         )
         conn.commit()
+        _seed_user_piece_library(conn, sub, email)
         return _user_row(conn, sub)  # type: ignore[return-value]
 
     if email:
@@ -249,9 +269,12 @@ def upsert_user(
                 (sub, record.get("name"), record.get("picture"), by_email["google_sub"]),
             )
             conn.commit()
+            _seed_user_piece_library(conn, sub, email)
             return _user_row(conn, sub)  # type: ignore[return-value]
 
-    return new_user_google(conn, sub, email, record.get("name"), record.get("picture"))
+    row = new_user_google(conn, sub, email, record.get("name"), record.get("picture"))
+    _seed_user_piece_library(conn, sub, email)
+    return row
 
 
 def upsert_manual_user(

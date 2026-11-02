@@ -488,9 +488,12 @@ function polyphonyParams(options: PolyphonyOptions): URLSearchParams {
  */
 export async function getPieceList(
   source?: "corpus" | "upload",
+  accessToken?: string,
 ): Promise<PieceCatalogItem[]> {
   const query = source ? `?${new URLSearchParams({ source }).toString()}` : "";
-  return request<PieceCatalogItem[]>(`/api/v1/pieces${query}`);
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  return request<PieceCatalogItem[]>(`/api/v1/pieces${query}`, { headers });
 }
 
 /** Consulta el healthcheck del backend en GET /health. */
@@ -688,10 +691,15 @@ export interface AgentChatResponse {
  * El backend valida contra la lista blanca, ejecuta las funciones de servidor
  * y devuelve `client_action` cuando la orden es del navegador.
  */
-export async function sendAgentMessage(payload: AgentChatRequest): Promise<AgentChatResponse> {
+export async function sendAgentMessage(
+  payload: AgentChatRequest,
+  accessToken?: string,
+): Promise<AgentChatResponse> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   return request<AgentChatResponse>("/api/v1/agent/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
   });
 }

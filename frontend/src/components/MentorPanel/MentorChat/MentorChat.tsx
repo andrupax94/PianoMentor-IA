@@ -81,6 +81,8 @@ export function MentorChat({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatIdRef = useRef<string | null>(null);
+  const tokenRef = useRef<string | null>(null);
+  const userNameRef = useRef<string | null>(null);
 
   /**
    * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
@@ -126,6 +128,32 @@ export function MentorChat({
     chatIdRef.current = readStoredChatId();
   }, []);
 
+  // Obtiene la sesión para saber si hay usuario y su nombre/token (U-008.3).
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((raw: { user?: { name?: string | null } | null; accessToken?: string | null } | null) => {
+        if (!active) return;
+        tokenRef.current = raw?.accessToken ?? null;
+        userNameRef.current = raw?.user?.name ?? null;
+        // Bienvenida solo si hay nombre, no hay chat previo y aún no hay respuesta.
+        if (userNameRef.current && !chatIdRef.current && reply === null) {
+          setReply(
+            `¡Hola ${userNameRef.current}! Soy tu profesor de piano de PianoMentor AI. ` +
+            "Pregúntame lo que quieras sobre práctica, piezas o teoría musical.",
+          );
+        }
+      })
+      .catch(() => {
+        // Sin sesión: el chat se queda como está (prompt sin nombre).
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [reply]);
+
   // Efecto de escritura: revela la respuesta como en las interfaces de IA
   // actuales. En respuestas largas avanza en bloques para que la revelación
   // complete no se alargue en exceso; en cortas, carácter a carácter. Se
@@ -162,7 +190,7 @@ export function MentorChat({
         context: typeof window === "undefined" ? null : { page: window.location.pathname },
       },
       {
-        send: sendAgentMessage,
+        send: (payload) => sendAgentMessage(payload, tokenRef.current ?? undefined),
         executeAction: (action) =>
           executeClientAction(action, {
             publishPiece: publishPianoPiece,

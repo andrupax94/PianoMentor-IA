@@ -64,10 +64,11 @@ class TestPieceList:
 
         assert response.status_code == 200
         pieces = response.json()
-        assert len(pieces) == CATALOG_PIECES
+        # Sin sesión solo se muestran las piezas de principiante (sin p16) (U-008.2).
+        assert len(pieces) == 2
         by_id = {piece["id"]: piece for piece in pieces}
         assert by_id["p01"]["cover"] == "/assets/covers/bach.jpg"
-        assert by_id["p12"]["cover"] == "/assets/covers/chopin.jpg"
+        assert by_id["p15"]["cover"] is not None
         assert by_id["p01"]["composer"] == "Johann Sebastian Bach"
         assert by_id["p01"]["duration_seconds"] is not None
         assert by_id["p01"]["tempo"] is not None
@@ -84,7 +85,8 @@ class TestPieceList:
 
         pieces = client.get("/api/v1/pieces").json()
 
-        assert len(pieces) == CATALOG_PIECES + 1
+        # Sin sesión: 2 principiante + 1 subida (las subidas siempre se muestran).
+        assert len(pieces) == 3
         assert pieces[0]["source"] == "corpus"
         assert pieces[-1]["source"] == "upload"
         # Las subidas no tienen portada hasta que exista una generada.
@@ -121,20 +123,21 @@ class TestCatalogSeeding:
         response = client.get("/api/v1/pieces", params={"source": "corpus"})
 
         assert response.status_code == 200
-        assert len(response.json()) == CATALOG_PIECES
+        # Sin sesión solo se muestran las 2 principiante (sin p16) (U-008.2).
+        assert len(response.json()) == 2
         assert _piece_count() == CATALOG_PIECES
 
     def test_seeding_happens_once_and_not_on_every_request(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _point_to_corpus(monkeypatch)
-        assert len(client.get("/api/v1/pieces").json()) == CATALOG_PIECES
+        assert len(client.get("/api/v1/pieces").json()) == 2
 
         # Aunque el catálogo desaparezca, la base ya sembrada se sirve tal cual:
         # la segunda petición no vuelve a leer ni a vaciar la tabla.
         monkeypatch.setattr(settings, "midi_storage_path", str(tmp_path))
 
-        assert len(client.get("/api/v1/pieces").json()) == CATALOG_PIECES
+        assert len(client.get("/api/v1/pieces").json()) == 2
 
     def test_uploads_do_not_block_corpus_seeding(
         self, isolated_storage: LocalPieceStorage, monkeypatch: pytest.MonkeyPatch
@@ -148,5 +151,6 @@ class TestCatalogSeeding:
 
         pieces = client.get("/api/v1/pieces").json()
 
-        assert len(pieces) == CATALOG_PIECES + 1
+        # Sin sesión: 2 principiante + 1 subida (las subidas siempre se muestran).
+        assert len(pieces) == 3
         assert pieces[0]["source"] == "corpus"

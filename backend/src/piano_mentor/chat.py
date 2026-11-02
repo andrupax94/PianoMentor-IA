@@ -101,17 +101,27 @@ class ChatService:
         *,
         chat_id: str | None = None,
         context: dict[str, object] | None = None,
+        user_name: str | None = None,
     ) -> ChatTurnResult:
         if not message or not message.strip():
             raise ValueError("message no puede estar vacío")
         chat_id = chat_id or str(uuid.uuid4())
 
-        # 1. Guardar el mensaje del usuario.
-        save_chat_message(chat_id, "user", message.strip())
+        # Si es un chat nuevo y conocemos el nombre, dejamos el saludo de bienvenida.
+        is_new_chat = not get_chat_history(chat_id, limit=1)
+        if is_new_chat and user_name:
+            welcome = (
+                f"¡Hola {user_name}! Soy tu profesor de piano de PianoMentor AI. "
+                "Pregúntame lo que quieras sobre práctica, piezas o teoría musical."
+            )
+            save_chat_message(chat_id, "assistant", welcome)
 
         # 2. Construir historial (ventana rodante) + system prompt + usuario actual.
         history = get_chat_history(chat_id, limit=settings.chat_memory_window)
-        messages = self._build_messages(history, message.strip(), context or {})
+        messages = self._build_messages(history, message.strip(), context or {}, user_name)
+
+        # 1. Guardar el mensaje del usuario (después de leer el historial para no duplicarlo).
+        save_chat_message(chat_id, "user", message.strip())
 
         # 3. Bucle agente <-> herramientas (tope de pasos).
         client_action: dict[str, object] | None = None
@@ -237,14 +247,17 @@ class ChatService:
         history: list[Any],
         user_message: str,
         context: dict[str, object],
+        user_name: str | None = None,
     ) -> list[dict[str, str]]:
         """Construye la lista de mensajes que se envía al proveedor."""
+        nombre_line = f" El usuario se llama {user_name}." if user_name else ""
         system_prompt = (
             "Eres el profesor de piano de PianoMentor AI. Respondes en español, de forma "
             "breve y directa. Solo puedes invocar funciones de la lista blanca; si el "
             "usuario pide algo que no cubre ninguna función, diles que no puedes y recuérdale "
             "qué sí puedes hacer. Nunca toques MIDI ni el reloj de reproducción tú mismo: "
             "solo propones acciones y el sistema las ejecuta."
+            + nombre_line
         )
         context_line = ""
         if context:

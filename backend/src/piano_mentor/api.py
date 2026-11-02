@@ -1129,7 +1129,7 @@ def auth_reset_password(payload: AuthResetPasswordRequest) -> AuthResetPasswordR
 
 
 @router.get("/pieces", response_model=list[PieceSummary])
-def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
+def list_pieces(source: str | None = Query(default=None), authorization: str | None = Header(default=None)) -> list[PieceSummary]:
     """Lista las piezas disponibles para el selector (B-027.3).
 
     Sin filtro incluye el corpus y las subidas (corpus primero); `source=corpus`
@@ -1139,7 +1139,38 @@ def list_pieces(source: str | None = Query(default=None)) -> list[PieceSummary]:
     que un arranque limpio no sirva la Library vacía.
     """
     ensure_catalog_loaded()
-    return [_piece_summary_from_row(row) for row in find_pieces(source)]
+    user_sub = None
+    try:
+        user = _current_user(authorization)
+        user_sub = getattr(user, "id", None)
+        if user_sub is None and isinstance(user, dict):
+            user_sub = user.get("id")
+    except Exception:
+        user_sub = None
+    rows = find_pieces(source)
+    if user_sub is None:
+        rows = [
+            r
+            for r in rows
+            if r["source"] == "upload" or (r["difficulty"] == "principiante" and r["id"] != "p16")
+        ]
+    else:
+        with open_db() as conn:
+            allowed = {
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT piece_id FROM user_piece_library WHERE user_sub = ?",
+                    (user_sub,),
+                )
+            }
+        rows = [
+            r
+            for r in rows
+            if r["source"] == "upload"
+            or (r["difficulty"] == "principiante" and r["id"] != "p16")
+            or r["id"] in allowed
+        ]
+    return [_piece_summary_from_row(row) for row in rows]
 
 
 @router.post("/pieces", response_model=PieceResponse)
@@ -1638,8 +1669,11 @@ def evaluate_session(
 
 
 @router.post("/agent/chat", response_model=ChatMessageResponse)
-def agent_chat(payload: ChatMessageRequest) -> ChatMessageResponse:
-    """Turno de chat del agente: función calling sobre lo ya implementado (B-012.8).
+def agent_chat(
+    payload: ChatMessageRequest,
+    authorization: str | None = Header(default=None),
+) -> ChatMessageResponse:
+    """Turno de chat del agente: función calling sobre lo ya implementado (B-012.8, U-008.3).
 
     El backend propone una función de la lista blanca, la valida y, si es de
     servidor, la ejecuta; si es de navegador, devuelve la intención para que el
@@ -1647,10 +1681,19 @@ def agent_chat(payload: ChatMessageRequest) -> ChatMessageResponse:
     """
     try:
         service = ChatService(get_fallback_provider())
+        user_name = None
+        try:
+            user = _current_user(authorization)
+            user_name = getattr(user, "name", None) or (
+                user.get("name") if isinstance(user, dict) else None
+            )
+        except Exception:
+            user_name = None
         result = service.run(
             payload.message,
             chat_id=payload.chat_id,
             context=payload.context,
+            user_name=user_name,
         )
     except ValueError as exc:
         raise HTTPException(

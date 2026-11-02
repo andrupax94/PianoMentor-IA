@@ -53,11 +53,19 @@ export function LibraryPage() {
 
   useEffect(() => {
     let active = true;
-    // Solo el corpus: lo que se sube a mano suena en el piano y no entra aquí (B-027.3).
-    getPieceList("corpus")
+
+    let accessToken: string | null = null;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((raw: { user?: { id?: string | null; color?: string | null } | null; accessToken?: string | null } | null) => {
+        if (!active) return;
+        accessToken = raw?.accessToken ?? null;
+        // Solo el corpus: lo que se sube a mano suena en el piano y no entra aquí (B-027.3).
+        return getPieceList("corpus", accessToken ?? undefined);
+      })
       .then((items) => {
         if (!active) return;
-        const loaded = toSongs(items);
+        const loaded = toSongs(items ?? []);
         setSongs(loaded);
         setSelectedId((current) => current ?? loaded[0]?.id ?? null);
         setState("ready");
@@ -65,6 +73,7 @@ export function LibraryPage() {
       .catch(() => {
         if (active) setState("error");
       });
+
     return () => {
       active = false;
     };

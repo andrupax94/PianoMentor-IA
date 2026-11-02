@@ -98,7 +98,7 @@ export function AuthUserMenu({ fallbackInitial = "A" }: AuthUserMenuProps) {
     const initial = (user?.name?.trim()?.[0] ?? fallbackInitial).toUpperCase();
     content = (
       <span className={styles.signed}>
-        <UserAvatar initial={initial} color={user?.color} />
+        <UserAvatar initial={initial} color={user?.color} src={user?.picture} />
         <button type="button" className={styles.signOut} onClick={handleSignOut}>
           Salir
         </button>
