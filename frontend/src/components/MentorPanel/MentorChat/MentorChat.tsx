@@ -28,6 +28,7 @@ import {
 import { isPendingOffer, offerMessage, repeatOfferMessage } from "../../../lib/agent-offer";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishOfferChoice } from "../../../lib/offer-choice";
+import { chatPrompt } from "../../../lib/chat-prompt";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
 import { OfferActions } from "./OfferActions/OfferActions";
@@ -82,7 +83,12 @@ export function MentorChat({
   const [error, setError] = useState<string | null>(null);
   const chatIdRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null>(null);
-  const userNameRef = useRef<string | null>(null);
+  /**
+   * Nombre del usuario autenticado (U-008.3). Estado y no ref: el mensaje de
+   * espera de la burbuja lo lee en el render (`chatPrompt`), y la sesión de
+   * navegador puede llegar después del primer pintado.
+   */
+  const [userName, setUserName] = useState<string | null>(null);
 
   /**
    * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
@@ -128,25 +134,22 @@ export function MentorChat({
     chatIdRef.current = readStoredChatId();
   }, []);
 
-  // Obtiene la sesión para saber si hay usuario y su nombre/token (U-008.3).
+  // Obtiene la sesión de navegador (U-008.3): el token para enviar y el nombre
+  // para la bienvenida. La bienvenida NO se guarda en `reply` (estado de la
+  // conversación): es un mensaje de espera derivado en el render con
+  // `chatPrompt`, así no entra a medias en la sesión de práctica ni compite
+  // con las respuestas reales.
   useEffect(() => {
     let active = true;
     fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
+      .then((response) => (response.status === 200 ? response.json() : null))
       .then((raw: { user?: { name?: string | null } | null; accessToken?: string | null } | null) => {
         if (!active) return;
         tokenRef.current = raw?.accessToken ?? null;
-        userNameRef.current = raw?.user?.name ?? null;
-        // Bienvenida solo si hay nombre, no hay chat previo y aún no hay respuesta.
-        if (userNameRef.current && !chatIdRef.current && reply === null) {
-          setReply(
-            `¡Hola ${userNameRef.current}! Soy tu profesor de piano de PianoMentor AI. ` +
-            "Pregúntame lo que quieras sobre práctica, piezas o teoría musical.",
-          );
-        }
+        setUserName(raw?.user?.name ?? null);
       })
       .catch(() => {
-        // Sin sesión: el chat se queda como está (prompt sin nombre).
+        // Sin sesión de navegador: el chat se queda con su genérico.
       });
 
     return () => {
@@ -306,8 +309,20 @@ export function MentorChat({
           ? repeatOfferMessage
           : null;
 
-  const shown = reply ?? offerQuestion ?? exampleMessage;
-  const visible = reply === null ? offerQuestion ?? exampleMessage : typedSlice(reply, visibleChars);
+  /**
+   * El mensaje de espera (U-008.3/B-032.7): dentro de una sesión habla de la
+   * práctica, fuera de ella saluda por el nombre si lo hay y cae al genérico
+   * sin más. Determinista, sin entrar al estado de la conversación.
+   */
+  const waiting = chatPrompt({
+    sessionId: session.sessionId,
+    userName,
+    hasChat: chatIdRef.current !== null,
+    exampleMessage,
+  });
+
+  const shown = reply ?? offerQuestion ?? waiting;
+  const visible = reply === null ? offerQuestion ?? waiting : typedSlice(reply, visibleChars);
   const typing = reply !== null && visibleChars < reply.length;
 
   return (
