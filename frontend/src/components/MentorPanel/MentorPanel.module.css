@@ -18,11 +18,11 @@
    del bloque de pestañas para que el panel no cambie de look. No se encoge:
    .tabs tiene flex:1 y se llevaría el alto disponible si no se fija este. */
 .sessionStatus {
-  border: 1px solid #2b3544;
+  /* border: 1px solid #2b3544;
   border-radius: 16px;
   background: var(--bg);
   padding: 14px;
-  flex-shrink: 0;
+  flex-shrink: 0; */
 
 }
 

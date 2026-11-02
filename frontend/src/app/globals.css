@@ -76,6 +76,7 @@
 body {
     margin: 0;
     background: var(--bg);
+    background-image: url("/assets/images/motivo.png");
     color: var(--text);
     font-family: var(--font2);
 }
