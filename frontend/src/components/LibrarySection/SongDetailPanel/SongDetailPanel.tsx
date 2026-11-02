@@ -55,7 +55,7 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
       const session = await createSession(song.id);
       // B-032.1: el piano es la vista de la sesión. La pieza se publica antes
       // de navegar, cargada y parada, para que al entrar no se vea la demo
-      // `p17` mientras se practica y se evalúa otra pieza.
+      // `p01` mientras se practica y se evalúa otra pieza.
       publishPracticePiece(song);
       router.push(`/${session.id}`);
     } catch (failure: unknown) {

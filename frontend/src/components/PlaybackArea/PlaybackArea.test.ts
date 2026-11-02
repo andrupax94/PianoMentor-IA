@@ -15,8 +15,8 @@ import type { PianoPiece } from "../../lib/piece-store";
 import { coverForPiece } from "./PlaybackArea";
 
 describe("coverForPiece", () => {
-  it("sin pieza elegida anuncia la portada de la demo (p17 del catálogo)", () => {
-    expect(coverForPiece(null)).toBe("/assets/covers/beethoven.jpg");
+  it("sin pieza elegida anuncia la portada de la demo (p01 del catálogo)", () => {
+    expect(coverForPiece(null)).toBe("/assets/covers/bach.jpg");
   });
 
   it("una pieza del catálogo lleva su portada a la barra", () => {
