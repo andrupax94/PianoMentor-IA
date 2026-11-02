@@ -47,10 +47,17 @@ describe("práctica: modo observe", () => {
 });
 
 describe("práctica: modo one_hand", () => {
-  it("atenúa y evalúa la mano del alumno, y el transporte no calla", () => {
+  it("atenúa la mano de la IA, evalúa la del alumno y el transporte no calla", () => {
+    // Ajuste vivo de B-032.4: la opacidad cae en quien TOCA la IA (lo que
+    // suena); la mano del alumno queda plena en la cascada.
     expect(practiceModePlan("one_hand", "right")).toEqual({
-      dimmedHand: "right",
+      dimmedHand: "left",
       evaluatedHand: "right",
+      silentTransport: false,
+    });
+    expect(practiceModePlan("one_hand", "left")).toEqual({
+      dimmedHand: "right",
+      evaluatedHand: "left",
       silentTransport: false,
     });
   });
@@ -63,7 +70,8 @@ describe("práctica: modo one_hand", () => {
   });
 
   it("sin mano conocida del alumno, manda la derecha", () => {
-    expect(dimmedHand("one_hand", null)).toBe("right");
+    // Alumno derecha → atenuada la de la IA (izquierda).
+    expect(dimmedHand("one_hand", null)).toBe("left");
     expect(evaluatedHand("one_hand", undefined)).toBe("right");
   });
 });

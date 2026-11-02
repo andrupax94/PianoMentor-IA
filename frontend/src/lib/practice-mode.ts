@@ -1,4 +1,4 @@
-// description: Modo de práctica de la sesión (B-032.4): observar, una mano y dos manos, con la mano que practica el alumno; decide qué se atenúa en la cascada, qué mano suena en el transporte y qué mano se evalúa.
+// description: Modo de práctica de la sesión (B-032.4): observar, una mano y dos manos, con la mano que practica el alumno; decide qué se atenúa en la cascada, qué mano suena en el transporte y qué mano se evalúa. En «una mano» la opacidad cae en la mano de la IA (la que suena) y la del alumno queda plena.
 // context: Sin DOM ni React: es la lógica pura que comparten el selector (PlayerBar), PlaybackArea (cascada y audio) y el backend (evaluación). El modo vive en la sesión y llega por WebSocket; aquí solo se interpreta.
 import type { PracticeMode, PlayableNote, StudentHand } from "./api-client";
 
@@ -38,8 +38,9 @@ export interface PracticeModePlan {
  * Reparto del modo: qué se atenúa, qué se evalúa y si el transporte calla.
  *
  * - `observe`: no se atenúa nada, no se evalúa nada y suena la pieza entera.
- * - `one_hand`: se atenúa la mano del alumno (sigue viéndose) y se evalúa
- *   solo esa mano; el audio del transporte es la mano contraria.
+ * - `one_hand`: se atenúa la mano de la IA (la contraria, la que suena en el
+ *   transporte) y se evalúa solo la del alumno; el alumno quiere ver su mano
+ *   plena en la cascada y la del profesor secundaria (ajuste vivo de B-032.4).
  * - `both_hands`: no se atenúa nada, se evalúa todo y el transporte calla.
  */
 export function practiceModePlan(
@@ -48,7 +49,8 @@ export function practiceModePlan(
 ): PracticeModePlan {
   if (mode === "one_hand") {
     const student: StudentHand = hand === "left" ? "left" : "right";
-    return { dimmedHand: student, evaluatedHand: student, silentTransport: false };
+    const agent: StudentHand = student === "left" ? "right" : "left";
+    return { dimmedHand: agent, evaluatedHand: student, silentTransport: false };
   }
   if (mode === "both_hands") {
     return { dimmedHand: null, evaluatedHand: "both", silentTransport: true };
@@ -89,8 +91,8 @@ export function audibleNotes(
 }
 
 /**
- * Mano que se atenúa en la cascada: la del alumno en `one_hand`; null en los
- * demás modos (no se borra nada, solo se atenúa).
+ * Mano que se atenúa en la cascada: la de la IA (la que suena) en `one_hand`;
+ * null en los demás modos (no se borra nada, solo se atenúa).
  */
 export function dimmedHand(
   mode: PracticeMode,

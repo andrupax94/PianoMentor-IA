@@ -1,5 +1,5 @@
-// description: Motor de transporte sin framework (play/pausa/stop/seek) con reloj y voz inyectados; con `audible` (B-012.7) la cascada sigue midiendo la pieza entera pero el audio sale solo de una parte (la mano de la IA).
-// context: B-006.2/B-012.7; testeable con tiempo falso. usePlayback lo viste con React+WebAudio.
+// description: Motor de transporte sin framework (play/pausa/stop/seek) con reloj y voz inyectados; con `audible` (B-012.7) la cascada sigue midiendo la pieza entera pero el audio sale solo de una parte (la mano de la IA). En modo espera el gate congela cuando la posición LLEGA a su tiempo (no en horizonte), el audio no se programa más allá del gate y las notas de su instante suenan al reanudar (B-032.5/B-032.8).
+// context: B-006.2/B-012.7/B-032.5/B-032.8; testeable con tiempo falso. usePlayback lo viste con React+WebAudio. La reprogramación tras silence() parte de scheduledUpto, que nace antes del t=0 para que la primera nota entre en la ventana.
 
 import {
   buildSchedule,
@@ -8,7 +8,7 @@ import {
   eventsInWindow,
   type ScheduledEvent,
 } from "./playback-schedule";
-import { assignMeasure, gateAt, type Gate, type GateHand } from "./practice-gate";
+import { assignMeasure, CHORD_TOLERANCE_S, gatesForSchedule, type Gate, type GateHand } from "./practice-gate";
 import { decayOffset_s, gateOvershoot_s, waitingGateOffset_s } from "./gate-display";
 import type { PieceMeasures, PlayableNote } from "./api-client";
 
@@ -119,6 +119,13 @@ export class PlaybackEngine {
   /** B-032.8: exceso visual que la barra lleva cuando el hit llega antes del rebobinado. */
   private hitLead_s = 0;
   private hitLeadSince_wall_s: number = 0;
+  /**
+   * B-032.8: el tiempo del último gate ya tocado (hit, salto o entrada en
+   * waiting). La selección de gates no repite nada hasta aquí: sin esto, un
+   * gate en la posición exacta (el primero de la pieza) se repetía para
+   * siempre con la nueva semántica de `gateAt`.
+   */
+  private gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
   /** Preroll antes del inicio real (B-032.5). */
   private preroll_s = 0;
   private prerollElapsed_s = 0;
@@ -189,13 +196,18 @@ export class PlaybackEngine {
     this.duration_s = this.scaledDuration();
     this.status = "stopped";
     this.position_s = 0;
-    this.scheduledUpto_s = 0;
+    // La programación arranca antes del inicio: la ventana de eventos es
+    // (from, upto], y con from=0 quedaba fuera la nota que empieza en el
+    // segundo 0 (el primer MI del Prelude en A nunca sonaba).
+    this.scheduledUpto_s = -CHORD_TOLERANCE_S;
     this.currentGate = null;
     this.waitingSince_wall_s = null;
     this.waitingOvershoot_s = 0;
     this.wrongResetSince_wall_s = null;
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
+    // B-032.8: nada tocado todavía (el primero de la pieza vuelve a contar).
+    this.gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
     this.prerollElapsed_s = 0;
   }
 
@@ -203,7 +215,8 @@ export class PlaybackEngine {
     if (this.status === "playing" || this.status === "preroll" || this.status === "waiting" || this.notes.length === 0) return;
     if (this.position_s >= this.duration_s) {
       this.position_s = 0;
-      this.scheduledUpto_s = 0;
+      // Antes del inicio: la nota del segundo 0 vuelve a ser programable.
+      this.scheduledUpto_s = -CHORD_TOLERANCE_S;
     }
 
     // B-032.5: en modo práctica, play desde el inicio arranca la cuenta atrás.
@@ -236,14 +249,18 @@ export class PlaybackEngine {
       return;
     }
     this.status = "paused";
-    this.scheduledUpto_s = this.position_s;
+    // El audio se silencia al pausar; el re-agendado parte del punto pausado
+    // sin perder las notas de un instante de gate (por ejemplo si se pausó
+    // desde la espera).
+    this.scheduledUpto_s = Math.min(this.scheduledUpto_s, this.position_s);
     this.voice.silence();
   }
 
   stop(): void {
     this.status = "stopped";
     this.position_s = 0;
-    this.scheduledUpto_s = 0;
+    // Antes del inicio: ver load() — el t=0 debe poder programarse al volver.
+    this.scheduledUpto_s = -CHORD_TOLERANCE_S;
     this.prerollElapsed_s = 0;
     this.currentGate = null;
     this.waitingSince_wall_s = null;
@@ -251,6 +268,7 @@ export class PlaybackEngine {
     this.wrongResetSince_wall_s = null;
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
+    this.gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
     this.voice.silence();
   }
 
@@ -264,6 +282,10 @@ export class PlaybackEngine {
     this.wrongResetSince_wall_s = null;
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
+    // B-032.8: los gates por debajo del punto al que se salta quedan tocados;
+    // un gate justo en la posición sigue siendo alcanzable (2× la tolerancia
+    // para que el filtrado del nextGate lo deje pasar).
+    this.gatesPlayedUntil_s = this.position_s - 2 * CHORD_TOLERANCE_S;
     this.voice.silence();
     if (this.status === "playing" || this.status === "waiting") {
       this.anchorWall_s = this.clock.now();
@@ -299,6 +321,7 @@ export class PlaybackEngine {
       this.wrongResetSince_wall_s = null;
       this.wrongResetOffset_s = 0;
       this.hitLead_s = 0;
+      this.gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
     }
   }
 
@@ -321,7 +344,9 @@ export class PlaybackEngine {
     this.waitingOvershoot_s = 0;
     this.status = "playing";
     this.position_s = this.currentGate.time_s;
-    this.scheduledUpto_s = this.position_s;
+    this.gatesPlayedUntil_s = Math.max(this.gatesPlayedUntil_s, this.position_s);
+    // El audio ya quedó re-agendado por enterWaiting justo antes del gate: las
+    // notas de su instante se programan ahora que vuelve a sonar (B-032.8).
     this.currentGate = null;
     this.waitingSince_wall_s = null;
     this.anchorWall_s = this.clock.now();
@@ -331,6 +356,8 @@ export class PlaybackEngine {
   /** Salta al gate siguiente sin esperar (recuperación manual). */
   skipGate(): void {
     if (!this.gateEnabled || !this.currentGate) return;
+    // B-032.8: el gate saltado cuenta como tocado; el siguiente no se repite.
+    this.gatesPlayedUntil_s = Math.max(this.gatesPlayedUntil_s, this.currentGate.time_s);
     const next = this.nextGate(this.currentGate.time_s);
     this.currentGate = next;
     if (next) {
@@ -346,7 +373,9 @@ export class PlaybackEngine {
     this.wrongResetSince_wall_s = null;
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
-    this.scheduledUpto_s = this.position_s;
+    // Igual que en enterWaiting: las notas del instante del gate saltado van
+    // pendientes y suenan al reanudar (o ya en el siguiente transporte).
+    this.scheduledUpto_s = this.position_s - CHORD_TOLERANCE_S;
     this.anchorWall_s = this.clock.now();
     this.anchorPos_s = this.position_s;
   }
@@ -369,20 +398,32 @@ export class PlaybackEngine {
 
     const position = this.currentPosition();
 
-    // B-032.5: si hay un gate inmediato, congelar en él en vez de avanzar.
+    // B-032.5: el gate congela cuando la posición LLEGA a su tiempo, no cuando
+    // asoma en el horizonte. Congelar en horizonte saltaba el arranque audible
+    // (el primer MI de la melodía no sonaba nunca y el transporte «saltaba» al
+    // gate): así la mano de la IA suena de verdad hasta el instante del gate y
+    // la cascada cae de golpe en él. Un tick que aterriza unos ms pasado su
+    // tiempo también congela en él (la posición vuelve a su instante): nunca
+    // se salta.
+    let gate: Gate | null = null;
     if (this.gateEnabled) {
-      const gate = this.nextGate(position);
-      if (gate && gate.time_s <= position + this.horizon_s * this.tempoFactor) {
-        this.enterWaiting(gate);
+      const own = this.ownGate(position);
+      if (own && own.time_s <= position + CHORD_TOLERANCE_S) {
+        this.enterWaiting(own);
         return;
       }
+      gate = own;
     }
 
     const upto = position + this.horizon_s * this.tempoFactor;
-    for (const event of eventsInWindow(this.events, this.scheduledUpto_s, upto)) {
+    // El audio no se programa más allá del gate pendiente: al congelar en él
+    // nada posterior debe sonar, y las notas de su instante quedan pendientes
+    // para reanudar tras el hit.
+    const limite = gate ? Math.min(upto, gate.time_s - CHORD_TOLERANCE_S) : upto;
+    for (const event of eventsInWindow(this.events, this.scheduledUpto_s, limite)) {
       this.voice.scheduleNote(event, this.toWallTime(event.time_s));
     }
-    this.scheduledUpto_s = Math.max(this.scheduledUpto_s, upto);
+    this.scheduledUpto_s = Math.max(this.scheduledUpto_s, limite);
     if (position >= this.duration_s) {
       this.status = "stopped";
       this.position_s = this.duration_s;
@@ -453,7 +494,9 @@ export class PlaybackEngine {
     this.wrongResetSince_wall_s = null;
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
-    this.scheduledUpto_s = this.position_s;
+    // Las notas que arrancan en el instante del gate (la mano audible de la IA)
+    // quedan pendientes: se reagenda el audio al reanudar desde el hit.
+    this.scheduledUpto_s = gate.time_s - CHORD_TOLERANCE_S;
     this.voice.silence();
   }
 
@@ -472,25 +515,50 @@ export class PlaybackEngine {
    * Primer gate al que se llegaría desde `position_s`, ya con su compás real
    * (B-032.6). Los tiempos de los gates van escalados por el factor y la
    * rejilla no: se escala el mapa de inicios antes de asignar el compás.
+   *
+   * B-032.8: se saltan los gates ya tocados (`gatesPlayedUntil_s`), que es lo
+   * que evita repetir el gate resuelto tras un hit; `gateAt` ahora sí admite
+   * gates en la posición exacta (el primero de la pieza ya no se escapa).
    */
   private nextGate(position_s: number): Gate | null {
-    const gate = gateAt(this.gateEvents, position_s, this.gateHand);
+    const gates = gatesForSchedule(this.gateEvents, this.gateHand);
+    let gate: Gate | null = null;
+    for (const candidate of gates) {
+      if (candidate.time_s <= this.gatesPlayedUntil_s + CHORD_TOLERANCE_S) continue;
+      if (candidate.time_s < position_s - CHORD_TOLERANCE_S) continue;
+      gate = candidate;
+      break;
+    }
     if (gate === null || this.measureStarts.length === 0) return gate;
     const scaledStarts = this.measureStarts.map((start) => start / this.tempoFactor);
     return assignMeasure([gate], scaledStarts)[0] ?? null;
   }
 
+  /**
+   * Primer gate aún sin tocar desde `position_s`, cruzado o no (B-032.5/B-032.8).
+   * A diferencia de `nextGate` (que prepara el gate siguiente tras resolver
+   * otro) no descarta los gates recién pisados: si un tick aterriza unos ms
+   * pasado su tiempo, ese gate congela de todos modos y la posición vuelve a
+   * su instante. Solo se saltan los ya tocados (`gatesPlayedUntil_s`).
+   */
+  private ownGate(position_s: number): Gate | null {
+    const gates = gatesForSchedule(this.gateEvents, this.gateHand);
+    for (const candidate of gates) {
+      if (candidate.time_s <= this.gatesPlayedUntil_s + CHORD_TOLERANCE_S) continue;
+      if (this.measureStarts.length === 0) return candidate;
+      const scaledStarts = this.measureStarts.map((start) => start / this.tempoFactor);
+      return assignMeasure([candidate], scaledStarts)[0] ?? candidate;
+    }
+    return null;
+  }
+
   private finishPreroll(): void {
     this.position_s = 0;
-    this.scheduledUpto_s = 0;
+    this.scheduledUpto_s = -CHORD_TOLERANCE_S;
     this.prerollElapsed_s = this.preroll_s;
-    if (this.gateEnabled) {
-      const gate = this.nextGate(0);
-      if (gate) {
-        this.enterWaiting(gate);
-        return;
-      }
-    }
+    // B-032.5: al acabar la cuenta el transporte toca; si el primer gate está
+    // en el segundo 0 congela al llegar, como cualquier otro (el caso especial
+    // que congelaba siempre hacía saltarse el arranque audible).
     this.status = "playing";
     this.anchorWall_s = this.clock.now();
     this.anchorPos_s = 0;

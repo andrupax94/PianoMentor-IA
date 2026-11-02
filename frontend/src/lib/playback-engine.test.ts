@@ -278,6 +278,8 @@ describe("PlaybackEngine", () => {
     harness.engine.play();
     expect(harness.engine.snapshot().status).toBe("preroll");
     harness.advance(1);
+    harness.engine.tick(); // fin del preroll: suena/nada y avanza
+    harness.advance(1.02); // la posición llega al gate del alumno (t=1,0)
     harness.engine.tick();
 
     expect(harness.engine.snapshot().status).toBe("waiting");
@@ -293,6 +295,8 @@ describe("PlaybackEngine", () => {
 
     harness.engine.play();
     harness.advance(1);
+    harness.engine.tick(); // fin del preroll
+    harness.advance(1.02); // el transporte avanza hasta el gate, sin audio
     harness.engine.tick();
 
     expect(harness.engine.snapshot().status).toBe("waiting");
@@ -314,6 +318,10 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().prerollRemaining_s).toBeCloseTo(0.5, 6);
 
     harness.advance(0.5);
+    harness.engine.tick(); // fin del preroll: estado playing, cuenta terminada
+    expect(harness.engine.snapshot().status).toBe("playing");
+
+    harness.advance(1.02); // la posición alcanza el gate de t=1,0
     harness.engine.tick();
     expect(harness.engine.snapshot().status).toBe("waiting");
     expect(harness.engine.snapshot().currentGate).not.toBeNull();
@@ -341,7 +349,7 @@ describe("PlaybackEngine", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(0.95);
+    harness.advance(1.02); // la posición cruza el tiempo del gate
     harness.engine.tick();
     expect(harness.engine.snapshot().status).toBe("waiting");
     expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
@@ -354,7 +362,7 @@ describe("PlaybackEngine", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(0.95);
+    harness.advance(1.02);
     harness.engine.tick();
     expect(harness.engine.snapshot().status).toBe("waiting");
 
@@ -362,9 +370,18 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().status).toBe("playing");
     expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
 
-    harness.advance(1.1);
+    // Con ticks regulares el transporte avanza y congela en el gate siguiente
+    // en cuanto la posición alcanza su tiempo (2.1 le pasaría por encima: en
+    // producción el tick lo captura al vuelo).
+    harness.advance(0.95);
     harness.engine.tick();
-    expect(harness.engine.snapshot().position_s).toBeCloseTo(2.1, 6);
+    expect(harness.engine.snapshot().status).toBe("playing");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.95, 6);
+
+    harness.advance(0.1);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(2.0, 6);
   });
 
   it("en modo observe los gates no se activan (B-032.5)", () => {
@@ -387,12 +404,12 @@ describe("PlaybackEngine", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(0.95);
+    harness.advance(1.02);
     harness.engine.tick();
     expect(harness.engine.snapshot().currentGate?.measure).toBe(0);
 
     harness.engine.resolveGate();
-    harness.advance(0.9);
+    harness.advance(1.02); // al segundo gate (t=2,0 con la pieza sin escalar)
     harness.engine.tick();
     expect(harness.engine.snapshot().status).toBe("waiting");
     expect(harness.engine.snapshot().currentGate?.measure).toBe(1);
@@ -405,7 +422,7 @@ describe("PlaybackEngine", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(0.95);
+    harness.advance(1.02);
     harness.engine.tick();
     expect(harness.engine.snapshot().currentGate?.measure).toBeNull();
   });
@@ -425,7 +442,7 @@ describe("PlaybackEngine", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(7.9); // 3,95 s escala×: el gate de 2 s de partitura pisa el congelado
+    harness.advance(8.2); // 4,1 s escala×: la posición alcanza el gate
     harness.engine.tick();
     const gate = harness.engine.snapshot().currentGate;
     expect(gate?.time_s).toBeCloseTo(4.0, 6); // 2 s de partitura / factor 0,5
@@ -448,8 +465,8 @@ function makeGateHarness(): Harness {
   harness.engine.setGateOptions({ enabled: true, hand: "both" });
   harness.engine.setPreroll(0);
   harness.engine.play();
-  harness.advance(0.95);
-  harness.engine.tick(); // congelado en el gate 1,0 desde t=0,95
+  harness.advance(1.02);
+  harness.engine.tick(); // congelado en el gate 1,0 en cuanto la posición lo alcanza
   return harness;
 }
 
@@ -530,7 +547,7 @@ describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
     harness.engine.setPreroll(0);
 
     harness.engine.play();
-    harness.advance(0.95);
+    harness.advance(1.02);
     harness.engine.tick();
     // Duración 4 s → sobresalto al tope de 0,5 s.
     harness.advance(0.3);
@@ -541,5 +558,118 @@ describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
     harness.advance(0.2);
     // 0,2 s > margen 0,15: rebobinado al 33 % → queda el 25 % del margen por encima.
     expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0 + 0.15 * (4 / 9), 9);
+  });
+
+  it("un tick que pisa el gate por poco ms congela en él y no en el siguiente (B-032.8)", () => {
+    // El fallo del usuario: la primera nota (MI) se perdía y el motor se
+    // congelaba en la siguiente (Do sostenido). Un tick que aterriza justo
+    // después del gate (dentro de la tolerancia de 5 ms) debe congelarse allí.
+    const harness = makeHarness();
+    harness.engine.load([
+      note({ pitch: 60, start_seconds: 1.0, duration_seconds: 0.5 }),
+      note({ pitch: 61, start_seconds: 2.0, duration_seconds: 0.5 }),
+    ], { duration_s: 4, tempoFactor: 1.0 });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(1.003); // tick tardío: aterriza 3 ms después del gate de MI
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.0, 6);
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([60]); // MI, no 61
+  });
+
+  it("tras el hit el gate resuelto no vuelve: el siguiente gate manda", () => {
+    const harness = makeGateHarness();
+    harness.engine.resolveGate(); // congelado en 1,0 → el alumno acierta
+    harness.advance(0.05);
+    harness.engine.tick();
+    // El gate de 1,0 ya se tocó: no se congela en él aunque la posición esté
+    // exactamente en su tiempo; sigue jugando hacia el 3,0.
+    expect(harness.engine.snapshot().status).toBe("playing");
+    harness.advance(1.95);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(3.0, 6);
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([62]);
+  });
+
+  it("el primer gate de la pieza puede arrancar en el segundo 0 (B-032.8)", () => {
+    const harness = makeHarness();
+    harness.engine.load([
+      note({ pitch: 64, start_seconds: 0.0, duration_seconds: 0.5 }),
+      note({ pitch: 61, start_seconds: 1.0, duration_seconds: 0.5 }),
+    ], { duration_s: 4, tempoFactor: 1.0 });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.engine.tick(); // posición 0: el gate de MI (t=0) aún es tocable
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(0.0, 6);
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([64]);
+  });
+
+  it("el gate congela al llegar: el acompañamiento audible suena hasta su instante (B-032.5)", () => {
+    // El caso del usuario en el Prelude en A (p15): la melodía (mano derecha,
+    // la que suena en «una mano») arranca con MI en t=0 y el primer gate de la
+    // mano izquierda va en t=0,5. Antes el gate congelaba en cuanto asomaba en
+    // el horizonte: el MI no sonaba nunca y el transporte «saltaba» al gate.
+    const harness = makeHarness();
+    harness.engine.load(
+      [
+        note({ pitch: 64, track: 1, hand: "right", start_seconds: 0.0, duration_seconds: 0.5 }),
+        note({ pitch: 73, track: 1, hand: "right", start_seconds: 0.5, duration_seconds: 0.375 }),
+        note({ pitch: 40, track: 2, hand: "left", start_seconds: 0.5, duration_seconds: 0.5 }),
+      ],
+      { duration_s: 24, tempoFactor: 1.0 },
+    );
+    harness.engine.setGateOptions({ enabled: true, hand: "left" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.02);
+    harness.engine.tick();
+    // No congela porque el gate asome en el horizonte: sigue sonando.
+    expect(harness.engine.snapshot().status).toBe("playing");
+    // El MI de la melodía está programado: suena mientras se llega al gate.
+    expect(harness.scheduled.map((s) => s.event.pitch)).toContain(64);
+    // Y la nota de la IA del instante del gate no se programó por adelantado.
+    expect(harness.scheduled.map((s) => s.event.pitch)).not.toContain(73);
+
+    harness.advance(0.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(0.5, 6);
+    expect(harness.engine.snapshot().currentGate?.pitches).toEqual([40]);
+    expect(harness.scheduled.map((s) => s.event.pitch)).not.toContain(73);
+  });
+
+  it("tras el hit suena la nota de la IA del instante del gate y no se duplica", () => {
+    // Continuación: resuelto el gate, la nota que arranca en su tiempo tiene
+    // que sonar una vez (el scheduledUpto quedó justo antes del gate).
+    const harness = makeHarness();
+    harness.engine.load(
+      [
+        note({ pitch: 73, track: 1, hand: "right", start_seconds: 0.5, duration_seconds: 0.375 }),
+        note({ pitch: 40, track: 2, hand: "left", start_seconds: 0.5, duration_seconds: 0.5 }),
+      ],
+      { duration_s: 4, tempoFactor: 1.0 },
+    );
+    harness.engine.setGateOptions({ enabled: true, hand: "left" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(0.52);
+    harness.engine.tick(); // congelado en el gate del alumno (t=0,5)
+    expect(harness.engine.snapshot().status).toBe("waiting");
+    expect(harness.scheduled).toHaveLength(0); // nada sonó todavía (toda la pieza va al hit)
+
+    harness.engine.resolveGate(); // el alumno toca su MI grave
+    harness.advance(0.05);
+    harness.engine.tick();
+    const veces = harness.scheduled.filter((s) => s.event.pitch === 73).length;
+    expect(veces).toBe(1); // el DO# de la IA suena al reanudar, una sola vez
   });
 });
