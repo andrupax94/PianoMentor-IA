@@ -116,9 +116,14 @@ function gateId(time_s: number): string {
 }
 
 /**
- * Siguiente gate estrictamente después de `position_s`. Si la posición cae
- * justo en un gate (dentro de la tolerancia), devuelve el siguiente para no
- * repetir el mismo gate.
+ * Primer gate del schedule que aún puede tocarse desde `position_s`.
+ *
+ * B-032.8: antes devolvía "estrictamente después de la posición" — un gate
+ * cuyo `time_s` coincidía con el arranque de la pieza (o al que un tick lento
+ * pisaba por pocos ms) quedaba marcado como pasado y el motor saltaba a la
+ * nota siguiente sin dejar tocar la primera. Ahora cuenta como alcanzable
+ * mientras no lo hayamos cruzado por más de `CHORD_TOLERANCE_S`; el motor
+ * evita repetir los ya tocados con su propio recuento.
  */
 export function gateAt(
   schedule: readonly ScheduledEvent[],
@@ -127,7 +132,7 @@ export function gateAt(
 ): Gate | null {
   const gates = gatesForSchedule(schedule, hand);
   for (const gate of gates) {
-    if (gate.time_s > position_s + CHORD_TOLERANCE_S) return gate;
+    if (gate.time_s >= position_s - CHORD_TOLERANCE_S) return gate;
   }
   return null;
 }

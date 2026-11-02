@@ -60,14 +60,18 @@ describe("practice-gate", () => {
     expect(right.map((g) => g.pitches)).toEqual([[64], [67], [72]]);
   });
 
-  it("gateAt devuelve el siguiente gate", () => {
+  it("gateAt devuelve el primer gate aún alcanzable (B-032.8)", () => {
     const schedule: ScheduledEvent[] = [
       event(1.0, 60),
       event(2.0, 62),
       event(3.0, 64),
     ];
     expect(gateAt(schedule, 0.5, "both")?.time_s).toBe(1.0);
-    expect(gateAt(schedule, 1.0, "both")?.time_s).toBe(2.0);
+    // En la posición exacta (o pisado por ≤5 ms) el gate sigue siendo tocable:
+    // el primero de la pieza ya no se escapa.
+    expect(gateAt(schedule, 1.0, "both")?.time_s).toBe(1.0);
+    expect(gateAt(schedule, 1.004, "both")?.time_s).toBe(1.0);
+    expect(gateAt(schedule, 1.008, "both")?.time_s).toBe(2.0);
     expect(gateAt(schedule, 2.5, "both")?.time_s).toBe(3.0);
     expect(gateAt(schedule, 3.5, "both")).toBeNull();
   });
