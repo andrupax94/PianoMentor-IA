@@ -10,7 +10,7 @@ import type { AppHeaderProps } from "./AppHeader.types";
 
 export function AppHeader({ midiConnected = true, userInitial = "A", active = "learn" }: AppHeaderProps) {
   return (
-    <header className={styles.bar}>
+    <header className={`${styles.bar} cristal-azul-max`}>
       <BrandLogo />
       <MainNav active={active} />
       <MidiStatus connected={midiConnected} />
