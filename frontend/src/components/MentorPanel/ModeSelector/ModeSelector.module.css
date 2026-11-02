@@ -187,6 +187,12 @@
   mask-image: url("/assets/icons/eye.svg");
 }
 
+/* La palma base es la izquierda: la de la derecha es la misma, espejada.
+   (El par de «Dos manos» lo hace .espejo en su segunda palma.) */
+.derecha .icono {
+  transform: scaleX(-1);
+}
+
 /* La segunda palma de "Dos manos": la misma, espejada, solapando un punto. */
 .iconos {
   display: flex;
