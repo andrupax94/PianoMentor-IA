@@ -1,5 +1,5 @@
 // description: Tests del chip píldora del chat: etiqueta por defecto «Pedir pista al agente», etiqueta configurable para las respuestas a la oferta del mentor (B-032.7) e icono omitible.
-// context: Se renderiza a HTML con `react-dom/server` (sin DOM ni navegador) para comprobar el contrato del componente.
+// context: Se renderiza a HTML con react-dom/server (sin DOM ni navegador) para comprobar el contrato del componente.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
