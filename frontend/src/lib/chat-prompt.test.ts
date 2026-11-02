@@ -1,37 +1,30 @@
-// description: Tests del mensaje de espera de la burbuja del mentor (B-032.7/U-008.3): prompt de práctica dentro de la sesión, bienvenida personal solo fuera y con nombre, y el genérico como pieza de reserva.
-// context: Módulo puro sin DOM; los tres mensajes son fijos (feed determinista, no los compone el LLM).
+// description: Tests del mensaje de espera de la burbuja del mentor (U-008.3): con usuario activo saluda por su nombre y sin él cae al placeholder genérico; nada depende de la sesión de piano.
+// context: Módulo puro sin DOM; los dos mensajes son fijos (feed determinista, no los compone el LLM).
 import { describe, expect, it } from "vitest";
 
-import { chatPrompt, personalWelcome, SESSION_PROMPT } from "./chat-prompt";
+import { chatPrompt, personalWelcome } from "./chat-prompt";
 
-const BASE = { userName: null, hasChat: false, exampleMessage: "Hola En que puedo Ayudarte?" };
+const EXAMPLE = "Hola En que puedo Ayudarte?";
 
 describe("chatPrompt", () => {
-  it("dentro de una sesión habla de la práctica, nunca saluda", () => {
-    expect(chatPrompt({ ...BASE, sessionId: "s1" })).toBe(SESSION_PROMPT);
-    expect(chatPrompt({ ...BASE, sessionId: "s1", userName: "Andrés" })).toBe(SESSION_PROMPT);
-    expect(chatPrompt({ ...BASE, sessionId: "s1", hasChat: true })).toBe(SESSION_PROMPT);
-    expect(SESSION_PROMPT).not.toContain("!Hola");
-  });
-
-  it("fuera de sesión saluda por el nombre mientras no haya conversación", () => {
-    expect(chatPrompt({ ...BASE, sessionId: null, userName: "Andrés" })).toBe(
+  it("con usuario activo saluda por su nombre en lugar del genérico", () => {
+    expect(chatPrompt({ userName: "Andrés", exampleMessage: EXAMPLE })).toBe(
       personalWelcome("Andrés"),
     );
-    expect(chatPrompt({ ...BASE, sessionId: null, userName: "Andrés" })).toContain("¡Hola Andrés!");
+    expect(chatPrompt({ userName: "Andrés", exampleMessage: EXAMPLE })).toContain("¡Hola Andrés!");
+    expect(chatPrompt({ userName: "Andrés", exampleMessage: EXAMPLE })).not.toBe(EXAMPLE);
   });
 
-  it("con conversación previa (o sin nombre) cae al placeholder genérico", () => {
-    expect(chatPrompt({ ...BASE, sessionId: null, userName: null })).toBe(
-      "Hola En que puedo Ayudarte?",
+  it("con otro nombre la misma señal produce la misma frase (determinista)", () => {
+    expect(chatPrompt({ userName: "Andrés", exampleMessage: EXAMPLE })).toBe(
+      chatPrompt({ userName: "Andrés", exampleMessage: EXAMPLE }),
     );
-    expect(chatPrompt({ ...BASE, sessionId: null, userName: "Andrés", hasChat: true })).toBe(
-      "Hola En que puedo Ayudarte?",
+    expect(chatPrompt({ userName: "Debandré", exampleMessage: EXAMPLE })).toBe(
+      personalWelcome("Debandré"),
     );
   });
 
-  it("la bienvenida personal une el nombre con el prompt del profesor", () => {
-    expect(personalWelcome("Andrés")).toContain("Andrés");
-    expect(personalWelcome("Andrés")).toContain("práctica, piezas o teoría musical");
+  it("sin usuario activo cae al placeholder genérico de la prop", () => {
+    expect(chatPrompt({ userName: null, exampleMessage: EXAMPLE })).toBe(EXAMPLE);
   });
 });
