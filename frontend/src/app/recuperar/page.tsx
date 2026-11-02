@@ -1,5 +1,6 @@
 // description: Página /recuperar — formulario para pedir el enlace de reset (U-007).
 // context: Ruta propia sin modales, misma estética que el wizard de registro.
+import { AppHeader } from "../../components/AppHeader/AppHeader";
 import AuthShell from "./AuthShell";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 
@@ -10,11 +11,14 @@ export const metadata = {
 
 export default function RecuperarPage() {
   return (
-    <AuthShell
-      title="Recupera tu contraseña"
-      hint="Te enviaremos un enlace para elegir una contraseña nueva."
-    >
-      <ForgotPasswordForm />
-    </AuthShell>
+    <div className="shell">
+      <AppHeader />
+      <AuthShell
+        title="Recupera tu contraseña"
+        hint="Te enviaremos un enlace para elegir una contraseña nueva."
+      >
+        <ForgotPasswordForm />
+      </AuthShell>
+    </div>
   );
 }

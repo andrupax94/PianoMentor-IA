@@ -1,20 +1,8 @@
 .page {
-  --bg: #0e1522;
-  --surface: #131c2d;
-  --surface-2: #19243a;
-  --line: #26334d;
-  --text: #e8edf7;
-  --muted: #8693ad;
-  --accent: #f5a524;      /* naranja del logo / "Chat" / mano derecha */
-  --accent-soft: #c9923a; /* dorado de los bordes */
-  --blue: #6ea8ff;        /* mano izquierda / foco */
-  --danger: #ff8f8f;
-
   min-height: calc(100dvh - 8vh);
   display: grid;
   place-items: center;
   padding: 24px;
-  background: var(--bg);
   color: var(--text);
 }
 
@@ -26,7 +14,7 @@
   border: 1px solid var(--line);
   border-radius: 20px;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--panel);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
@@ -63,20 +51,23 @@
   color: var(--text);
   text-decoration: none;
 }
+
 .brand b {
-  color: var(--accent);
+  color: var(--gold);
 }
 
 .asideIntro {
   margin-top: auto;
 }
+
 .asideIntro h2 {
   margin: 0 0 6px;
   font-size: 1.35rem;
 }
+
 .asideIntro p {
   margin: 0;
-  color: var(--muted);
+  color: var(--text-soft);
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -107,12 +98,12 @@
   flex-direction: column;
   gap: 6px;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-soft);
 }
 
 .field input {
   padding: 11px 14px;
-  background: var(--surface-2);
+  background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--text);
@@ -129,7 +120,7 @@
 .error {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--danger);
+  color: var(--error);
 }
 
 .message {
@@ -139,6 +130,7 @@
   gap: 18px;
   line-height: 1.5;
 }
+
 .message p {
   margin: 0;
 }
@@ -161,22 +153,26 @@
   text-decoration: none;
   text-align: center;
 }
+
 .primary {
-  background: var(--accent);
+  background: var(--gold);
   color: #1a1205;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--gold);
 }
+
 .primary:hover:not(:disabled) {
   filter: brightness(1.08);
 }
+
 .primary:disabled {
   opacity: 0.6;
   cursor: wait;
 }
+
 .ghost {
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--accent-soft);
+  border: 1px solid var(--gold-soft);
 }
 
 /* Móvil: el panel de pasos pasa arriba y se compacta */
@@ -185,18 +181,22 @@
     grid-template-columns: 1fr;
     min-height: 0;
   }
+
   .asideContent {
     padding: 20px;
   }
+
   .asideIntro {
     display: none;
   }
+
   .panel {
     padding: 24px 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .primary,
   .ghost {
     transition: none;

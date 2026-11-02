@@ -8,8 +8,13 @@
   display: grid;
   place-items: center;
   background: rgba(5, 9, 18, 0.65);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .overlay {
+    backdrop-filter: blur(4px);
+  }
 }
 
 .box {

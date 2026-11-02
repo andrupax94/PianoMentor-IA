@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
@@ -74,7 +75,7 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
     }
   };
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onMouseDown={handleOverlayDown} role="presentation">
       <div className={styles.box} role="dialog"
         aria-modal="true"
@@ -106,7 +107,6 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
             onChange={(event) => setPassword(event.target.value)}
             disabled={busy}
           />
-          <Link href="/recuperar">¿Olvidaste tu contraseña?</Link>
           {error && (
             <p className={styles.error} role="alert" data-testid="auth-error">
               {error}
@@ -121,6 +121,10 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
           ¿No tienes cuenta?{" "}
           <Link href="/registro" onClick={handleRegisterClick}>Regístrate</Link>
         </p>
+        <p className={styles.alt}>
+          Olvidaste tu contraseña?{" "}
+          <Link href="/recuperar">Recuperala</Link>
+        </p>
         <div className={styles.divider}>
           <span className={styles.dividerText}>o</span>
         </div>
@@ -129,7 +133,8 @@ export function AuthSignInModal({ open, onClose }: AuthSignInModalProps) {
           Continuar con Google
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   function handleOverlayDown(event: React.MouseEvent<HTMLDivElement>) {
