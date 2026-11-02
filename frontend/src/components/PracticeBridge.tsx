@@ -1,5 +1,5 @@
 // description: Enlace entre la sesión de la ruta y la portada: WebSocket (estado, latencia y acciones del agente), puerto de entrada de notas, almacén de estado y la pieza que la sesión manda al piano (B-032.1). Desde B-032.2 el `t_s` de cada nota y la posición que viaja al backend salen del transporte único, y una puerta corta el audio y el envío mientras el agente demuestra.
-// context: La práctica vive en /{id} sobre la portada (reposición post-B-012.1); absorbe la lógica de PracticeSession (B-012.1). No pinta nada: manda las notas al servidor (bloqueadas mientras el agente demuestra, B-012.5), publica el estado en session-store, que lee el mini cuadro del panel del mentor, decide si el acompañamiento se puede sonar o hay que degradarlo a demostración según la latencia del canal (B-012.7) y reconcilia la pieza del almacén con el `piece_id` de la sesión, para que por URL directa o tras un F5 no se practique sobre la demo (B-032.1). La posición se manda a 4 Hz y el backend decide cuándo difundirla.
+// context: La práctica vive en /{id} sobre la portada (reposición post-B-012.1); absorbe la lógica de PracticeSession (B-012.1). No pinta nada: manda las notas al servidor (bloqueadas mientras el agente demuestra, B-012.5), publica el estado en session-store, decide si el acompañamiento se puede sonar o hay que degradarlo a demostración según la latencia del canal (B-012.7) y reconcilia la pieza del almacén con el `piece_id` de la sesión (B-032.1). La posición se manda a 4 Hz y el backend decide cuándo difundirla. Con B-032.5/B-032.6 vive además el gate-controller (activa gates por modo y emite `practice`) y aplica las decisiones del agente: `slow_down` cambia el tempo del transporte y `return_control` publica el stop con el compás demostrado, donde la práctica reanuda y rearma el gate. Con B-032.7 suscribe el bus offer-choice y traduce la respuesta del alumno a la oferta en los sobres WS.
 
 "use client";
 
@@ -15,6 +15,7 @@ import { measureIndexAt } from "../lib/measures";
 import { setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
 import { evaluatedHand } from "../lib/practice-mode";
 import { musicalPosition } from "../lib/playback-schedule";
+import { subscribeOfferChoice } from "../lib/offer-choice";
 import { syncSessionPiece } from "../lib/session-piece";
 import {
   clearSession,
@@ -214,6 +215,15 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
     // degradar un acompañamiento que llegaría tarde.
     const pingTimer = window.setInterval(() => socket.ping(), PING_INTERVAL_MS);
 
+    // B-032.7: la respuesta del alumno a la oferta del mentor llega por el bus
+    // (la burbuja no toca el canal) y sale por el WS sin parámetros: los suyos
+    // ya los guardó el backend al ofrecer la demostración.
+    const unsubscribeOffers = subscribeOfferChoice((choice) => {
+      if (choice.choice === "accept") socket.sendOfferAccept();
+      if (choice.choice === "dismiss") socket.sendOfferDismiss();
+      if (choice.choice === "repeat") socket.sendOfferRepeat();
+    });
+
     // Primer pintado del mini cuadro sin esperar a que abra el socket.
     getSessionState(sessionId)
       .then((state) => {
@@ -232,6 +242,7 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
     return () => {
       cancelled = true;
       window.clearInterval(pingTimer);
+      unsubscribeOffers();
       socket.close();
       socketRef.current = null;
       // Salir con una intervención en marcha no debe dejar el transporte

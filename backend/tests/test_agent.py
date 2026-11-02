@@ -1,5 +1,5 @@
-# description: Máquina de estados, reglas, validación y propuesta LLM del agente (B-012.3/.4/.6).
-# context: Confianza en el fallback sin LLM: cada regla, su prioridad, sus bordes, la validación y la propuesta.
+# description: Agente determinista: reglas, lista blanca (con offer_demo/offer_dismiss/repeat_demo y el tope del «otra vez»), validación de acciones y devolución del control.
+# context: Confianza en el agente determinista.
 
 """Tests de B-012.3, B-012.4 y B-012.6: máquina de estados, reglas, validación y propuesta."""
 
@@ -12,12 +12,14 @@ import pytest
 from piano_mentor.agent import (
     ALLOWED_ACTIONS,
     LOW_PRECISION_THRESHOLD,
+    MAX_DEMO_REPEATS_PER_SESSION,
     REPEATED_ERRORS_THRESHOLD,
     RETURN_CONTROL_AFTER_MEASURES,
     SILENCE_TIMEOUT_S,
     TIMING_THRESHOLD_MS,
     AgentService,
     DecisionContext,
+    demo_repeat_allowed,
 )
 from piano_mentor.llm import (
     FallbackProvider,
@@ -367,6 +369,42 @@ class TestActionValidation:
             )
         assert exc_info.value.code == "action_params_out_of_range"
 
+    # --- offer_demo / offer_dismiss / repeat_demo (B-032.7) ---
+
+    def test_offer_demo_accepts_a_single_measure(self) -> None:
+        """El compás concreto es la oferta típica: to == from es válido."""
+        service = AgentService()
+        service.validate_action("offer_demo", {"from_measure": 4, "to_measure": 4})
+
+    def test_offer_demo_rejects_out_of_bounds(self) -> None:
+        with pytest.raises(ValidationError) as exc_info:
+            service = AgentService()
+            service.validate_action(
+                "offer_demo",
+                {"from_measure": 5, "to_measure": 3},
+            )
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_repeat_demo_matches_the_demonstration_limits(self) -> None:
+        service = AgentService()
+        service.validate_action("repeat_demo", {"from_measure": 2, "to_measure": 3})
+        with pytest.raises(ValidationError) as exc_info:
+            service.validate_action("repeat_demo", {"tempo_factor": 0.9})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_offer_dismiss_cannot_carry_params(self) -> None:
+        service = AgentService()
+        service.validate_action("offer_dismiss", {})
+        with pytest.raises(ValidationError) as exc_info:
+            service.validate_action("offer_dismiss", {"measure": 2})
+        assert exc_info.value.code == "action_params_out_of_range"
+
+    def test_repeat_caps_are_documented_and_testable(self) -> None:
+        # El «otra vez» ilegal es una comparación pura (B-032.7): nada de E/S.
+        assert demo_repeat_allowed(0, 0) is True
+        assert demo_repeat_allowed(1, 0) is False  # ya se repitió en este compás
+        assert demo_repeat_allowed(0, MAX_DEMO_REPEATS_PER_SESSION) is False
+
     # --- accompany ---
 
     def test_accompany_invalid_hand(self) -> None:
@@ -715,11 +753,12 @@ class TestStrikesRule:
         decision = AgentService().decide(ctx)
         assert decision.action == "give_hint"
 
-    def test_a_timeout_demonstrates_the_measure(self) -> None:
+    def test_a_timeout_offers_the_measure(self) -> None:
+        # B-032.7: el silencio del gate ya no demuestra; propone demostrarlo.
         ctx = _ctx()
         ctx.strikes = StrikeContext(window=[_signal("g1", "timeout", 3)], measure=3)
         decision = AgentService().decide(ctx)
-        assert decision.action == "demonstrate"
+        assert decision.action == "offer_demo"
         assert decision.params["from_measure"] == 3
         assert decision.params["to_measure"] == 3
 

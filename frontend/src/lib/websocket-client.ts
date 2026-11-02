@@ -1,4 +1,4 @@
-// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5/B-012.7/B-032.1/B-032.2): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s} y la posición del transporte con {type: "position", t_s, measure}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control/accompany, su ventana, su mano y sus notas), mide la latencia del canal con ping/pong y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent, encodePosition y parseServerMessage.
+// description: Cliente WebSocket de la sesión de práctica (B-012.1/B-012.5/B-012.7/B-032.1/B-032.2/B-032.7): SessionSocket abre la conexión, envía note_on/note_off con el sobre {type, pitch, velocity, t_s} y la posición del transporte con {type: "position", t_s, measure}, avisa del estado de conexión, de los mensajes state/error y de las acciones del agente (sobre agent_action con demonstrate/return_control/accompany/offer_demo, su ventana, su mano y sus notas), manda la respuesta del alumno a la oferta (offer_accept/offer_dismiss/offer_repeat, sobres sin parámetros), mide la latencia del canal con ping/pong y reconecta con backoff exponencial (el contador solo se reinicia cuando llega un mensaje, no al abrir). Incluye las piezas puras sessionSocketUrl, reconnectDelay, roundSeconds, encodeNoteEvent, encodePosition y parseServerMessage. Desde B-032.5 añade sendPracticeEvent, el sobre {type: "practice", gate, measure, outcome, wait_ms, hand} del modo espera, y desde B-032.6 el sobre agent_action también trae el `reason` de las reglas de strikes.
 // context: Mismo sobre que el backend; se escribe sin DOM, así que el WebSocket y el reloj se inyectan en los tests. Un cierre pedido con close() no reconecta, y si el socket aún está en CONNECTING el cierre se aplaza a onopen para no disparar el aviso del navegador (B-032.1). La RTT medida decide si el acompañamiento se degrada a demostración (B-012.7).
 
 import type { SessionState } from "./api-client";
@@ -54,9 +54,12 @@ export interface AgentAccompanyNote {
  * Acción del agente en la sesión (B-012.5/B-012.7): el backend la emite al
  * validarla y ejecutarla. `demonstrate` arranca la demostración y bloquea el
  * control del estudiante; `accompany` hace sonar una mano de la IA sin
- * bloquearlo; `return_control` devuelve el control. Los parámetros de la
- * ventana (`from_measure`, `to_measure`, `tempo_factor`) llegan opcionalmente
- * en el propio sobre; el acompañamiento añade la mano y sus notas.
+ * bloquearlo; `return_control` devuelve el control. Desde B-032.7 también
+ * llega `offer_demo` (el mentor pregunta si muestra el compás; no toca el
+ * control ni el motor) y `offer_dismiss` (el alumno ya respondió «Sigo yo»).
+ * Los parámetros de la ventana (`from_measure`, `to_measure`, `tempo_factor`)
+ * llegan opcionalmente en el propio sobre; el acompañamiento añade la mano y
+ * sus notas.
  */
 export interface AgentActionMessage {
   type: "agent_action";
@@ -332,6 +335,23 @@ export class SessionSocket {
    */
   sendPracticeEvent(event: PracticeEventPayload): void {
     this.send(encodePracticeEvent(event));
+  }
+
+  /**
+   * Respuesta del alumno a la oferta de demostración (B-032.7): los tres
+   * sobres van sin parámetros, que es lo que el backend ya guardó al
+   * ofertar. Se descartan si el socket no está abierto, igual que las notas.
+   */
+  sendOfferAccept(): void {
+    this.send({ type: "offer_accept" });
+  }
+
+  sendOfferDismiss(): void {
+    this.send({ type: "offer_dismiss" });
+  }
+
+  sendOfferRepeat(): void {
+    this.send({ type: "offer_repeat" });
   }
 
   /**

@@ -1,5 +1,6 @@
-# description: Casos de uso de sesión de práctica: crear sesión, estado y eventos MIDI.
-# context: Coordina pieza + interpretación + estado persistido en SQLite (B-012.1).
+# description: Casos de uso de sesión de práctica: crear sesión, estado, eventos MIDI, posición del transporte, modos de práctica (B-032.4) y eventos de práctica del modo espera (B-032.5: validación `_validate_practice_event` y persistencia en `practice_signals`). Con B-032.6 arma el contexto de strikes (build_strike_context: señales desde el baseline de la última decisión, dedup por gate y límites ya consumidos) y con B-032.7 el recuento de ofertas del compás (offers_in_measure).
+# context: Coordina pieza + interpretación + estado persistido en SQLite (B-012.1); las señales de práctica no se mezclan con session_events porque el evaluador solo mira note_on/note_off.
+
 """Servicio de sesiones de práctica: crea, consulta estado y registra eventos."""
 
 from __future__ import annotations
@@ -363,7 +364,8 @@ class PracticeService:
         limits = InterventionLimits(
             slow_downs_in_measure=counts.get("slow_down", 0),
             hints_in_measure=counts.get("give_hint", 0),
-            demos_in_measure=counts.get("demonstrate", 0),
+            # B-032.7: las ofertas ya lanzadas en el compás las acota la regla 1.
+            offers_in_measure=counts.get("offer_demo", 0),
             session_actions=counts.get("__session__", 0),
         )
         return StrikeContext(

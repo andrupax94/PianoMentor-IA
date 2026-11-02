@@ -1,7 +1,8 @@
-// description: Lógica pura de la demostración del agente (B-012.5): control efectivo del piano (el sobre agent_action manda sobre el estado cacheado en ambos sentidos), ventana demostrada (compases y tempo) y etiqueta del indicador; y demoSubScore, que recorta la ventana de compases de la partitura (notas y rejilla desplazadas al 0) para que suene en el transporte.
+// description: Lógica pura de la demostración del agente (B-012.5): control efectivo del piano (el sobre agent_action manda sobre el estado cacheado en ambos sentidos), ventana demostrada (compases y tempo), etiqueta del indicador y de las intervenciones de strikes incluida la oferta del mentor (B-032.7); y demoSubScore, que recorta la ventana de compases de la partitura (notas y rejilla desplazadas al 0) para que suene en el transporte.
 // context: Sin DOM ni React; el bloqueo y el indicador los consumen PracticeBridge y SessionStatus, y el recorte lo consume PlaybackArea (único dueño del reloj). El canal que lleva la orden al transporte vive en agent-playback (B-012.5/B-012.7). El backend cambia el control sin re-empujar state, así que el estado del cliente puede estar desfasado y el sobre manda. Sin rejilla no hay mapa compase→segundo: se devuelve la pieza entera.
 
 import type { PieceMeasures, PlayableNote, SessionControl, SessionState } from "./api-client";
+import { offerLabel } from "./agent-offer";
 import type { AgentActionMessage } from "./websocket-client";
 
 /** Ventana de compases y tempo de la demostración en curso. */
@@ -54,6 +55,8 @@ function finiteOrNull(value: number | undefined): number | null {
  * Etiqueta de las intervenciones de strikes (B-032.6) en el panel de sesión;
  * `null` si el sobre no es de las reglas deterministas del modo espera.
  * `return_control` no es una intervención visible: cierra la anterior.
+ * La oferta (`offer_demo`, B-032.7) tampoco es una intervención: el mentor
+ * pregunta y el alumno sigue al piano mientras responde.
  */
 export function strikeLabel(
   action: AgentActionMessage | null | undefined,
@@ -67,6 +70,9 @@ export function strikeLabel(
   }
   if (action?.action === "give_hint") {
     return "El mentor te da una pista para este compás";
+  }
+  if (action?.action === "offer_demo") {
+    return offerLabel(action);
   }
   return null;
 }

@@ -1,5 +1,5 @@
-# description: Sesiones de práctica: creación, estado, eventos y WebSocket en tiempo real (B-012.1).
-# context: Contrato REST y push por WS sin evaluación ni agente todavía.
+# description: Sesiones de práctica: creación, estado, eventos y WebSocket en tiempo real (B-012.1), con el bucle de strikes del modo espera (B-032.6) y la oferta de demostración por consentimiento con «Sí, muéstralo»/«Sigo yo»/«Otra vez» (B-032.7).
+# context: Contrato REST y push por WS sin evaluación ni agente todavía; el bucle y la oferta se prueban con el WebSocket de TestClient, y las decisiones se comprueban leyendo agent_decisions.
 
 """Tests de la sesión de práctica: persistencia, estado y eventos por WebSocket."""
 
@@ -695,20 +695,48 @@ class TestStrikeLoop:
             assert hint["hint_type"] == "measure_focus"
             websocket.receive_json()  # state del evento
 
-    def test_a_timeout_demonstrates_and_returns_the_control(self, session_id: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        # La ventana demostrada dura su medida; en test se acorta la espera.
+    def test_a_timeout_offers_the_demostration(self, session_id: str) -> None:
+        # B-032.7: el silencio ya no toma el piano. Llega una oferta con los
+        # params de la demo, sin cambiar el control ni bloquear nada.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "timeout", 0))
+
+            offer = websocket.receive_json()
+            assert offer["type"] == "agent_action"
+            assert offer["action"] == "offer_demo"
+            assert offer["from_measure"] == 0
+            assert offer["to_measure"] == 0
+            assert offer["reason"] == "gate_timeout_silence"
+
+            state = websocket.receive_json()
+            assert state["control"] == "student"  # el alumno sigue al piano
+
+        decisions = _stored_decisions(session_id)
+        assert [decision["action"] for decision in decisions] == ["offer_demo"]
+        assert decisions[0]["baseline_signal_id"] > 0
+
+    def test_accepting_the_offer_demonstrates_and_returns_the_control(
+        self, session_id: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # «Sí, muéstralo»: la demo se ejecuta con los parámetros guardados y
+        # la devolución de control queda programada como en B-032.6.
         monkeypatch.setattr(api, "demo_return_delay_s", lambda *args, **kwargs: 0.1)
 
         with self._connect(session_id) as websocket:
             websocket.receive_json()
             websocket.send_json(_practice("g1", "timeout", 0))
+            websocket.receive_json()  # agent_action offer_demo
+            websocket.receive_json()  # state
+
+            websocket.send_json({"type": "offer_accept"})
 
             demo = websocket.receive_json()
             assert demo["type"] == "agent_action"
             assert demo["action"] == "demonstrate"
             assert demo["from_measure"] == 0
             assert demo["to_measure"] == 0
-            assert demo["reason"] == "gate_timeout_silence"
+            assert demo["tempo_factor"] == 0.8
 
             state = websocket.receive_json()
             assert state["control"] == "agent"
@@ -719,9 +747,94 @@ class TestStrikeLoop:
             assert return_state["control"] == "student"
 
         decisions = _stored_decisions(session_id)
-        assert [decision["action"] for decision in decisions] == ["demonstrate", "return_control"]
-        assert decisions[0]["baseline_signal_id"] > 0
-        assert decisions[1]["reason"] == "demo_return"
+        assert [decision["action"] for decision in decisions] == [
+            "offer_demo",
+            "demonstrate",
+            "return_control",
+        ]
+        assert decisions[1]["reason"] == "offer_accepted"
+
+    def test_dismissing_the_offer_stops_repeating_it(self, session_id: str) -> None:
+        # «Sigo yo»: la oferta se cierra y el mismo compás no vuelve a ofrecer;
+        # un segundo timeout cuenta como strike, así que no hay segunda oferta.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "timeout", 0))
+            websocket.receive_json()  # agent_action offer_demo
+            websocket.receive_json()  # state
+
+            websocket.send_json({"type": "offer_dismiss"})
+            dismissed = websocket.receive_json()
+            assert dismissed["type"] == "agent_action"
+            assert dismissed["action"] == "offer_dismiss"
+            websocket.receive_json()  # state
+
+            websocket.send_json(_practice("g2", "timeout", 0))
+
+        decisions = _stored_decisions(session_id)
+        assert [decision["action"] for decision in decisions] == [
+            "offer_demo",
+            "offer_dismiss",
+        ]
+
+    def test_an_offer_without_a_pending_one_is_rejected(self, session_id: str) -> None:
+        # El orga de una pestaña vieja no debe poder aceptar ofertas inventadas.
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "offer_accept"})
+
+            error = websocket.receive_json()
+            assert error["type"] == "error"
+            assert error["code"] == "action_not_allowed_now"
+
+    def test_repeat_replays_the_last_demostration_within_the_caps(
+        self, session_id: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # «Otra vez» repite la demo ya ejecutada (una por compás), grabándose
+        # como repeat_demo; una segunda pide ya no cabe y llega un error.
+        monkeypatch.setattr(api, "demo_return_delay_s", lambda *args, **kwargs: 0.1)
+
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json(_practice("g1", "timeout", 0))
+            websocket.receive_json()  # offer_demo
+            websocket.receive_json()  # state
+            websocket.send_json({"type": "offer_accept"})
+            websocket.receive_json()  # demonstrate
+            websocket.receive_json()  # state control=agent
+            websocket.receive_json()  # return_control
+            websocket.receive_json()  # state control=student
+
+            websocket.send_json({"type": "offer_repeat"})
+
+            repeat = websocket.receive_json()
+            assert repeat["type"] == "agent_action"
+            assert repeat["action"] == "demonstrate"
+            assert repeat["from_measure"] == 0
+            assert repeat["tempo_factor"] == 0.8
+            websocket.receive_json()  # state
+            websocket.receive_json()  # return_control de la repetición
+            websocket.receive_json()  # state
+
+            websocket.send_json({"type": "offer_repeat"})
+            error = websocket.receive_json()
+            assert error["type"] == "error"
+            assert error["code"] == "action_not_allowed_now"
+
+        repeats = [
+            decision for decision in _stored_decisions(session_id)
+            if decision["action"] == "repeat_demo"
+        ]
+        assert len(repeats) == 1
+
+    def test_repeat_without_a_previous_demostration_is_rejected(self, session_id: str) -> None:
+        with self._connect(session_id) as websocket:
+            websocket.receive_json()
+            websocket.send_json({"type": "offer_repeat"})
+
+            error = websocket.receive_json()
+            assert error["type"] == "error"
+            assert error["code"] == "action_not_allowed_now"
 
     def test_a_hint_after_a_struck_measure_resets_the_ladder(self, session_id: str) -> None:
         # Se interviene; desde entonces el contador de ese compás parte de cero
@@ -746,21 +859,22 @@ class TestStrikeLoop:
     def test_the_session_has_a_global_cap(
         self, session_id: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # Con el tope de sesión a 1, la segunda señal de silencio ya no demuestra.
-        monkeypatch.setattr(api, "demo_return_delay_s", lambda *args, **kwargs: 0.1)
+        # Con el tope de sesión a 1, la segunda escalera de fallos ya no interviene.
         monkeypatch.setattr(practice_rules, "MAX_STRIKE_ACTIONS_PER_SESSION", 1)
 
         with self._connect(session_id) as websocket:
             websocket.receive_json()
-            websocket.send_json(_practice("g1", "timeout", 0))
-            websocket.receive_json()  # agent_action demonstrate
-            websocket.receive_json()  # state control=agent
-            websocket.receive_json()  # return_control
-            websocket.receive_json()  # state control=student
+            websocket.send_json(_practice("g1", "wrong", 0))
+            websocket.send_json(_practice("g2", "wrong", 0))
+            websocket.receive_json()  # agent_action slow_down
+            websocket.receive_json()  # state
 
-            websocket.send_json(_practice("g1", "timeout", 0))
-            # Sin cabos colgando: llega el estado del evento, ninguna acción.
+            websocket.send_json(_practice("g3", "wrong", 0))
+            websocket.send_json(_practice("g4", "wrong", 0))
+            # Sin cabos colgando: ningún agente_action nuevo (tope de sesión).
 
         decisions = _stored_decisions(session_id)
-        demos = [decision for decision in decisions if decision["action"] == "demonstrate"]
-        assert len(demos) == 1
+        interventions = [
+            decision for decision in decisions if decision["action"] == "slow_down"
+        ]
+        assert len(interventions) == 1

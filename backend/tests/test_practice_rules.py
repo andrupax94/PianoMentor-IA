@@ -1,14 +1,14 @@
-# description: Tests de practice_rules.py (B-032.6): agregación por compás con el último outcome por gate, escalera 2/3/silencio, topes anti-bucle y decisiones completas.
+# description: Tests de practice_rules.py (B-032.6/B-032.7): agregación por compás con el último outcome por gate, dedup, escalera de umbrales con la oferta de demostración, topes anti-bucle y decisiones completas.
 # context: módulo puro: los tests no tocan SQLite ni WebSocket.
 
-"""Tests de las reglas deterministas de strikes del modo espera (B-032.6)."""
+"""Tests de las reglas deterministas de strikes del modo espera (B-032.6/B-032.7)."""
 
 from __future__ import annotations
 
 from piano_mentor.practice_rules import (
     FAILED_OUTCOMES,
-    MAX_DEMOS_PER_MEASURE,
     MAX_HINTS_PER_MEASURE,
+    MAX_OFFERS_PER_MEASURE,
     MAX_SLOWDOWNS_PER_MEASURE,
     STRIKES_FOR_HINT,
     STRIKES_FOR_SLOW_DOWN,
@@ -77,7 +77,11 @@ class TestMeasureState:
 
 
 class TestDecideStrikeActions:
-    """2 fallos → slow_down; 3 → give_hint; silencio del gate → demonstrate."""
+    """2 fallos → slow_down; 3 → give_hint; silencio del gate → oferta (B-032.7)."""
+
+    def test_one_strike_is_not_enough(self) -> None:
+        state = PracticeMeasure(measure=2, strikes=1)
+        assert decide_strike_actions(state, NO_LIMITS) is None
 
     def test_two_strikes_ask_for_slow_down(self) -> None:
         state = PracticeMeasure(measure=2, strikes=2)
@@ -90,19 +94,25 @@ class TestDecideStrikeActions:
         action, params, _ = decide_strike_actions(state, NO_LIMITS)
         assert action == "give_hint"
 
-    def test_timeout_asks_for_demonstration_of_that_measure(self) -> None:
+    def test_timeout_asks_for_a_demostration_offer_of_that_measure(self) -> None:
         state = PracticeMeasure(measure=5, timed_out=True, strikes=1)
         action, params, reason = decide_strike_actions(state, NO_LIMITS)
-        assert (action, reason) == ("demonstrate", "gate_timeout_silence")
+        assert (action, reason) == ("offer_demo", "gate_timeout_silence")
         assert params["from_measure"] == 5
         assert params["to_measure"] == 5  # exactamente el compás problemático
 
-    def test_demo_without_measures_covers_the_whole_piece(self) -> None:
-        # Sin rejilla no hay compás: la demo sale sin sección y toca la pieza entera.
+    def test_offer_without_measures_covers_the_whole_piece(self) -> None:
+        # Sin rejilla no hay compás: la oferta sale sin sección y tocaría la pieza entera.
         state = PracticeMeasure(measure=None, timed_out=True)
         action, params, _ = decide_strike_actions(state, NO_LIMITS)
-        assert action == "demonstrate"
+        assert action == "offer_demo"
         assert "from_measure" not in params
+
+    def test_an_answered_offer_is_not_repeated_in_the_measure(self) -> None:
+        # B-032.7: «Sigo yo» agota la oferta de ese compás hasta el cambio/acierto.
+        state = PracticeMeasure(measure=2, timed_out=True)
+        limits = InterventionLimits(offers_in_measure=MAX_OFFERS_PER_MEASURE)
+        assert decide_strike_actions(state, limits) is None
 
     def test_hints_have_a_cap_per_measure(self) -> None:
         state = PracticeMeasure(measure=2, strikes=3)
@@ -124,11 +134,6 @@ class TestDecideStrikeActions:
         limits = InterventionLimits(slow_downs_in_measure=MAX_SLOWDOWNS_PER_MEASURE)
         assert decide_strike_actions(state, limits) is None
 
-    def test_demos_have_a_cap_per_measure(self) -> None:
-        state = PracticeMeasure(measure=2, timed_out=True)
-        limits = InterventionLimits(demos_in_measure=MAX_DEMOS_PER_MEASURE)
-        assert decide_strike_actions(state, limits) is None
-
     def test_the_session_has_a_global_cap(self) -> None:
         state = PracticeMeasure(measure=2, timed_out=True)
         limits = InterventionLimits(session_actions=10**9)
@@ -138,9 +143,13 @@ class TestDecideStrikeActions:
         state = PracticeMeasure(measure=2, strikes=0)
         assert decide_strike_actions(state, NO_LIMITS) is None
 
-    def test_one_strike_is_not_enough(self) -> None:
-        state = PracticeMeasure(measure=2, strikes=1)
-        assert decide_strike_actions(state, NO_LIMITS) is None
+    def test_only_one_offer_per_measure_and_the_ladder_keeps_moving(self) -> None:
+        # Cerrada la oferta, la escalera no se detiene: dos fallos más piden
+        # bajar el tempo igual que antes del cambio (la alarma pedagógica vive).
+        state = PracticeMeasure(measure=2, timed_out=True, strikes=2)
+        limits = InterventionLimits(offers_in_measure=MAX_OFFERS_PER_MEASURE)
+        outcome = decide_strike_actions(state, limits)
+        assert outcome is not None and outcome[0] == "slow_down"
 
     def test_the_thresholds_are_the_documented_ladder(self) -> None:
         assert STRIKES_FOR_SLOW_DOWN == 2
@@ -154,7 +163,7 @@ class TestDecideStrikes:
     """La decisión completa del agente sale de aquí."""
 
 
-def test_decide_strikes_returns_a_full_decision() -> None:
+def test_decide_strikes_returns_a_full_offer_decision() -> None:
     decision = decide_strikes(
         StrikeContext(
             window=[
@@ -165,8 +174,8 @@ def test_decide_strikes_returns_a_full_decision() -> None:
         )
     )
     assert decision is not None
-    assert decision.action == "demonstrate"
-    assert decision.state == "demonstrating"
+    assert decision.action == "offer_demo"
+    assert decision.state == "offering"
     assert decision.params["from_measure"] == 4
     assert decision.reason == "gate_timeout_silence"
 

@@ -1,5 +1,5 @@
-# description: Máquina de estados y reglas deterministas del agente (B-012.3/B-012.4): decide() y validate_action() sobre la lista blanca de acciones.
-# context: decide() recibe estado + evaluación + historial y devuelve acción. Sin LLM. DEFAULT_PARAMS rellena los parámetros que faltan (accompany fija hand=left, B-012.7) para que una propuesta ejecutable no se rechace por un campo opcional.
+# description: Agente determinista: lista blanca y reglas de decisión (wait, give_hint, slow_down, demonstrate, accompany, return_control, offer_demo, offer_dismiss, repeat_demo).
+# context: Fallback obligatorio sin LLM; nunca envía MIDI directo. DEFAULT_PARAMS rellena los parámetros que faltan (accompany fija hand=left, B-012.7) para que una propuesta ejecutable no se rechace por un campo opcional. Desde B-032.6 decide() es el único punto de decisión y recibe las señales de práctica (DecisionContext.strikes) como regla 3, con prioridad sobre el corte por silencio; demonstrate admite una sección de un solo compás. Con B-032.7 (ADR 0008) la demostración se ofrece (`offer_demo` no toca control ni motor) y el «otra vez» de una demo ya ejecutada (`repeat_demo`) lo pide el alumno acotado: demo_repeat_allowed centra sus topes sin E/S.
 
 """Máquina de estados y reglas deterministas del agente pedagógico (B-012.3).
 
@@ -11,14 +11,17 @@ estructurada que el sistema valida y ejecuta.
 Estados de la máquina (B-012.3):
 
     OBSERVING → EVALUATING → DECIDE_ACTION → uno de:
-      WAITING_FOR_STUDENT | GIVING_HINT | SLOWING_DOWN |
+      WAITING_FOR_STUDENT | OFFERING (B-032.7) | GIVING_HINT | SLOWING_DOWN |
       DEMONSTRATING | ACCOMPANYING | RETURNING_CONTROL
 
 Reglas deterministas (por prioridad, de mayor a menor):
 
     1. Agente tiene control + periodo demonstrate/slow_down terminado → return_control
     2. Agente tiene control → wait (no interferir)
-    3. Señales de práctica del modo espera (B-032.6): strikes de gates
+    3. Señales de práctica del modo espera (B-032.6): strikes de gates.
+       Con el silencio del gate la regla devuelve `offer_demo` (B-032.7/ADR
+       0008): la demostración se propone y el alumno acepta o rechaza («Sigo
+       yo») por el WS; `repeat_demo` («otra vez») solo la pide el alumno.
     4. Estudiante silencioso > SILENCE_TIMEOUT_S → wait
     5. Precisión < LOW_PRECISION_THRESHOLD → demonstrate
     6. wrong_pitch >= REPEATED_ERRORS_THRESHOLD → give_hint
@@ -43,7 +46,20 @@ if TYPE_CHECKING:
     from .llm import ActionProposal, LLMProvider
 
 # Lista blanca de acciones (B-012.3). El agente solo puede emitir estas.
-ALLOWED_ACTIONS = {"wait", "give_hint", "slow_down", "demonstrate", "accompany", "return_control"}
+# Desde B-032.7 (ADR 0008): `offer_demo` propone la demostración (no toca el
+# control ni el motor) y `offer_dismiss` registra el «Sigo yo» del alumno;
+# `repeat_demo` repite una demostración ya ejecutada a petición del alumno.
+ALLOWED_ACTIONS = {
+    "wait",
+    "give_hint",
+    "slow_down",
+    "demonstrate",
+    "accompany",
+    "return_control",
+    "offer_demo",
+    "offer_dismiss",
+    "repeat_demo",
+}
 
 # --- Estados de la máquina de decisión ---
 
@@ -51,6 +67,7 @@ STATE_OBSERVING = "observing"
 STATE_EVALUATING = "evaluating"
 STATE_DECIDE_ACTION = "decide_action"
 STATE_WAITING = "waiting_for_student"
+STATE_OFFERING = "offering"
 STATE_GIVING_HINT = "giving_hint"
 STATE_SLOWING_DOWN = "slowing_down"
 STATE_DEMONSTRATING = "demonstrating"
@@ -59,9 +76,12 @@ STATE_RETURNING_CONTROL = "returning_control"
 
 ACTION_TO_STATE: dict[str, str] = {
     "wait": STATE_WAITING,
+    "offer_demo": STATE_OFFERING,
+    "offer_dismiss": STATE_WAITING,
     "give_hint": STATE_GIVING_HINT,
     "slow_down": STATE_SLOWING_DOWN,
     "demonstrate": STATE_DEMONSTRATING,
+    "repeat_demo": STATE_DEMONSTRATING,
     "accompany": STATE_ACCOMPANYING,
     "return_control": STATE_RETURNING_CONTROL,
 }
@@ -86,6 +106,7 @@ DEFAULT_PARAMS: dict[str, dict[str, object]] = {
     "give_hint": {"hint_type": "measure_focus"},
     "slow_down": {"tempo_factor": 0.7},
     "demonstrate": {"tempo_factor": 0.8},
+    "offer_demo": {"tempo_factor": 0.8},
     # `hand` es obligatorio para ejecutar el acompañamiento (B-012.7): la IA
     # toca la izquierda y el estudiante la derecha, que es el reparto por defecto.
     "accompany": {"hand": "left", "tempo_factor": 0.9},
@@ -99,6 +120,8 @@ PARAM_RANGES: dict[str, dict[str, tuple[float, float]]] = {
     "wait": {"duration_s": (0.1, 30.0)},
     "slow_down": {"tempo_factor": (0.5, 0.9), "measures": (1, 2)},
     "demonstrate": {"tempo_factor": (0.5, 0.8)},
+    "offer_demo": {"tempo_factor": (0.5, 0.8)},
+    "repeat_demo": {"tempo_factor": (0.5, 0.8)},
     "accompany": {"tempo_factor": (0.5, 1.0)},
 }
 
@@ -111,6 +134,8 @@ ENUM_PARAMS: dict[str, dict[str, set[str]]] = {
 MAX_MEASURES: dict[str, int] = {
     "slow_down": 2,
     "demonstrate": 16,
+    "offer_demo": 16,
+    "repeat_demo": 16,
     "accompany": 32,
 }
 
@@ -119,6 +144,30 @@ MAX_CONSECUTIVE_WAIT = 2
 
 # Máximo de `give_hint` por compás
 MAX_HINTS_PER_MEASURE = 1
+
+# Topes del «otra vez» (B-032.7): repetir una demostración ya ejecutada es una
+# petición del alumno, no una decisión del bucle, y va acotada por compás y
+# por sesión (más de una por compás, o una lista interminable, es un bucle).
+MAX_DEMO_REPEATS_PER_MEASURE = 1
+MAX_DEMO_REPEATS_PER_SESSION = 3
+
+# Acciones de sección que admiten un único compás (to == from): demostrar u
+# ofrecer la demostración de un compás concreto es justo lo que hacen las
+# reglas de strikes de B-032.6/B-032.7.
+SINGLE_MEASURE_ACTIONS = frozenset({"demonstrate", "offer_demo", "repeat_demo"})
+
+
+def demo_repeat_allowed(repeats_in_measure: int, repeats_in_session: int) -> bool:
+    """True si el alumno todavía puede pedir «otra vez» (B-032.7).
+
+    Pura, para que los topes del tope anti-nag se prueben sin base de datos:
+    la consulta que cuenta `repeat_demo` por compás y por sesión vive en la
+    API; aquí solo manda la comparación contra `MAX_DEMO_REPEATS_*`.
+    """
+    return (
+        repeats_in_measure < MAX_DEMO_REPEATS_PER_MEASURE
+        and repeats_in_session < MAX_DEMO_REPEATS_PER_SESSION
+    )
 
 
 @dataclass
@@ -306,6 +355,15 @@ class AgentService:
                 )
             return
 
+        # 2b. offer_dismiss («Sigo yo», B-032.7): sin params; el compás que
+        # deja de ofrecerse lo saca la API del compás vivo o de la oferta.
+        if action == "offer_dismiss":
+            if params:
+                raise ValidationError(
+                    "action_params_out_of_range", "offer_dismiss no admite parámetros"
+                )
+            return
+
         # 3. Rangos numéricos
         for param, (lo, hi) in PARAM_RANGES.get(action, {}).items():
             if param not in params:
@@ -330,8 +388,8 @@ class AgentService:
                     f"{param} debe ser uno de {sorted(allowed)} (recibido: {params[param]!r})",
                 )
 
-        # 5. Sección de compases (demonstrate/accompany): to > from y máx compases
-        if action in ("demonstrate", "accompany"):
+        # 5. Sección de compases (demonstrate/accompany/ofertas): to > from y máx
+        if action in ("demonstrate", "offer_demo", "repeat_demo", "accompany"):
             self._validate_measure_range(action, params)
 
         # 6. wait: no encadenar más de MAX_CONSECUTIVE_WAIT seguidos
@@ -368,8 +426,9 @@ class AgentService:
     def _validate_measure_range(action: str, params: dict[str, object]) -> None:
         """Valida from_measure/to_measure y el máximo de compases de la sección.
 
-        `demonstrate` admite `to == from`: demostrar un único compás es justo lo
-        que hacen las reglas de strikes de B-032.6.
+        `SINGLE_MEASURE_ACTIONS` admiten `to == from`: demostrar (u ofrecer la
+        demostración de) un único compás es justo lo que hacen las reglas de
+        strikes de B-032.6/B-032.7.
         """
         max_measures = MAX_MEASURES[action]
         try:
@@ -384,7 +443,7 @@ class AgentService:
             raise ValidationError(
                 "action_params_out_of_range", "from_measure no puede ser negativo"
             )
-        if to < frm or (to == frm and action != "demonstrate"):
+        if to < frm or (to == frm and action not in SINGLE_MEASURE_ACTIONS):
             raise ValidationError(
                 "action_params_out_of_range",
                 f"to_measure ({to}) debe ser mayor que from_measure ({frm})",

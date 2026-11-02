@@ -1,5 +1,5 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión.
-// context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 muestra también la oferta del mentor (OfferCard): «Sí, muéstralo», «Sigo yo» y el «Otra vez» tras una demostración ya ejecutada, publicando la decisión en offer-choice.
+// context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS.
 
 "use client";
 
@@ -25,9 +25,12 @@ import {
   runAgentStep,
   sendAgentMessage,
 } from "../../../lib/api-client";
+import { isPendingOffer, offerMessage } from "../../../lib/agent-offer";
 import { publishPianoPiece } from "../../../lib/piece-store";
+import { publishOfferChoice } from "../../../lib/offer-choice";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
+import { OfferCard } from "./OfferCard/OfferCard";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
 
@@ -78,6 +81,42 @@ export function MentorChat({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatIdRef = useRef<string | null>(null);
+
+  /**
+   * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
+   * WebSocket (`agentAction`): una oferta nueva la escribe, una demo la
+   * calla y el `return_control` de una demo aceptada por el alumno abre el
+   * «Otra vez». El flag de aceptación sobrevive a ese ciclo en un ref.
+   */
+  const [repeatAvailable, setRepeatAvailable] = useState(false);
+  const [repeatUsed, setRepeatUsed] = useState(false);
+  const [demoPlaying, setDemoPlaying] = useState(false);
+  /** true entre el clic del alumno y el aviso del backend, para no doblar respuestas. */
+  const [answered, setAnswered] = useState(false);
+  const acceptedRef = useRef(false);
+
+  useEffect(() => {
+    const action = session.agentAction;
+    if (!action) return;
+
+    if (action.action === "offer_demo") {
+      // Oferta nueva (o de otro compás): la tarjeta de repetición se apaga.
+      acceptedRef.current = false;
+      setRepeatAvailable(false);
+      setRepeatUsed(false);
+      setAnswered(false);
+      return;
+    }
+    if (action.action === "demonstrate") {
+      setDemoPlaying(true);
+      return;
+    }
+    setDemoPlaying(false);
+    if (action.action === "return_control" && acceptedRef.current) {
+      // La demo que el alumno pidió acaba de devolver el control: «Otra vez».
+      setRepeatAvailable(true);
+    }
+  }, [session.agentAction]);
 
   // Recupera el chat_id al montar, para continuar la conversación anterior.
   useEffect(() => {
@@ -182,6 +221,27 @@ export function MentorChat({
     }
   }, [busy, session.sessionId]);
 
+  /** «Sí, muéstralo»: la demo se ejecuta con los parámetros guardados del backend. */
+  const acceptOffer = useCallback(() => {
+    acceptedRef.current = true;
+    setAnswered(true);
+    publishOfferChoice("accept");
+  }, []);
+
+  /** «Sigo yo»: la oferta se cierra y ese compás deja de ofrecerse. */
+  const dismissOffer = useCallback(() => {
+    acceptedRef.current = false;
+    setAnswered(true);
+    publishOfferChoice("dismiss");
+  }, []);
+
+  /** «Otra vez»: repite la última demo ejecutada; el backend acota el tope. */
+  const repeatDemo = useCallback(() => {
+    setAnswered(true);
+    setRepeatUsed(true);
+    publishOfferChoice("repeat");
+  }, []);
+
   // El tamaño se decide sobre la respuesta completa (no sobre lo ya revelado)
   // para que no salte de tamaño mientras se escribe.
   const shown = reply ?? exampleMessage;
@@ -221,6 +281,33 @@ export function MentorChat({
           <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
         )}
       </p>
+
+      {/* B-032.7: la oferta del mentor es contenido del chat. Una demo en
+          marcha la calla; la respuesta queda escondida hasta que contesta el
+          backend, y el «Otra vez» solo vive tras una demostración aceptada. */}
+      {session.sessionId !== null && !demoPlaying && (
+        <>
+          {isPendingOffer(session.agentAction) && !answered && (
+            <OfferCard
+              mode="pending"
+              question={offerMessage(session.agentAction)}
+              onAccept={acceptOffer}
+              onDismiss={dismissOffer}
+              onRepeat={repeatDemo}
+            />
+          )}
+          {repeatAvailable && (
+            <OfferCard
+              mode="repeat"
+              question="¿Repetimos la demostración?"
+              repeatUsed={repeatUsed}
+              onAccept={acceptOffer}
+              onDismiss={dismissOffer}
+              onRepeat={repeatDemo}
+            />
+          )}
+        </>
+      )}
 
       {error && (
         <p className={styles.error} role="alert">

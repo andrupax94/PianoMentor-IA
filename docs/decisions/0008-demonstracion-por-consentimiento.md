@@ -3,7 +3,7 @@
 
 # 0008 — La demostración se ofrece, no se impone
 
-- **Estado:** propuesta (2026-11-02)
+- **Estado:** aceptada (2026-11-02) e implementada en B-032.7, pendiente de verificación del usuario. La respuesta del alumno viaja por el WebSocket (`offer_accept`/`offer_dismiss`/`offer_repeat`), no por POST /actions: el programador de la devolución de control vive en el bucle WS y los parámetros los trae el backend desde `agent_decisions` (detalle en la issue B-032.7).
 - **Fecha:** 2026-11-02
 - **Ámbito:** B-032.6 (strikes), que su ejecución concreta concentra la issue B-032.7; convive con el ADR 0004 y la evaluación batch de B-012.2.
 - **Sustituye a:** 0007 **solo en su regla de demostración automática** (`timeout → demonstrate`). El resto del ADR 0007 permanece: el grano sigue siendo el gate, la decisión por compás sigue determinista en `practice_rules.py` y el único punto de decisión sigue siendo `decide()`.
@@ -25,8 +25,8 @@ Además faltaba el «otra vez»: tras una demostración el alumno no puede pedir
 
 - **El backend propone, el alumno decide, el motor ejecuta lo aceptado.** La regla 1 de `practice_rules.py` deja de devolver `demonstrate` y devuelve `offer_demo` (nueva acción de lista blanca), con los mismos parámetros que demostraría.
 - **`offer_demo` no toca el control ni el motor.** Se difunde por el WebSocket (misma pareja `action` + `reason` que una acción ya ejecutada) pero **no** cambia `control = agent`, **no** silencia el transporte, **no** activa gates ni programa `return_control`. El alumno sigue tocando su compás mientras lee la oferta.
-- **`demonstrate` solo llega a ejecutarse si el alumno la pide** (aceptando la oferta vía `POST /actions`, o por el chip «Pedir pista al agente» de B-012.6, que ya existe).
-- **«Otra vez» (repetir la demo):** máximo 1 repetición por compás de una `demonstrate` ya ejecutada, reutilizando sus parámetros guardados, y con topes anti-bucle en `InterventionLimits`.
+- **`demonstrate` solo llega a ejecutarse si el alumno la pide:** aceptando la oferta (el front manda por el WS el sobre `offer_accept`, y el backend ejecuta la demo con los parámetros guardados en `agent_decisions`) o pidiendo la pista con el chip «Pedir pista al agente» de B-012.6, que ya existe.
+- **«Otra vez» (repetir la demo):** máximo 1 repetición por compás de una `demonstrate` ya ejecutada (`offer_repeat` reutiliza los parámetros guardados) y unos pocos por sesión; la repetición se graba como `repeat_demo`, la acción que cuentan los topes.
 - **«Sigo yo»** registra un `offer_dismiss` y ese compás no se vuelve a ofrecer hasta que se acierte un gate o se pase al siguiente.
 
 ## Consecuencias

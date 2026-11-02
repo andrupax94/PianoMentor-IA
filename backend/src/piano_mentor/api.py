@@ -1,4 +1,4 @@
-# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado. POST /sessions/{id}/actions valida y ejecuta la acción del agente (B-012.4–B-012.7): demonstrate/return_control cambian el control y accompany difunde la mano de la IA y sus notas; el WS responde ping con pong para medir la latencia.
+# description: Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado. POST /sessions/{id}/actions valida y ejecuta la acción del agente (B-012.4–B-012.7): demonstrate/return_control cambian el control y accompany difunde la mano de la IA y sus notas; el WS responde ping con pong para medir la latencia. Desde B-032.4-B-032.6 traduce también modos de práctica, posición y señales de práctica; tras cada señal decide en vivo y ejecuta las reglas de strikes (practice_rules), y una demostración de strikes programa su propia return control al acabar la ventana. Con B-032.7 (ADR 0008) el WS lleva además la respuesta del alumno a la oferta (`offer_accept`/`offer_dismiss`/`offer_repeat`), que ejecuta la demo con los parámetros ya guardados y mueve el motor solo cuando el alumno lo pide.
 # context: Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí. El acompañamiento no cambia el control (el estudiante sigue tocando) y sus notas viajan con tiempos relativos al inicio de la sección.
 
 import asyncio
@@ -28,7 +28,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse
 
 from .accompaniment import AccompanimentService
-from .agent import AgentDecision, AgentService, DecisionContext
+from .agent import AgentDecision, AgentService, DecisionContext, demo_repeat_allowed
 from .auth import (
     AuthTokenError,
     create_pm_token,
@@ -40,6 +40,8 @@ from .chat import ChatService, get_fallback_provider
 from .config import settings
 from .database import (
     consume_auth_token,
+    count_agent_action_total,
+    count_agent_actions,
     create_auth_token,
     create_pending_registration,
     find_existing_piece,
@@ -50,6 +52,7 @@ from .database import (
     find_user_by_google_sub,
     find_user_by_verification_token,
     insert_agent_decision,
+    last_pending_offer,
     mark_email_verified,
     max_signal_id_at,
     open_db,
@@ -216,9 +219,12 @@ DEMO_RETURN_MARGIN_S = 1.5
 # Duración de reserva cuando la pieza no deja medir la ventana (sin rejilla).
 DEMO_RETURN_FALLBACK_S = 30.0
 
-# Acciones que las reglas de strikes pueden pedir (B-032.6): la lista blanca
-# está en agent.py; este subconjunto es el que se ejecuta en vivo por WS.
-STRIKE_ACTIONS = ("slow_down", "give_hint", "demonstrate")
+# Acciones que las reglas de strikes pueden pedir (B-032.6/B-032.7): la lista
+# blanca está en agent.py; este subconjunto es el que se ejecuta en vivo por
+# WS. Con ADR 0008 el silencio del gate ya no demuestra: propone (`offer_demo`,
+# que no toca control ni motor), y el alumno decide vía `offer_accept`/
+# `offer_dismiss`/`offer_repeat` (más abajo).
+STRIKE_ACTIONS = ("slow_down", "give_hint", "offer_demo")
 
 
 def _event_measure(event: Mapping[str, object]) -> int | None:
@@ -338,12 +344,19 @@ async def _execute_strike_decision(
     session_id: str,
     decision: AgentDecision,
     state: dict[str, object],
+    *,
+    record_action: str | None = None,
 ) -> dict[str, object]:
-    """Valida, persiste y ejecuta una decisión de strikes en vivo (B-032.6).
+    """Valida, persiste y ejecuta una decisión de strikes en vivo (B-032.6/B-032.7).
 
     Devuelve el estado actualizado de la sesión. Las decisiones inválidas se
     callan (no cuentan como intervención): el front no recibe `agent_action`
     si la acción acabara bloqueando o duplicando (topes de las reglas).
+
+    `record_action` cambia qué se graba en `agent_decisions` cuando la acción
+    ejecutada y la registrada no coinciden (B-032.7): `offer_repeat` se difunde
+    como `demonstrate` (el front reproduce la demo igual) pero el tope del
+    «otra vez» cuenta filas de `repeat_demo`.
     """
     try:
         agent_service.validate_action(decision.action, decision.params, session_state=state)
@@ -363,7 +376,7 @@ async def _execute_strike_decision(
 
     _record_agent_decision(
         session_id,
-        decision.action,
+        record_action if record_action is not None else decision.action,
         decision.params,
         reason=decision.reason,
         measure=_measure_from_params(decision.params, state),
@@ -373,6 +386,132 @@ async def _execute_strike_decision(
         row = find_piece_by_id(str(state.get("piece_id") or ""))
         _schedule_demo_return(session_id, decision, row)
     return new_state
+
+
+async def _handle_offer_event(
+    session_id: str,
+    event: Mapping[str, object],
+    state: dict[str, object],
+) -> dict[str, object]:
+    """Respuesta del alumno a la oferta de demostración (B-032.7/ADR 0008).
+
+    El sobre del cliente es mínimo (`offer_accept`, `offer_dismiss` y
+    `offer_repeat` van sin parámetros): los parámetros de la demostración
+    salen de las decisiones ya grabadas en `agent_decisions` (la oferta sin
+    contestar para aceptar o rechazar, la última demostración para repetir).
+    Con `offer_demo` el control no cambia: quien mueve el motor es siempre
+    una petición del alumno. Los errores de tope viajan como sobre `error`
+    sin cerrar la sesión.
+    """
+    choice = str(event.get("type"))
+
+    if choice == "offer_dismiss":
+        pending = _pending_offer(session_id)
+        if pending is None:
+            # Sin oferta que rechazar no se graba ni se difunde nada: el front
+            # puede mandarlo doble (dos pestañas, un F5…).
+            return state
+        _record_agent_decision(
+            session_id,
+            "offer_dismiss",
+            {},
+            reason="student_declined",
+            measure=_offer_measure(pending),
+        )
+        await _broadcast_agent_action(session_id, "offer_dismiss")
+        return state
+
+    # `offer_accept` ejecuta la demo ofertada tal cual; `offer_repeat` repite
+    # la última demostración ya ejecutada, con sus parámetros guardados.
+    if choice == "offer_accept":
+        pending = _pending_offer(session_id)
+        if pending is None:
+            await _send_offer_error(
+                session_id, "action_not_allowed_now", "No hay una oferta de demostración pendiente"
+            )
+            return state
+        decision = _consented_demo_decision(pending["params_json"], reason="offer_accepted")
+        return await _execute_strike_decision(session_id, decision, state)
+
+    # choice == "offer_repeat"
+    demo = _last_demo_decision(session_id)
+    if demo is None:
+        await _send_offer_error(
+            session_id,
+            "action_not_allowed_now",
+            "No se ha demostrado nada todavía (primero hay que aceptar una oferta o pedir una)",
+        )
+        return state
+
+    with open_db() as conn:
+        repeats_in_measure = count_agent_actions(conn, session_id, demo["measure"]).get(
+            "repeat_demo", 0
+        )
+        repeats_in_session = count_agent_action_total(conn, session_id, "repeat_demo")
+    if not demo_repeat_allowed(repeats_in_measure, repeats_in_session):
+        await _send_offer_error(
+            session_id,
+            "action_not_allowed_now",
+            "Se ha alcanzado el tope de repeticiones («otra vez»): como máximo una "
+            "por compás y unas pocas por sesión",
+        )
+        return state
+
+    decision = _consented_demo_decision(demo["params_json"], reason="offer_repeat")
+    return await _execute_strike_decision(
+        session_id, decision, state, record_action="repeat_demo"
+    )
+
+
+def _pending_offer(session_id: str) -> sqlite3.Row | None:
+    """La oferta de demostración sin responder, con su fila (B-032.7)."""
+    with open_db() as conn:
+        return last_pending_offer(conn, session_id)
+
+
+def _last_demo_decision(session_id: str) -> dict[str, object] | None:
+    """La última demostración ya ejecutada, con su compás y params (B-032.7)."""
+    with open_db() as conn:
+        row = conn.execute(
+            "SELECT measure, params_json FROM agent_decisions"
+            " WHERE session_id = ? AND action = 'demonstrate' ORDER BY id DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+    if row is None:
+        return None
+    return {"measure": row["measure"], "params_json": row["params_json"]}
+
+
+def _offer_measure(row: sqlite3.Row) -> int | None:
+    measure = row["measure"]
+    return int(measure) if isinstance(measure, int) else None
+
+
+def _consented_demo_decision(params_json: str, *, reason: str) -> AgentDecision:
+    """La decisión demostrar con los parámetros guardados del backend (B-032.7).
+
+    El servidor no recalcula la ventana ni el tempo: una oferta aceptada y
+    una repetición ejecutan exactamente lo que se guarda al ofertar.
+    """
+    try:
+        params = json.loads(params_json or "{}")
+    except (TypeError, ValueError):
+        params = {}
+    return AgentDecision(
+        action="demonstrate",
+        params=params,
+        reason=reason,
+        state="demonstrating",
+    )
+
+
+async def _send_offer_error(session_id: str, code: str, message: str) -> None:
+    """Avisa a todas las conexiones de una respuesta que no cabe, sin cerrar nada."""
+    for websocket in list(_session_sockets.get(session_id, ())):
+        try:
+            await websocket.send_json({"type": "error", "code": code, "message": message})
+        except (WebSocketDisconnect, RuntimeError):
+            _unregister_socket(session_id, websocket)
 
 
 def _session_state_or_404(session_id: str) -> dict[str, object]:
@@ -1534,8 +1673,9 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
     """Sesión en tiempo real: estado al entrar y tras cada evento MIDI (B-012.1).
 
     Los mensajes van envueltos en `type` porque el mismo canal lleva las
-    acciones del agente (`agent_action`: `demonstrate`, `accompany` y
-    `return_control`) y el `pong` que mide la latencia del canal (B-012.7).
+    acciones del agente (`agent_action`: `demonstrate`, `accompany`,
+    `return_control` y, desde B-032.7, la oferta `offer_demo` y su respuesta
+    `offer_dismiss`) y el `pong` que mide la latencia del canal (B-012.7).
     """
     await websocket.accept()
     try:
@@ -1548,6 +1688,22 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
     _register_socket(session_id, websocket)
     try:
         await _broadcast_state(session_id, state)
+        # B-032.7: si una oferta de demostración quedó sin responder (p. ej.
+        # tras un F5), se reenvía para que la tarjeta vuelva a la burbuja.
+        pending = _pending_offer(session_id)
+        if pending is not None and state.get("control") == "student":
+            try:
+                params = json.loads(pending["params_json"] or "{}")
+            except (TypeError, ValueError):
+                params = {}
+            await websocket.send_json(
+                {
+                    "type": "agent_action",
+                    "action": "offer_demo",
+                    "reason": "gate_timeout_silence",
+                    **params,
+                }
+            )
         while True:
             try:
                 event = await websocket.receive_json()
@@ -1589,9 +1745,22 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
                     await _broadcast_state(session_id, state)
                 continue
 
+            # Respuesta del alumno a la oferta de demostración (B-032.7):
+            # «Sí, muéstralo», «Sigo yo» y «otra vez». Los mensajes llegan sin
+            # parámetros; el backend ejecuta con los suyos ya guardados y solo
+            # mueve el motor si el alumno lo pidió.
+            if isinstance(event, Mapping) and event.get("type") in (
+                "offer_accept",
+                "offer_dismiss",
+                "offer_repeat",
+            ):
+                state = await _handle_offer_event(session_id, event, state)
+                await _broadcast_state(session_id, state)
+                continue
+
             # Evento de práctica del modo espera (B-032.5): se valida y se
             # guarda. Después las reglas de strikes (B-032.6) deciden en vivo:
-            # bajar el tempo, dar una pista o demostrar el compás.
+            # bajar el tempo, dar una pista o ofrecer la demostración.
             if isinstance(event, Mapping) and event.get("type") == "practice":
                 try:
                     state = practice_service.receive_practice_event(session_id, event)

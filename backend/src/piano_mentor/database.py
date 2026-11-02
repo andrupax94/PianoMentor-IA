@@ -1,5 +1,5 @@
-# description: Conexión SQLite + sqlite-vec (DATABASE_URL), migraciones SQL versionadas, metadatos de piezas, sesiones de práctica, usuarios y registros pendientes (U-005/U-006).
-# context: Persistencia de piezas (B-003.2/B-003.3), de sesiones y eventos (B-012.1) y de usuarios (auth con Google, contraseña y registro por pasos).
+# description: Conexión SQLite + sqlite-vec (DATABASE_URL) en modo WAL y con busy_timeout, migraciones SQL versionadas (0012 practice_signals, 0013 agent_decisions incluidas), open_db() como conexión con el esquema al día, metadatos de piezas (incluye tracks, duration_s, notes_count y tempo desde B-005.4) con búsqueda por content_hash y prioridad del corpus (find_piece_by_hash), y persistencia de sesiones y su log de eventos (insert_session, get_session, update_session_state, insert_session_event, list_session_events de B-012.1), señales de práctica (insert_practice_signal y las consultas de ventana de B-032.6), decisiones del agente (insert_agent_decision, count_agent_action_total y la oferta pendiente last_pending_offer de B-032.7) y las cuentas de usuario: find_user_by_email, upsert_user (U-005) y del registro por pasos (U-006) create_pending_registration, find_user_by_verification_token, mark_email_verified, regenerate_verification_token y update_pending_registration (reenvío).
+# context: Persistencia de piezas (B-003.2/B-003.3), base de la deduplicación de subidas y de las sesiones de B-012. WAL deja leer mientras el WebSocket escribe y busy_timeout (3 s) evita fallos por lock; si el sistema de archivos no admite WAL, SQLite mantiene el modo anterior en vez de fallar.
 
 """Conexión reutilizable a SQLite con sqlite-vec y migraciones SQL versionadas."""
 
@@ -600,6 +600,45 @@ def count_agent_actions(
     ).fetchone()
     counts["__session__"] = int(row[0] if row else 0)
     return counts
+
+
+def count_agent_action_total(conn: sqlite3.Connection, session_id: str, action: str) -> int:
+    """Veces que una acción se ha ejecutado en toda la sesión (B-032.7).
+
+    El tope de sesión del «otra vez» cuenta `repeat_demo` en todos los
+    compases; las demás intervenciones de strikes usan `count_agent_actions`.
+    """
+    row = conn.execute(
+        "SELECT COUNT(*) FROM agent_decisions WHERE session_id = ? AND action = ?",
+        (session_id, action),
+    ).fetchone()
+    return int(row[0] if row else 0)
+
+
+def last_pending_offer(conn: sqlite3.Connection, session_id: str) -> sqlite3.Row | None:
+    """La última oferta de demostración sin resolver (B-032.7).
+
+    `offer_demo` queda grabada en `agent_decisions` como cualquier decisión;
+    se resuelve cuando después llega un `offer_dismiss` («Sigo yo») o una
+    `demonstrate`/`repeat_demo` («Sí, muéstralo»/«Otra vez») de cualquier
+    compás, que es lo mismo que el front manda al aceptar o rechazar. Sin
+    oferta nueva o ya resuelta devuelve `None`.
+    """
+    offer = conn.execute(
+        "SELECT id, measure, params_json FROM agent_decisions"
+        " WHERE session_id = ? AND action = 'offer_demo' ORDER BY id DESC LIMIT 1",
+        (session_id,),
+    ).fetchone()
+    if offer is None:
+        return None
+    answered = conn.execute(
+        "SELECT id FROM agent_decisions"
+        " WHERE session_id = ? AND id > ? AND action IN"
+        " ('offer_dismiss', 'demonstrate', 'repeat_demo')"
+        " ORDER BY id LIMIT 1",
+        (session_id, offer["id"]),
+    ).fetchone()
+    return None if answered is not None else offer
 
 
 AGENT_DECISION_COLUMNS = (

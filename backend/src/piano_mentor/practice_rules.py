@@ -1,7 +1,7 @@
-# description: Reglas deterministas de strikes del modo espera (B-032.6): agrega señales de práctica por compás y decide si el agente actúa (slow_down, give_hint, demonstrate).
-# context: Puro y sin E/S: recibe la ventana de señales (una entrada por gate con su último outcome) y los recuentos de intervenciones ya ejecutadas, y devuelve una decisión del agente o None. El encadenado de `return_control` y las E/S viven fuera de aquí. Importa de `agent` a nivel de módulo; `agent.py` solo importa este módulo dentro de `decide()` para no partir el ciclo.
+# description: Reglas deterministas de strikes del modo espera (B-032.6/B-032.7): agregación por compás (measure_state, último outcome por gate), escalera 2 fallos → slow_down, 3 → give_hint, timeout → offer_demo (decide_strike_actions) y el puente con el agente (StrikeContext + decide_strikes que devuelve la AgentDecision).
+# context: Puro y sin E/S: recibe la ventana de señales (dedup por gate hecha por el servicio) y los recuentos de intervenciones ya ejecutadas (InterventionLimits: caps por compás y por sesión). Importa de agent.py; agent.py solo lo importa dentro de decide(), que es el único punto de decisión. Con ADR 0008 el silencio del gate no demuestra: ofrece la demostración y el alumno decide; los topes de la repetición («otra vez») son de la petición del alumno y viven en agent.py.
 
-"""Reglas deterministas de strikes del modo espera (B-032.6).
+"""Reglas deterministas de strikes del modo espera (B-032.6/B-032.7).
 
 El navegador mide (gate por gate) y aquí se decide por compás. Un compás con
 ocho notas no puede dar ocho strikes: se cuentan **gates distintos** fallados,
@@ -10,15 +10,17 @@ que es el reseteo al acertar.
 
 Reglas (por prioridad; si ninguna aplica, no hay intervención):
 
-    1. `timeout` en la ventana de señales (silencio del alumno) → `demonstrate`
-       del compás.
+    1. `timeout` en la ventana de señales (silencio del alumno) → `offer_demo`
+       del compás: el backend **propone** la demostración y el alumno decide
+       (B-032.7/ADR 0008). El `demonstrate` automático desaparece del bucle.
     2. 3 gates distintos fallados → `give_hint` (como mucho uno por compás).
     3. 2 gates distintos fallados → `slow_down` (factor ya validado por B-012.4).
 
 Topes para no crear bucles de intervención: por compás hay un máximo de
-demostraciones, pistas y bajadas de tempo, y la sesión entera tiene tope. Al
-llegar a un tope las reglas callan y queda la recuperación manual del gate
-(saltarlo), además de las reglas batch de B-012.2.
+ofertas, pistas y bajadas de tempo. Al llegar a un tope las reglas callan y
+queda la recuperación manual del gate (saltarlo), además de las reglas batch
+de B-012.2. La repetición de una demo ya ejecutada («otra vez») es siempre
+iniciada por el alumno y se acota en `agent` (`MAX_DEMO_REPEATS_*`).
 """
 
 from __future__ import annotations
@@ -44,12 +46,13 @@ REASON_STRIKES = "gate_repeated_strikes"
 
 # --- Topes anti-bucle (por compás y por sesión) ------------------------------
 
+# Máximo de `offer_demo` por compás (B-032.7): una oferta no respondida no se
+# repite; se reabre al acertar un gate del compás o al pasar al siguiente.
+MAX_OFFERS_PER_MEASURE = 1
 # Máximo de `slow_down` por compás.
 MAX_SLOWDOWNS_PER_MEASURE = 2
 # Máximo de `give_hint` por compás (coherente con agent.MAX_HINTS_PER_MEASURE).
 MAX_HINTS_PER_MEASURE = 1
-# Máximo de `demonstrate` por compás.
-MAX_DEMOS_PER_MEASURE = 3
 # Máximo de intervenciones de strikes en toda la sesión.
 MAX_STRIKE_ACTIONS_PER_SESSION = 8
 
@@ -75,7 +78,8 @@ class InterventionLimits:
 
     slow_downs_in_measure: int = 0
     hints_in_measure: int = 0
-    demos_in_measure: int = 0
+    # Ofertas ya lanzadas en el compás (B-032.7): una no respondida no se repite.
+    offers_in_measure: int = 0
     session_actions: int = 0
 
 
@@ -107,7 +111,7 @@ def measure_state(
 
 
 def _demo_params(measure: int | None) -> dict[str, object]:
-    """Parámetros de `demonstrate` de un compás (o de la pieza entera sin rejilla)."""
+    """Parámetros de `offer_demo`/`demonstrate` de un compás (o de la pieza entera sin rejilla)."""
     params: dict[str, object] = {**DEFAULT_PARAMS["demonstrate"]}
     if measure is not None:
         params["from_measure"] = measure
@@ -143,9 +147,12 @@ def decide_strike_actions(
     if limits.session_actions >= MAX_STRIKE_ACTIONS_PER_SESSION:
         return None
 
-    # Regla 1: silencio del alumno (timeout del gate) → demuestro el compás.
-    if state.timed_out and limits.demos_in_measure < MAX_DEMOS_PER_MEASURE:
-        return ("demonstrate", _demo_params(state.measure), REASON_TIMEOUT_SILENCE)
+    # Regla 1 (B-032.7): silencio del alumno → se *ofrece* demostrar el compás.
+    # El backend propone; el alumno acepta («Sí, muéstralo») o rechaza
+    # («Sigo yo»). Una oferta no respondida no se repite: el compás pierde el
+    # derecho a otra oferta hasta que toque el gate o pase al siguiente.
+    if state.timed_out and limits.offers_in_measure < MAX_OFFERS_PER_MEASURE:
+        return ("offer_demo", _demo_params(state.measure), REASON_TIMEOUT_SILENCE)
 
     # Regla 2: tres fallos del compás → pista (como mucho una por compás).
     if state.strikes >= STRIKES_FOR_HINT and limits.hints_in_measure < MAX_HINTS_PER_MEASURE:

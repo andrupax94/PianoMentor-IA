@@ -1,4 +1,4 @@
-// description: Traducción de la propuesta del agente a un mensaje para el alumno: AGENT_ACTION_LABELS con la etiqueta en español de cada acción de la lista blanca y hintMessage, que une la etiqueta con el motivo y omite la procedencia (provider/used_fallback); incluye providerLabel, la etiqueta de quién propuso (Groq, Gemini, reglas…) que solo se usa en la línea de diagnóstico del estado de sesión fuera de producción.
+// description: Traducción de la propuesta del agente a un mensaje para el alumno: AGENT_ACTION_LABELS con la etiqueta en español de cada acción de la lista blanca (incluidas offer_demo, offer_dismiss y repeat_demo de B-032.7) y hintMessage, que une la etiqueta con el motivo y omite la procedencia (provider/used_fallback); incluye providerLabel, la etiqueta de quién propuso (Groq, Gemini, reglas…) que solo se usa en la línea de diagnóstico del estado de sesión fuera de producción.
 // context: B-012.6; acompaña al chip «Pedir pista al agente» del chat. La procedencia es diagnóstico del desarrollador, no contenido del estudiante: no se enseña en la burbuja, solo en SessionStatus y fuera de producción.
 
 import type { AgentStepResponse } from "./api-client";
@@ -11,6 +11,10 @@ export const AGENT_ACTION_LABELS: Record<string, string> = {
   demonstrate: "Demostración",
   accompany: "Acompañar",
   return_control: "Devolver el control",
+  // B-032.7: la demostración se ofrece y la repite el alumno, no el bucle.
+  offer_demo: "Ofrece una demostración",
+  offer_dismiss: "Seguir tú",
+  repeat_demo: "Repetir la demostración",
 };
 
 /** Nombre legible de cada proveedor que puede proponer una acción (B-012.6). */
