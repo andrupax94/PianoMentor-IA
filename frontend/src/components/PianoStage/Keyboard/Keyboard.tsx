@@ -1,10 +1,11 @@
 // description: Teclado del escenario: recibe el transporte por props, entrega al SvgKeyboard las teclas sonando y las letras del teclado del PC, y emite por el puerto de entrada lo que se toca con el puntero (B-032.2).
-// context: B-007.4 jubiló el PianoKeyboard temporal: sin vía de inyección, el teclado SVG es el único render. D-002.4 retiró el aviso de nota esperada. Desde B-032.2 el teclado no captura el PC (lo hace TransportProvider) ni suena por su cuenta: publica note_on/note_off en note-input, y de ahí salen el audio y el envío a la sesión. En práctica el rango visible se ensancha para que la cascada pinte la pieza entera.
+// context: B-007.4 jubiló el PianoKeyboard temporal: sin vía de inyección, el teclado SVG es el único render. D-002.4 retiró el aviso de nota esperada. Desde B-032.2 el teclado no captura el PC (lo hace TransportProvider) ni suena por su cuenta: publica note_on/note_off en note-input, y de ahí salen el audio y el envío a la sesión. En práctica el rango visible se ensancha para que la cascada pinte la pieza entera. Desde B-032.9 las sombras del schedule las pinta solo el reproductor cuando suena de verdad, con el schedule audible del modo (la tecla del alumno se hunde solo por su entrada; el resaltado de la cascada no cambia).
 
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { shadowsActive, shadowScheduleFor } from "../../../lib/key-shadows";
 import { soundingKeyIds } from "../../../lib/key-states";
 import {
   emitNoteOff,
@@ -30,9 +31,9 @@ import type { KeyboardProps } from "./Keyboard.types";
 /** Foto del servidor: el mismo objeto, como exige useSyncExternalStore. */
 const SERVER_PC_KEYBOARD = () => EMPTY_PC_KEYBOARD;
 
-export function Keyboard({ player, schedule }: KeyboardProps) {
+export function Keyboard({ player }: KeyboardProps) {
   const [playedIds, setPlayedIds] = useState<string[]>([]);
-  const { position_s, status, notes } = player;
+  const { position_s, status, notes, tempoFactor } = player;
 
   // Letras del PC que pinta el piano: las publica TransportProvider, que es
   // quien captura el teclado (mapa clásico o distribución partida).
@@ -90,7 +91,15 @@ export function Keyboard({ player, schedule }: KeyboardProps) {
 
   // D-002.4: el teclado ya no avisa de la "nota próxima" (eso lo cuenta la
   // cascada); solo se marca la tecla que suena o la que se toca a mano.
-  const sounding = status === "stopped" ? [] : soundingKeyIds(schedule, position_s);
+  // B-032.9: el schedule de las sombras es el audible del modo — en «una mano»
+  // la mano contraria del transporte, en «dos manos» nada — y solo está
+  // activo mientras el transporte suena de verdad: congelado en un gate
+  // (waiting), en preroll o parado no son teclas pulsadas.
+  const shadowSchedule = useMemo(
+    () => shadowScheduleFor(notes, session.practiceMode, session.studentHand, tempoFactor),
+    [notes, session.practiceMode, session.studentHand, tempoFactor],
+  );
+  const sounding = shadowsActive(status) ? soundingKeyIds(shadowSchedule, position_s) : [];
   const active = [...sounding, ...playedIds.filter((id) => !sounding.includes(id))];
 
   return (

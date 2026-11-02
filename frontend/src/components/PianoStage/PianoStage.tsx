@@ -33,7 +33,9 @@ export function PianoStage({
         agentHand={agentHand}
         dimmedHand={dimmedHand}
       />
-      <Keyboard player={player} schedule={schedule} />
+      {/* B-032.9: el teclado compone su schedule de sombras según el modo (el
+          audible que suena de verdad), no el de la pieza entera de la cascada. */}
+      <Keyboard player={player} />
     </section>
   );
 }
