@@ -90,10 +90,14 @@ describe("practice-gate", () => {
     expect(gateWrong(gate, [])).toBe(false);
   });
 
-  it("strikeFor prioriza timeout, luego hit, luego wrong, luego miss", () => {
+  it("strikeFor: el acierto rescata el gate aunque el margen esté agotado", () => {
     const gate = { id: "g1", time_s: 1.0, duration_s: 0.5, pitches: [60], hands: ["left" as const], measure: 0 };
-    expect(strikeFor(gate, [60], true)).toBe("timeout");
+    // El timeout se cuenta cuando vence el margen sin acierto; si el usuario
+    // pulsa la tecla correcta después, el gate se resuelve igual (late hit:
+    // el strike ya salió a B-032.6 y el transporte no puede quedar colgado).
+    expect(strikeFor(gate, [60], true)).toBe("hit");
     expect(strikeFor(gate, [60], false)).toBe("hit");
+    expect(strikeFor(gate, [61], true)).toBe("timeout");
     expect(strikeFor(gate, [61], false)).toBe("wrong");
     expect(strikeFor(gate, [], false)).toBe("miss");
   });

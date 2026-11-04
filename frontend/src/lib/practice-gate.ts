@@ -180,8 +180,11 @@ export function waitTimeoutMs(options: WaitTimeoutOptions = {}): number {
 /**
  * Decide el outcome de una interacción con el gate.
  *
- * - `timeout` tiene prioridad: si se agotó el margen, no importa qué toque.
- * - `hit` si todas las notas esperadas están pulsadas.
+ * - `hit` si todas las notas esperadas están pulsadas: incluso con el margen
+ *   agotado, el acierto tardío rescata el gate y reanuda el transporte (el
+ *   timeout ya se contó como strike cuando venció; dejar bloqueado el gate
+ *   para siempre colgaba la sesión si el usuario revisitaba la tecla tarde).
+ * - `timeout` en cuanto el margen se agota sin acierto (lo consume B-032.6).
  * - `wrong` si hay alguna tecla de más o distinta.
  * - `miss` en cualquier otro caso (todavía no se ha tocado lo esperado).
  */
@@ -190,8 +193,8 @@ export function strikeFor(
   pressed: Iterable<number>,
   timedOut: boolean,
 ): GateOutcome {
-  if (timedOut) return "timeout";
   if (gateSatisfied(gate, pressed)) return "hit";
+  if (timedOut) return "timeout";
   if (gateWrong(gate, pressed)) return "wrong";
   return "miss";
 }
