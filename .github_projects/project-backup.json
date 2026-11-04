@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-02T15:12:17.6677136Z",
+  "exportedAtUtc": "2026-11-04T14:00:30.0230688Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1833,8 +1833,10 @@
         "P2",
         "Legal"
       ],
+      "priority": "P2",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
+      "target date": "2026-11-09",
       "title": "[P-001] Documentación legal: términos, privacidad y consentimiento"
     },
     {
@@ -2037,6 +2039,75 @@
       "status": "Backlog",
       "target date": "2026-11-09",
       "title": "[B-032.10] El chat informa de lo que pasa en la página"
+    },
+    {
+      "content": {
+        "body": "# [B-033] Depuración de práctica: escenarios sintéticos, menú y informe\n\n**Estado:** propuesta (2026-11-04). Nace de pedir cómo probar automáticamente una práctica con distintos tipos de fallo (incluido cero fallos) **a nivel de interfaz, como un macro**, con todo el control del código, para inspeccionar el resultado consolidado de la sesión y construir encima las recomendaciones del agente.\n\n**GitHub:** padre [#110](https://github.com/andrupax94/PianoMentor-IA/issues/110); sub-issues [#111](https://github.com/andrupax94/PianoMentor-IA/issues/111) (B-033.1), [#112](https://github.com/andrupax94/PianoMentor-IA/issues/112) (B-033.2) y [#113](https://github.com/andrupax94/PianoMentor-IA/issues/113) (B-033.3).\n\n## Descripción\n\nEl pipeline de práctica ya es completo de punta a punta (B-032.2 puerto de nota → B-032.5/6 gates y strikes → reglas del agente con intervenciones), pero no hay forma cómoda de **reproducir sesiones fallo a fallo sin tocar la mano**, ni de mirar el **resultado final** de una sesión más allá de la burbuja de estado. Esta vertical introduce datos heramientas de desarrollo (dev-only): un pianista robot que inyecta pulsaciones reales en el puerto de nota, un menú de depuración en la burbuja de estado y el informe de la sesión renderizado en el max del chat.\n\nLas tres partes:\n\n| Sub-issue | Qué entrega | Área |\n|---|---|---|\n| **B-033.1** | Escenarios de práctica sintéticos: el runner inyecta en el puerto de nota y todo el pipeline corre real | Frontend (con el suelo de B-032.6) |\n| **B-033.2** | Menú de depuración en la burbuja de estado (pestañas, dev-only) | Frontend |\n| **B-033.3** | Informe de sesión JSON (endpoint) + modo informe del chat (altura del MentorPanel, minimizar/maximizar) | Backend + Frontend |\n\n## Decisiones\n\n- **El punto de inyección es el puerto de nota (`note-input.ts`, B-032.2).** Del puerto salen el audio, la evaluación del gate, el envío por WS y las reglas del agente: un módulo dev que emite `note_on/note_off` con `source: \"debug\"` arrastra **todo el pipeline real, sin mocks** — el macro pedido.\n- **El robot consulta el snapshot del motor** (el mismo patrón del `gate-controller` en `PracticeBridge`) y actúa en cada gate congelado según el escenario. Nunca adivina: lo que emite queda controlado.\n- **El robot se suspende mientras la IA tiene el piano** (misma puerta que bloquea el note_on interno): las intervenciones de strikes (pista, tempo lento, demo) se respetan y el escenario continúa al devolver el control.\n- **Dev-only de raíz:** todo el bloque vive tras el mismo flag que ya oculta la procedencia (`NODE_ENV !== \"production\"`). En producción ni bundle ni puerta.\n- **La burbuja de estado alberga el menú** (pestañas Estado/Depurar): crece un poco (~340 px de ancho, alto máximo ~70 vh) sin tapar la mayoría de la pantalla.\n- **El informe va a la burbuja del chat, no a la burbuja de estado.** El chat gana un «modo informe»: botón minimizar/maximizar arriba a la derecha dentro de la burbuja; maximizado ocupa **todo el alto del MentorPanel ocultando el resto de sus elementos** (y un aumento de width queda para después, apuntado pero no en esta vertical).\n\n## Criterios de aceptación (globales)\n\n- [ ] Al menos un escenario «0 fallos» que recorre una pieza entera sin disparar ninguna intervención.\n- [ ] Al menos un escenario de fallo cuya escalera de terciencias (B-032.6) se ve dispararse en vivo.\n- [ ] El informe JSON de la sesión contiene las señales y decisiones producidas por el escenario ejecutado.\n- [ ] Nada de la vertical aparece en un build de producción.\n\n## Dependencias\n\n**B-032.2** (puerto de nota), **B-032.5** (snapshot de gates) y **B-032.6** (señales y decisiones persistidas). Las recomendaciones del agente (trabajo futuro) se apoyan en el informe de B-033.3.\n\n## Riesgos\n\n- **El robot vs. la demo del agente:** sin suspensión limpiar, el robot pisa la demostración. La suspensión es requisito, no detalle.\n- **No contamina el bundle de producción:** el flag debe aplicarse en los imports, no solo en el render.\n- **El informe crece sin control** (señales crudas): limitar y paginar desde el primer día.\n",
+        "number": 110,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-033] Depuración de práctica: escenarios sintéticos, menú y informe",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/110"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhF_hqE",
+      "labels": [
+        "Frontend",
+        "P1",
+        "Semana 5"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-033] Depuración de práctica: escenarios sintéticos, menú y informe"
+    },
+    {
+      "content": {
+        "body": "# [B-033.1] Escenarios de práctica sintéticos sobre el puerto de nota\n\n**Estado:** planificada (2026-11-04). Padre: **B-033** ([#110](https://github.com/andrupax94/PianoMentor-IA/issues/110)); issue en [#111](https://github.com/andrupax94/PianoMentor-IA/issues/111).\n\n## Descripción\n\nUn «pianista robot» para desarrollo (`lib/practice-scenarios.ts`, módulo puro, sin DOM): escucha el estado del transporte y en cada gate congelado **emite pulsaciones reales en el puerto de entrada de notas** (`note-input.ts`, B-032.2, con `source: \"debug\"`). Del puerto salen el audio local, la evaluación del gate, el envío WS y las reglas de strikes: el macro recorre el **pipeline completo real, sin mocks**.\n\n## Escenarios (v1)\n\n| Escenario | Qué hace el robot | Qué ejercita |\n|---|---|---|\n| `perfecta` | pulsa las notas del gate en el momento | flujo sin fallos (0 fallos), sin intervenciones |\n| `siempre_tarde` | espera > margen (2 pulsos) y luego acierta | strike `timeout` + rescate tardío del gate |\n| `siempre_equivocada` | pulsa una tecla fuera del gate | `wrong` → strikes → escalera (pista / tempo lento / demo) |\n| `nunca_press` | no pulsa nada | timeouts puros → cascada de strikes → demo del agente |\n| `acorde_incompleto` | pulsa una parte del acorde | gates de acorde |\n| `mezcla` (semilla) | hit / tarde / equivocada con proporciones fijas, determinista | lo realista, reproducible |\n\n## Alcance\n\n- **Runner puro:** `createPracticeScenarioRunner({ getSnapshot, clock, submit })` con `submit` apoyado en `emitNoteOn/emitNoteOff` del puerto; poll propio (~100 ms) encima del snapshot del motor: `status === \"waiting\" && currentGate` decide la acción por gate (determinista por id de gate + semilla).\n- **Duración de las teclas sintéticas:** `noteOn` → mantener `noteOff` tras una fracción de la duración del gate para soltarla limpia (y no hundir teclas de más en B-032.9).\n- **Suspensión durante la IA al piano:** si el control efectivo es del agente (misma referencia que `note-input` usa para su puerta), el robot se calla; al devolverse el control, continúa donde el transporte esté.\n- **Control del transporte:** acciones de arrancar/parar/relanzar delegadas en el transporte que ya existe (`transportRef` en `PracticeBridge`), no reinvención.\n- **Montaje dev-only en `PracticeBridge`:** el runner existe solo con `NODE_ENV !== \"production\"`; en producción ni se importa (el flag en los imports, no en el render).\n\n## Criterios de aceptación\n\n- [ ] Los 6 escenarios completan una pieza corta (p16 o p01) y terminan sin colgar el transporte.\n- [ ] `perfecta` no genera ningún strike ni intervención; los escenarios de fallo disparan la escalera de B-032.6 con sus topes.\n- [ ] Reiniciar el `mezcla` con la misma semilla reproduce exactamente las mismas señales.\n- [ ] Con la demo del agente en marcha, el robot no emite ni una tecla.\n- [ ] Tests con reloj falso del runner (igual que `gate-controller`).\n\n## Dependencias\n\n**B-032.2** (puerto de nota), **B-032.5** (espera y snapshot de gates), **B-032.6** (señales, decisiones y topes).\n\n## Límites conocidos\n\n- El robot no usa Web MIDI ni entradas reales: señales con `source: \"debug\"` siempre.\n- No cronometra timing fino (±100 ms de B-012.2): lo que importa son los outcomes, no el milis exacto.\n",
+        "number": 111,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-033.1] Escenarios de práctica sintéticos sobre el puerto de nota",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/111"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhF_h7A",
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-033.1] Escenarios de práctica sintéticos sobre el puerto de nota"
+    },
+    {
+      "content": {
+        "body": "# [B-033.2] Menú de depuración en la burbuja de estado\n\n**Estado:** planificada (2026-11-04). Padre: **B-033** ([#110](https://github.com/andrupax94/PianoMentor-IA/issues/110)); issue en [#112](https://github.com/andrupax94/PianoMentor-IA/issues/112).\n\n## Descripción\n\nLa burbuja de estado (`SessionStatusLive`: FAB «i» + panel de estado) gana, **solo en desarrollo**, un menú de depuración con pestañas — el panel puede crecer un poco pero no mucho: la pantalla sigue viéndose casi entera.\n\n## Alcance\n\n- **Pestañas dev-only:** `Estado` (lo de hoy) y `Depurar`. El strip de pestañas solo se pinta con `NODE_ENV !== \"production\"`; en producción la burbuja queda exactamente como está.\n- **Tamaño del panel:** de 260 px a ~340 px de ancho y `max-height` ~70 vh. El widget sigue anclado en la esquina inferior derecha.\n- **Pestaña «Depurar»** (consume B-033.1):\n  - lista de escenarios con descripción corta y sus `submit`/`stop`;\n  - log en vivo de señales: una línea por evento de práctica emitido/consumido (gate, outcome, compás) y de intervenciones del agente (regla disparada), en el orden del WS o del store local;\n  - estado del robot (activo/suspendido por la IA al piano) para saber qué está pasando;\n  - botones parar/relanzar; reiniciar la sesión al lanzar un escenario (stop + play desde 0) para que cada corrida sea limpia.\n- **No gobierna el transporte directamente:** lo que toca el transporte lo hace por las vías existentes; el menú solo dispara y observa.\n- **Accesibilidad:** las pestañas con `role=\"tablist\"` y `aria-selected`; el log vive en un `role=\"log\"` (aria-live polite) con límite de líneas (los más viejos se descartan).\n\n## Criterios de aceptación\n\n- [ ] Con `next dev` se pinta el strip y las dos pestañas; con `next build` (producción) no existe el código del menú.\n- [ ] Lanzar `siempre_tarde` sobre una sesión real reproduce strikes + rescate tardío visibles en el log y en la escalera de B-032.6.\n- [ ] Parar el escenario deja la sesión totalmente manual de nuevo.\n- [ ] El panel no tapa más de ~un tercio de la pantalla a viewport de 1280×800.\n\n## Dependencias\n\n**B-033.1** (escenarios). Reusa `SessionStatusLive`/`SessionStatus` sin variantar su contrato público.\n\n## Límites conocidos\n\n- El log es volátil (memoria del componente): el histórico completo vive en el backend y se consulta con B-033.3.\n- Sin control de varios escenarios a la vez: uno activo, lanzar otro para el actual.\n",
+        "number": 112,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-033.2] Menú de depuración en la burbuja de estado",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/112"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhF_iBU",
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-033.2] Menú de depuración en la burbuja de estado"
+    },
+    {
+      "content": {
+        "body": "# [B-033.3] Informe de sesión: endpoint JSON + modo informe del chat\n\n**Estado:** planificada (2026-11-04). Padre: **B-033** ([#110](https://github.com/andrupax94/PianoMentor-IA/issues/110)); issue en [#113](https://github.com/andrupax94/PianoMentor-IA/issues/113).\n\n## Descripción\n\nEl resultado consolidado de una sesión de práctica tiene que poder mirarse **completamente** y en un solo sitio, para trabajar encima las recomendaciones del agente. Dos piezas:\n\n1. **Backend:** `GET /api/v1/sessions/{id}/practice-report` — JSON consolidado de la sesión.\n2. **Front:** el **chat del mentor** gana un «modo informe» donde ese JSON se pinta entero y copiable.\n\n## Alcance\n\n### Endpoint (B-032.6 ya persiste la materia prima)\n\n- `GET /api/v1/sessions/{id}/practice-report` con permisos como el resto de los endpoints de sesión (404 `session_not_found`).\n- Cuerpo del informe:\n  - **Sesión:** id, modo (`mode`), mano (`hand`), pieza (`piece_id` / título / tempo), ventana temporal, duración práctica.\n  - **Agregación por compás:** por cada compás con actividad, conteos por outcome (`hit`/`miss`/`wrong`/`timeout`) y el orden en que llegaron — es lo que alimentan las reglas (`measure_state`, último outcome por gate).\n  - **Intervenciones del agente:** cada `agent_decision` (regla que se disparó, momento, `baseline_signal_id`, tope consumido) en orden temporal.\n  - **Señales crudas:** la lista `practice_signals` paginada/truncada con un parámetro (`limit`, por defecto acotado) para que el informe no explote.\n  - **Hueco para la evaluación** (B-032.3): la sección queda reservada (`evaluation: null` por ahora) para llenarla cuando la evaluación por compás llegue.\n- Determinista: el mismo id de sesión devuelve siempre el mismo informe (orden estable de listas).\n\n### Modo informe del chat\n\n- La burbuja del chat (`MentorChat` en `MentorPanel`) gana un botón de **minimizar/maximizar arriba a la derecha** (icon + `aria-expanded`).\n- **Maximizado:** el chat ocupa **todo el alto del MentorPanel** y **se ocultan los demás elementos del panel** (solo queda el chat con el informe visible abierta); se vuelve con el mismo botón.\n- Dentro del modo informe: el JSON del informe con formato (sangrado legible, sin fantasías de resaltado en v1), botones **copiar** (clipboard) y **descargar** (`.json`), y el fetch es **on-demand** (abrir el modo hace el fetch; recargar el informe explícito).\n- **Dev-only por ahora** (el mismo flag de la vertical: `NODE_ENV !== \"production\"`): las recomendaciones del agente deciden después si es cara de producción.\n- El ancho del MentorPanel **no** toca todavía; a lo máximo, la altura. Si la línea se corta fea, es un ajuste posterior (CSS del panel, no de esta vertical).\n\n## Criterios de aceptación\n\n- [ ] Ejecutar un escenario (B-033.1/.2) y abrir el informe: aparecen las señales y decisiones de esa corrida.\n- [ ] El pedido de informe de una sesión inexistente responde 404 con código estable.\n- [ ] El informe con muchas señales no desborda el chat: truncado por defecto y «descargar» da todo.\n- [ ] Maximizar/minimizar del chat funciona con teclado y el resto del panel reaparece al minimizar.\n- [ ] El endpoint está testeado (agregación, truncado, permisos).\n\n## Dependencias\n\n**B-032.6** (tablas `practice_signals`/`agent_decisions` y agregación por compás), **B-032.3** (hueco de la evaluación). Solo lo consume la pestaña/mode del front de esta misma issue.\n\n## Límites conocidos\n\n- El informe es lectura de lo ya persistido: no calcula nuevas métricas pedagógicas.\n- Sin.streaming: el informe se pide en el momento que se quiere mirar.\n",
+        "number": 113,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-033.3] Informe de sesión: endpoint JSON + modo informe del chat",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/113"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhF_iH8",
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-033.3] Informe de sesión: endpoint JSON + modo informe del chat"
     }
   ],
   "notes": [
