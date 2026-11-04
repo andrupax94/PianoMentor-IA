@@ -9,4 +9,6 @@ export interface PlaybackControlsProps {
   onForward?: () => void;
   /** true mientras suena: cambia el icono (▶/⏸) y su etiqueta accesible. */
   isPlaying?: boolean;
+  /** true cuando la partitura/tempo están listos; evita disparar play antes de cargar. */
+  ready?: boolean;
 }

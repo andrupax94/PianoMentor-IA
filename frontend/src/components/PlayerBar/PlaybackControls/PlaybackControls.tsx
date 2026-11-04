@@ -11,6 +11,7 @@ export function PlaybackControls({
   onStop,
   onForward,
   isPlaying = false,
+  ready = true,
 }: PlaybackControlsProps) {
   return (
     <div className={styles.controls} role="group" aria-label="Controles de reproducción">
@@ -22,6 +23,7 @@ export function PlaybackControls({
         type="button"
         aria-label={isPlaying ? "Pausar" : "Reproducir"}
         onClick={onTogglePlay}
+        disabled={!ready}
       >
         <span> {isPlaying ? "⏸" : "▶"}</span>
       </button>

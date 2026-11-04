@@ -7,7 +7,8 @@ import AppFooter from "../../components/AppFooter/AppFooter";
 import { AppHeader } from "../../components/AppHeader/AppHeader";
 import { MentorPanel } from "../../components/MentorPanel/MentorPanel";
 import { PlaybackArea } from "../../components/PlaybackArea/PlaybackArea";
-import { SoundLoadingOverlay } from "../../components/SoundLoadingOverlay/SoundLoadingOverlay";
+import { AudioLoadingBridge } from "../../components/AudioLoadingBridge";
+import { LoadingOverlay } from "../../components/LoadingOverlay/LoadingOverlay";
 import { TransportProvider } from "../../components/TransportProvider/TransportProvider";
 import styles from "./layout.module.css";
 
@@ -21,7 +22,8 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           <MentorPanel />
         </div>
         {children}
-        <SoundLoadingOverlay />
+        <AudioLoadingBridge />
+        <LoadingOverlay />
       </TransportProvider>
       <AppFooter />
     </div>

@@ -80,6 +80,7 @@ export function PlayerBar({
         onStop={stop}
         onForward={() => seek(position_s + SKIP_S)}
         isPlaying={isPlaying}
+        ready={duration_s > 0}
       />
       <span></span>
       <TempoMeasure
