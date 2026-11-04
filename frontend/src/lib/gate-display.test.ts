@@ -1,4 +1,4 @@
-// description: Tests del rebote visual del gate (B-032.8): sobresalto 25 % de la duración recortado a [150, 500] ms, avance lineal hasta el margen, rebobinado cuadrático ease-out de 150 ms, líneas quietas después; hit y tecla errónea solo desvanecen el offset (150 ms), sin tocar el transporte.
+// description: Tests del rebote visual del gate (B-032.8): sobresalto 40 % de la duración recortado a [150, 500] ms, avance lineal hasta el margen, rebobinado cuadrático ease-out de 150 ms, líneas quietas después; hit y tecla errónea solo desvanecen el offset (150 ms), sin tocar el transporte.
 // context: Módulo puro sin DOM; el motor y la controladora de gates lo consumen. En waiting el schedule corre 1 s escalado por cada s de reloj, así que el sobresalto avanza a la misma velocidad que venía la barra.
 import { describe, expect, it } from "vitest";
 
@@ -13,18 +13,18 @@ import {
 } from "./gate-display";
 
 describe("gateOvershoot_s", () => {
-  it("es el 25 % de la duración de la nota", () => {
-    expect(gateOvershoot_s(1.0)).toBeCloseTo(0.25, 12);
-    expect(gateOvershoot_s(2.0)).toBeCloseTo(GATE_OVERSHOOT_MAX_S, 12); // 0,5 > recorte
+  it("es el 40 % de la duración de la nota", () => {
+    expect(gateOvershoot_s(1.0)).toBeCloseTo(0.4, 12);
+    expect(gateOvershoot_s(2.0)).toBeCloseTo(GATE_OVERSHOOT_MAX_S, 12); // 0,8 > recorte
   });
 
   it("queda recortado a [150 ms, 500 ms]", () => {
-    // Negra a 120 BPM (0,5 s): el 25 % da 125 ms → recortado al mínimo.
-    expect(gateOvershoot_s(0.5)).toBeCloseTo(GATE_OVERSHOOT_MIN_S, 12);
-    const forTolerance = 0.61; // 25 % = 152,5 ms → dentro del rango
+    // Corchea a 120 BPM (0,25 s): el 40 % da 100 ms → recortado al mínimo.
+    expect(gateOvershoot_s(0.25)).toBeCloseTo(GATE_OVERSHOOT_MIN_S, 12);
+    const forTolerance = 0.4; // 40 % = 160 ms → dentro del rango
     expect(gateOvershoot_s(forTolerance)).toBeGreaterThan(GATE_OVERSHOOT_MIN_S);
     expect(gateOvershoot_s(4.0)).toBeCloseTo(GATE_OVERSHOOT_MAX_S, 12);
-    expect(GATE_OVERSHOOT_RATIO).toBe(0.25);
+    expect(GATE_OVERSHOOT_RATIO).toBe(0.4);
     expect(GATE_REWIND_S).toBeCloseTo(0.15, 12);
   });
 

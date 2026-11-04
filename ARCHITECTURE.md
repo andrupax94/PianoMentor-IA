@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-02 17:09 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-04 13:10 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1148,6 +1148,7 @@ piano-mentor-ai/
 ├── frontend/src/app/api/auth/[...nextauth]/route.ts
 ├── frontend/src/app/globals.css
 ├── frontend/src/app/grid-fractions.css
+├── frontend/src/app/icon.svg
 ├── frontend/src/app/layout.tsx
 ├── frontend/src/app/library/
 ├── frontend/src/app/library/page.tsx
@@ -1157,6 +1158,7 @@ piano-mentor-ai/
 ├── frontend/src/app/recuperar/
 ├── frontend/src/app/recuperar/[token]/
 ├── frontend/src/app/recuperar/[token]/page.tsx
+├── frontend/src/app/recuperar/[token]/ResetPasswordClient.tsx
 ├── frontend/src/app/recuperar/[token]/ResetPasswordForm.tsx
 ├── frontend/src/app/recuperar/AuthShell.module.css
 ├── frontend/src/app/recuperar/AuthShell.tsx
@@ -1773,8 +1775,8 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/practice_rules.py` | Reglas deterministas de strikes del modo espera (B-032.6/B-032.7): agregación por compás (measure_state, último outcome por gate), escalera 2 fallos → slow_down, 3 → give_hint, timeout → offer_demo (decide_strike_actions) y el puente con el agente (StrikeContext + decide_strikes que devuelve la AgentDecision). | Puro y sin E/S: recibe la ventana de señales (dedup por gate hecha por el servicio) y los recuentos de intervenciones ya ejecutadas (InterventionLimits: caps por compás y por sesión). Importa de agent.py; agent.py solo lo importa dentro de decide(), que es el único punto de decisión. Con ADR 0008 el silencio del gate no demuestra: ofrece la demostración y el alumno decide; los topes de la repetición («otra vez») son de la petición del alumno y viven en agent.py. |
 | `backend/tests/test_practice_rules.py` | Tests de practice_rules.py (B-032.6/B-032.7): agregación por compás con el último outcome por gate, dedup, escalera de umbrales con la oferta de demostración, topes anti-bucle y decisiones completas. | módulo puro: los tests no tocan SQLite ni WebSocket. |
 | `docs/decisions/0007-gate-strikes-single-decision.md` | ADR 0007: el grano del fallo lo mide el navegador (gate) y la decisión es por compás, determinista, con un solo punto de decisión (decide()); topes anti-bucle, return_control programado y rearme del gate al compás. | Cierre de la vertical B-032 (B-032.6); convive con el ADR 0004 y la evaluación batch de B-012.2. |
-| `frontend/src/lib/gate-display.ts` | Visualización pura del gate esperado (B-032.8): el rebote de la cascada — sobrepasa la línea un margen proporcional a la nota (25 %, recortado a [150, 500] ms), rebobina suave (easing cuadrático, 150 ms) y queda quieta en el punto de pulsación; decayOffset_s desvanece el exceso del hit temprano y el retorno de una tecla errónea. | Sin DOM ni React; el motor (displayPosition_s) y el gate-controller lo consumen. El transporte queda congelado en gate.time_s: aquí solo se calcula el offset que se pinta. En waiting el schedule corre 1 segundo escalado por cada segundo de reloj, así que el sobresalto avanza a la misma velocidad que venía la barra. |
-| `frontend/src/lib/gate-display.test.ts` | Tests del rebote visual del gate (B-032.8): sobresalto 25 %/recorte, avance lineal, rebobinado cuadrático, hold en la línea y desvanecimientos del hit/render del wrong. | Módulo puro sin DOM; el motor y el gate-controller lo consumen. |
+| `frontend/src/lib/gate-display.ts` | Visualización pura del gate esperado (B-032.8): el rebote de la cascada — sobrepasa la línea un margen proporcional a la nota (40 %, recortado a [150, 500] ms), rebobina suave (easing cuadrático, 150 ms) y queda quieta en el punto de pulsación; decayOffset_s desvanece el exceso del hit temprano y el retorno de una tecla errónea. | Sin DOM ni React; el motor (displayPosition_s) y el gate-controller lo consumen. El transporte queda congelado en gate.time_s: aquí solo se calcula el offset que se pinta. En waiting el schedule corre 1 segundo escalado por cada segundo de reloj, así que el sobresalto avanza a la misma velocidad que venía la barra. |
+| `frontend/src/lib/gate-display.test.ts` | Tests del rebote visual del gate (B-032.8): sobresalto 40 %/recorte, avance lineal, rebobinado cuadrático, hold en la línea y desvanecimientos del hit/render del wrong. | Módulo puro sin DOM; el motor y el gate-controller lo consumen. |
 | `frontend/src/lib/key-shadows.ts` | Sombras de teclas que pinta el reproductor (B-032.9): qué schedule ilumina el teclado según el modo — observar/demo la pieza entera, una mano la contraria del transporte, dos manos nada — y solo mientras suena de verdad (shadowsActive: solo playing). | Puro y sin DOM; lo consume Keyboard. La tecla del alumno se hunde solo por su entrada (el puerto de nota), nunca por el schedule: reutiliza el audible de B-032.4 y no duplica el filtro. La cascada no cambia (sigue con la pieza entera). |
 | `frontend/src/lib/key-shadows.test.ts` | Tests de las sombras de teclas (B-032.9): schedule por modo (observar entero, una mano la contraria, dos manos vacío) y shadowsActive solo en playing (un gate congelado no marca nada aunque la posición esté en la nota). | Módulo puro sin DOM; la tecla del alumno entra por el puerto de nota (playedIds). |
 

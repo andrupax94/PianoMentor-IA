@@ -453,7 +453,7 @@ describe("PlaybackEngine", () => {
 // --- B-032.8: la cascada rebota en el gate -----------------------------------
 
 /**
- * Partitura con gates de 1 s de duración (el 25 % cae dentro del rango, sin
+ * Partitura con gates de 1 s de duración (el 40 % cae dentro del rango, sin
  * recortes): tras el hit la barra sigue con el exceso que desvanece.
  */
 function makeGateHarness(): Harness {
@@ -475,7 +475,7 @@ function freezeElapsed(harness: Harness, seconds: number): void {
 }
 
 describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
-  it("en waiting la cascada sobrepasa la línea durante el margen (25 % de la nota)", () => {
+  it("en waiting la cascada sobrepasa la línea durante el margen (40 % de la nota)", () => {
     const harness = makeGateHarness();
     expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 6);
 
@@ -488,9 +488,9 @@ describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
 
   it("rebobina suave hasta la línea y se queda quieta", () => {
     const harness = makeGateHarness();
-    freezeElapsed(harness, 0.25); // cima del sobresalto
+    freezeElapsed(harness, 0.4); // cima del sobresalto (40 % de 1 s)
     freezeElapsed(harness, 0.075); // mitad del rebobinado: ease-out quad
-    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0 + 0.0625, 9);
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0 + 0.4 * 0.25, 9);
 
     freezeElapsed(harness, 0.075); // rebobinado terminado
     expect(harness.engine.displayPosition_s()).toBeCloseTo(1.0, 9);
@@ -553,11 +553,11 @@ describe("PlaybackEngine — rebote del gate (B-032.8)", () => {
     harness.advance(0.3);
     expect(harness.engine.displayPosition_s()).toBeCloseTo(1.3, 9);
 
-    harness.engine.skipGate(); // gate siguiente: 3,0 con duración 0,5 → margen 0,15
+    harness.engine.skipGate(); // gate siguiente: 3,0 con duración 0,5 → margen 40 % = 0,2
     expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0, 9);
-    harness.advance(0.2);
-    // 0,2 s > margen 0,15: rebobinado al 33 % → queda el 25 % del margen por encima.
-    expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0 + 0.15 * (4 / 9), 9);
+    harness.advance(0.25);
+    // 0,25 s > margen 0,2: rebobinado al 33 % → queda 4/9 del margen por encima.
+    expect(harness.engine.displayPosition_s()).toBeCloseTo(3.0 + 0.2 * (4 / 9), 9);
   });
 
   it("un tick que pisa el gate por poco ms congela en él y no en el siguiente (B-032.8)", () => {
