@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-04T14:00:30.0230688Z",
+  "exportedAtUtc": "2026-11-04T14:35:19.1121986Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -2108,6 +2108,48 @@
       "status": "Backlog",
       "target date": "2026-11-09",
       "title": "[B-033.3] Informe de sesión: endpoint JSON + modo informe del chat"
+    },
+    {
+      "content": {
+        "body": "# [B-034] Entrada acústica: practicar con un piano de verdad por micrófono\n\n**Estado:** aparcada (2026-11-04). Decisión del usuario: **fuera del MVP** — primero el informe de B-033 y el cierre del MIDI (B-035). Este documento conserva el análisis completo para retomarla cuando toque; no se implementa aún.\n\n**GitHub:** [#114](https://github.com/andrupax94/PianoMentor-IA/issues/114) — issue única sin subs.\n\n## Descripción\n\nPracticar con el piano real sin cables: la tablet «escucha» el piano por micrófono y el pipeline evalúa como con cualquier otra entrada. El motor **no necesita cambiar ni una línea** — el diseño de B-032.2 paga aquí: el puerto de nota (`note-input.ts`) es el único conducto de todo (gates, WS, reglas del agente, sombras del teclado), y una entrada nueva es **solo un productor más** con su `source`.\n\n## El análisis (2026-11-04)\n\n### Lo fácil\n\n| Pieza | Dificultad | Nota |\n|---|---|---|\n| Captura (getUserMedia + AudioWorklet) | Baja | permiso del micrófono; funciona en tablet |\n| Detección de pitch monofónica (YIN/autocorrelación) | Media | TS puro; testeable deterministamente con señal sintética |\n| Onset/offset (envelope + umbral por ruido) | Media | la **calibración** es la parte con más UX (ruido del salón, sensibilidad) |\n| Integración al puerto + UI (permiso, medidor, toggle) | Baja | el patrón ya existe (Web MIDI B-032.2) |\n\nPara los **gates** el timing casi no importa: `gateSatisfied` pregunta «¿están los pitches esperados pulsados?», no milisegundos — el detector no necesita latencia de laboratorio.\n\n### Los bloqueos honestos\n\n1. **Plasma vs. micrófono (producto):** con la tablet sonando el acompañamiento del agente por altavoces, **el mic también oye la mano de la IA** — notas falsas contadas como aciertos o equivocadas. Mitigaciones: auriculares (mata la gracia del «sin cable»), volumen muy bajo, o modo acústico con acompañamiento silencioso. Es decisión de producto, no de código.\n2. **Polifonía (técnica, muy alta):** acordes y ambas manos a la vez require CQT/NMF y dan resultados inestables — no es MVP.\n3. **Variabilidad de hardware:** tablet/speaks/micrófonos distintos nunca harán esto «un día».\n\n### Veredicto y alcance si se retoma\n\n- **MVP completo (polifonía, ambas manos, sin auriculares): descartado.** Vertical entera de audio.\n- **MVP-lite si algún día se pide:** «modo acústico» **monofónico** para «una mano» en piezas sin acordes, con calibración y aviso del uso de auriculares/volumen — esfuerzo comparable a B-033.1+B-033.2 juntas, más el factor de hardware real.\n\n### Alternativa que ya existe hoy (y que cubre el «sin cable»)\n\nUn **teclado Bluetooth MIDI**: entra por `source: \"midi\"` (web-midi.ts, B-032.2) sin tocar nada del motor; Web MIDI funciona en Android+Chrome y en PC con Chrome/Edge (no en Safari/iPad ni Firefox — ver B-035 para la validación y el indicador). Para practicar con sonido real sin cables, es el camino barato y ya integrado.\n\n## Alcance si se retoma (apunte)\n\n- `source: \"mic\"` productor dev/prod con AudioWorklet en un módulo puro testable (detector alimentado con muestras sintéticas: seno puro con envolvente, acorde para negar manejo polifónico).\n- Paso de calibración: silencio medido (umbral de ruido) + nota de referencia (¿octava estándar? transposición si acaso).\n- UI: permiso, medidor de nivel, toggle «modo acústico», aviso de auriculares.\n- Límites documentados desde el día 1: monofónicas, una mano, sin acompañamiento por altavoz.\n\n## Dependencias\n\n**B-032.2** (puerto de nota). Nada del motor.\n\n## Límites conocidos\n\n- No concede timing fino (±100 ms de B-012.2): los gates no lo piden; la puntación futura sí podría.\n- La calidad de detección depende del piano y del salón: fuera del control del software.\n",
+        "number": 114,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-034] Entrada acústica (micrófono) para practicar con piano real",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/114"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhGAH_0",
+      "labels": [
+        "Frontend",
+        "Semana 5",
+        "P2"
+      ],
+      "priority": "P2",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-034] Entrada acústica (micrófono) para practicar con piano real"
+    },
+    {
+      "content": {
+        "body": "# [B-035] MIDI con hardware real: estado visible y validado\n\n**Estado:** planificada (2026-11-04). Es acabado del MVP, no investigación: el adaptador de Web MIDI existente (B-032.2) está cableado extremo a extremo pero **nunca ha tocado un teclado físico**, y el indicador de la cabecera no refleja el estado real.\n\n**GitHub:** [#115](https://github.com/andrupax94/PianoMentor-IA/issues/115) — issue única sin subs.\n\n## Descripción\n\nEl camino USB/Bluetooth-MIDI está al 90 %: el adaptador parsea, reconnecta en hot-plug y entrega al puerto de nota (`source: \"midi\"`, del que salen gates, WS, sombras y reglas del agente). Faltan dos cosas: **que el día a día lo confirme con hardware** y un **estado visible y honesto**. Todo ello sin selector ni cambio manual: el cambio es automático porque todos los productores (PC, piano en pantalla, MIDI) alimentan el mismo puerto — conectas el teclado y ya fluye, sin soporte del navegador no pasa nada y las demás entradas siguen.\n\n## Alcance\n\n1. **Almacén de estado MIDI** (nuevo módulo puro al estilo `session-store`/`pc-keyboard-store`): soporte del navegador, permiso concedido/denegado, número y nombre del primer teclado conectado, cambios por hot-plug de `MIDIAccess`. Sincronizado por `TransportProvider` (el mismo effect que ya pide el acceso y engancha los inputs).\n2. **Indicador honesto en `MidiStatus`** (AppHeader): conectado/desconectado/no soportado y el nombre del teclado («Roland FP-30»), consumido del almacén en vez del default `true` de `AppHeader` (hoy miente siempre).\n3. **Protocolo de prueba con hardware real** (checklist documentado en esta issue al verificar):\n   - USB por OTG en Android+Chrome y USB en PC+Chrome/Edge;\n   - Bluetooth MIDI en Android (y en PC con adaptador);\n   - hot-plug (conectar en marcha, desconectar y volver a conectar);\n   - velocity realista y nota repetida (retrigger rápido);\n   - teclado con dos interfaces MIDI visibles (arranger + controlador) — decidido el comportamiento (engancha todas, sin filtro);\n   - coincidencia con el piano en pantalla y PC activos a la vez (coexistencia, sin pasos de «modo»).\n4. **Decisión cosmética con criterio:** con un teclado MIDI activo, ¿se retira el capturador del PC-mapa? Por defecto se mantiene la coexistencia; solo documentar el comportamiento.\n5. **No se toca** `web-midi.ts` salvo lo que salga de la prueba con hardware (si algo sale raro, es un bug del adaptador y se arregla aquí).\n\n## Criterios de aceptación\n\n- [ ] El indicador refleja el estado real en los cuatro casos: sin soporte, denegado, sin teclado, teclado conectado (con su nombre).\n- [ ] Checklist de hardware ejecutado con al menos un teclado USB y uno Bluetooth (o alternativas documentadas si no hay BT).\n- [ ] Las notas del teclado resuelven gates, se mandan por WS y colorean sombras — igual que el teclado del PC (no hay diferencia observable salvo el `source`).\n- [ ] El almacén tiene tests con acceso MIDI falso (el patrón de `web-midi.test.ts` reutilizado).\n\n## Dependencias\n\n**B-032.2** (adaptador y puerto de nota). Nada del motor ni del backend.\n\n## Límites conocidos\n\n- **Desktop-only de facto:** Safari/iPad no implementa Web MIDI y Firefox tampoco; el indicador debe decirlo sin prometer magia (el mensaje de «no soportado» manda a las entradas PC/pantalla).\n- La latencia exacta solo se puede medir con hardware: queda registrada en el checklist como dato, no como requisito.\n",
+        "number": 115,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-035] MIDI con hardware real: estado visible y validado",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/115"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhGAIHg",
+      "labels": [
+        "Frontend",
+        "P1",
+        "Semana 5"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "[B-035] MIDI con hardware real: estado visible y validado"
     }
   ],
   "notes": [
