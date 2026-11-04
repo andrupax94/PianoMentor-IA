@@ -3,8 +3,8 @@
     background: var(--panel);
     border: 5px dashed #2b3544;
     border-radius: 16px;
-    padding: 24px;
-    height: 230px;
+    padding: 12px;
+    height: 115px;
     display: flex;
     align-items: center;
     justify-content: center;

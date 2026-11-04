@@ -12,14 +12,10 @@ export function PerformanceStats({
 }: PerformanceStatsProps) {
   return (
     <section className={styles.stats} aria-label="Rendimiento">
-      <h2>Rendimiento (Este Pasaje)</h2>
       <div className={styles.gauges}>
         <GaugeChart value={timing} label="Timing" />
         <GaugeChart value={notes} label="Notas" />
       </div>
-      <p className={styles.weak}>
-        <strong>Punto Débil:</strong> {weakPoint}
-      </p>
     </section>
   );
 }

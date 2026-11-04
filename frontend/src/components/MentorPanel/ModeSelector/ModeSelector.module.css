@@ -18,8 +18,8 @@
   /* crema, en vez de blanco puro */
   --c-derecha: #ffb547;
   /* dorado, el mismo del logo */
-  width: 93%;
-  height: 70px;
+  width: calc(100% - 32px);
+  height: 44px;
   margin: 0 auto;
   position: relative;
   display: flex;
@@ -79,8 +79,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 6px;
+  gap: 4px;
+  padding: 4px 6px;
   height: 100%;
   border: none;
   border-radius: 999px;
@@ -169,8 +169,8 @@
 
 /* Icono con máscara: el "papel" lo pinta background-color; la forma la da el SVG. */
 .icono {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   background-color: var(--opcion);
   -webkit-mask-image: url("/assets/icons/hand.svg");
   mask-image: url("/assets/icons/hand.svg");

@@ -4,22 +4,26 @@
 .stats {
   border: 1px solid #2b3544;
   border-radius: 16px;
-  padding: 16px;
+  padding: 8px;
+  height: 115px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stats h2 {
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   font-size: 1rem;
 }
 
 .gauges {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   justify-content: space-around;
 }
 
 .weak {
-  margin: 12px 0 0;
+  margin: 6px 0 0;
   font-size: 0.85rem;
   color: #e8a13e;
 }

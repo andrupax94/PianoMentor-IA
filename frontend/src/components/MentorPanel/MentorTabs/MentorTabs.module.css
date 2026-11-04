@@ -11,13 +11,17 @@
   border-radius: 16px;
   overflow: hidden;
   background: var(--panel-soft);
-  /* Ocupa todo el alto disponible dentro del panel del mentor. */
-  flex: 1;
+  /* Mismo ancho que el textbox del chat (panel - 32px de padding del chat). */
+  width: calc(100% - 32px);
+  margin: 0 auto;
+  flex: 0 0 auto;
   min-height: 0;
 }
 
 .tablist {
   display: flex;
+  flex-direction: row;
+  justify-content: space-around;
   gap: 0;
   border-bottom: 1px solid #2b3544;
   background: #141a26;
@@ -27,10 +31,11 @@
 .tab {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 10px 6px;
+  padding: 8px 6px;
   border: 0;
   background: transparent;
   color: var(--text-mute);
@@ -43,8 +48,8 @@
 
 .tab svg,
 .tab img {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .tab:hover {
@@ -62,21 +67,19 @@
 .tabpanels {
   display: flex;
   flex-direction: column;
-  /* Ocupa el resto del alto de .tabs para que las pestañas tengan height estable. */
-  flex: 1;
+  /* El contenido manda la altura: no se fuerza a ocupar el resto del bloque. */
+  flex: 0 0 auto;
   min-height: 0;
 }
 
 .tabpanel {
-  padding: 14px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
-  /* Mismo alto que las demás pestañas; el contenido hace scroll si no cabe. */
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .tabpanel h2 {

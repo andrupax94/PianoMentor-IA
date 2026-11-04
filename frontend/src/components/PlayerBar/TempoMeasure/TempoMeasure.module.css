@@ -2,11 +2,16 @@
 /* context: B-006.4; simplicidad primero. */
 
 .tempo {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: 4px 16px;
 }
 
 .tempo p {
-  margin: 4px 1px;
+  margin: 0;
   font-size: 0.85rem;
   white-space: nowrap;
   display: flex;

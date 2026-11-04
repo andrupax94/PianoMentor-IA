@@ -4,14 +4,14 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: 24px;
-  height: 85px;
-  padding: 8px 0;
+  gap: 16px;
+  height: 60px;
+  padding: 4px 0;
   justify-content: space-between;
 }
 
 .bar>span {
-  height: 50px;
+  height: 36px;
   width: 4px;
   background-color: var(--text-soft);
   border-radius: 10px;

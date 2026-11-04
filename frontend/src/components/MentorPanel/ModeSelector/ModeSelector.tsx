@@ -66,7 +66,9 @@ export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) 
     }
   };
 
-  /** Contenido visual de una opción: se reutiliza en la barra real y en el clon. */
+  /** Contenido visual de una opción: se reutiliza en la barra real y en el clon.
+   *  Solo el icono: el texto se expone como tooltip (title) y aria-label para
+   *  ahorrar altura en pantallas pequeñas (petición del usuario). */
   const contenido = (item: Opcion) => (
     <>
       <span className={styles.iconos}>
@@ -75,7 +77,6 @@ export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) 
           <span className={`${styles.icono} ${styles.espejo}`} aria-hidden="true" />
         ) : null}
       </span>
-      {item.label}
     </>
   );
 
@@ -94,6 +95,8 @@ export function ModeSelector({ mode: inicial = "observar" }: ModeSelectorProps) 
             key={item.id}
             type="button"
             className={`${styles.opcion} ${item.clase}`}
+            title={item.label}
+            aria-label={item.label}
             aria-pressed={item.id === modo}
             disabled={suspended}
             onClick={() => handleSelect(item.id)}

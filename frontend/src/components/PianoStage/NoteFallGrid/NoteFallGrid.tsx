@@ -55,7 +55,14 @@ function placeNote(
   const key = `${hand}|${agent ? "agent" : "score"}`;
   if (block.dataset.hand !== key) {
     block.dataset.hand = key;
-    block.style.background = handColor(hand, agent ? agentHand : null);
+    // Gradiente vertical que no termina en el color de inicio: la parte superior
+    // conserva el color de la mano (azul izq. / ámbar dcha. / violeta IA) y la
+    // inferior se oscurece, de modo que dos notas consecutivas del mismo pitch
+    // dejan de leerse como una sola barra continua (D-002 estético).
+    const base = handColor(hand, agent ? agentHand : null);
+    block.style.background = `linear-gradient(180deg, ${base}, color-mix(in srgb, ${base} 40%, #000000))`;
+    // Línea de separación superior sutil: refuerza el límite entre notas pegadas.
+    block.style.boxShadow = "inset 0 1px 0 rgba(255, 255, 255, 0.18)";
   }
   // B-032.4: la mano que no se practica se atenúa (no se borra). La opacidad
   // depende de la mano, así que se escribe aparte del color.
