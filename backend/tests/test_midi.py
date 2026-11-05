@@ -230,3 +230,15 @@ def test_tempo_map_uses_default_before_first_declared_tempo() -> None:
     assert tempo_map.initial_tempo() == DEFAULT_BPM
     assert tempo_map.tick_to_seconds(480) == pytest.approx(0.5)
     assert tempo_map.tick_to_seconds(960) == pytest.approx(1.5)
+
+
+def test_inspect_file_filters_to_piano_channel_when_more_than_two_channels() -> None:
+    result = MidiService().inspect_file(fixture("test_three_channels_with_piano.mid"))
+    assert result["channels"] == [0]
+    assert result["notes_count"] == 1
+
+
+def test_inspect_file_rejects_more_than_two_channels_without_piano() -> None:
+    with pytest.raises(MidiParseError) as exc_info:
+        MidiService().inspect_file(fixture("test_three_channels_no_piano.mid"))
+    assert exc_info.value.code == "no_piano_channel"
