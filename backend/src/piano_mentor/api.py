@@ -1204,10 +1204,18 @@ async def upload_piece(
     if existing is not None:
         return _piece_from_row(existing, deduplicated=True)
 
+    # U-005: anónimo si no hay header; con header presente e inválido, 401.
+    # Se resuelve antes de guardar para poder asociar el propietario al storage.
+    if authorization and authorization.strip():
+        owner = _current_user(authorization)
+        owner_id: str | None = owner.id
+    else:
+        owner_id = None
+
     # B-005.4: leer metadatos musicales reales. Si el MIDI no es legible, se
     # devuelve un 400 con código estable y se elimina el archivo recién guardado
     # para no dejar huérfanos en el filesystem.
-    piece_id = storage.save(original_name, content)
+    piece_id = storage.save(original_name, content, owner_id=owner_id)
     try:
         inspection = midi_service.inspect_file(storage.get_path(piece_id))
     except MidiParseError as exc:
@@ -1215,20 +1223,12 @@ async def upload_piece(
         raise HTTPException(
             status_code=400, detail={"code": exc.code, "message": exc.message}
         ) from exc
-
     metadata = PieceMetadata(
         tracks=inspection["tracks"],
         duration_seconds=inspection["duration_seconds"],
         tempo=inspection["tempo"],
         notes_count=inspection["notes_count"],
     )
-
-    # U-005: anónimo si no hay header; con header presente e inválido, 401.
-    if authorization and authorization.strip():
-        owner = _current_user(authorization)
-        owner_id: str | None = owner.id
-    else:
-        owner_id = None
 
     try:
         save_piece(

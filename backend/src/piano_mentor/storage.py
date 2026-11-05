@@ -25,8 +25,12 @@ class PieceStorage(ABC):
     """Interfaz de almacenamiento de piezas MIDI."""
 
     @abstractmethod
-    def save(self, filename: str, content: bytes) -> str:
-        """Guarda un archivo y devuelve su identificador estable."""
+    def save(self, filename: str, content: bytes, owner_id: str | None = None) -> str:
+        """Guarda un archivo y devuelve su identificador estable.
+
+        ``owner_id`` es informativo para backends que particionen por usuario
+        (p. ej. R2); el identificador devuelto sigue siendo único globalmente.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -51,7 +55,7 @@ class LocalPieceStorage(PieceStorage):
     def __init__(self, root: Path) -> None:
         self._root = root
 
-    def save(self, filename: str, content: bytes) -> str:
+    def save(self, filename: str, content: bytes, owner_id: str | None = None) -> str:
         piece_id = uuid.uuid4().hex
         target = self._root / piece_id
         self._root.mkdir(parents=True, exist_ok=True)
