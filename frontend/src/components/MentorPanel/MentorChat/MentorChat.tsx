@@ -102,16 +102,19 @@ export function MentorChat({
   const feed = useSyncExternalStore(subscribeChatFeed, getChatFeedSnapshot, getChatFeedSnapshot);
   /**
    * B-032.10: la línea nueva del feed se revela con la misma máquina de
-   * escribir de la burbuja (typingStep): las anteriores quedan enteras. La
-   * marca del último id evita reiniciar el efecto si la pila no cambió.
+   * escribir de la burbuja (typingStep): las anteriores quedan enteras. El
+   * efecto rebota con el id de la última línea y SIEMPRE arranca de cero
+   * dentro del cuerpo, igual que el efecto de la respuesta: así un re-run de
+   * StrictMode no lo deja clavado a mitad (causa del primer mensaje en blanco
+   * tras recargar: el guard con ref saltaba el reinicio que el cleanup limpió).
    */
   const [feedVisibleChars, setFeedVisibleChars] = useState(0);
-  const lastFeedLineIdRef = useRef(0);
+  const lastFeedLine = feed.length > 0 ? feed[feed.length - 1] : null;
+  const lastFeedLineId = lastFeedLine?.id ?? 0;
 
   useEffect(() => {
-    const last = feed[feed.length - 1];
-    if (!last || last.id === lastFeedLineIdRef.current) return;
-    lastFeedLineIdRef.current = last.id;
+    const last = lastFeedLine;
+    if (last === null) return;
     setFeedVisibleChars(0);
     const step = typingStep(last.text.length);
     let shown = 0;
@@ -121,7 +124,10 @@ export function MentorChat({
       if (shown >= last.text.length) window.clearInterval(timer);
     }, CHAT_TYPING_MS);
     return () => window.clearInterval(timer);
-  }, [feed]);
+    // El efecto solo rebota con la llegada de una línea nueva; el texto de esa
+    // línea se lee por clausura a propósito (una línea no cambia de texto).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastFeedLineId]);
 
   /**
    * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
@@ -357,7 +363,6 @@ export function MentorChat({
   const feedBubble = reply === null && offerQuestion === null && feed.length > 0;
   const feedText = feed.map((line) => line.text).join("\n");
   /** La línea recién llegada sigue escribiéndose (cursor en su línea). */
-  const lastFeedLine = feed.length > 0 ? feed[feed.length - 1] : null;
   const feedTyping =
     feedBubble && lastFeedLine !== null && feedVisibleChars < lastFeedLine.text.length;
 
