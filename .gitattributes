@@ -1,0 +1,5 @@
+# Fuerza LF para scripts y configuración que se ejecutan en Linux (B-031).
+*.sh text eol=lf
+*.yml text eol=lf
+entrypoint.sh text eol=lf
+litestream.yml text eol=lf
