@@ -58,8 +58,9 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
       // de navegar, cargada y parada, para que al entrar no se vea la demo
       // `p01` mientras se practica y se evalúa otra pieza.
       publishPracticePiece(song);
-      // B-032.10: el chat cuenta la apertura como lo haría el profesor.
-      inform(practiceOpeningText(song.title));
+      // B-032.10: el chat cuenta la apertura como lo haría el profesor; con
+      // capacidad 3 la apertura sigue visible mientras llegan reproduciendo/pausa.
+      inform(practiceOpeningText(song.title), 3);
       router.push(`/${session.id}`);
     } catch (failure: unknown) {
       setError(failure instanceof ApiError ? failure.message : "No se pudo abrir la sesión.");

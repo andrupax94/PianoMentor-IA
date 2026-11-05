@@ -1,8 +1,8 @@
-// description: Feed informativo del chat (B-032.10): las líneas deterministas que cuentan lo que hace el alumno en la página («Reproduciendo…», «Te llevo al piano para practicar X»), con buffer corto y anti-duplicados, y los textos fijos de cada señal (misma señal → misma frase).
-// context: Es la otra voz del chat (skill piano-mentor-chat-burbuja): no es conversación — no entra en el historial que manda al LLM, no borra una respuesta real y no activa la animación de escritura. El backend nunca envía texto para el feed: el front se autoinforma de su propia acción (SongDetailPanel abre la práctica, PlayerBar toca el transporte, el selector pide el modo y PracticeBridge cierra la sesión). Vive solo en memoria: una recarga lo limpia, igual que session-store.
+// description: Feed informativo del chat (B-032.10): las líneas deterministas que cuentan lo que hace el alumno en la página («Reproduciendo…», «Te llevo al piano para practicar X»), con la semántica de burbuja que pide el usuario: inform(texto, capacidad) acumula hasta esa cantidad FIFO (3 por convención) e inform(texto) a secas limpia y muestra solo ese mensaje; incluye los textos fijos de cada señal (misma señal → misma frase).
+// context: Es la otra voz del chat (skill piano-mentor-chat-burbuja): no es conversación — no entra en el historial que manda al LLM, no borra una respuesta real y no activa la animación de escritura. El backend nunca envía texto para el feed: el front se autoinforma de su propia acción (SongDetailPanel abre la práctica, PlayerBar toca el transporte dentro o fuera de sesión, el selector pide el modo y PracticeBridge cierra la sesión). Vive solo en memoria: una recarga lo limpia, igual que session-store.
 
-/** Cuántas líneas se recuerdan: corto a propósito para no volverse un log. */
-export const MAX_FEED_LINES = 5;
+/** Tope por convención de la pila de la burbuja: tres mensajes cortos, el viejo cae primero. */
+export const MAX_FEED_LINES = 3;
 
 /** Una línea del feed, con id monotónico para las keys del render. */
 export interface ChatFeedLine {
@@ -29,18 +29,38 @@ export function subscribeChatFeed(listener: () => void): () => void {
 }
 
 /**
- * Publica una línea del feed. Anti-ruido: si el alumno dispara la misma
- * señal dos veces seguidas (dos pausas, un doble clic de modo), la segunda
- * no repite la frase. La conversación nunca toca este canal.
+ * Publica una línea del feed. Semántica de burbuja (petición del usuario):
+ * con `capacity` se apilan hasta ese número de mensajes cortos, el primero
+ * que entró es el primero que cae (FIFO); sin `capacity` limpia la pila y
+ * muestra solo el mensaje en cuestión. Anti-ruido: la misma frase dos veces
+ * seguidas no repite línea. La conversación nunca toca este canal.
  */
-export function inform(text: string): void {
-  if (lines.length > 0 && lines[lines.length - 1].text === text) return;
-  const line: ChatFeedLine = { id: nextId, text };
-  nextId += 1;
-  lines.push(line);
-  if (lines.length > MAX_FEED_LINES) lines.splice(0, lines.length - MAX_FEED_LINES);
-  snapshot = [...lines];
-  for (const listener of [...listeners]) listener();
+export function inform(text: string, capacity?: number): void {
+  const top = typeof capacity === "number" && Number.isFinite(capacity)
+    ? Math.max(1, Math.min(Math.trunc(capacity), MAX_FEED_LINES))
+    : 1;
+
+  if (lines.length === 0 || lines[lines.length - 1].text !== text) {
+    // Nota nueva: sin capacidad la burbuja se limpia (solo ese mensaje);
+    // con capacidad se apila y el primero que entró es el primero que cae.
+    if (top === 1) {
+      lines.length = 0;
+    }
+    lines.push({ id: nextId, text });
+    nextId += 1;
+    if (lines.length > top) lines.splice(0, lines.length - top);
+    snapshot = [...lines];
+    for (const listener of [...listeners]) listener();
+    return;
+  }
+
+  // Duplicado consecutivo: no repite la frase. Solo recorta si el tope
+  // pedido es menor que la pila que ya había (y en ese caso avisa).
+  if (lines.length > top) {
+    lines.splice(0, lines.length - top);
+    snapshot = [...lines];
+    for (const listener of [...listeners]) listener();
+  }
 }
 
 /** Vacia el feed; cada corrida de pruebas arranca sin herencia. */

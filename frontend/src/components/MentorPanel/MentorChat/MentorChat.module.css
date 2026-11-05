@@ -42,29 +42,26 @@
   color: var(--gold);
 }
 
-/* Feed informativo de la práctica (B-032.10): líneas cortas y deterministas
-   («Reproduciendo…», «Te llevo al piano para practicar X») con guardia visual
-   de su canal: pequeño, apagado y con un acento dorado a la izquierda, para
-   que no se confundan con la conversación de la burbuja. Buffer corto en el
-   almacén; aquí solo llegan las últimas. */
+/* Feed informativo de la práctica (B-032.10): pila de líneas cortas y
+   deterministas DENTRO de la burbuja («Reproduciendo…», «Te llevo al piano
+   para practicar X»), con acento dorado a la izquierda para que no se
+   confundan con la conversación. El almacén deja solo las últimas (tope 3). */
 .feed {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: -4px 0 0;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
   padding: 0;
 }
 
 .informantLine {
-  position: relative;
   margin: 0;
-  padding: 3px 10px 3px 14px;
+  padding: 2px 10px 2px 14px;
   border-left: 2px solid var(--gold-soft);
   color: #aab6c2;
-  font-size: 0.8rem;
   line-height: 1.3;
-  font-family: var(--font2);
 }
 
 .informantLine:last-child {

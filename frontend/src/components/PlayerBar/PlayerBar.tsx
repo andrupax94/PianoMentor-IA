@@ -65,15 +65,17 @@ export function PlayerBar({
     if (isPlaying) {
       // Pausa sin tocar la posición: la cascada y el resaltado se quedan donde están.
       pause();
-      // B-032.10: el gesto del usuario se cuenta en el chat (sin tecleo).
-      inform(pausedText());
+      // B-032.10: el gesto del usuario se cuenta en el chat (sin tecleo),
+      // apilado: reproducir → pausar → reproducir convive en la burbuja.
+      inform(pausedText(), 3);
       return;
     }
     // El gesto del clic desbloquea el AudioContext; si el navegador lo rechaza,
     // no hay reproducción que avisar: la página sigue funcionando.
     void play().catch(() => undefined);
     // B-032.10: lo que se anuncia y lo que suena llevan el mismo título.
-    inform(playingText(songTitle));
+    // Dentro o fuera de la sesión: la página se autoinforma de su acción.
+    inform(playingText(songTitle), 3);
   };
 
   return (
@@ -85,7 +87,7 @@ export function PlayerBar({
         onStop={() => {
           stop();
           // B-032.10: parar también se cuenta; solo el gesto del usuario.
-          inform(stoppedText());
+          inform(stoppedText(), 3);
         }}
         onForward={() => seek(position_s + SKIP_S)}
         isPlaying={isPlaying}

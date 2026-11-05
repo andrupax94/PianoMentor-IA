@@ -31,7 +31,6 @@ import { publishOfferChoice } from "../../../lib/offer-choice";
 import {
   getChatFeedSnapshot,
   subscribeChatFeed,
-  type ChatFeedLine,
 } from "../../../lib/chat-feed";
 import { chatPrompt } from "../../../lib/chat-prompt";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
@@ -96,8 +95,9 @@ export function MentorChat({
   const [userName, setUserName] = useState<string | null>(null);
   /**
    * B-032.10: el feed informativo (hito de la página → línea determinista).
-   * Canal separado de la conversación: no activa tecleo ni borra respuestas;
-   * la burbuja sigue siendo la del profesor y estas líneas viven debajo.
+   * Canal separado de la conversación: no activa tecleo ni borra respuestas.
+   * Se muestra DENTRO de la burbuja (pila de hasta 3 mensajes cortos), pero
+   * cede siempre ante la conversación y ante la pregunta de la oferta.
    */
   const feed = useSyncExternalStore(subscribeChatFeed, getChatFeedSnapshot, getChatFeedSnapshot);
 
@@ -327,8 +327,17 @@ export function MentorChat({
    */
   const waiting = chatPrompt({ userName, exampleMessage });
 
-  const shown = reply ?? offerQuestion ?? waiting;
-  const visible = reply === null ? offerQuestion ?? waiting : typedSlice(reply, visibleChars);
+  // B-032.10: el feed informativo vive DENTRO de la burbuja como pila de
+  // mensajes cortos (hasta MAX_FEED_LINES, el viejo cae primero). La
+  // jerarquía se conserva: conversación > oferta > feed > espera. La función
+  // automática de achicar usa la pila completa como texto, así que el tamaño
+  // y el scroll siguen valiendo (mensaje corto → grande).
+  const feedBubble = reply === null && offerQuestion === null && feed.length > 0;
+  const feedText = feed.map((line) => line.text).join("\n");
+
+  const shown = reply ?? offerQuestion ?? (feedBubble ? feedText : waiting);
+  const visible =
+    reply === null ? offerQuestion ?? (feedBubble ? null : waiting) : typedSlice(reply, visibleChars);
   const typing = reply !== null && visibleChars < reply.length;
 
   return (
@@ -352,33 +361,26 @@ export function MentorChat({
         )}
       </div>
 
-      {feed.length > 0 && (
-        <ul
-          className={styles.feed}
-          role="log"
-          aria-live="polite"
-          aria-label="Novedades de la práctica"
-        >
-          {feed.map((line: ChatFeedLine) => (
-            <li key={line.id} className={styles.informantLine}>
-              {line.text}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p
+      <div
         className={`${styles.bubble} ${FONT_CLASS[chatFontSize(shown)]}`}
         aria-live="polite"
         aria-busy={busy || typing}
       >
-        {/* B-032.7: la pregunta del mentor ocupa la burbuja entera, sin
-            tecleo (es texto determinista del feed, B-032.10). */}
-        {offerQuestion !== null
-          ? offerQuestion
-          : busy && reply === null
-            ? "Pensando…"
-            : visible}
+        {feedBubble ? (
+          <ul className={styles.feed}>
+            {feed.map((line) => (
+              <li key={line.id} className={styles.informantLine}>
+                {line.text}
+              </li>
+            ))}
+          </ul>
+        ) : offerQuestion !== null ? (
+          offerQuestion
+        ) : busy && reply === null ? (
+          "Pensando…"
+        ) : (
+          visible
+        )}
         {!offerQuestion && typing && <span className={styles.cursor}>{TYPING_CURSOR}</span>}
         {/* Con oferta en juego las píldoras de respuesta van a lo ancho de la
             burbuja; sin ella, el chip de pista de toda la vida. */}
@@ -397,7 +399,7 @@ export function MentorChat({
               <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
             </span>
           ))}
-      </p>
+      </div>
 
       {error && (
         <p className={styles.error} role="alert">

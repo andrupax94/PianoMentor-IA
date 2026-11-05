@@ -26,8 +26,9 @@ export function usePracticeModeChange(): (
     (next: { mode: PracticeMode; hand: StudentHand }) => {
       if (sessionId === null) return;
       // B-032.10: el selector cuenta el cambio en el chat (es la acción del
-      // usuario, no la confirmación del servidor; el mensaje es determinista).
-      inform(modeText(next.mode, next.hand));
+      // usuario, no la confirmación del servidor; el mensaje es determinista
+      // y se apila junto a los otros hitos de la práctica).
+      inform(modeText(next.mode, next.hand), 3);
       // El servidor es la fuente de verdad: se manda el cambio y el estado que
       // llega por el socket actualiza el almacén local (evita carreras con un
       // `state` inicial tardío que sobrescribía el modo del alumno).
