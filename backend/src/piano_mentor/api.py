@@ -1147,7 +1147,7 @@ def list_pieces(source: str | None = Query(default=None), authorization: str | N
             user_sub = user.get("id")
     except Exception:
         user_sub = None
-    rows = find_pieces(source)
+    rows = find_pieces(source, owner_id=user_sub, include_anonymous=(user_sub is None))
     if user_sub is None:
         rows = [
             r

@@ -15,6 +15,7 @@ from piano_mentor.database import (
     _database_path,
     connect,
     init_db,
+    list_pieces,
     pending_migrations,
 )
 
@@ -196,3 +197,41 @@ class TestSchema:
 class TestDefaultConfiguration:
     def test_default_url_is_sqlite(self) -> None:
         assert _database_path(settings.database_url)
+
+class TestPieceVisibility:
+    """B-029: visibilidad de subidas por propietario."""
+
+    def test_list_pieces_filters_uploads_by_owner(self, tmp_path) -> None:
+        db = tmp_path / "vis.db"
+        url = f"sqlite:///{db.as_posix()}"
+        conn = connect(url)
+        try:
+            init_db(conn)
+            conn.execute(
+                "INSERT INTO pieces (id, filename, source, owner_id, composer, opus) "
+                "VALUES ('c1', 'c.mid', 'corpus', NULL, 'C', '1')"
+            )
+            conn.execute(
+                "INSERT INTO pieces (id, filename, source, owner_id, composer, opus) "
+                "VALUES ('uA', 'a.mid', 'upload', 'userA', 'A', '1')"
+            )
+            conn.execute(
+                "INSERT INTO pieces (id, filename, source, owner_id, composer, opus) "
+                "VALUES ('uB', 'b.mid', 'upload', 'userB', 'B', '1')"
+            )
+            conn.execute(
+                "INSERT INTO pieces (id, filename, source, owner_id, composer, opus) "
+                "VALUES ('u0', 'z.mid', 'upload', NULL, 'Z', '1')"
+            )
+            conn.commit()
+
+            ids = {r["id"] for r in list_pieces(conn, owner_id="userA")}
+            assert ids == {"c1", "uA"}
+
+            ids = {r["id"] for r in list_pieces(conn, owner_id="userB")}
+            assert ids == {"c1", "uB"}
+
+            ids = {r["id"] for r in list_pieces(conn, include_anonymous=True)}
+            assert ids == {"c1", "u0"}
+        finally:
+            conn.close()

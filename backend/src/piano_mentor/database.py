@@ -443,26 +443,48 @@ def update_pending_registration(
 
 
 def list_pieces(
-    conn: sqlite3.Connection, source: str | None = None
+    conn: sqlite3.Connection,
+    source: str | None = None,
+    owner_id: str | None = None,
+    include_anonymous: bool = False,
 ) -> list[sqlite3.Row]:
-    """Lista las piezas persistidas (B-027.3).
+    """Lista las piezas persistidas (B-027.3, B-029).
 
     Ordena el corpus antes que las subidas y, dentro de cada grupo, por
     compositor, opus e id, que es el orden natural del selector del frontend.
+
+    Visibilidad (B-029): el corpus es visible para todos; las subidas solo son
+    visibles para su propietario (`owner_id`) o, si se pide, las anónimas
+    (`owner_id IS NULL`). Así un usuario autenticado no ve las subidas de
+    otros, y las subidas anónimas no se exponen a usuarios identificados.
     """
-    sql = "SELECT * FROM pieces"
-    params: tuple[object, ...] = ()
+    conditions: list[str] = []
+    params: list[object] = []
     if source is not None:
-        sql += " WHERE source = ?"
-        params = (source,)
+        conditions.append("source = ?")
+        params.append(source)
+
+    visibility: list[str] = ["source = 'corpus'"]
+    if owner_id is not None:
+        visibility.append("(source = 'upload' AND owner_id = ?)")
+        params.append(owner_id)
+    if include_anonymous:
+        visibility.append("(source = 'upload' AND owner_id IS NULL)")
+    conditions.append("(" + " OR ".join(visibility) + ")")
+
+    sql = "SELECT * FROM pieces WHERE " + " AND ".join(conditions)
     sql += " ORDER BY CASE WHEN source = 'corpus' THEN 0 ELSE 1 END, composer, opus, id"
     return conn.execute(sql, params).fetchall()
 
 
-def find_pieces(source: str | None = None) -> list[sqlite3.Row]:
-    """Lista las piezas gestionando su propia conexión (B-027.3)."""
+def find_pieces(
+    source: str | None = None,
+    owner_id: str | None = None,
+    include_anonymous: bool = False,
+) -> list[sqlite3.Row]:
+    """Lista las piezas gestionando su propia conexión (B-027.3, B-029)."""
     with open_db() as conn:
-        return list_pieces(conn, source)
+        return list_pieces(conn, source, owner_id, include_anonymous)
 
 
 SESSION_COLUMNS = (
