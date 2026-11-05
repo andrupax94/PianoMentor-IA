@@ -1,4 +1,4 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico).
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan aparte con .informantLine, sin tecleo, sin borrar la conversación y sin entrar en el historial del LLM.
 // context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render.
 
 "use client";
@@ -28,6 +28,11 @@ import {
 import { isPendingOffer, offerMessage, repeatOfferMessage } from "../../../lib/agent-offer";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishOfferChoice } from "../../../lib/offer-choice";
+import {
+  getChatFeedSnapshot,
+  subscribeChatFeed,
+  type ChatFeedLine,
+} from "../../../lib/chat-feed";
 import { chatPrompt } from "../../../lib/chat-prompt";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
@@ -89,6 +94,12 @@ export function MentorChat({
    * navegador puede llegar después del primer pintado.
    */
   const [userName, setUserName] = useState<string | null>(null);
+  /**
+   * B-032.10: el feed informativo (hito de la página → línea determinista).
+   * Canal separado de la conversación: no activa tecleo ni borra respuestas;
+   * la burbuja sigue siendo la del profesor y estas líneas viven debajo.
+   */
+  const feed = useSyncExternalStore(subscribeChatFeed, getChatFeedSnapshot, getChatFeedSnapshot);
 
   /**
    * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
@@ -340,6 +351,21 @@ export function MentorChat({
           </button>
         )}
       </div>
+
+      {feed.length > 0 && (
+        <ul
+          className={styles.feed}
+          role="log"
+          aria-live="polite"
+          aria-label="Novedades de la práctica"
+        >
+          {feed.map((line: ChatFeedLine) => (
+            <li key={line.id} className={styles.informantLine}>
+              {line.text}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <p
         className={`${styles.bubble} ${FONT_CLASS[chatFontSize(shown)]}`}

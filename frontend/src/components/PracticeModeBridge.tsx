@@ -6,6 +6,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 import { updateSessionPracticeMode } from "../lib/api-client";
 import type { PracticeMode, StudentHand } from "../lib/api-client";
+import { inform, modeText } from "../lib/chat-feed";
 import { getSessionSnapshot, markPracticeModeChanged, subscribeSession, updateSession } from "../lib/session-store";
 
 /**
@@ -24,6 +25,9 @@ export function usePracticeModeChange(): (
   return useCallback(
     (next: { mode: PracticeMode; hand: StudentHand }) => {
       if (sessionId === null) return;
+      // B-032.10: el selector cuenta el cambio en el chat (es la acción del
+      // usuario, no la confirmación del servidor; el mensaje es determinista).
+      inform(modeText(next.mode, next.hand));
       // El servidor es la fuente de verdad: se manda el cambio y el estado que
       // llega por el socket actualiza el almacén local (evita carreras con un
       // `state` inicial tardío que sobrescribía el modo del alumno).

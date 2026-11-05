@@ -1,4 +1,4 @@
-/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7), botón de cierre circular del flotante (D-002.5) y estilo del input. */
+/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7), botón de cierre circular del flotante (D-002.5) y estilo del input. B-032.10 añade el feed informativo (.feed/.informantLine): líneas cortas de la práctica, apagadas y con acento dorado, separadas de la conversación. */
 /* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. Con B-032.7 el chip no se posiciona a sí mismo: lo encaja .hintSlot dentro de la burbuja. */
 
 .chat {
@@ -40,6 +40,35 @@
 
 .chat__title>strong>span {
   color: var(--gold);
+}
+
+/* Feed informativo de la práctica (B-032.10): líneas cortas y deterministas
+   («Reproduciendo…», «Te llevo al piano para practicar X») con guardia visual
+   de su canal: pequeño, apagado y con un acento dorado a la izquierda, para
+   que no se confundan con la conversación de la burbuja. Buffer corto en el
+   almacén; aquí solo llegan las últimas. */
+.feed {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -4px 0 0;
+  padding: 0;
+}
+
+.informantLine {
+  position: relative;
+  margin: 0;
+  padding: 3px 10px 3px 14px;
+  border-left: 2px solid var(--gold-soft);
+  color: #aab6c2;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-family: var(--font2);
+}
+
+.informantLine:last-child {
+  color: var(--text-soft);
 }
 
 /* Botón de cierre del chat flotante (D-002.5): solo lo renderiza MentorChat

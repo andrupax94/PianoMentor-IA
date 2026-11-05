@@ -1,10 +1,11 @@
-// description: Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real editable (el BPM pedido se convierte en factor con tempoFactorFor), compás actual real (derivado de la rejilla con measureIndexAt) y progreso redondeado.
+// description: Franja del reproductor cableada al transporte: play/pausa (botón único que alterna ▶/⏸), parar, Atrás al inicio, Adelante +5 s, tempo real editable (el BPM pedido se convierte en factor con tempoFactorFor), compás actual real (derivado de la rejilla con measureIndexAt) y progreso redondeado. Desde B-032.10 los gestos del usuario (reproducir, pausar, parar) alimentan el feed informativo del chat con el mismo título de la pieza; las órdenes del agente (pausar/reanudar/parar) no lo tocan: ya tienen voz conversacional propia.
 // context: B-007.3/B-008.3/B-027.3; B-006.4 la dejó solo HTML/CSS. El título y la portada llegan por props (la demo, el nombre del archivo subido o la ficha del catálogo) y nunca son un marcador: siempre nombran la pieza que suena.
 
 "use client";
 // real de la rejilla servida por el backend. El título lo aporta PlaybackArea —la
 // demo o la pieza elegida—, así que nunca puede desentonar con lo que suena.
 
+import { inform, pausedText, playingText, stoppedText } from "../../lib/chat-feed";
 import { measureIndexAt } from "../../lib/measures";
 import { tempoFactorFor } from "../../lib/playback-schedule";
 import { PlaybackControls } from "./PlaybackControls/PlaybackControls";
@@ -64,11 +65,15 @@ export function PlayerBar({
     if (isPlaying) {
       // Pausa sin tocar la posición: la cascada y el resaltado se quedan donde están.
       pause();
+      // B-032.10: el gesto del usuario se cuenta en el chat (sin tecleo).
+      inform(pausedText());
       return;
     }
     // El gesto del clic desbloquea el AudioContext; si el navegador lo rechaza,
     // no hay reproducción que avisar: la página sigue funcionando.
     void play().catch(() => undefined);
+    // B-032.10: lo que se anuncia y lo que suena llevan el mismo título.
+    inform(playingText(songTitle));
   };
 
   return (
@@ -77,7 +82,11 @@ export function PlayerBar({
       <PlaybackControls
         onRewind={() => seek(0)}
         onTogglePlay={togglePlay}
-        onStop={stop}
+        onStop={() => {
+          stop();
+          // B-032.10: parar también se cuenta; solo el gesto del usuario.
+          inform(stoppedText());
+        }}
         onForward={() => seek(position_s + SKIP_S)}
         isPlaying={isPlaying}
         ready={duration_s > 0}

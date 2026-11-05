@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError, createSession } from "../../../lib/api-client";
+import { practiceOpeningText, inform } from "../../../lib/chat-feed";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishPracticePiece } from "../../../lib/session-piece";
 import { MidiUploader } from "../../MidiUploader";
@@ -57,6 +58,8 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
       // de navegar, cargada y parada, para que al entrar no se vea la demo
       // `p01` mientras se practica y se evalúa otra pieza.
       publishPracticePiece(song);
+      // B-032.10: el chat cuenta la apertura como lo haría el profesor.
+      inform(practiceOpeningText(song.title));
       router.push(`/${session.id}`);
     } catch (failure: unknown) {
       setError(failure instanceof ApiError ? failure.message : "No se pudo abrir la sesión.");

@@ -10,6 +10,7 @@ import { fetchPieceInfo } from "../lib/agent-commands";
 import { demoWindow, effectiveControl, type AgentDemoWindow } from "../lib/agent-demo";
 import { publishAgentPlayback } from "../lib/agent-playback";
 import { ApiError, executeAgentAction, getSessionState } from "../lib/api-client";
+import { inform, sessionClosedText } from "../lib/chat-feed";
 import { createGateController, type GateController } from "../lib/gate-controller";
 import { measureIndexAt } from "../lib/measures";
 import { setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
@@ -248,6 +249,9 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       // Salir con una intervención en marcha no debe dejar el transporte
       // tocando lo del agente: el orden de parar va antes de limpiar.
       publishAgentPlayback({ kind: "stop" });
+      // B-032.10: el cierre de la práctica también se cuenta en el chat; la
+      // línea sobrevive al desmonte porque el feed vive fuera del componente.
+      inform(sessionClosedText());
       clearSession();
     };
   }, [sessionId]);
