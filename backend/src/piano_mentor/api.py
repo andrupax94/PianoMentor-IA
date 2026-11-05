@@ -110,7 +110,7 @@ from .schemas import (
     ToolCallResult,
     TrackSummary,
 )
-from .storage import LocalPieceStorage, content_hash
+from .storage import LocalPieceStorage, content_hash, create_storage
 from .validators import (
     ValidationError,
     sanitize_filename,
@@ -125,7 +125,7 @@ agent_service = AgentService()
 evaluation_service = EvaluationService()
 accompaniment_service = AccompanimentService()
 midi_service = MidiService()
-storage = LocalPieceStorage(Path(settings.midi_storage_path))
+storage = create_storage()
 
 logger = logging.getLogger(__name__)
 

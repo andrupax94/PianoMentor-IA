@@ -40,3 +40,46 @@ def test_save_generates_unique_ids(tmp_path: Path) -> None:
     id1 = storage.save("test1.mid", b"content1")
     id2 = storage.save("test2.mid", b"content2")
     assert id1 != id2
+
+from piano_mentor.storage import R2PieceStorage
+
+
+class _FakeS3:
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def put_object(self, *, Bucket, Key, Body):
+        self.objects[Key] = Body
+        return {}
+
+    def head_object(self, *, Bucket, Key):
+        if Key not in self.objects:
+            raise Exception("404")
+        return {}
+
+    def download_file(self, Bucket, Key, Filename):
+        if Key not in self.objects:
+            raise FileNotFoundError(Key)
+        Path(Filename).write_bytes(self.objects[Key])
+
+    def delete_object(self, *, Bucket, Key):
+        self.objects.pop(Key, None)
+        return {}
+
+
+def test_r2_save_get_delete(tmp_path: Path) -> None:
+    fake = _FakeS3()
+    storage = R2PieceStorage(
+        bucket="b",
+        endpoint_url="https://example.r2",
+        access_key_id="k",
+        secret_access_key="s",
+        client=fake,
+        cache_dir=tmp_path / "cache",
+    )
+    piece_id = storage.save("test.mid", b"midi bytes")
+    assert storage.exists(piece_id)
+    path = storage.get_path(piece_id)
+    assert path.read_bytes() == b"midi bytes"
+    storage.delete(piece_id)
+    assert not storage.exists(piece_id)

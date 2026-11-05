@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     chat_memory_window: int = 20
     llm_timeout_s: float = 10.0
 
+    # --- Cloudflare R2 (storage de piezas subidas, B-029.1) ----------------
+    # Con credenciales presentes, las subidas de usuario van a R2 y sobreviven
+    # a un redeploy de Render; sin ellas se usa el filesystem local (MVP).
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_endpoint: str = ""
+    r2_bucket: str = ""
+    r2_region: str = "auto"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

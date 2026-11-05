@@ -12,7 +12,7 @@ from pathlib import Path
 from . import database
 from .config import settings
 from .midi import MidiParseError, MidiService, NormalizedNote, group_chords, hand_by_track, HAND_LEFT, HAND_RIGHT, HAND_UNKNOWN
-from .storage import LocalPieceStorage
+from .storage import LocalPieceStorage, create_storage
 from .validators import ValidationError
 
 # Tolerancia por nota (B-012.2): 100 ms es más fino de lo que el oído juzga
@@ -389,7 +389,7 @@ def piece_path(row: Mapping[str, object]) -> Path:
     """Ruta del MIDI de una pieza: el del corpus o el subido, según su fila."""
     if row["midi_path"]:
         return Path(settings.midi_storage_path) / row["midi_path"]
-    return LocalPieceStorage(Path(settings.midi_storage_path)).get_path(row["stored_filename"])
+    return create_storage().get_path(row["stored_filename"])
 
 
 def read_piece_notes(row: Mapping[str, object]) -> list[NormalizedNote]:

@@ -62,5 +62,10 @@ def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> LocalPi
     root = tmp_path / "midi"
     storage = LocalPieceStorage(root)
     monkeypatch.setattr(settings, "midi_storage_path", str(root))
+    # Mantener la suite hermética: sin credenciales R2 se usa storage local.
+    monkeypatch.setattr(settings, "r2_access_key_id", "")
+    monkeypatch.setattr(settings, "r2_secret_access_key", "")
+    monkeypatch.setattr(settings, "r2_endpoint", "")
+    monkeypatch.setattr(settings, "r2_bucket", "")
     monkeypatch.setattr(api, "storage", storage)
     return storage
