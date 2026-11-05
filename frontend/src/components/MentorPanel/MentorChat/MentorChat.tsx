@@ -372,10 +372,10 @@ export function MentorChat({
   const typing = reply !== null && visibleChars < reply.length;
   /**
    * B-032.10 con el ajuste del usuario: el chip «Pedir pista al agente» se
-   * vuelve translúcido cuando el texto de la burbuja es muy largo (el mismo
-   * umbral que activa el tamaño pequeño) y vuelve entero al pasar el ratón.
+   * vuelve translúcido en cuanto el texto deja de ser corto (tamaño md o sm,
+   * el mismo criterio del achicado) y vuelve entero al pasar el ratón.
    */
-  const ghostHint = chatFontSize(shown) === "sm";
+  const ghostHint = chatFontSize(shown) !== "lg";
 
   return (
     <section className={styles.chat} aria-label="Chat del mentor">

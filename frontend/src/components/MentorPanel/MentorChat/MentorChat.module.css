@@ -1,4 +1,4 @@
-/* description: Estilos del chat: burbuja de altura fija (174px) con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7), botón de cierre circular del flotante (D-002.5) y estilo del input. B-032.10 añade el feed informativo (.feed/.informantLine): líneas cortas de la práctica, apagadas y con acento dorado, separadas de la conversación. */
+/* description: Estilos del chat: burbuja de alto mínimo 174px que absorbe el espacio sobrante del panel, flex:1, con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7, translúcido con texto no corto: .hintGhost), botón de cierre circular del flotante (D-002.5) y estilo del input. B-032.10 añade el feed informativo (.feed/.informantLine): pila de líneas cortas DENTRO de la burbuja, apagadas y con acento dorado, separadas de la conversación. */
 /* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. Con B-032.7 el chip no se posiciona a sí mismo: lo encaja .hintSlot dentro de la burbuja. */
 
 .chat {
@@ -7,6 +7,10 @@
   gap: 12px;
   border-radius: 16px;
   padding: 16px;
+  /* B-032.10: el chat crece para absorber el espacio sobrante del panel
+     (pbito del usuario), igual que el resto de bloques dejan el suyo. */
+  flex: 1;
+  min-height: 0;
 }
 
 .heading {
@@ -122,11 +126,13 @@
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-/* La burbuja tiene altura fija: así el panel no salta aunque la respuesta
-   cambie de longitud. El texto se reduce de lg a sm para caber; si aun así
-   desborda (respuestas largas), aparece el scroll en vertical en vez de
-   crecer o recortarse. `safe center` centra los mensajes cortos y, al
-   desbordar, alinea arriba para poder hacer scroll hasta el principio.
+/* La burbuja absorbe el alto disponible del panel: mínimo 174px (donde cabe
+   el mensaje corto y el chip) y crece hasta ocupar el espacio sobrante, que
+   antes quedaba muerto bajo las pestañas (B-032.10, petición del usuario).
+   El texto se reduce de lg a sm para caber; si aun así desborda (respuestas
+   largas), aparece el scroll en vertical en vez de crecer o recortarse.
+   `safe center` centra los mensajes cortos y, al desbordar, alinea arriba
+   para poder hacer scroll hasta el principio.
    D-002.3 absorbe el alto de la fila que quitamos (Tomar Control: 50px más el
    canal de 8px que la separaba), que ahora vive aquí. */
 .bubble {
@@ -134,7 +140,8 @@
   position: relative;
   border-radius: 16px;
   padding: 14px 16px;
-  height: 174px;
+  flex: 1;
+  min-height: 174px;
   display: flex;
   align-items: center;
   align-items: safe center;

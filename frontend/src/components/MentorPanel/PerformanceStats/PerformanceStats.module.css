@@ -1,14 +1,15 @@
-/* description: Estilos de las estadísticas de rendimiento. */
-/* context: B-006.4; simplicidad primero. */
+/* description: Estilos de las estadísticas de rendimiento: tarjeta en columna con los medidores repartidos y la franja dorada del punto débil. */
+/* context: B-006.4; simplicidad primero. B-032.10: antes la altura fija (115px) dejaba el punto débil sin pintar y el bloque solo; ahora la tarjeta crece y muestra ambos (revisión con el usuario). */
 
 .stats {
   border: 1px solid #2b3544;
   border-radius: 16px;
-  padding: 8px;
-  height: 115px;
+  padding: 12px 10px 10px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  background: var(--panel-soft);
 }
 
 .stats h2 {
@@ -18,12 +19,37 @@
 
 .gauges {
   display: flex;
-  gap: 8px;
-  justify-content: space-around;
+  gap: 12px;
+  justify-content: space-evenly;
+  width: 100%;
 }
 
+/* El punto débil como franja dorada: píldora a lo ancho con el icono de mano
+   delante, en el color que ya tiñe la cascada (D-002.1). */
 .weak {
-  margin: 6px 0 0;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 6px 12px;
+  border: 1px solid rgba(232, 161, 62, 0.35);
+  border-radius: 999px;
+  background: rgba(232, 161, 62, 0.07);
+  font-size: 0.8rem;
+  line-height: 1.2;
   color: #e8a13e;
+}
+
+.weak::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  mask-image: url("/assets/icons/hand.svg");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  background-color: #e8a13e;
 }
