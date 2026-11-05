@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError, createSession } from "../../../lib/api-client";
-import { practiceOpeningText, inform } from "../../../lib/chat-feed";
+import { practiceOpeningText, playingText, inform } from "../../../lib/chat-feed";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishPracticePiece } from "../../../lib/session-piece";
 import { MidiUploader } from "../../MidiUploader";
@@ -44,6 +44,9 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
       cover: song.cover,
       autoPlay: true,
     });
+    // B-032.10: también el «Continuar en Learn» se cuenta, y con la semántica
+    // de limpiar la burbuja (sin capacidad): solo ese mensaje, sin historial.
+    inform(playingText(song.title));
     router.push(PIANO_PATH);
   }
 
