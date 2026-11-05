@@ -1,4 +1,4 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan aparte con .informantLine, sin tecleo, sin borrar la conversación y sin entrar en el historial del LLM.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover.
 // context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render.
 
 "use client";
@@ -100,6 +100,28 @@ export function MentorChat({
    * cede siempre ante la conversación y ante la pregunta de la oferta.
    */
   const feed = useSyncExternalStore(subscribeChatFeed, getChatFeedSnapshot, getChatFeedSnapshot);
+  /**
+   * B-032.10: la línea nueva del feed se revela con la misma máquina de
+   * escribir de la burbuja (typingStep): las anteriores quedan enteras. La
+   * marca del último id evita reiniciar el efecto si la pila no cambió.
+   */
+  const [feedVisibleChars, setFeedVisibleChars] = useState(0);
+  const lastFeedLineIdRef = useRef(0);
+
+  useEffect(() => {
+    const last = feed[feed.length - 1];
+    if (!last || last.id === lastFeedLineIdRef.current) return;
+    lastFeedLineIdRef.current = last.id;
+    setFeedVisibleChars(0);
+    const step = typingStep(last.text.length);
+    let shown = 0;
+    const timer = window.setInterval(() => {
+      shown += step;
+      setFeedVisibleChars(shown);
+      if (shown >= last.text.length) window.clearInterval(timer);
+    }, CHAT_TYPING_MS);
+    return () => window.clearInterval(timer);
+  }, [feed]);
 
   /**
    * B-032.7: la oferta del mentor. La visibilidad sale del último sobre del
@@ -334,11 +356,21 @@ export function MentorChat({
   // y el scroll siguen valiendo (mensaje corto → grande).
   const feedBubble = reply === null && offerQuestion === null && feed.length > 0;
   const feedText = feed.map((line) => line.text).join("\n");
+  /** La línea recién llegada sigue escribiéndose (cursor en su línea). */
+  const lastFeedLine = feed.length > 0 ? feed[feed.length - 1] : null;
+  const feedTyping =
+    feedBubble && lastFeedLine !== null && feedVisibleChars < lastFeedLine.text.length;
 
   const shown = reply ?? offerQuestion ?? (feedBubble ? feedText : waiting);
   const visible =
     reply === null ? offerQuestion ?? (feedBubble ? null : waiting) : typedSlice(reply, visibleChars);
   const typing = reply !== null && visibleChars < reply.length;
+  /**
+   * B-032.10 con el ajuste del usuario: el chip «Pedir pista al agente» se
+   * vuelve translúcido cuando el texto de la burbuja es muy largo (el mismo
+   * umbral que activa el tamaño pequeño) y vuelve entero al pasar el ratón.
+   */
+  const ghostHint = chatFontSize(shown) === "sm";
 
   return (
     <section className={styles.chat} aria-label="Chat del mentor">
@@ -364,13 +396,18 @@ export function MentorChat({
       <div
         className={`${styles.bubble} ${FONT_CLASS[chatFontSize(shown)]}`}
         aria-live="polite"
-        aria-busy={busy || typing}
+        aria-busy={busy || typing || feedTyping}
       >
         {feedBubble ? (
           <ul className={styles.feed}>
             {feed.map((line) => (
               <li key={line.id} className={styles.informantLine}>
-                {line.text}
+                {line.id === lastFeedLine?.id
+                  ? typedSlice(line.text, feedVisibleChars)
+                  : line.text}
+                {line.id === lastFeedLine?.id && feedTyping && (
+                  <span className={styles.cursor}>{TYPING_CURSOR}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -395,7 +432,7 @@ export function MentorChat({
               onRepeat={repeatDemo}
             />
           ) : (
-            <span className={styles.hintSlot}>
+            <span className={`${styles.hintSlot} ${ghostHint ? styles.hintGhost : ""}`}>
               <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
             </span>
           ))}

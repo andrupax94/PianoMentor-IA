@@ -188,12 +188,23 @@
 
 /* Hueco absoluto del chip «Pedir pista al agente» (B-012.6): la píldora ya
    no se posiciona a sí misma, este span decide dónde vive dentro de la
-   burbuja (B-032.7). */
+   burbuja (B-032.7). B-032.10: con textos largos el chip se vuelve
+   translúcido (.hintGhost) para no tapar la lectura y vuelve entero al pasar
+   el ratón, con una transición suave de por medio. */
 .hintSlot {
   position: absolute;
   display: flex;
   bottom: 5px;
   right: 5px;
+  transition: opacity 0.3s ease;
+}
+
+.hintGhost {
+  opacity: 0.35;
+}
+
+.hintGhost:hover {
+  opacity: 1;
 }
 
 /* Tamaño dinámico: mensajes cortos en grande, largos en pequeño. */
