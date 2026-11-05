@@ -7,7 +7,7 @@ import type { GaugeChartProps } from "./GaugeChart.types";
 const RADIUS = 44;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function GaugeChart({ value = 0, label = "" }: GaugeChartProps) {
+export function GaugeChart({ value = 0, label = "", color = "var(--accent)" }: GaugeChartProps) {
   const clamped = Math.min(Math.max(value, 0), 100);
   const offset = CIRCUMFERENCE - (clamped / 100) * CIRCUMFERENCE;
   return (
@@ -19,7 +19,7 @@ export function GaugeChart({ value = 0, label = "" }: GaugeChartProps) {
           cy="55"
           r={RADIUS}
           fill="none"
-          stroke="var(--accent)"
+          stroke={color}
           strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
