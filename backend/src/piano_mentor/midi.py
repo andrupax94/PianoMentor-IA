@@ -452,17 +452,81 @@ def _measure_ticks(signature: tuple[int, int], ticks_per_beat: int) -> int:
     return (numerator * ticks_per_beat * 4) // denominator
 
 
+def _piano_channels(midi: mido.MidiFile) -> set[int]:
+    """Canales que parecen ser piano en un MIDI con más de 2 canales.
+
+    Heurística (B-029/B-009): un canal es piano si tiene un ``program_change``
+    con programa 0-7 (General MIDI: pianos acústicos) o si algún meta-evento
+    de nombre de pista/instrumento de su pista contiene "piano".
+    """
+    piano: set[int] = set()
+    for track in midi.tracks:
+        track_channels: set[int] = set()
+        for message in track:
+            if not message.is_meta and hasattr(message, "channel"):
+                track_channels.add(message.channel)
+            if message.type == "program_change" and 0 <= int(message.program) <= 7:
+                piano.add(message.channel)
+        for message in track:
+            if message.is_meta and message.type in ("track_name", "instrument_name"):
+                text = str(getattr(message, "name", "") or getattr(message, "text", "") or "")
+                if "piano" in text.lower():
+                    piano.update(track_channels)
+    return piano
+
+
+def _filter_to_channels(midi: mido.MidiFile, allowed: set[int]) -> mido.MidiFile:
+    """Devuelve una copia del MIDI conservando solo los canales indicados.
+
+    Los meta-eventos (tempo, firma, nombres) se conservan siempre; los mensajes
+    de canal cuyo ``channel`` no esté en ``allowed`` se descartan acumulando su
+    tiempo delta en el siguiente mensaje conservado, para no romper el timing.
+    """
+    filtered = mido.MidiFile(ticks_per_beat=midi.ticks_per_beat)
+    for track in midi.tracks:
+        new_track = mido.MidiTrack()
+        pending_time = 0
+        for message in track:
+            keep = message.is_meta or not hasattr(message, "channel") or message.channel in allowed
+            if keep:
+                new_message = message.copy(time=message.time + pending_time)
+                new_track.append(new_message)
+                pending_time = 0
+            else:
+                pending_time += message.time
+        if new_track:
+            filtered.tracks.append(new_track)
+    if not filtered.tracks:
+        filtered.tracks.append(mido.MidiTrack())
+    return filtered
+
+
 def _read_midi_file(path: Path) -> mido.MidiFile:
     """Abre un MIDI del filesystem o lanza MidiParseError con código estable."""
     if not path.is_file():
         raise MidiParseError("midi_file_not_found", f"No existe el archivo MIDI: {path}")
     try:
-        return mido.MidiFile(str(path))
+        midi = mido.MidiFile(str(path))
     except (OSError, EOFError, ValueError, KeyError) as exc:
         raise MidiParseError(
             "invalid_midi_content",
             "El contenido no es un MIDI legible",
         ) from exc
+
+    # Validación de canales (B-009/B-029): si hay más de 2 canales, exigir que
+    # al menos uno sea identificable como piano; en caso contrario se rechaza,
+    # porque lo habitual es que el resto sean otros instrumentos. Si se detectan
+    # canales de piano, se filtra la pieza para quedarse solo con esos canales.
+    channels = _used_channels(midi)
+    if len(channels) > 2:
+        piano = _piano_channels(midi)
+        if not piano:
+            raise MidiParseError(
+                "no_piano_channel",
+                "El MIDI tiene más de 2 canales y no se detectó un canal de piano",
+            )
+        midi = _filter_to_channels(midi, piano)
+    return midi
 
 
 def _is_note_on(message: mido.Message) -> bool:
