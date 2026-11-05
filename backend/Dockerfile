@@ -3,6 +3,17 @@
 
 FROM python:3.12-slim
 
+# Litestream (replicación continua de SQLite a R2, B-031).
+ARG LITESTREAM_VERSION=0.3.13
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates wget \
+    && wget -qO /tmp/litestream.tar.gz \
+        "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-v${LITESTREAM_VERSION}-linux-amd64.tar.gz" \
+    && tar -xzf /tmp/litestream.tar.gz -C /usr/local/bin litestream \
+    && rm /tmp/litestream.tar.gz \
+    && apt-get purge -y --auto-remove wget \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/src
 
@@ -16,6 +27,11 @@ COPY backend/tests ./tests
 # sirve la Library vacía porque ensure_catalog_loaded no encuentra los ficheros.
 COPY data/midi /data/midi
 
+# Configuración y entrypoint de Litestream (B-031).
+COPY litestream.yml /etc/litestream.yml
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD python -c "import os, urllib.request; urllib.request.urlopen('http://localhost:' + os.environ.get('PORT', '8000') + '/health')"
-CMD ["sh", "-c", "uvicorn piano_mentor.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["/entrypoint.sh"]

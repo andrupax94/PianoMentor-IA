@@ -1,0 +1,12 @@
+# Litestream configuration for PianoMentor AI (B-031).
+# Credentials and paths come from environment variables; never commit real values.
+dbs:
+  - path: ${DATABASE_PATH}
+    replicas:
+      - type: s3
+        bucket: ${R2_BUCKET}
+        path: db
+        endpoint: ${R2_ENDPOINT}
+        region: ${R2_REGION}
+        access-key-id: ${R2_ACCESS_KEY_ID}
+        secret-access-key: ${R2_SECRET_ACCESS_KEY}
