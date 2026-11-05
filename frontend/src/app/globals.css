@@ -84,7 +84,13 @@ body {
 .shell {
     max-width: 2200px;
     margin: 0 auto;
-    /* padding: 16px 24px 48px; */
+    /* Sticky footer sin position: fixed: el shell reserva el alto de la
+       ventana (dvh desktop/tablet, con fallback vh) y el footer empuja
+       con margin-top: auto hasta el borde inferior cuando sobra espacio. */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .eyebrow {

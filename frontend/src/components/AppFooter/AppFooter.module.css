@@ -6,6 +6,9 @@
   --footer-text-muted: rgba(255, 255, 255, 0.65);
 
   width: 100%;
+  /* Sticky footer (globals .shell es flex-column): margin-top auto absorbe
+     el hueco sobrante del shell y baja el footer al final sin position fixed. */
+  margin-top: auto;
   background-color: var(--footer-bg);
   border-top: 1px solid var(--footer-base);
 }
