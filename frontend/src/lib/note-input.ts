@@ -1,8 +1,8 @@
 // description: Puerto único de entrada de notas (B-032.2): un evento por tecla con su fuente (teclado del PC, piano en pantalla o Web MIDI), un canal de suscripción y una puerta que bloquea las pulsaciones mientras el agente tiene el control.
 // context: El audio local y el envío a la sesión salen del mismo evento: TransportProvider suena lo que llega y PracticeBridge lo manda al WebSocket. La puerta solo corta los `note_on` (soltar una tecla siempre es seguro); quien suena libera lo que tuviera pulsado al cerrarse. Vive en memoria y sin DOM, así que se prueba con Vitest en entorno node.
 
-/** De dónde viene la pulsación. */
-export type NoteInputSource = "pc" | "screen" | "midi";
+/** De dónde viene la pulsación. `debug` es el pianista robot dev (B-033.1). */
+export type NoteInputSource = "pc" | "screen" | "midi" | "debug";
 
 /** Una tecla pulsada o soltada, ya en pitch MIDI. */
 export interface NoteInputEvent {

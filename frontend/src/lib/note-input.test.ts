@@ -104,4 +104,13 @@ describe("note-input", () => {
 
     expect(isNoteInputEnabled()).toBe(true);
   });
+
+  it("trata la fuente debug del robot dev con el mismo contrato (B-033.1)", () => {
+    const onNoteOn = vi.fn();
+    subscribeNoteInput({ onNoteOn });
+
+    emitNoteOn({ pitch: 60, velocity: 80, source: "debug" });
+
+    expect(onNoteOn).toHaveBeenCalledWith({ pitch: 60, velocity: 80, source: "debug" });
+  });
 });

@@ -1,5 +1,5 @@
 // description: Enlace entre la sesión de la ruta y la portada: WebSocket (estado, latencia y acciones del agente), puerto de entrada de notas, almacén de estado y la pieza que la sesión manda al piano (B-032.1). Desde B-032.2 el `t_s` de cada nota y la posición que viaja al backend salen del transporte único, y una puerta corta el audio y el envío mientras el agente demuestra.
-// context: La práctica vive en /{id} sobre la portada (reposición post-B-012.1); absorbe la lógica de PracticeSession (B-012.1). No pinta nada: manda las notas al servidor (bloqueadas mientras el agente demuestra, B-012.5), publica el estado en session-store, decide si el acompañamiento se puede sonar o hay que degradarlo a demostración según la latencia del canal (B-012.7) y reconcilia la pieza del almacén con el `piece_id` de la sesión (B-032.1). La posición se manda a 4 Hz y el backend decide cuándo difundirla. Con B-032.5/B-032.6 vive además el gate-controller (activa gates por modo y emite `practice`) y aplica las decisiones del agente: `slow_down` cambia el tempo del transporte y `return_control` publica el stop con el compás demostrado, donde la práctica reanuda y rearma el gate. Con B-032.7 suscribe el bus offer-choice y traduce la respuesta del alumno a la oferta en los sobres WS.
+// context: La práctica vive en /{id} sobre la portada (reposición post-B-012.1); absorbe la lógica de PracticeSession (B-012.1). No pinta nada: manda las notas al servidor (bloqueadas mientras el agente demuestra, B-012.5), publica el estado en session-store, decide si el acompañamiento se puede sonar o hay que degradarlo a demostración según la latencia del canal (B-012.7) y reconcilia la pieza del almacén con el `piece_id` de la sesión (B-032.1). La posición se manda a 4 Hz y el backend decide cuándo difundirla. Con B-032.5/B-032.6 vive además el gate-controller (activa gates por modo y emite `practice`) y aplica las decisiones del agente: `slow_down` cambia el tempo del transporte y `return_control` publica el stop con el compás demostrado, donde la práctica reanuda y rearma el gate. Con B-032.7 suscribe el bus offer-choice y traduce la respuesta del alumno a la oferta en los sobres WS. Con B-033.1 monta, solo en desarrollo, el runner de escenarios sintéticos (pianista robot) que pulsa por el puerto real con fuente `debug`.
 
 "use client";
 
@@ -13,11 +13,12 @@ import { ApiError, executeAgentAction, getSessionState } from "../lib/api-client
 import { inform, sessionClosedText } from "../lib/chat-feed";
 import { createGateController, type GateController } from "../lib/gate-controller";
 import { measureIndexAt } from "../lib/measures";
-import { setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
+import { emitNoteOff, emitNoteOn, isNoteInputEnabled, setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
 import { evaluatedHand } from "../lib/practice-mode";
 import { musicalPosition } from "../lib/playback-schedule";
 import { subscribeOfferChoice } from "../lib/offer-choice";
 import { syncSessionPiece } from "../lib/session-piece";
+import type { PracticeScenarioRunner, ScenarioId } from "../lib/practice-scenarios";
 import {
   clearSession,
   getSessionSnapshot,
@@ -65,6 +66,19 @@ function connectingSnapshot(sessionId: string): PracticeSnapshot {
     agentAction: null,
     latencyMs: null,
   };
+}
+
+/**
+ * B-033.1: eventos dev por los que el menú de depuración (B-033.2) o la
+ * consola lanzan y paran el pianista robot. Solo existen aquí: el bus del
+ * resto de la página no sabe de escenarios.
+ */
+const SCENARIO_START_EVENT = "practice:scenario-start";
+const SCENARIO_STOP_EVENT = "practice:scenario-stop";
+
+interface ScenarioStartDetail {
+  scenario?: string;
+  seed?: number;
 }
 
 export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
@@ -360,6 +374,61 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
     }, POSITION_PUSH_MS);
     return () => window.clearInterval(timer);
   }, [sessionId]);
+
+  /**
+   * B-033.1: pianista robot de desarrollo. Bajo `NODE_ENV === "production"`
+   * el efecto ni se ejecuta, y al estar el import dinámico dentro del bloque
+   * el build de producción ni lo empaqueta: el flag vive en el import, no en
+   * el render. El robot emite por el puerto real (fuente `debug`, sujeta a la
+   * misma puerta que el alumno), así que el audio, la evaluación del gate, el
+   * envío WS y las reglas de strikes recorren el pipeline completo, sin mocks.
+   */
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return undefined;
+    let runner: PracticeScenarioRunner | null = null;
+    let onStart: ((windowEvent: Event) => void) | null = null;
+    let onStop: (() => void) | null = null;
+    let disposed = false;
+
+    void import("../lib/practice-scenarios").then(({ createPracticeScenarioRunner, isScenarioId }) => {
+      if (disposed) return;
+
+      // El robot aporta el gesto; el puerto añade el etiquetado debug.
+      const buildRunner = (scenario: ScenarioId, seed: number | undefined) =>
+        createPracticeScenarioRunner(scenario, {
+          getSnapshot: () => transportRef.current.getEngineSnapshot(),
+          submitNoteOn: (event) => emitNoteOn({ ...event, source: "debug" }),
+          submitNoteOff: (event) => emitNoteOff({ ...event, velocity: 0, source: "debug" }),
+          clockMs: () => performance.now(),
+          canEmit: isNoteInputEnabled,
+        }, { seed });
+
+      onStart = (windowEvent: Event) => {
+        const detail = (windowEvent as CustomEvent).detail as ScenarioStartDetail | null;
+        if (!detail || typeof detail.scenario !== "string" || !isScenarioId(detail.scenario)) return;
+        runner?.stop();
+        runner = buildRunner(detail.scenario, typeof detail.seed === "number" ? detail.seed : undefined);
+        runner.start();
+      };
+      onStop = () => {
+        runner?.stop();
+        runner = null;
+      };
+
+      window.addEventListener(SCENARIO_START_EVENT, onStart);
+      window.addEventListener(SCENARIO_STOP_EVENT, onStop);
+    });
+
+    return () => {
+      disposed = true;
+      // El import puede aterrizar tras el desmonte: sin handlers no hay nada
+      // que soltar, y el `disposed` impide que el registro tardío ocurra.
+      if (onStart) window.removeEventListener(SCENARIO_START_EVENT, onStart);
+      if (onStop) window.removeEventListener(SCENARIO_STOP_EVENT, onStop);
+      runner?.stop();
+      runner = null;
+    };
+  }, []);
 
   return null;
 }
