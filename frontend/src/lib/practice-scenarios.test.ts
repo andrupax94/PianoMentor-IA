@@ -80,7 +80,7 @@ describe("practice-scenarios", () => {
     };
   }
 
-  it("perfecta pulsa el gate completo en cuanto aparece y luego suelta", () => {
+  it("perfecta pulsa el gate completo en cuanto aparece y sostiene la nota su tiempo", () => {
     const rig1 = rig("perfecta");
     rig1.runner.start();
 
@@ -91,8 +91,9 @@ describe("practice-scenarios", () => {
     rig1.advance(100);
     expect(rig1.submissions).toHaveLength(1);
 
-    // El hold vale mitad del gate (0,5 s → 250 ms): al superarlo, suelta.
-    rig1.advance(200);
+    // La tecla se aguanta la duración escrita menos el hueco de seguridad
+    // (0,5 s de nota − 120 ms = 380 ms): al superarlo, suelta.
+    rig1.advance(300);
     expect(rig1.releases).toEqual([{ pitch: 60, velocity: 0 }]);
 
     // Y ya no vuelve a pulsar el mismo gate (un gesto por gate).
@@ -100,6 +101,21 @@ describe("practice-scenarios", () => {
     expect(rig1.submissions).toHaveLength(1);
 
     rig1.runner.stop();
+  });
+
+  it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {
+    const rigFast = rig("teclas_rapidas");
+    rigFast.runner.start();
+
+    rigFast.advance(100);
+    expect(rigFast.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    rigFast.advance(100);
+    // Gate de 0,5 s → 250 ms de hold: recorridos (100 + 200 = 300 ms), suelta.
+    rigFast.advance(200);
+    expect(rigFast.releases).toEqual([{ pitch: 60, velocity: 0 }]);
+
+    rigFast.runner.stop();
   });
 
   it("perfecta en acorde pulsa todas las notas del gate", () => {
@@ -149,8 +165,8 @@ describe("practice-scenarios", () => {
     expect(rig4.submissions).toEqual([{ pitch: 59, velocity: 80 }]);
     expect(rig4.releases.map((r) => r.pitch)).toEqual([]);
 
-    // La suelta como cualquier tecla.
-    rig4.advance(200);
+    // La suelta como cualquier tecla, tras su duración (150 + 380 ms).
+    rig4.advance(300);
     expect(rig4.releases.map((r) => r.pitch)).toEqual([59]);
 
     rig4.runner.stop();

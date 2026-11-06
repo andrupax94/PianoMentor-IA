@@ -14,24 +14,38 @@ import {
 } from "../../lib/practice-debug";
 import { isNoteInputEnabled, subscribeNoteInputGate } from "../../lib/note-input";
 import { SCENARIO_IDS, type ScenarioId } from "../../lib/practice-scenarios";
+import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { useTransport } from "../../lib/transport-context";
 import styles from "./SessionDebug.module.css";
 
 /** Etiqueta y descripción corta de cada escenario (menú v1). */
 const SCENARIO_LABELS: Record<ScenarioId, { label: string; desc: string }> = {
-  perfecta: { label: "Perfecta", desc: "pulsa al momento: práctica sin fallos ni intervenciones" },
+  perfecta: { label: "Perfecta", desc: "pulsa al momento y sostiene la nota su tiempo: práctica sin fallos ni intervenciones" },
   siempre_tarde: { label: "Siempre tarde", desc: "pasa el margen y acierta: strikes vencidas + rescate tardío" },
   siempre_equivocada: { label: "Siempre equivocada", desc: "tecla errónea: sube la escalera propia (pista → tempo → demo)" },
   nunca_press: { label: "Nunca pulsa", desc: "el robot no toca: timeouts puros y oferta de demostración" },
   acorde_incompleto: { label: "Acorde incompleto", desc: "pulsa una parte del acorde: gates de acorde en espera" },
   mezcla: { label: "Mezcla", desc: "hit/tarde/equivocada a proporciones fijas, reproducible por semilla" },
+  teclas_rapidas: { label: "Teclas rápidas", desc: "como perfecta pero con el golpe corto del v1 (mitad del gate)" },
 };
 
 export function SessionDebug() {
   const transport = useTransport();
+  const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
   const log = useSyncExternalStore(subscribeDebugLog, getDebugLogSnapshot);
   const robot = useSyncExternalStore(subscribeDebugScenario, getDebugScenarioSnapshot);
   const gateOpen = useSyncExternalStore(subscribeNoteInputGate, isNoteInputEnabled, isNoteInputEnabled);
+
+  // B-033.2 (petición del usuario): sin sesión de práctica el menú no existe —
+  // los gates solo ocurren en modos de práctica, así que aquí no hay nada que
+  // dirigir. La pestaña da la explicación en lugar de controles muertos.
+  if (session.sessionId === null) {
+    return (
+      <div className={styles.debug}>
+        <p className={styles.empty}>No hay sesión activa: abre una práctica para lanzar escenarios.</p>
+      </div>
+    );
+  }
 
   /** Relanza la pieza desde 0 (parar + play por el transporte, sin recrear el reloj) y arma el robot sobre ella. */
   const launch = (scenario: ScenarioId) => {

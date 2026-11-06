@@ -16,6 +16,7 @@ import { getPianoPiece, subscribePianoPiece } from "../../lib/piece-store";
 import type { PianoPiece } from "../../lib/piece-store";
 import { defaultPreroll_s } from "../../lib/practice-gate";
 import { audibleNotes, dimmedHand, evaluatedHand } from "../../lib/practice-mode";
+import { getWaitModeSnapshot, subscribeWaitMode } from "../../lib/wait-mode-store";
 import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { useTransport } from "../../lib/transport-context";
 import { usePracticeModeChange } from "../PracticeModeBridge";
@@ -77,6 +78,9 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
   const practiceMode = session.sessionId === null ? null : session.practiceMode;
   const studentHand = session.studentHand;
   const dimmed = practiceMode === null ? null : dimmedHand(practiceMode, studentHand);
+  // B-033.2: el switch «Modo espera» del PlayerBar puede congelar-apagar la
+  // espera del transporte en los gates de práctica (default: activado).
+  const waitMode = useSyncExternalStore(subscribeWaitMode, getWaitModeSnapshot, getWaitModeSnapshot);
   // B-032.4: el selector publica el cambio; el puente lo manda al backend.
   const changePracticeMode = usePracticeModeChange();
   /** true si la partitura ya está cargada (para poder cambiar solo el audio). */
@@ -220,9 +224,11 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       return;
     }
     const hand = evaluatedHand(practiceMode, studentHand) ?? "both";
-    setGateOptions({ enabled: true, hand });
+    // B-033.2: el switch «Modo espera» multiplica aquí — apagarlo quita la
+    // espera (el transporte no se congela en los gates) sin tocar el modo.
+    setGateOptions({ enabled: waitMode.enabled, hand });
     setPreroll(defaultPreroll_s(player.tempo_bpm));
-  }, [practiceMode, studentHand, setGateOptions, setPreroll, player.tempo_bpm, player.engineEpoch]);
+  }, [practiceMode, studentHand, setGateOptions, setPreroll, player.tempo_bpm, player.engineEpoch, waitMode.enabled]);
 
   // Las intervenciones del agente (B-012.5/B-012.7): la demostración recorta la
   // ventana de compases; el acompañamiento deja sonando solo la mano de la IA
@@ -247,9 +253,11 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       setAgentHand(null);
       stop();
       // B-032.6: los gates vuelven al modo de práctica, que es lo que el
-      // estudiante estaba haciendo.
+      // estudiante estaba haciendo. B-033.2: con el switch «espera» apagado,
+      // tampoco aquí se reactiva la espera.
       setGateOptions({
-        enabled: practiceMode === "one_hand" || practiceMode === "both_hands",
+        enabled:
+          waitMode.enabled && (practiceMode === "one_hand" || practiceMode === "both_hands"),
         hand: evaluatedHand(practiceMode ?? "observe", studentHand) ?? "both",
       });
       // B-032.6: reanudar al inicio del compás que se estaba demostrando; sin
@@ -334,7 +342,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       unsubscribe();
       clearAccompanyTimer();
     };
-  }, [load, play, seek, stop, setGateOptions, practiceMode, studentHand]);
+  }, [load, play, seek, stop, setGateOptions, practiceMode, studentHand, waitMode.enabled]);
 
   // La barra anuncia la demo, el nombre del archivo subido o el título elegido
   // en la Library: el título siempre es la pieza que suena, nunca un marcador.

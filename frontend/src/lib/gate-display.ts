@@ -2,17 +2,18 @@
 // context: Sin DOM ni React; el motor (displayPosition_s) y la controladora de gates lo consumen. Todo el arte está en el transporte congelado en gate.time_s: aquí solo se calcula el offset que se pinta por encima. Velocidades consistentes: en waiting el schedule corre 1 segundo de partitura escalada por cada segundo de reloj, así que el sobresalto avanza a la misma velocidad que venía la barra.
 
 /** Fracción de la duración de la nota que la barra se pasa de la línea. */
-export const GATE_OVERSHOOT_RATIO = 0.4;
+export const GATE_OVERSHOOT_RATIO = 0.6;
 /** Recortes del sobresalto en segundos (ya escalados, como corre el schedule). */
 export const GATE_OVERSHOOT_MIN_S = 0.15;
-export const GATE_OVERSHOOT_MAX_S = 0.5;
+export const GATE_OVERSHOOT_MAX_S = 0.75;
 /** Duración del rebobinado (y de cualquier desvanecimiento del offset). */
 export const GATE_REWIND_S = 0.15;
 
 /**
- * El sobresalto del gate: 40 % de la duración de la nota (pidió el usuario
- * aumentar el 25 % original), recortado a [150 ms, 500 ms] para no verse
- * absurdo en extremos (nota cortísima o larga).
+ * El sobresalto del gate: 60 % de la duración de la nota (paso a paso lo pidió
+ * el usuario: 25 % original → 40 % → 60 %, y el tope subió de 500 a 750 ms
+ * para que el propio 60 % se vea en notas medianas), recortado a [150 ms,
+ * 750 ms] para no verse absurdo en extremos (nota cortísima o larguísima).
  */
 export function gateOvershoot_s(duration_s: number): number {
   const duration = Math.max(0, duration_s);

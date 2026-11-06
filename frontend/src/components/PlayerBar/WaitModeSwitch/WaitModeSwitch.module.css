@@ -1,0 +1,60 @@
+/* description: Estilos del switch «Modo espera» del PlayerBar (B-033.2). */
+/* context: Píldora compacta junto al tempo/firma: pista con tirador, acento dorado cuando está activado y tono apagado con el espera inactivo. */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--panel-soft, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.switch:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.track {
+  display: inline-block;
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e8edf7;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.on .track {
+  background: rgba(212, 175, 55, 0.55);
+}
+
+.on .knob {
+  transform: translateX(14px);
+  background: #111;
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-soft, #aab6c2);
+  white-space: nowrap;
+}
+
+.on .label {
+  color: var(--gold, #d4af37);
+}

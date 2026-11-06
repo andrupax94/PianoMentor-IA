@@ -14,6 +14,7 @@ import { PlaybackControls } from "./PlaybackControls/PlaybackControls";
 import { ProgressBar } from "./ProgressBar/ProgressBar";
 import { SongInfo } from "./SongInfo/SongInfo";
 import { TempoMeasure } from "./TempoMeasure/TempoMeasure";
+import { WaitModeSwitch } from "./WaitModeSwitch/WaitModeSwitch";
 import styles from "./PlayerBar.module.css";
 import type { PlayerBarProps } from "./PlayerBar.types";
 
@@ -102,6 +103,10 @@ export function PlayerBar({
         measureCount={measureCount}
         signature={signature}
       />
+      {/* B-033.2: el usuario decide si el transporte se congela en cada gate.
+          Activado de siempre (la espera es lo habitual); sin sesión activa no
+          tiene efecto porque el motor ya no congela nunca fuera de práctica. */}
+      <WaitModeSwitch />
       {/* B-032.5: el indicador de espera/cuenta atrás vive ahora en el estado
           de sesión del panel del mentor, para no duplicar la información. */}
       {/* B-032.4: el modo de práctica se gobierna desde el ModeSelector del panel

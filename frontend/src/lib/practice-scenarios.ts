@@ -5,14 +5,15 @@ import type { Gate } from "./practice-gate";
 import { waitTimeoutMs } from "./practice-gate";
 import type { PlaybackSnapshot } from "./playback-engine";
 
-/** Escenarios disponibles en v1 (el nombre también manda en B-033.2). */
+/** Escenarios disponibles (el nombre también manda en B-033.2). */
 export type ScenarioId =
   | "perfecta"
   | "siempre_tarde"
   | "siempre_equivocada"
   | "nunca_press"
   | "acorde_incompleto"
-  | "mezcla";
+  | "mezcla"
+  | "teclas_rapidas";
 
 /** Identificadores válidos, en orden de menú (lo consume el selector dev). */
 export const SCENARIO_IDS: readonly ScenarioId[] = [
@@ -22,6 +23,7 @@ export const SCENARIO_IDS: readonly ScenarioId[] = [
   "nunca_press",
   "acorde_incompleto",
   "mezcla",
+  "teclas_rapidas",
 ];
 
 /** Guard de parseo defensivo de la petición (qué llega por el evento dev). */
@@ -61,10 +63,21 @@ export interface PracticeScenarioRunner {
 /** Velocidad obligada del robot: una pulsación humana, no un forte. */
 const VELOCITY = 80;
 
-/** Fracción de la duración del gate que la tecla se mantiene hundida. */
-const HOLD_FRACTION = 0.5;
-const HOLD_MIN_MS = 80;
-const HOLD_MAX_MS = 400;
+/**
+ * Duración de la tecla — política natural (B-033.1 con petición del usuario):
+ * la nota se sostiene lo que dura en la partitura (con un hueco de seguridad
+ * al final para que la tecla soltada no caiga dentro del gate siguiente). El
+ * gesto rápido del robot v1 (mitad del gate, recortado) queda como escenario
+ * aparte «Teclas rápidas» para comparar el sonido mismo.
+ */
+const HOLD_GAP_MS = 120;
+const HOLD_MIN_MS = 60;
+const HOLD_MAX_MS = 1500;
+
+/** Política rápida del escenario teclas_rapidas: mitad del gate antes de soltar. */
+const FAST_FRACTION = 0.5;
+const FAST_MIN_MS = 80;
+const FAST_MAX_MS = 400;
 
 /** Retraso con el que el robot pulsa la tecla equivocada/la parte del acorde. */
 const WRONG_DELAY_MS = 150;
@@ -120,10 +133,13 @@ function wrongPitchFor(gate: Gate): number {
   return 51;
 }
 
-/** Cuánto se aguanta una tecla: mitad del gate, entre 80 y 400 ms. */
-function holdMsFor(gate: Gate): number {
-  const raw = Math.round((gate.duration_s * 1000) * HOLD_FRACTION);
-  return Math.min(HOLD_MAX_MS, Math.max(HOLD_MIN_MS, raw));
+/** Cuánto se aguanta una tecla según su política: tiempo real o gesto rápido. */
+function holdMsFor(gate: Gate, fast: boolean): number {
+  const raw = gate.duration_s * 1000;
+  if (fast) {
+    return Math.min(FAST_MAX_MS, Math.max(FAST_MIN_MS, raw * FAST_FRACTION));
+  }
+  return Math.min(HOLD_MAX_MS, Math.max(HOLD_MIN_MS, raw - HOLD_GAP_MS));
 }
 
 /** El gesto del robot en este gate, según el escenario. */
@@ -133,10 +149,15 @@ function planFor(
   seed: number,
   snapshot: PlaybackSnapshot,
 ): GatePlan {
-  const holdMs = holdMsFor(gate);
+  // Solo «Teclas rápidas» mantiene el gesto atajo del v1; el resto sostiene
+  // la nota por su duración escrita (petición del usuario, 2026-11-06).
+  const fast = scenario === "teclas_rapidas";
+  const holdMs = holdMsFor(gate, fast);
 
   switch (scenario) {
     case "perfecta":
+      return { pitches: [...gate.pitches], pressAtMs: 0, holdMs };
+    case "teclas_rapidas":
       return { pitches: [...gate.pitches], pressAtMs: 0, holdMs };
     case "siempre_tarde": {
       // Espera todo el margen (dos pulsos al tempo del snapshot) y acierta
