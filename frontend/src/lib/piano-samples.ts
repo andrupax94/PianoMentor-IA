@@ -54,6 +54,8 @@ export interface PianoSamplerStats {
 export interface PianoSampler extends PolySynth {
   /** Precarga en segundo plano una calidad (hq = ventana visible, lq = resto del teclado). */
   preload(tier: SampleTier): Promise<void>;
+  /** Precarga las muestras de los pitches de una pieza para que el primer golpe ya sea de muestra. */
+  warmup(pitches: number[]): void;
   /** Carga simple: descarga todas las muestras reportando progreso (U-004). */
   loadAll(): Promise<void>;
   /** Se resuelve cuando el manifiesto está cargado, haya ido bien o no. */
@@ -61,10 +63,15 @@ export interface PianoSampler extends PolySynth {
   stats(): PianoSamplerStats;
 }
 
+/** Tope de voces simultáneas del sampler: al saturar se roba la más vieja. */
+export const MAX_SAMPLED_VOICES = 48;
+
 interface ActiveSampledVoice {
   sources: AudioBufferSourceNode[];
   /** Envoltorio de la nota (fundido de salida y corte). */
   env: GainNode;
+  /** Instante de creación, para robar la voz más vieja. */
+  bornAt: number;
 }
 
 /** `decodeAudioData` en formato promesa, con recambio para navegantes antiguos. */
@@ -233,6 +240,11 @@ export function createPianoSampler(
     velocity: number,
     startAt: number,
   ): { voice: ActiveSampledVoice; usedSamples: boolean } {
+    // Al saturar se roba la voz más vieja, igual que la voz de reserva.
+    if (voices.size >= MAX_SAMPLED_VOICES) {
+      const oldest = [...voices].reduce((a, b) => (a.bornAt <= b.bornAt ? a : b));
+      stopVoice(oldest, ctx.currentTime, 0.05);
+    }
     const samplePitch = samplePitchFor(pitch, pitches);
     const mix = layerMix(velocity);
     const env = ctx.createGain();
@@ -253,6 +265,13 @@ export function createPianoSampler(
         source.buffer = buffer;
         // Semitonar la muestra vecina: es lo que permite cubrir las 88 teclas con 30 grabs.
         source.detune.value = cents;
+        // Sostener notas largas en bucle de la cola evita el corte brusco cuando
+        // el buffer termina antes de soltar la tecla (audición y notas sostenidas).
+        if (buffer.duration > 1) {
+          source.loop = true;
+          source.loopStart = Math.max(0, buffer.duration - 0.5);
+          source.loopEnd = buffer.duration;
+        }
         const layerGain = ctx.createGain();
         layerGain.gain.value = weight;
         source.connect(layerGain);
@@ -264,7 +283,7 @@ export function createPianoSampler(
 
     if (layers.length === 0 || totalWeight <= 0) {
       env.disconnect();
-      return { voice: { sources: [], env }, usedSamples: false };
+      return { voice: { sources: [], env, bornAt: ctx.currentTime }, usedSamples: false };
     }
 
     // Si solo está decodificada una de las dos capas, se normaliza para no bajar el volumen.
@@ -273,17 +292,30 @@ export function createPianoSampler(
       layer.gain.gain.value = layer.weight * normalise;
       layer.source.start(startAt);
     }
-    return { voice: { sources: layers.map((layer) => layer.source), env }, usedSamples: true };
+    return { voice: { sources: layers.map((layer) => layer.source), env, bornAt: ctx.currentTime }, usedSamples: true };
   }
 
   /** Devuelve true si la nota se hizo con muestra real; false si hay que reservar la voz. */
-  function scheduleVoice(pitch: number, velocity: number, startAt: number, ringS: number): boolean {
+  function scheduleVoice(pitch: number, velocity: number, startAt: number, duration_s: number): boolean {
     const { voice, usedSamples } = startVoice(pitch, velocity, startAt);
     if (!usedSamples) return false;
     voices.add(voice);
+    // La muestra tiene duración finita: si el release cae más allá del final del
+    // buffer, el source se corta con gain todavía alto y se oye un "clic"/corte.
+    // Se recorta el anillo para que el fade termine antes de que acabe la muestra.
+    let bufferDuration = Number.POSITIVE_INFINITY;
+    const firstSource = voice.sources[0];
+    if (firstSource && firstSource.buffer) bufferDuration = firstSource.buffer.duration;
+    // Dejar sonar la muestra casi entera (cola natural del piano) en vez de
+    // cortarla en duration + release corto: eso es lo que sonaba "seco".
+    const tailS = 1.5;
+    const fadeS = Math.max(releaseS(velocity), 0.5);
+    const baseRing = Math.max(duration_s, 0.35) + tailS;
+    const ringS = Math.min(baseRing, Math.max(0.35, bufferDuration - 0.05));
     const stopAt = startAt + ringS;
+    const fadeStart = Math.max(startAt, stopAt - fadeS);
     voice.env.gain.setValueAtTime(1, startAt);
-    voice.env.gain.setValueAtTime(1, Math.max(startAt, stopAt - releaseS(velocity)));
+    voice.env.gain.setValueAtTime(1, fadeStart);
     voice.env.gain.exponentialRampToValueAtTime(0.0001, stopAt);
     for (const source of voice.sources) source.stop(stopAt + 0.02);
     return true;
@@ -326,8 +358,7 @@ export function createPianoSampler(
         fallback?.scheduleNote(pitch, velocity, duration_s, startAt);
         return;
       }
-      const ringS = Math.max(duration_s, 0.35) + releaseS(velocity);
-      if (scheduleVoice(pitch, velocity, startAt, ringS)) {
+      if (scheduleVoice(pitch, velocity, startAt, duration_s)) {
         stats.sampled += 1;
         return;
       }
@@ -354,7 +385,7 @@ export function createPianoSampler(
     noteOff(pitch): void {
       const voice = sustained.get(pitch);
       sustained.delete(pitch);
-      if (voice) stopVoice(voice, ctx.currentTime, releaseS(96));
+      if (voice) stopVoice(voice, ctx.currentTime, 0.4);
       fallback?.noteOff(pitch);
     },
     silence(): void {
@@ -362,6 +393,19 @@ export function createPianoSampler(
       for (const voice of [...voices]) stopVoice(voice, now, 0.03);
       sustained.clear();
       fallback?.silence();
+    },
+    warmup(notePitches: number[]): void {
+      void ready.then(() => {
+        const wanted = new Set<number>();
+        for (const pitch of notePitches) {
+          const samplePitch = samplePitchFor(pitch, pitches);
+          if (samplePitch !== null) wanted.add(samplePitch);
+        }
+        for (const samplePitch of wanted) {
+          ensureLoaded(samplePitch, "soft");
+          ensureLoaded(samplePitch, "hard");
+        }
+      });
     },
     async preload(tier): Promise<void> {
       await ready;

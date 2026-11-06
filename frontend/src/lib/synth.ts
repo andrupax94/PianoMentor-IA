@@ -130,7 +130,7 @@ export function createPolySynth(
       const voice = sustained.get(pitch);
       if (!voice) return;
       sustained.delete(pitch);
-      stopVoice(voice, ctx.currentTime, releaseS(96));
+      stopVoice(voice, ctx.currentTime, 0.4);
     },
     silence(): void {
       const now = ctx.currentTime;

@@ -4,8 +4,6 @@
 import type { NavSection } from "./MainNav/MainNav.types";
 
 export interface AppHeaderProps {
-  /** true muestra "MIDI Keyboard connected". */
-  midiConnected?: boolean;
   /** Inicial del avatar de usuario. */
   userInitial?: string;
   /** Sección activa del nav; Learn por defecto. */

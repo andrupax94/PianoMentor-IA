@@ -17,7 +17,8 @@ import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { TransportContext } from "../../lib/transport-context";
 import { useComputerKeyboard } from "../../lib/useComputerKeyboard";
 import { usePlayback } from "../../lib/usePlayback";
-import { connectWebMidi, requestWebMidi } from "../../lib/web-midi";
+import { connectWebMidi, requestWebMidi, type MidiAccessLike } from "../../lib/web-midi";
+import { syncMidiFromAccess, updateMidi } from "../../lib/midi-store";
 
 export function TransportProvider({ children }: { children: ReactNode }) {
   const player = usePlayback();
@@ -75,14 +76,40 @@ export function TransportProvider({ children }: { children: ReactNode }) {
     };
   }, [player.auditionOn, player.auditionOff]);
 
-  // Web MIDI (B-032.2): si el navegador lo soporta, los teclados conectados
-  // entran por el mismo puerto. Sin soporte o sin permiso, no pasa nada.
+  // Web MIDI (B-032.2 + B-035): si el navegador lo soporta, los teclados
+  // conectados entran por el mismo puerto. El estado visible (soporte, permiso,
+  // teclados conectados) se publica en midi-store para que MidiStatus sea honesto.
   useEffect(() => {
     let disconnect: (() => void) | null = null;
     let cancelled = false;
+
+    const supported =
+      typeof navigator !== "undefined" &&
+      typeof (navigator as { requestMIDIAccess?: unknown }).requestMIDIAccess === "function";
+
+    // Estado inicial mientras se pide el acceso.
+    updateMidi({ supported, permission: "unknown", inputCount: 0, firstName: null });
+
+    if (!supported) {
+      updateMidi({ supported: false, permission: "unknown", inputCount: 0, firstName: null });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void requestWebMidi()
       .then((access) => {
-        if (cancelled || !access) return;
+        if (cancelled) return;
+        if (!access) {
+          updateMidi({ supported: true, permission: "denied", inputCount: 0, firstName: null });
+          return;
+        }
+        // Publica los teclados conectados (y los que se enchufen en caliente).
+        const publishInputs = (a: MidiAccessLike) => {
+          syncMidiFromAccess(a, true);
+        };
+        publishInputs(access);
+
         disconnect = connectWebMidi(access, (note) => {
           if (note.type === "note_on") {
             emitNoteOn({
@@ -100,8 +127,16 @@ export function TransportProvider({ children }: { children: ReactNode }) {
             });
           }
         });
+
+        // Encadena el bind de connectWebMidi con la publicación del estado.
+        const previousStateChange = access.onstatechange;
+        access.onstatechange = () => {
+          if (typeof previousStateChange === "function") previousStateChange();
+          if (!cancelled) publishInputs(access);
+        };
       })
       .catch(() => undefined);
+
     return () => {
       cancelled = true;
       disconnect?.();

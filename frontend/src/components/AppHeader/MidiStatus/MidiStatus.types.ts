@@ -1,7 +1,7 @@
-// description: Props del indicador de teclado MIDI.
-// context: B-006.4; la detección Web MIDI real es posterior (B-007+).
+// description: Props del indicador de teclado MIDI (B-035: ya no recibe props; lee midi-store).
+// context: B-006.4 / B-035.
 
 export interface MidiStatusProps {
-  /** true muestra el teclado como conectado. */
+  /** Reservado por compatibilidad; el componente lee el almacén directamente. */
   connected?: boolean;
 }

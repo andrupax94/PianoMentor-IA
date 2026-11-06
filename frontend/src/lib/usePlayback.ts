@@ -137,6 +137,10 @@ export function usePlayback(tickMs = 25) {
       },
     ) => {
       ensureEngine().load(loaded, options);
+      const sampler = samplerRef.current;
+      if (sampler) {
+        sampler.warmup(loaded.map((note) => note.pitch));
+      }
       setNotes(loaded);
       setMeasures(options?.measures ?? null);
       sync();
