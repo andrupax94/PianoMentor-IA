@@ -32,3 +32,44 @@
   padding: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+
+/* B-033.2, dev-only: en dev el panel crece para acoger
+   el menú de depuración sin tapar más de ~un tercio de pantalla. */
+.panelDev {
+  width: 340px;
+  max-height: 70vh;
+}
+
+/* B-033.2: strip de pestañas Estado/Depurar (dev-only). */
+.tabstrip {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tab,
+.tabActive {
+  flex: 1;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.tabActive {
+  background: rgba(212, 175, 55, 0.2);
+  color: #f0e6c8;
+}
+
+.tabLoading {
+  margin: 8px 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}

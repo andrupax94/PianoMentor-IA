@@ -13,6 +13,7 @@ import { ApiError, executeAgentAction, getSessionState } from "../lib/api-client
 import { inform, sessionClosedText } from "../lib/chat-feed";
 import { createGateController, type GateController } from "../lib/gate-controller";
 import { measureIndexAt } from "../lib/measures";
+import { publishDebugScenario, publishDebugLog, agentActionText, practiceEventText } from "../lib/practice-debug";
 import { emitNoteOff, emitNoteOn, isNoteInputEnabled, setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
 import { evaluatedHand } from "../lib/practice-mode";
 import { musicalPosition } from "../lib/playback-schedule";
@@ -172,6 +173,8 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       // Devolver el control detiene la intervención; el estado del servidor no
       // re-empuja el campo `control`.
       onAction: (message: AgentActionMessage) => {
+        // B-033.2: las intervenciones del agente son líneas del registro dev.
+        if (process.env.NODE_ENV !== "production") publishDebugLog("agent", agentActionText(message));
         setSnapshot((previous) => ({ ...previous, agentAction: message }));
         const pieceId = stateRef.current?.piece_id;
 
@@ -291,7 +294,11 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
     const controller = createGateController({
       getSnapshot: () => transportRef.current.getEngineSnapshot(),
       subscribeNoteInput,
-      sendPracticeEvent: (event) => socket.sendPracticeEvent(event),
+      sendPracticeEvent: (event) => {
+        socket.sendPracticeEvent(event);
+        // B-033.2: cada señal del modo espera deja línea en el registro dev.
+        if (process.env.NODE_ENV !== "production") publishDebugLog("practice", practiceEventText(event));
+      },
       clockMs: () => performance.now(),
       onHit: () => transportRef.current.resolveGate(),
       // B-032.8: con una tecla errónea la cascada regresa al punto de pulsación.
@@ -407,12 +414,16 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
         const detail = (windowEvent as CustomEvent).detail as ScenarioStartDetail | null;
         if (!detail || typeof detail.scenario !== "string" || !isScenarioId(detail.scenario)) return;
         runner?.stop();
-        runner = buildRunner(detail.scenario, typeof detail.seed === "number" ? detail.seed : undefined);
+        const seed = typeof detail.seed === "number" ? detail.seed : null;
+        runner = buildRunner(detail.scenario, seed ?? undefined);
         runner.start();
+        // B-033.2: el estado del robot alimenta la pestaña Depurar.
+        publishDebugScenario(detail.scenario, seed);
       };
       onStop = () => {
         runner?.stop();
         runner = null;
+        publishDebugScenario(null, null);
       };
 
       window.addEventListener(SCENARIO_START_EVENT, onStart);

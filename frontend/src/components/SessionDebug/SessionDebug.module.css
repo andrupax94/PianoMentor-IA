@@ -1,0 +1,162 @@
+/* description: Estilos de la pestaña Depurar del panel de estado (B-033.2): lista de escenarios, estado del robot y registro en vivo con el anillo de entradas. */
+/* context: Dev-only: solo se carga con NODE_ENV !== "production". Estética del panel: fondo oscuro translúcido, acento dorado, tipografía pequeña y apretada. */
+
+.debug {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.debug h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold, #d4af37);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scenarioRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+/* Escenario en marcha: fila marcada. */
+.activeScenario {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.launch {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 6px;
+  background: transparent;
+  color: #f0e6c8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.launch:hover {
+  background: rgba(212, 175, 55, 0.18);
+}
+
+.desc {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.robot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.robot p {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.robotOn {
+  color: #f0e6c8;
+}
+
+.robotOff {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.robotActions {
+  display: flex;
+  gap: 6px;
+}
+
+.secondary {
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #f0e6c8;
+}
+
+.logHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.log {
+  flex: 1;
+  min-height: 120px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  font-family: var(--font1, monospace);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.log p {
+  margin: 0;
+  white-space: normal;
+}
+
+.empty {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Colores del registro por canal del canal: práctica, teclas, agente y escenarios. */
+.row.practice {
+  color: #a4d1fd;
+}
+
+.row.note {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.row.agent {
+  color: #e8a13e;
+}
+
+.row.scenario {
+  color: #f0e6c8;
+  font-weight: 700;
+}
+
+.row.system {
+  color: rgba(255, 255, 255, 0.5);
+}
