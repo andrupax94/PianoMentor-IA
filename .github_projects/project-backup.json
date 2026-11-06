@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-06T20:20:28.878185Z",
+  "exportedAtUtc": "2026-11-06T20:26:57.031468Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1698,7 +1698,7 @@
       ],
       "priority": "P2",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Done",
+      "status": "Review",
       "target date": "2026-11-09",
       "title": "[B-030] Pulir el motor de sonido del piano"
     },
@@ -2147,7 +2147,7 @@
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Review",
       "target date": "2026-11-09",
       "title": "[B-035] MIDI con hardware real: estado visible y validado"
     }
