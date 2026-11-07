@@ -282,3 +282,37 @@ el rastro combinado on/off del rig y exige `on60, off60, on60`; sin el
 fix produce el orden culpable (`on60, on60, off60`).
 **Pendiente cuando el vigilante confirme los paros fuera de grabaciones:
 retener el pulso durante el paro del reloj del AudioContext** (sección 12).
+
+## 14. Nota repetida sobre sostén largo (2026-11-07, cuarta ronda)
+
+Con la pieza llena DE repeticiones y holds largos (94–1165 ms), el log
+mostró el patrón audibly sistemático:
+
+```
+robot pulso  gate-2.5714 [60,76] hold 1165   → suelta del 76 aún FUTURA (~3.76)
+robot pulso  gate-3.4286 [76]    pos=3.440
+noteOn descartado: 76 ya sostenido           ← el re-ataque NUNCA suena
+```
+
+El re-pulso del MISMO pitch con suleta pendiente (aunque no vencida)
+salió con la tecla baja: el sampler descarta el noteOn (B-032.8) y el
+re-ataque de la repetición no ocurre; además el noteOff viejo corta la
+nueva muta. Afectaba a 76@3.43, 72@5.79, 71@7.07, 72@16.07, 71@16.71,
+73@25.07, 67@31.71, 67@33.0, 67@12.43 — TODAS las repeticiones del log
+sobre holds largos. La pieza anterior no las tenía así, y «estaba bien».
+
+**Fix (física de la mano real): sueltas por tecla.** `pendingReleases`
+pasa de un vector de pitches a UNA entrada por pitch; en el golpe,
+`releaseOverlappedPitches()` suelta YA cualquier sostén de una tecla que
+el golpe re-pulsa ({robot suelta (por el golpe) gate=X pitch=[76]}) y
+después aprieta: re-ataque audible, la articulación de una repetición
+real. flushDueReleases agrupa su traza por gate como las viejas. Test de
+regresión con el rastro on/off del rig: exige `on60, off60, on60` — sin
+el fix produce el culpable `on60, on60, off60` (verificado fallando).
+
+También: `noteOn/noteOff (audición)` del sampler llevan ya `ctx=X.XXX`
+— prueba directa del reloj del dispositivo en cada línea para verificar
+el paro del AudioContext (sección 12) sin depender del vigilante, que en
+este log no marcó nada encalthough las ventanas de posición estática —
+a investigar con el próximo log: ¿build sin el vigilante o prematura en
+el umbral?

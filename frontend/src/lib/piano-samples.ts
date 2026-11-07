@@ -371,7 +371,12 @@ export function createPianoSampler(
       fallback?.scheduleNote(pitch, velocity, duration_s, startAt);
     },
     noteOn(pitch, velocity): void {
-      audioTrace(`noteOn (audición) pitch=${pitch} velocity=${velocity}`);
+      // El ctx.currentTime en la línea deja prueba directa del reloj del
+      // dispositivo: si la posición del transporte se congela pero el reloj
+      // del ctx avanza, la máquina del diagnóstico está en otra pieza.
+      audioTrace(
+        `noteOn (audición) pitch=${pitch} velocity=${velocity} ctx=${ctx.currentTime.toFixed(3)}`,
+      );
       if (sustained.has(pitch)) {
         audioTraceStack(`noteOn descartado: ${pitch} ya sostenido`);
         return;
@@ -392,7 +397,7 @@ export function createPianoSampler(
       sustained.set(pitch, voice);
     },
     noteOff(pitch): void {
-      audioTrace(`noteOff (audición) pitch=${pitch}`);
+      audioTrace(`noteOff (audición) pitch=${pitch} ctx=${ctx.currentTime.toFixed(3)}`);
       const voice = sustained.get(pitch);
       sustained.delete(pitch);
       if (voice) stopVoice(voice, ctx.currentTime, 0.4);

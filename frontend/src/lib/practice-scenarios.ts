@@ -247,7 +247,7 @@ export function createPracticeScenarioRunner(
    */
   interface PendingRelease {
     gateId: string;
-    pitches: number[];
+    pitch: number;
     atMs: number;
   }
   let pendingReleases: PendingRelease[] = [];
@@ -262,12 +262,22 @@ export function createPracticeScenarioRunner(
    * el suelta del gate-21.8750). El apretón limpia sus vencidas antes.
    */
   const flushDueReleases = () => {
-    pendingReleases = pendingReleases.filter((pending) => {
-      if (clockMs() < pending.atMs) return true;
-      audioTrace(`robot suelta gate=${pending.gateId}`);
-      for (const pitch of pending.pitches) submitNoteOff({ pitch });
-      return false;
-    });
+    if (pendingReleases.length === 0) return;
+    const vencidas = pendingReleases.filter((pending) => clockMs() >= pending.atMs);
+    if (vencidas.length === 0) return;
+    // Suletas por tecla (nota repetida sobre sostén): la traza se agrupa
+    // por gate con todo lo que suelta a la vez, una línea como las de antes.
+    const porGate = new Map<string, number[]>();
+    for (const pending of vencidas) {
+      const pitches = porGate.get(pending.gateId) ?? [];
+      pitches.push(pending.pitch);
+      porGate.set(pending.gateId, pitches);
+    }
+    for (const [gateId, pitches] of porGate) {
+      audioTrace(`robot suelta gate=${gateId} pitch=[${pitches.join(",")}]`);
+      for (const pitch of pitches) submitNoteOff({ pitch });
+    }
+    pendingReleases = pendingReleases.filter((pending) => clockMs() < pending.atMs);
   };
 
   /** Cancela el golpe agendado (adopción nueva, stop, reset). */
@@ -281,9 +291,38 @@ export function createPracticeScenarioRunner(
   /** Suelta inmediata de todo lo haya sostenido (stop/reset). */
   const releaseAllPending = () => {
     for (const pending of pendingReleases) {
-      for (const pitch of pending.pitches) submitNoteOff({ pitch });
+      submitNoteOff({ pitch: pending.pitch });
     }
     pendingReleases = [];
+  };
+
+  /**
+   * Las teclas re-pulsadas por el golpe con una suleta vieja aún pendiente
+   * (2026-11-07, nota repetida sobre un sostén largo — la pieza nueva del
+   * usuario las llena): no se puede re-pulsar una tecla que sigue
+   * aguantada — si el noteOn sale con la tecla baja, el sampler lo
+   * descarta («ya sostenido») y la suleta vieja se come la nota recién
+   * nacida: omisión audible y sistemática. La vieja suelta muere YA.
+   */
+  const releaseOverlappedPitches = () => {
+    if (plan === null || plan.pitches.length === 0) return;
+    const pressing = new Set(plan.pitches);
+    const afectadas = pendingReleases.filter((pending) => pressing.has(pending.pitch));
+    if (afectadas.length === 0) return;
+    const porGate = new Map<string, number[]>();
+    for (const pending of afectadas) {
+      const pitches = porGate.get(pending.gateId) ?? [];
+      pitches.push(pending.pitch);
+      porGate.set(pending.gateId, pitches);
+    }
+    for (const [gateId, pitches] of porGate) {
+      audioTrace(`robot suelta (por el golpe) gate=${gateId} pitch=[${pitches.join(",")}]`);
+    }
+    pendingReleases = pendingReleases.filter((pending) => {
+      if (!pressing.has(pending.pitch)) return true;
+      submitNoteOff({ pitch: pending.pitch });
+      return false;
+    });
   };
 
   /**
@@ -337,21 +376,23 @@ export function createPracticeScenarioRunner(
     pressExpected = false;
     pressDeadlineMs = clockMs();
     const aviso = tardeS > 0.0005 ? ` (pasaban ${tardeS.toFixed(3)} s)` : "";
-    // Antes de apretar: pasadas las suletas ya vencidas que el sondeo no
-    // llegó a procesar — si una suleta vencida del mismo pitch quedara
-    // pendiente, el apretón pica una tecla aún bajada y la suleta vieja
-    // mata la nota recién nacida (gracetilla final, 2026-11-07).
+    // Antes de apretar: las teclas re-pulsadas sueltan ya su sostén viejo
+    // (re-ataque audible, articulación correcta — nota repetida) y pasan
+    // sus suletas ya vencidas que el sondeo no llegó a procesar.
+    releaseOverlappedPitches();
     flushDueReleases();
     audioTrace(
       `robot pulso${aviso} gate=${lastGateId} pitch=[${plan.pitches.join(",")}] ` +
         `pos=${snapshot.position_s.toFixed(3)}`,
     );
     for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
-    pendingReleases.push({
-      gateId: lastGateId ?? "?",
-      pitches: [...plan.pitches],
-      atMs: pressDeadlineMs + plan.holdMs,
-    });
+    for (const pitch of plan.pitches) {
+      pendingReleases.push({
+        gateId: lastGateId ?? "?",
+        pitch,
+        atMs: pressDeadlineMs + plan.holdMs,
+      });
+    }
   };
 
   const resetGate = () => {

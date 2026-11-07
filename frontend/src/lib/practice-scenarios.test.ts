@@ -363,6 +363,48 @@ describe("practice-scenarios", () => {
     rigGrace.runner.stop();
   });
 
+  it("flujo: nota repetida sobre sostén largo re-ataca (suelta la tecla vieja antes de apretarla)", () => {
+    // Pieza con repeticiones (2026-11-07): el re-pulso del MISMO pitch con
+    // la suleta vieja aún FUTURA salía con la tecla baja — el sampler
+    // descartaba el noteOn («ya sostenido») y la suelta vieja se comía la
+    // nota recién nacida: omisión audible y sistemática en cada repetición.
+    const rigRep = rig("perfecta");
+    rigRep.runner.start();
+
+    // Gate A: nota larga (hold 880 ms) con su suleta agendada al muro+880.
+    rigRep.setFlow(0.9, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 1.0,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigRep.advance(100);
+    rigRep.advance(100); // pulso A en el muro 200; su suleta vencería en 1080.
+
+    // Gate B re-pulsa la MISMA tecla 200 ms después, muy antes de la suleta
+    // vieja (1080): la física de la mano manda soltar antes de apretar.
+    rigRep.setFlow(1.1, {
+      id: "gate-1.2000",
+      time_s: 1.2,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigRep.advance(100);
+    rigRep.advance(100); // pulso B en el muro 400.
+
+    expect(rigRep.submissions.map((s) => s.pitch)).toEqual([60, 60]);
+    expect(rigRep.releases.map((r) => r.pitch)).toEqual([60]); // la vieja, forzada por el golpe
+    // El orden del rastro cuenta el cuento: apretar, soltar la vieja,
+    // apretar la nueva — nunca apretar dos veces con la tecla baja.
+    expect(rigRep.rastro).toEqual(["on60", "off60", "on60"]);
+
+    rigRep.runner.stop();
+  });
+
   it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {    const rigFast = rig("teclas_rapidas");
     rigFast.runner.start();
 
