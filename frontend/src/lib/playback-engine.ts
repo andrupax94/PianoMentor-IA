@@ -38,6 +38,14 @@ export interface PlaybackSnapshot {
   effective_bpm: number | null;
   /** Gate actual cuando el transporte está esperando (B-032.5). */
   currentGate: Gate | null;
+  /**
+   * Primer gate aún sin tocar que llega a la posición en curso, esté o no en
+   * espera (B-033.2, robot en modo flujo): con el modo espera apagado el
+   * transporte nunca llega a congelarse — no hay `currentGate` — y el pianista
+   * robot se conduce por este gate venidero, igual que la cascada pasa las
+   * notas. En espera coincide con `currentGate`.
+   */
+  upcomingGate: Gate | null;
   /** Tiempo restante de preroll en segundos; null fuera del preroll (B-032.5). */
   prerollRemaining_s: number | null;
   /** Instante de reloj en que entró en waiting; null si no espera (B-032.5). */
@@ -54,6 +62,7 @@ const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   tempo_bpm: null,
   effective_bpm: null,
   currentGate: null,
+  upcomingGate: null,
   prerollRemaining_s: null,
   waitingSince_wall_s: null,
 };
@@ -433,6 +442,11 @@ export class PlaybackEngine {
   }
 
   snapshot(): PlaybackSnapshot {
+    // B-033.2: el gate venidero se toma en la posición real del instante (en
+    // reproducción el `position_s` interno queda a la zancada del tick).
+    const upcomingGate = this.status === "playing"
+      ? this.nextGate(this.currentPosition())
+      : this.nextGate(this.position_s);
     const base: Omit<PlaybackSnapshot, "status" | "position_s"> = {
       tempoFactor: this.tempoFactor,
       duration_s: this.duration_s,
@@ -440,6 +454,7 @@ export class PlaybackEngine {
       effective_bpm:
         this.baseTempo_bpm === null ? null : this.baseTempo_bpm * this.tempoFactor,
       currentGate: this.currentGate,
+      upcomingGate,
       prerollRemaining_s: this.status === "preroll" ? this.preroll_s - this.prerollElapsed_s : null,
       waitingSince_wall_s: this.waitingSince_wall_s,
     };

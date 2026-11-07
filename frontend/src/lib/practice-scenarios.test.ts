@@ -24,6 +24,7 @@ function snapshot(overrides: Partial<PlaybackSnapshot> = {}): PlaybackSnapshot {
       hands: ["left"],
       measure: 0,
     },
+    upcomingGate: null,
     prerollRemaining_s: null,
     waitingSince_wall_s: null,
     ...overrides,
@@ -73,6 +74,10 @@ describe("practice-scenarios", () => {
       },
       setStatus: (status: PlaybackSnapshot["status"]) => {
         current = snapshot({ status, currentGate: status === "waiting" ? current.currentGate : null });
+      },
+      /** Modo flujo (espera apagada): reproducción con el gate venidero que pasa la cascada. */
+      setFlow: (position_s: number, gate: NonNullable<PlaybackSnapshot["upcomingGate"]>) => {
+        current = snapshot({ status: "playing", position_s, currentGate: null, upcomingGate: gate });
       },
       setControl: (allowed: boolean) => {
         canEmit = allowed;
@@ -124,6 +129,71 @@ describe("practice-scenarios", () => {
     expect(rigHold.releases).toEqual([{ pitch: 60, velocity: 0 }]);
 
     rigHold.runner.stop();
+  });
+
+  it("flujo (espera apagada): el robot toca la partitura gate a gate, sin esperar nunca", () => {
+    const rigFlow = rig("perfecta");
+    rigFlow.runner.start();
+
+    // Primer gate en camino: la posición llega a su instante y el robot
+    // planifica; pulsa en cuanto el sondeo lo ve.
+    rigFlow.setFlow(1.0, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigFlow.advance(100);
+    expect(rigFlow.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    // La suelta sigue siendo del reloj (0,5 s de nota − 120 ms de hueco): el
+    // flujo no la adelanta ni la corta.
+    rigFlow.advance(300);
+    expect(rigFlow.releases).toEqual([]);
+
+    rigFlow.advance(100);
+    expect(rigFlow.releases).toEqual([{ pitch: 60, velocity: 0 }]);
+
+    // Gate siguiente: al quedar libres las manos se adopta y se pulsa, sin
+    // ninguna espera en medio (la pieza no se congela nunca).
+    rigFlow.setFlow(1.6, {
+      id: "gate-1.5000",
+      time_s: 1.5,
+      duration_s: 0.4,
+      pitches: [64],
+      hands: ["right"],
+      measure: 0,
+    });
+    rigFlow.advance(100);
+    expect(rigFlow.submissions).toEqual([
+      { pitch: 60, velocity: 80 },
+      { pitch: 64, velocity: 80 },
+    ]);
+
+    rigFlow.runner.stop();
+  });
+
+  it("flujo: con el transporte parado no hay pulsación rezagada", () => {
+    const rigFlowStop = rig("perfecta");
+    rigFlowStop.runner.start();
+
+    // Ya en flujo a mitad de pieza: stop antes de pulsar (status stopped).
+    rigFlowStop.setFlow(1.0, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    // El sondeo ve el gate de camino pero la parada llega antes de pulsar.
+    rigFlowStop.setStatus("stopped");
+    rigFlowStop.advance(1000);
+    expect(rigFlowStop.submissions).toEqual([]);
+
+    rigFlowStop.runner.stop();
   });
 
   it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {
@@ -224,7 +294,7 @@ describe("practice-scenarios", () => {
     rig6.runner.stop();
   });
 
-  it("cambia de gate: suelta lo que sostenía del anterior", () => {
+  it("cambia de gate: el sostén sobrevive al cambio y la siguiente entra al quedar libres las manos", () => {
     const rig7 = rig("perfecta");
     rig7.runner.start();
 
@@ -239,10 +309,17 @@ describe("practice-scenarios", () => {
       hands: ["right"],
       measure: 3,
     });
-    rig7.advance(100);
+    // Cambio a mitad de hold: no se corta por sorpresa — la nota del gate
+    // anterior sigue a la suya (suelta del reloj) aunque el gate ya sea otro.
+    rig7.advance(300);
+    expect(rig7.releases.map((r) => r.pitch)).toEqual([]);
 
-    // La nota del gate anterior va al port (note_off) antes de la nueva.
+    // 100 + 300 = 400 ms ≥ 380: suelta a su duración escrita...
+    rig7.advance(100);
     expect(rig7.releases.map((r) => r.pitch)).toEqual([60]);
+
+    // ...y con las manos libres se planifica el gate nuevo (nota aparte).
+    rig7.advance(100);
     expect(rig7.submissions.map((s) => s.pitch)).toEqual([60, 72]);
 
     rig7.runner.stop();

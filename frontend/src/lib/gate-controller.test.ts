@@ -32,6 +32,7 @@ function snapshot(
     },
     prerollRemaining_s: null,
     waitingSince_wall_s: null,
+    upcomingGate: null,
     ...overrides,
   };
 }

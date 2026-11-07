@@ -222,38 +222,36 @@ export function createPracticeScenarioRunner(
 
   const poll = () => {
     const snapshot = deps.getSnapshot();
-    const gate = snapshot.status === "waiting" ? snapshot.currentGate ?? null : null;
-    // Corrección (2026-11-07, petición del usuario): el robot no soltaba la
-    // nota — en «perfecta», su propia pulsación rescata el gate y el
-    // transporte sale de espera; el sondeo siguiente caía aquí con
-    // `heldPitches` lleno y lo soltaba al momento (~100 ms de sonido). Ahora
-    // el plan sobrevive al cierre del gate: la nota se suelta el reloj, a su
-    // duración escrita, aunque el transporte ya esté sonando.
-    if (gate === null) {
-      if (heldPitches !== null && plan !== null && plan.holdMs !== null) {
-        const closingElapsedMs = clockMs() - gateStartMs;
-        if (closingElapsedMs >= plan.pressAtMs + plan.holdMs) {
-          releaseHeld();
-          // Soltado con el gate ya cerrado: dejar el estado limpio para el
-          // siguiente gate que aparezca (la pieza siguió y el compás avanzó).
-          plan = null;
-          lastGateId = null;
-          gestureDone = false;
-          heldPitches = null;
-        }
-        // Con teclas aguantadas y suelta pendiente: no se programa nada nuevo.
-        return;
-      }
-      resetGate();
-      return;
+    // Gate activo por vía: en espera, el actual (congelado); en flujo (modo
+    // espera apagado, petición del usuario 2026-11-07), el venidero según la
+    // posición — sin la espera el transporte nunca se congela y el antiguo
+    // poll no pulsaba nunca. Fuera de reproduce/espera no se programa nada.
+    const waitingGate = snapshot.status === "waiting" ? snapshot.currentGate ?? null : null;
+    const flowGate =
+      waitingGate === null && snapshot.status === "playing" ? snapshot.upcomingGate ?? null : null;
+    const gate = waitingGate ?? flowGate;
+
+    // 1) La suelta es del reloj, al margen del modo: el rescate del gate, el
+    // pause o el cambio de pieza no cortan la duración escrita de la nota.
+    if (
+      heldPitches !== null &&
+      plan !== null &&
+      plan.holdMs !== null &&
+      clockMs() - gateStartMs >= plan.pressAtMs + plan.holdMs
+    ) {
+      releaseHeld();
+      gestureDone = true;
     }
-    // Suspensión durante la IA: misma referencia de control que el puerto
-    // usa para su puerta. El robot se calla; al devolverse el control,
-    // continúa donde el transporte esté, sin darle vueltas al reloj.
+
+    // 2) Suspensión durante la IA: misma referencia de control que el puerto
+    // usa para su puerta. El robot no arranca gestos nuevos; las sueltas
+    // pendientes siguen su curso aunque el puerto esté cerrado.
     if (!canEmit()) return;
 
-    if (gate.id !== lastGateId) {
-      releaseHeld();
+    // 3) Gate nuevo a la vista (en espera o en camino): se planifica cuando
+    // las manos están libres — con teclas aguantadas, su suelta manda y el
+    // gate siguiente se adopta al quedar libre el gesto.
+    if (gate !== null && gate.id !== lastGateId && heldPitches === null) {
       lastGateId = gate.id;
       gateStartMs = clockMs();
       plan = planFor(scenario, gate, seed, snapshot);
@@ -262,17 +260,16 @@ export function createPracticeScenarioRunner(
     }
     if (!plan || plan.holdMs === null || plan.pitches.length === 0) return;
 
-    const elapsedMs = clockMs() - gateStartMs;
-    if (heldPitches === null) {
-      if (!gestureDone && elapsedMs >= plan.pressAtMs) {
-        for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
-        heldPitches = plan.pitches;
-      }
-      return;
-    }
-    if (elapsedMs >= plan.pressAtMs + plan.holdMs) {
-      releaseHeld();
-      gestureDone = true;
+    // 4) La pulsación a su tiempo de plan; la suleta la cierra el paso 1.
+    // Solo con gate vivo: con el transporte parado no hay gesto rezagado.
+    if (
+      heldPitches === null &&
+      !gestureDone &&
+      gate !== null &&
+      clockMs() - gateStartMs >= plan.pressAtMs
+    ) {
+      for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
+      heldPitches = plan.pitches;
     }
   };
 

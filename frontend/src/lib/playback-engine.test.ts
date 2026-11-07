@@ -286,6 +286,28 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().currentGate?.pitches).toEqual([60]);
   });
 
+  it("expongo el gate venidero en el snapshot también sin espera (B-033.2: robot en flujo)", () => {
+    const harness = makeHarness();
+    // Sin gates activos (modo espera apagado): no hay currentGate, pero la
+    // cascada va pasando los gates y el snapshot lo cuenta para el robot.
+    harness.engine.load(SCORE);
+    harness.engine.setGateOptions({ enabled: false, hand: "both" });
+    harness.engine.setPreroll(0);
+    harness.engine.play();
+
+    harness.advance(0.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("playing");
+    expect(harness.engine.snapshot().currentGate).toBeNull();
+    expect(harness.engine.snapshot().upcomingGate?.pitches).toEqual([60]);
+
+    // Pasado el primero, el venidero es el siguiente (nada se congela).
+    harness.advance(0.8);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.3, 6);
+    expect(harness.engine.snapshot().upcomingGate?.pitches).toEqual([62]);
+  });
+
   it("«dos manos» arranca con el audio mudo y espera la primera nota (B-032.4/B-032.5)", () => {
     const harness = makeHarness();
     // En «dos manos» el transporte calla (audible vacía) pero el transporte viva.
