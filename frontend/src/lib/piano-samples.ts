@@ -399,13 +399,13 @@ export function createPianoSampler(
       fallback?.noteOff(pitch);
     },
     silence(options?: SilenceOptions): void {
-      audioTrace(
+      // Solo este silencio conserva su pila plegable (fue la prueba del corte
+      // de sonido): todas las demás trazas van en una sola línea corta.
+      audioTraceStack(
         `silence() keepAudition=${options?.keepAudition === true} ` +
           `vocesActivas=${voices.size} sostenidas=[${[...sustained.keys()].join(",")}] ` +
           `ctx.currentTime=${ctx.currentTime.toFixed(3)}`,
       );
-      // Si el corte de sonido se debe a este silencio, la pila dice quién mandó.
-      audioTraceStack("silence() del sampler");
       // El congelado del gate (B-032.5) pide respetar la pulsación viva del
       // alumno: su tecla (pressed temprano y aún sostenida) NO se corta.
       const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;

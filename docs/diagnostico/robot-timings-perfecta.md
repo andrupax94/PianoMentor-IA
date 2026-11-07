@@ -170,7 +170,13 @@ historia completa: adopción → agenda → pulso → suelta.
 Todo en `frontend/src/lib` salvo el puente:
 
 - `practice-scenarios.ts` — el runner completo (sondeo de 100 ms, plan por
-  escenario, adopción, pulsación y suelta; trazas «robot plan/pulso/suelta»).
+  escenario, adopción, pulsación y suelta; trazas «robot plan/agenda/pulso/
+  suelta» en línea única, sin pila — solo el `silence()` del sampler conserva
+  la suya plegable). Segundo refuerzo del mismo día: sostenes independientes
+  por gate (`pendingReleases`, suelta agendada a muro+hold) y adopción que ya
+  no espera manos libres — los sostenes largos (holdMs 880–1880) solapaban el
+  gate siguiente y el robot lo perdía (el fragmento «plan gate-23 pos=22.520
+  con gate-22 sonando» lo señala).
 - `playback-engine.ts` — `snapshot()` (con `upcomingGate` a la posición viva),
   `tick()` y la granularidad del horizonte de programación.
 - `note-input.ts` — el puerto de notas (fuente `debug` para el robot).

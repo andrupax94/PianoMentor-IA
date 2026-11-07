@@ -11,18 +11,14 @@ function active(): boolean {
   return window.location.search.includes("traceAudio");
 }
 
-/** Pila de llamadas recortada: los 5 cuadros bajo esta función. */
-function stack(): string {
-  return new Error().stack?.split("\n").slice(2, 7).join(" ← ").trim() ?? "";
-}
-
 /**
- * Traza de audio: activada con ?traceAudio en la URL.
- * En la consola, filtrar por «audio» para ver el rastro completo.
+ * Traza de audio: activada con ?traceAudio en la URL. Línea única, sin pila
+ * (el facsímil de pila hacía los logs kilométricos); para las llamadas que
+ * SILNCIAN el sampler sigue existiendo audioTraceStack con la pila plegable.
  */
 export function audioTrace(...args: unknown[]): void {
   if (!active()) return;
-    console.info(MARK, STYLE, ...args, "\n", stack());
+  console.info(MARK, STYLE, ...args);
 }
 
 /** Igual pero evoca console.trace para la pila completa desplegable. */

@@ -210,19 +210,23 @@ export function createPracticeScenarioRunner(
    */
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
   let pressDeadlineMs: number | null = null;
+  /** Si hay golpe agendado por disparar (por gate). */
+  let pressExpected = false;
   let lastGateId: string | null = null;
-  let gateStartMs = 0;
   let plan: GatePlan | null = null;
-  /** Teclas del plan que están sonando ahora mismo (para soltarlas limpias). */
-  let heldPitches: number[] | null = null;
-  /** Un gesto por gate: tras soltar, el sondeo no vuelve a pulsar. */
-  let gestureDone = false;
-
-  const releaseHeld = () => {
-    if (!heldPitches) return;
-    for (const pitch of heldPitches) submitNoteOff({ pitch });
-    heldPitches = null;
-  };
+  /**
+   * Sostenes independientes por gate (2026-11-07): cada golpe agenda su
+   * propia suelta a muro+hold — los sostenes superpuestos no se cortan
+   * entre sí y la adopción del gate siguiente NO espera manos libres (el
+   * robot tiene diez dedos). Los sostenes largos ya no tapan el gate
+   * siguiente ni hacen perder notas.
+   */
+  interface PendingRelease {
+    gateId: string;
+    pitches: number[];
+    atMs: number;
+  }
+  let pendingReleases: PendingRelease[] = [];
 
   /** Cancela el golpe agendado (adopción nueva, stop, reset). */
   const clearPress = () => {
@@ -232,6 +236,14 @@ export function createPracticeScenarioRunner(
     }
   };
 
+  /** Suelta inmediata de todo lo haya sostenido (stop/reset). */
+  const releaseAllPending = () => {
+    for (const pending of pendingReleases) {
+      for (const pitch of pending.pitches) submitNoteOff({ pitch });
+    }
+    pendingReleases = [];
+  };
+
   /**
    * El golpe agendado: pulsa las teclas del plan y fija el muro real del
    * golpe (la suelta se mide desde aquí, no desde la adopción). Si el gate
@@ -239,9 +251,11 @@ export function createPracticeScenarioRunner(
    */
   const firePress = () => {
     pressTimer = null;
-    if (plan === null || plan.pitches.length === 0 || plan.holdMs === null) return;
-    if (heldPitches !== null || gestureDone) return;
-    if (!canEmit()) return;
+    if (!pressExpected || plan === null || plan.pitches.length === 0 || plan.holdMs === null) return;
+    if (!canEmit()) {
+      // Pendiente: el apócope del sondeo lo pulsa cuando el puerto reabra.
+      return;
+    }
     const snapshot = deps.getSnapshot();
     const gateNow =
       snapshot.status === "waiting"
@@ -250,30 +264,46 @@ export function createPracticeScenarioRunner(
           ? snapshot.upcomingGate ?? null
           : null;
     if (gateNow === null || gateNow.id !== lastGateId) {
-      gestureDone = true;
+      pressExpected = false;
       pressDeadlineMs = null;
       return;
     }
+    pressExpected = false;
     pressDeadlineMs = clockMs();
     audioTrace(
       `robot pulso gate=${lastGateId} pitch=[${plan.pitches.join(",")}] ` +
         `pos=${snapshot.position_s.toFixed(3)}`,
     );
     for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
-    heldPitches = plan.pitches;
+    pendingReleases.push({
+      gateId: lastGateId ?? "?",
+      pitches: [...plan.pitches],
+      atMs: pressDeadlineMs + plan.holdMs,
+    });
   };
 
   const resetGate = () => {
-    releaseHeld();
+    releaseAllPending();
     clearPress();
+    pressExpected = false;
     pressDeadlineMs = null;
     lastGateId = null;
     plan = null;
-    gestureDone = false;
   };
 
   const poll = () => {
     const snapshot = deps.getSnapshot();
+
+    // 0) Las suletas van por gate y por reloj: cada sostén se suelta cuando
+    // toca (muro del golpe + hold escrito), al margen del modo — el rescate
+    // del gate, el pause o el cambio de pieza no cortan la duración.
+    pendingReleases = pendingReleases.filter((pending) => {
+      if (clockMs() < pending.atMs) return true;
+      audioTrace(`robot suelta gate=${pending.gateId}`);
+      for (const pitch of pending.pitches) submitNoteOff({ pitch });
+      return false;
+    });
+
     // Gate activo por vía: en espera, el actual (congelado); en flujo (modo
     // espera apagado, petición del usuario 2026-11-07), el venidero según la
     // posición — sin la espera el transporte nunca se congela y el antiguo
@@ -283,41 +313,20 @@ export function createPracticeScenarioRunner(
       waitingGate === null && snapshot.status === "playing" ? snapshot.upcomingGate ?? null : null;
     const gate = waitingGate ?? flowGate;
 
-    // 1) La suelta es del reloj contra el MURO DEL GOLPE (no de la adopción):
-    // el rescate del gate, el pause o el cambio de pieza no cortan la
-    // duración escrita de la nota.
-    if (
-      heldPitches !== null &&
-      plan !== null &&
-      plan.holdMs !== null &&
-      pressDeadlineMs !== null &&
-      clockMs() >= pressDeadlineMs + plan.holdMs
-    ) {
-      audioTrace(
-        `robot suelta gate=${(lastGateId ?? "?").toString()} ` +
-          `totalMs=${Math.round(clockMs() - pressDeadlineMs)} holdMs=${plan.holdMs}`,
-      );
-      releaseHeld();
-      gestureDone = true;
-    }
-
-    // 2) Suspensión durante la IA: misma referencia de control que el puerto
-    // usa para su puerta. El robot no arranca gestos nuevos; las sueltas
-    // pendientes siguen su curso aunque el puerto esté cerrado.
+    // 1) Suspensión durante la IA: misma referencia de control que el puerto
+    // usa para su puerta. El robot no arranca gestos nuevos; las suletas de
+    // los sostenes siguen su curso aunque el puerto esté cerrado.
     if (!canEmit()) return;
 
-    // 3) Gate nuevo a la vista (en espera o en camino): se planifica cuando
-    // las manos están libres — con teclas aguantadas, su suelta manda y el
-    // gate siguiente se adopta al quedar libre el gesto.
-    if (gate !== null && gate.id !== lastGateId && heldPitches === null) {
-      releaseHeld();
+    // 2) Gate nuevo a la vista (en espera o en camino): se adopta SIEMPRE —
+    // aunque haya sostenes en marcha (sus suletas ya están agendadas) — y se
+    // agenda el golpe a su muro.
+    if (gate !== null && gate.id !== lastGateId) {
       clearPress();
+      pressExpected = false;
       pressDeadlineMs = null;
       lastGateId = gate.id;
-      gateStartMs = clockMs();
       plan = planFor(scenario, gate, seed, snapshot);
-      heldPitches = null;
-      gestureDone = false;
       // Trazas del robot (?traceAudio, diagnóstico de timings): qué gate, qué
       // plan y a qué distancia score del gate estaba la posición al adoptarlo.
       audioTrace(
@@ -334,31 +343,21 @@ export function createPracticeScenarioRunner(
             plan.pressAtMs
           : plan.pressAtMs;
       pressDeadlineMs = clockMs() + delayMs;
+      pressExpected = true;
       audioTrace(
         `robot agenda gate=${gate.id} delayMs=${Math.round(delayMs)} ` +
           `pressDeadlineMs=${Math.round(pressDeadlineMs)}`,
       );
       pressTimer = setTimeout(firePress, delayMs);
-      // (sin `return`: el chequeo de plazos de abajo puede disparar el golpe
-      // en esta misma valla si el plazo ya venció — delay 0.)
     }
 
-    // Suplente: si el temporizador aún no disparó —o la pestaña estaba
+    // Apócope: si el temporizador aún no disparó —o la pestaña estaba
     // regulada—, el pulso sale en el sondeo cumplido su muro; firePress fijará
     // su propio muro real y el agendado no-op si ya pulsó.
-    if (
-      plan !== null &&
-      plan.pitches.length > 0 &&
-      plan.holdMs !== null &&
-      heldPitches === null &&
-      !gestureDone &&
-      pressDeadlineMs !== null &&
-      clockMs() >= pressDeadlineMs
-    ) {
+    if (pressExpected && pressDeadlineMs !== null && clockMs() >= pressDeadlineMs) {
       firePress();
     }
   };
-
   return {
     scenario,
     start() {
