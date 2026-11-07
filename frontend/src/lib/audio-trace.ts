@@ -28,3 +28,8 @@ export function audioTraceStack(message: string): void {
   console.trace();
   console.groupEnd();
 }
+
+/** Banner de arranque: distingue «sin trazas» (no activas) de «trazas caídas». */
+if (active()) {
+  console.info(MARK, STYLE, "trazas activas (?traceAudio) — el rastro del sampler/transporte/robot aparecerá al empezar la práctica");
+}
