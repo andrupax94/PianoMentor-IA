@@ -45,13 +45,21 @@ describe("practice-scenarios", () => {
     let canEmit = true;
     const submissions: Submission[] = [];
     const releases: Submission[] = [];
+    /** Rastro combinado on/off: el ORDEN de apretar vs soltar (gracetilla). */
+    const rastro: string[] = [];
 
     const runner: PracticeScenarioRunner = createPracticeScenarioRunner(
       scenario,
       {
         getSnapshot: () => current,
-        submitNoteOn: (event) => submissions.push({ ...event }),
-        submitNoteOff: (event) => releases.push({ ...event, velocity: 0 }),
+        submitNoteOn: (event) => {
+          submissions.push({ ...event });
+          rastro.push(`on${event.pitch}`);
+        },
+        submitNoteOff: (event) => {
+          releases.push({ ...event, velocity: 0 });
+          rastro.push(`off${event.pitch}`);
+        },
         clockMs: () => nowMs,
         canEmit: () => canEmit,
       },
@@ -69,6 +77,7 @@ describe("practice-scenarios", () => {
       runner,
       submissions,
       releases,
+      rastro,
       setGate: (gate: PlaybackSnapshot["currentGate"]) => {
         current = snapshot({ currentGate: gate });
       },
@@ -305,6 +314,53 @@ describe("practice-scenarios", () => {
     expect(rigLate.submissions.map((s) => s.pitch)).toEqual([60, 65]);
 
     rigLate.runner.stop();
+  });
+
+  it("flujo: el golpe limpia las suletas vencidas antes de apretar (gracetilla re-pulsada)", () => {
+    // El final del log (2026-11-07): el golpe del gate-21.9427 (re-pulsa el
+    // 69 de la gracetilla gate-21.8750, hold 60 ms) salió por temporizador
+    // ENTRE el vencimiento de la suleta vieja y el sondeo que la procesaba
+    // — el sampler descartó el noteOn («ya sostenido») y el noteOff viejo
+    // mató la nota recién nacida: la ÚLTIMA nota de la pieza muda.
+    const rigGrace = rig("perfecta");
+    rigGrace.runner.start();
+
+    // Gate A en camino: se adopta y el golpe queda agendado +100 ms.
+    rigGrace.setFlow(0.9, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.18, // hold = 180 − 120 = 60 ms, la gracetilla
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigGrace.advance(100);
+    expect(rigGrace.submissions).toEqual([]);
+
+    // El gate B re-pulsa el MISMO pitch 8 ms después del vencimiento de la
+    // suleta de A: su adopción (pos pegada a A ya cruzado) agenda el golpe
+    // dentro de la ventana (suleta vencida, aún sin pasar por el sondeo).
+    rigGrace.setFlow(1.005, {
+      id: "gate-1.2000",
+      time_s: 1.073,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigGrace.advance(100);
+    rigGrace.advance(100); // A pulsado; su suleta vence en +60 ms.
+
+    // +100 ms más: el golpe de B (268 ms) dispara ANTES del sondeo (300)
+    // que procesaría la suleta de A vencida en 260 — el golpe la pasa.
+    rigGrace.advance(100);
+    expect(rigGrace.submissions.map((s) => s.pitch)).toEqual([60, 60]);
+    expect(rigGrace.releases.map((r) => r.pitch)).toEqual([60]); // suleta vieja pasada por el golpe
+    // Y el ORDEN: la suleta vencida se procesó ANTES del nuevo apretón —
+    // si quedara detrás, el noteOff mataría la nota recién nacida.
+    expect(rigGrace.rastro).toEqual(["on60", "off60", "on60"]);
+
+    rigGrace.runner.stop();
   });
 
   it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {    const rigFast = rig("teclas_rapidas");

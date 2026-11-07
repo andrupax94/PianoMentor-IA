@@ -254,3 +254,31 @@ pendiente del entorno del usuario: ¿sin grabación de Audacity abierto?
 Edge)? Si el DETENIDO se repite fuera de grabaciones, aparece la opción
 de retener el pulso hasta la reanudación (pulso tardío dentro de la
 tolerancia del 0.25, ya respaldada por firePress).
+
+## 13. El corte de la gracetilla final (2026-11-07, tercera ronda del log)
+
+Dos reproducciones en el mismo log: la primera, del build sin vigilante,
+jalonada de paros de reloj (pos=5.030/7.050/7.510/8.020/9.020/10.020/…
+estáticas); la segunda, completa y limpia de 0.5 a 23.0 — y AUN ASÍ
+fallaba **al final**. El corte exacto:
+
+```
+robot pulso  gate-21.8750 [61,69]  pos=21.880        (hold 60 ms → suelta a 21.94)
+robot pulso  gate-21.9427 [69]     pos=21.950        ← re-pulsa el 69
+noteOn descartado: 69 ya sostenido
+robot suelta gate-21.8750 → noteOff 61, 69          ← mata el 69 recién pulsado
+```
+
+La suleta de la gracetilla (hold 60 ms) era procesada por el sondeo, y el
+golpe del 21.9427 (temporizador de pared) salió **entre el vencimiento y
+el sondeo**: el sampler descartó su noteOn (tecla aún bajada) y el noteOff
+viejo cortó la nota recién nacida — la ÚLTIMA nota de la pieza muda.
+También presente en gate-10.0000 (el 61).
+
+**Fix:** el golpe pasa sus suletas ya vencidas ANTES de apretar
+(`flushDueReleases()` en firePress, y el sondeo delega en la misma). El
+orden lo decide el reloj de pared, no el sondeo. El test de regresión usa
+el rastro combinado on/off del rig y exige `on60, off60, on60`; sin el
+fix produce el orden culpable (`on60, on60, off60`).
+**Pendiente cuando el vigilante confirme los paros fuera de grabaciones:
+retener el pulso durante el paro del reloj del AudioContext** (sección 12).

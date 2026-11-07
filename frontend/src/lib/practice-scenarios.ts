@@ -252,6 +252,24 @@ export function createPracticeScenarioRunner(
   }
   let pendingReleases: PendingRelease[] = [];
 
+  /**
+   * Suletas ya vencidas, ahora (2026-11-07, la cortada de la gracetilla
+   * final): el sondeo las procesa, pero un golpe por temporizador puede
+   * dispararse ENTRE el vencimiento de una suleta y el sondeo que la
+   * ejecuta — y entonces el noteOn ve la tecla del gate anterior aún
+   * bajada (`noteOn descartado: X ya sostenido`) y su inmediato noteOff
+   * MATA la nota recién pulsada (el 69 final de gate-21.9427 murió tras
+   * el suelta del gate-21.8750). El apretón limpia sus vencidas antes.
+   */
+  const flushDueReleases = () => {
+    pendingReleases = pendingReleases.filter((pending) => {
+      if (clockMs() < pending.atMs) return true;
+      audioTrace(`robot suelta gate=${pending.gateId}`);
+      for (const pitch of pending.pitches) submitNoteOff({ pitch });
+      return false;
+    });
+  };
+
   /** Cancela el golpe agendado (adopción nueva, stop, reset). */
   const clearPress = () => {
     if (pressTimer !== null) {
@@ -319,6 +337,11 @@ export function createPracticeScenarioRunner(
     pressExpected = false;
     pressDeadlineMs = clockMs();
     const aviso = tardeS > 0.0005 ? ` (pasaban ${tardeS.toFixed(3)} s)` : "";
+    // Antes de apretar: pasadas las suletas ya vencidas que el sondeo no
+    // llegó a procesar — si una suleta vencida del mismo pitch quedara
+    // pendiente, el apretón pica una tecla aún bajada y la suleta vieja
+    // mata la nota recién nacida (gracetilla final, 2026-11-07).
+    flushDueReleases();
     audioTrace(
       `robot pulso${aviso} gate=${lastGateId} pitch=[${plan.pitches.join(",")}] ` +
         `pos=${snapshot.position_s.toFixed(3)}`,
@@ -381,13 +404,8 @@ export function createPracticeScenarioRunner(
 
     // 0) Las suletas van por gate y por reloj: cada sostén se suelta cuando
     // toca (muro del golpe + hold escrito), al margen del modo — el rescate
-    // del gate, el pause o el cambio de pieza no cortan la duración.
-    pendingReleases = pendingReleases.filter((pending) => {
-      if (clockMs() < pending.atMs) return true;
-      audioTrace(`robot suelta gate=${pending.gateId}`);
-      for (const pitch of pending.pitches) submitNoteOff({ pitch });
-      return false;
-    });
+    // del gate, el pause o el cambio de pieza no corta la duración.
+    flushDueReleases();
 
     // Gate activo por vía: en espera, el actual (congelado); en flujo (modo
     // espera apagado, petición del usuario 2026-11-07), el venidero según la
