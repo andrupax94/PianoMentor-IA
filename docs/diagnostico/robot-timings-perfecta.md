@@ -131,7 +131,41 @@ backend y su ventana de tolerancia (fuera de este diagnóstico).
    los escenarios de fallo medirse desde el **instante score** del gate
    (`remaining_s`), no desde la adopción?
 
-## 9. Qué leer (código)
+## 9. Resultado del log (2026-11-07) y fix aplicado
+
+ChatGPT se quedó a medias (sin créditos) y el log resolvió solo. Lectura de
+las trazas `robot plan/pulso/ANTICIPADO`:
+
+```
+robot plan   gate-0.5000 time_s=0.500 pos=0.400  ← adoptado 100 ms ANTES
+robot pulso  gate-0.5000 elapsedMs=0 pos=0.400   ← pulsa EN el mismo sondeo
+gate gate-0.5000: ANTICIPADO (faltaban 0.090 s)  ← el gate se lo traga temprano
+```
+
+**El signo era contrario al de H1: no llegaba tarde, llegaba TEMPRANO** —
+100–400 ms por nota, cuantizado al ciclo sondeo/adopción. El pulso salía en
+el **mismo sondeo en que se adoptaba el gate** (`pressAtMs = 0` → pulso
+inmediato), y la adopción ocurría justo al soltar la nota anterior, con la
+posición donde la cascada la dejara — nunca en el instante score del gate.
+Por eso el gate-controller lo consumía como «ANTICIPADO» (el fichaje es
+correcto-pedagógicamente pero el timing, mermado).
+
+**Fix (misma sesión): programación predictiva del golpe.** Al adoptar el
+gate, el runner **agenda el pulso con `setTimeout` al muro del gate**
+(`muro = (gate.time_s − position_s) / tempoFactor × 1000 + pressAtMs`) y la
+suelta se mide desde el muro **real del golpe** (fijado al disparar), no
+desde la adopción. Redes de seguridad: si el gate murió bajo el plan el
+pulso no sale; si el temporizador no llegara (pestaña regulada), el sondeo
+dispara el golpe pasado su muro; `stop/clear` cancelan el agendado. En espera
+todo queda como antes (delay = `pressAtMs` sobre el gate congelado). Tests:
+nuevo «flujo predictivo» (adopción 300 ms antes → pulso en el muro, sin golpe
+en la adopción) y calibración de sueltas contra el muro en «siempre_tarde» y
+«siempre_equivocada». Con esto *Perfecta* coloca cada nota en su instante
+(±ms del temporizador) y las trazas muestran la nueva línea
+`robot agenda … delayMs=` — si volviera a torcerse, ese log ya cuenta la
+historia completa: adopción → agenda → pulso → suelta.
+
+## 10. Qué leer (código)
 
 Todo en `frontend/src/lib` salvo el puente:
 

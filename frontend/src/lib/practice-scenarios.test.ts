@@ -196,6 +196,37 @@ describe("practice-scenarios", () => {
     rigFlowStop.runner.stop();
   });
 
+  it("flujo predictivo: el golpe cae en el instante del gate, no al adoptarlo", () => {
+    // Diagnóstico de timings (2026-11-07): el log mostraba pulsos 100–400 ms
+    // ANTES del gate — el pulso salía en el sondeo en que se adoptaba el gate
+    // (justo al soltar la nota anterior). Ahora la adopción AGENDA el golpe
+    // al muro del gate (remaining por tempoFactor) y el pulso cae en él.
+    const rigFlow = rig("perfecta");
+    rigFlow.runner.start();
+
+    // Gate venidero a 0,3 s de la posición: se adopta y se agenda, sin pulso.
+    rigFlow.setFlow(0.7, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigFlow.advance(200);
+    expect(rigFlow.submissions).toEqual([]);
+
+    // El muro del gate vence (300 ms desde la adopción): pulso puntual.
+    rigFlow.advance(300);
+    expect(rigFlow.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    // La suleta: 380 ms de sostén contra el muro del golpe.
+    rigFlow.advance(500);
+    expect(rigFlow.releases.map((r) => r.pitch)).toEqual([60]);
+
+    rigFlow.runner.stop();
+  });
+
   it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {
     const rigFast = rig("teclas_rapidas");
     rigFast.runner.start();
@@ -258,8 +289,10 @@ describe("practice-scenarios", () => {
     expect(rig4.submissions).toEqual([{ pitch: 59, velocity: 80 }]);
     expect(rig4.releases.map((r) => r.pitch)).toEqual([]);
 
-    // La suelta como cualquier tecla, tras su duración (150 + 380 ms).
-    rig4.advance(300);
+    // La suelta se mide contra el muro del golpe real (el banco agendó el
+    // pulso por temporizador: su suleta cae en la ventana siguiente al vencer
+    // hold=380 ms sobre pressDeadline=1500 → 1880).
+    rig4.advance(500);
     expect(rig4.releases.map((r) => r.pitch)).toEqual([59]);
 
     rig4.runner.stop();
