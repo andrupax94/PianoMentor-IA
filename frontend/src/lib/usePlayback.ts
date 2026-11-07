@@ -18,7 +18,11 @@ function createEngineVoice(sampler: PianoSampler): NoteVoice {
   return {
     scheduleNote: (event, atTime_s) =>
       sampler.scheduleNote(event.pitch, event.velocity, event.duration_s, atTime_s),
-    silence: () => sampler.silence(),
+    // B-032.8 ajuste (2026-11-07, vía diagnóstico con ChatGPT): el wrapper
+    // DESCARTABA las opciones de `silence` — el `keepAudition: true` de
+    // enterWaiting moría aquí y el congelado cortaba igualmente la tecla
+    // sostenida del alumno. Ahora las traslada.
+    silence: (options) => sampler.silence(options),
   };
 }
 

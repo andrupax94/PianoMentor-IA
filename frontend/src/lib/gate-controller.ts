@@ -5,6 +5,7 @@ import type { Gate, GateHand, GateOutcome } from "./practice-gate";
 import { gateSatisfied, gateWrong, strikeFor, waitTimeoutMs } from "./practice-gate";
 import type { PlaybackSnapshot } from "./playback-engine";
 import { subscribeNoteInput, type NoteInputEvent } from "./note-input";
+import { audioTrace } from "./audio-trace";
 
 /** Evento de práctica que manda el front al backend (B-032.5). */
 export interface PracticeEvent {
@@ -123,6 +124,14 @@ export function createGateController(deps: GateControllerDeps): GateController {
     const timedOut = elapsedMs >= timeoutMs;
 
     const outcome = strikeFor(gate, pressedInWait, timedOut);
+    // Trazas de diagnóstico del margen (?traceAudio, petición del chat de
+    // ChatGPT): qué tenía pulsado el alumno, correctamente y cuándo, y qué
+    // decidió el controlador — separa el corte de audio del rebote perdido.
+    audioTrace(
+      `gate ${gate.id}: outcome=${outcome} pressedInWait=[${pressedInWait.join(",")}] ` +
+        `heldAll=[${[...pressedAt.entries()].map(([p, t]) => `${p}@${t}`).join(",")}] ` +
+        `waitingSinceMs=${waitingSinceMs} timedOut=${timedOut}`,
+    );
     // B-032.8: onWrong solo en la transición. El sondeo repite el outcome cada
     // 100 ms; si el callback saliera siempre, el desvanecimiento del rebote se
     // reiniciaba sin parar y la cascada se quedaba pasada de la línea.

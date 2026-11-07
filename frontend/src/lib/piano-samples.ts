@@ -73,6 +73,8 @@ interface ActiveSampledVoice {
   env: GainNode;
   /** Instante de creación, para robar la voz más vieja. */
   bornAt: number;
+  /** Pitch que la montó (para las trazas de diagnóstico). */
+  pitch: number;
 }
 
 /** `decodeAudioData` en formato promesa, con recambio para navegantes antiguos. */
@@ -285,7 +287,7 @@ export function createPianoSampler(
 
     if (layers.length === 0 || totalWeight <= 0) {
       env.disconnect();
-      return { voice: { sources: [], env, bornAt: ctx.currentTime }, usedSamples: false };
+      return { voice: { sources: [], env, bornAt: ctx.currentTime, pitch }, usedSamples: false };
     }
 
     // Si solo está decodificada una de las dos capas, se normaliza para no bajar el volumen.
@@ -294,7 +296,7 @@ export function createPianoSampler(
       layer.gain.gain.value = layer.weight * normalise;
       layer.source.start(startAt);
     }
-    return { voice: { sources: layers.map((layer) => layer.source), env, bornAt: ctx.currentTime }, usedSamples: true };
+    return { voice: { sources: layers.map((layer) => layer.source), env, bornAt: ctx.currentTime, pitch }, usedSamples: true };
   }
 
   /** Devuelve true si la nota se hizo con muestra real; false si hay que reservar la voz. */
@@ -324,6 +326,7 @@ export function createPianoSampler(
   }
 
   function stopVoice(voice: ActiveSampledVoice, atTime: number, fadeS: number): void {
+    audioTrace(`stopVoice pitch=${voice.pitch} fade=${fadeS}s`);
     const stopAt = Math.max(atTime, ctx.currentTime);
     try {
       voice.env.gain.cancelScheduledValues(stopAt);
@@ -396,7 +399,11 @@ export function createPianoSampler(
       fallback?.noteOff(pitch);
     },
     silence(options?: SilenceOptions): void {
-      audioTrace(`silence() keepAudition=${options?.keepAudition === true}`);
+      audioTrace(
+        `silence() keepAudition=${options?.keepAudition === true} ` +
+          `vocesActivas=${voices.size} sostenidas=[${[...sustained.keys()].join(",")}] ` +
+          `ctx.currentTime=${ctx.currentTime.toFixed(3)}`,
+      );
       // Si el corte de sonido se debe a este silencio, la pila dice quién mandó.
       audioTraceStack("silence() del sampler");
       // El congelado del gate (B-032.5) pide respetar la pulsación viva del

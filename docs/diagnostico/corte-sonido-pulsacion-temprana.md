@@ -204,3 +204,40 @@ const auditionOff = (pitch) => { samplerRef.current?.noteOff(pitch); };
   por ?traceAudio).
 - Modo de práctica usado (Dos manos / Una mano) y con qué teclado (PC o MIDI
   externo).
+
+## 10. Resultado de la ronda con ChatGPT (2026-11-07)
+
+ChatGPT analizó el clip + las trazas y marcó exactamente la discrepancia que
+el código confirmó: **el wrapper de la voz descartaba las opciones de
+`silence`**.
+
+En `usePlayback.ts`, `createEngineVoice` tenía:
+
+```ts
+silence: () => sampler.silence(),            // ← descarta keepAudition
+```
+
+Así el `silence({ keepAudition: true })` del `enterWaiting` llegaba al
+sampler como **keepAudition=false** (las trazas `keepAudition=false`
+procedentes de `enterWaiting` lo mostraron); el resto de la cadena
+(`playback-engine` → wrapper → sampler → reserva) estaba bien: el fallo era
+una única línea. Corregido a `silence: (options) => sampler.silence(options)`.
+
+El `silence()` de `usePlayback.useEffect` que aparecía en las pilas es el
+desmonte del componente (deps `[]`, una vez, con `ctx.close()` detrás): solo
+muere con la página/Ruta — no compite por gate; se deja tal cual.
+
+Con la misma ronda se añadió lo que pidió:
+
+- **Trazas más finas** (?traceAudio): el `silence()` ahora imprime voces
+  activas, pitches sostenidos y `ctx.currentTime`; cada `stopVoice` imprime
+  su `pitch` y el fade; el gate-controller imprime la evaluación completa
+  (pressedInWait, todas las marcas, waitingSince, timedOut y el outcome) para
+  separar el corte de audio del problema del margen del 60 %.
+- Sin tocar fades (los 30 ms se mantienen) ni la lógica del gate: el corte
+  tenía causa única.
+
+Queda para la próxima grabación: repetir el repaso con ?traceAudio y
+confirmar en el log (`enterWaiting` → `silence() keepAudition=true`) que la
+tecla sostenida sobrevive al congelado y que el rebote del 60 % se muestra
+con su segunda pulsación.
