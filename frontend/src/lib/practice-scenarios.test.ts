@@ -103,6 +103,29 @@ describe("practice-scenarios", () => {
     rig1.runner.stop();
   });
 
+  it("perfecta suelta la nota su tiempo aunque el gate ya se cerró (el rescate saca al transporte de espera)", () => {
+    const rigHold = rig("perfecta");
+    rigHold.runner.start();
+
+    rigHold.advance(100);
+    expect(rigHold.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    // La pulsación rescata el gate: el transporte deja de esperar.
+    rigHold.setStatus("playing");
+
+    // El sondeo inmediato NO suelta por sorpresa: sin gate en espera, el plan
+    // sobrevive con su reloj de suelta (aquí el sondeo vería ~200 ms).
+    rigHold.advance(200);
+    expect(rigHold.releases).toEqual([]);
+
+    // 400 ms tras pulsar ≥ 380 (0,5 s de nota − 120 ms de hueco): suelta a la
+    // duración escrita ya sonando la pieza.
+    rigHold.advance(200);
+    expect(rigHold.releases).toEqual([{ pitch: 60, velocity: 0 }]);
+
+    rigHold.runner.stop();
+  });
+
   it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {
     const rigFast = rig("teclas_rapidas");
     rigFast.runner.start();

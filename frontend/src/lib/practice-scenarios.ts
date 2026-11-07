@@ -69,10 +69,13 @@ const VELOCITY = 80;
  * al final para que la tecla soltada no caiga dentro del gate siguiente). El
  * gesto rápido del robot v1 (mitad del gate, recortado) queda como escenario
  * aparte «Teclas rápidas» para comparar el sonido mismo.
+ *
+ * El tope alto (8 s) deja sin efecto el recorte para notas largas: blancas y
+ * redondas a tempo bajo superan holgadamente el antiguo límite de 1,5 s.
  */
 const HOLD_GAP_MS = 120;
 const HOLD_MIN_MS = 60;
-const HOLD_MAX_MS = 1500;
+const HOLD_MAX_MS = 8000;
 
 /** Política rápida del escenario teclas_rapidas: mitad del gate antes de soltar. */
 const FAST_FRACTION = 0.5;
@@ -219,7 +222,28 @@ export function createPracticeScenarioRunner(
 
   const poll = () => {
     const snapshot = deps.getSnapshot();
-    if (snapshot.status !== "waiting" || !snapshot.currentGate) {
+    const gate = snapshot.status === "waiting" ? snapshot.currentGate ?? null : null;
+    // Corrección (2026-11-07, petición del usuario): el robot no soltaba la
+    // nota — en «perfecta», su propia pulsación rescata el gate y el
+    // transporte sale de espera; el sondeo siguiente caía aquí con
+    // `heldPitches` lleno y lo soltaba al momento (~100 ms de sonido). Ahora
+    // el plan sobrevive al cierre del gate: la nota se suelta el reloj, a su
+    // duración escrita, aunque el transporte ya esté sonando.
+    if (gate === null) {
+      if (heldPitches !== null && plan !== null && plan.holdMs !== null) {
+        const closingElapsedMs = clockMs() - gateStartMs;
+        if (closingElapsedMs >= plan.pressAtMs + plan.holdMs) {
+          releaseHeld();
+          // Soltado con el gate ya cerrado: dejar el estado limpio para el
+          // siguiente gate que aparezca (la pieza siguió y el compás avanzó).
+          plan = null;
+          lastGateId = null;
+          gestureDone = false;
+          heldPitches = null;
+        }
+        // Con teclas aguantadas y suelta pendiente: no se programa nada nuevo.
+        return;
+      }
       resetGate();
       return;
     }
@@ -228,7 +252,6 @@ export function createPracticeScenarioRunner(
     // continúa donde el transporte esté, sin darle vueltas al reloj.
     if (!canEmit()) return;
 
-    const gate = snapshot.currentGate;
     if (gate.id !== lastGateId) {
       releaseHeld();
       lastGateId = gate.id;

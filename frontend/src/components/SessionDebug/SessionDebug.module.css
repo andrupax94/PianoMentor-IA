@@ -125,8 +125,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.35);
-  font-family: var(--font1, monospace);
-  font-size: 0.68rem;
+  /* Petición del usuario (2026-11-07): Gabriola (--font1) era ilegible para un
+     registro técnico; va la fuente de la interfaz (--font2, Manrope). */
+  font-family: var(--font2, system-ui, sans-serif);
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 

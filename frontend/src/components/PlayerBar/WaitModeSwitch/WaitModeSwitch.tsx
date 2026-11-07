@@ -9,7 +9,7 @@ import { getWaitModeSnapshot, setWaitModeEnabled, subscribeWaitMode } from "../.
 import styles from "./WaitModeSwitch.module.css";
 
 export function WaitModeSwitch() {
-  const wait = useSyncExternalStore(subscribeWaitMode, getWaitModeSnapshot);
+  const wait = useSyncExternalStore(subscribeWaitMode, getWaitModeSnapshot, getWaitModeSnapshot);
 
   return (
     <button

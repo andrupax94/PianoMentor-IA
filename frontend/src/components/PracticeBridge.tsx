@@ -96,6 +96,16 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
   const socketRef = useRef<SessionSocket | null>(null);
   const gateControllerRef = useRef<GateController | null>(null);
   /**
+   * Temporizador del aviso de cierre: se aplaza al desmontar y se cancela al
+   * montar. React StrictMode (dev, `reactStrictMode: true`) ejecuta un
+   * ciclo completo montar→desmontar→montar en cada entrada: sin el aplazamiento,
+   * el desmonte simulado publicaba «Cerramos esta práctica» justo al abrir la
+   * sesión nueva, borrando el «Te llevo al piano…» de la burbuja (petición del
+   * usuario, 2026-11-07). En un desmonte real no hay remonte: el temporizador
+   * dispara con el mismo contenido que antes, 0 ms más tarde.
+   */
+  const closingTimerRef = useRef<number | null>(null);
+  /**
    * Último estado visto: el sobre `agent_action` no trae la pieza, así que la
    * intervención la saca de aquí (B-012.5).
    */
@@ -119,6 +129,13 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Un remonte inmediato (StrictMode en dev) cancela el cierre pendiente
+    // antes de que pueda publicarse: solo el desmonte real llega a dispararlo.
+    if (closingTimerRef.current !== null) {
+      window.clearTimeout(closingTimerRef.current);
+      closingTimerRef.current = null;
+    }
 
     /**
      * B-032.1: la sesión manda la pieza. Por URL directa o tras un F5 el
@@ -268,8 +285,13 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       publishAgentPlayback({ kind: "stop" });
       // B-032.10: el cierre de la práctica también se cuenta en el chat; la
       // línea sobrevive al desmonte porque el feed vive fuera del componente.
-      inform(sessionClosedText());
-      clearSession();
+      // Aplazado y cancelable: el desmonte simulado de StrictMode (dev) no
+      // llega a publicar nada porque el remonte cancela el temporizador.
+      closingTimerRef.current = window.setTimeout(() => {
+        closingTimerRef.current = null;
+        inform(sessionClosedText());
+        clearSession();
+      }, 0);
     };
   }, [sessionId]);
 

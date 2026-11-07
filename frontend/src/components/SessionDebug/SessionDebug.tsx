@@ -16,6 +16,8 @@ import { isNoteInputEnabled, subscribeNoteInputGate } from "../../lib/note-input
 import { SCENARIO_IDS, type ScenarioId } from "../../lib/practice-scenarios";
 import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { useTransport } from "../../lib/transport-context";
+import { getWaitModeSnapshot, setWaitModeEnabled, subscribeWaitMode } from "../../lib/wait-mode-store";
+import { usePracticeModeChange } from "../PracticeModeBridge";
 import styles from "./SessionDebug.module.css";
 
 /** Etiqueta y descripción corta de cada escenario (menú v1). */
@@ -32,9 +34,11 @@ const SCENARIO_LABELS: Record<ScenarioId, { label: string; desc: string }> = {
 export function SessionDebug() {
   const transport = useTransport();
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
-  const log = useSyncExternalStore(subscribeDebugLog, getDebugLogSnapshot);
-  const robot = useSyncExternalStore(subscribeDebugScenario, getDebugScenarioSnapshot);
+  const log = useSyncExternalStore(subscribeDebugLog, getDebugLogSnapshot, getDebugLogSnapshot);
+  const robot = useSyncExternalStore(subscribeDebugScenario, getDebugScenarioSnapshot, getDebugScenarioSnapshot);
   const gateOpen = useSyncExternalStore(subscribeNoteInputGate, isNoteInputEnabled, isNoteInputEnabled);
+  const waitMode = useSyncExternalStore(subscribeWaitMode, getWaitModeSnapshot, getWaitModeSnapshot);
+  const changePracticeMode = usePracticeModeChange();
 
   // B-033.2 (petición del usuario): sin sesión de práctica el menú no existe —
   // los gates solo ocurren en modos de práctica, así que aquí no hay nada que
@@ -49,6 +53,16 @@ export function SessionDebug() {
 
   /** Relanza la pieza desde 0 (parar + play por el transporte, sin recrear el reloj) y arma el robot sobre ella. */
   const launch = (scenario: ScenarioId) => {
+    // Petición del usuario (2026-11-07): cada escenario se lanza con el
+    // switch de manos en «Dos manos» y el «Modo espera» apagado — sin la
+    // espera, el robot recorre la pieza de principio a fin sin atascarse en
+    // el primer fallo, y a dos manos ejercita la pieza entera. El cambio va
+    // por el mismo canal del selector (almacén + PATCH): el backend lo
+    // persiste y el switch real de la interfaz lo refleja.
+    if (session.practiceMode !== "both_hands") {
+      changePracticeMode({ mode: "both_hands", hand: session.studentHand });
+    }
+    if (waitMode.enabled) setWaitModeEnabled(false);
     transport.stop();
     void transport.play();
     window.dispatchEvent(new CustomEvent("practice:scenario-start", { detail: { scenario } }));
