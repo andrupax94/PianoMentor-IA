@@ -116,6 +116,12 @@
   margin-top: 4px;
 }
 
+.logActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .log {
   flex: 1;
   min-height: 120px;

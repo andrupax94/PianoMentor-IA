@@ -1,9 +1,9 @@
 "use client";
 
-// description: Pestaña «Depurar» del panel de estado (B-033.2, dev-only): lanzar los escenarios del pianista robot (B-033.1) con relanzar y parar, estado del robot (activo o suspendido mientras la IA demuestra) y registro en vivo de señales e intervenciones.
+// description: Pestaña «Depurar» del panel de estado (B-033.2, dev-only): lanzar los escenarios del pianista robot (B-033.1) con relanzar y parar, estado del robot (activo o suspendido mientras la IA demuestra), registro en vivo de señales e intervenciones y alternador de las trazas de audio.
 // context: Solo se carga con NODE_ENV !== "production" (lazy en SessionStatusLive). No gobierna el transporte directamente: al lanzar un escenario hace stop + play desde 0 por las vías existentes y el resto es disparar-observar (eventos practice:scenario-* que captura PracticeBridge). El log vive en practice-debug.ts; las señales de práctica llegan vía PracticeBridge.
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import {
   clearDebugLog,
@@ -12,6 +12,7 @@ import {
   subscribeDebugLog,
   subscribeDebugScenario,
 } from "../../lib/practice-debug";
+import { isTraceAudio, setTraceAudio } from "../../lib/audio-trace";
 import { isNoteInputEnabled, subscribeNoteInputGate } from "../../lib/note-input";
 import { SCENARIO_IDS, type ScenarioId } from "../../lib/practice-scenarios";
 import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
@@ -39,6 +40,17 @@ export function SessionDebug() {
   const gateOpen = useSyncExternalStore(subscribeNoteInputGate, isNoteInputEnabled, isNoteInputEnabled);
   const waitMode = useSyncExternalStore(subscribeWaitMode, getWaitModeSnapshot, getWaitModeSnapshot);
   const changePracticeMode = usePracticeModeChange();
+
+  // Acceso directo a las trazas de audio (petición del usuario): el estado se
+  // lee en el efecto para no desincronizar la hidratación (localStorage solo
+  // existe en el cliente).
+  const [traceAudio, setTraceAudioState] = useState(false);
+  useEffect(() => {
+    setTraceAudioState(isTraceAudio());
+  }, []);
+  const toggleTraceAudio = () => {
+    setTraceAudioState(setTraceAudio(!traceAudio));
+  };
 
   // B-033.2 (petición del usuario): sin sesión de práctica el menú no existe —
   // los gates solo ocurren en modos de práctica, así que aquí no hay nada que
@@ -105,9 +117,19 @@ export function SessionDebug() {
 
       <div className={styles.logHead}>
         <h3>Registro</h3>
-        <button type="button" className={styles.secondary} onClick={() => clearDebugLog()}>
-          Limpiar
-        </button>
+        <div className={styles.logActions}>
+          <button
+            type="button"
+            className={styles.secondary}
+            onClick={toggleTraceAudio}
+            title="Muestra el rastro del sampler/transporte/robot en la consola (filtro [audio]) sin tocar la URL"
+          >
+            Traza de audio: {traceAudio ? "activa" : "apagada"}
+          </button>
+          <button type="button" className={styles.secondary} onClick={() => clearDebugLog()}>
+            Limpiar
+          </button>
+        </div>
       </div>
       <div className={styles.log} role="log" aria-live="polite" aria-label="Registro de la práctica">
         {log.length === 0 && <p className={styles.empty}>Sin señales todavía.</p>}
