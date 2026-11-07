@@ -211,6 +211,55 @@ class MockProvider(LLMProvider):
             return "reproducir"
         return ""
 
+    # Glosario mínimo de teoría musical para el modo sin red (MockProvider).
+    TEORIA: dict[str, str] = {
+        "compas": (
+            "Un compás es la unidad de tiempo de una pieza: agrupa las notas en "
+            "bloques iguales (por ejemplo, 4 negras en 4/4). La barra vertical en "
+            "la partitura separa un compás del siguiente."
+        ),
+        "acorde": (
+            "Un acorde es un conjunto de notas que suenan a la vez y forman un "
+            "color armónico (por ejemplo, do-mi-sol es el acorde de Do mayor)."
+        ),
+        "tempo": (
+            "El tempo es la velocidad de la pieza: cuántas pulsaciones (beats) "
+            "hay por minuto (BPM). Un tempo alto es más rápido."
+        ),
+        "nota": (
+            "Una nota es un sonido con una altura (qué tan grave o agudo) y una "
+            "duración (cuánto dura). En piano, cada tecla es una nota."
+        ),
+        "ritmo": (
+            "El ritmo es el patrón de duraciones y silencios de una pieza: cómo "
+            "se distribuyen las notas en el tiempo."
+        ),
+        "escala": (
+            "Una escala es una sucesión ordenada de notas (por ejemplo, Do mayor: "
+            "do, re, mi, fa, sol, la, si). Sirve de base para melodías y acordes."
+        ),
+        "pentagrama": (
+            "El pentagrama son las 5 líneas y 4 espacios donde se escriben las "
+            "notas de la partitura."
+        ),
+        "melodia": (
+            "La melodía es la línea principal de notas que se canta o se toca: "
+            "la «canción» que recuerdas."
+        ),
+    }
+
+    @classmethod
+    def _respuesta_teoria(cls, texto: str) -> str | None:
+        """Responde una pregunta teórica simple si el texto la contiene."""
+        if "que es" not in texto and "qué es" not in texto and "que son" not in texto and "qué son" not in texto:
+            # También aceptar «explica X» o «define X».
+            if "explica" not in texto and "define" not in texto:
+                return None
+        for clave, definicion in cls.TEORIA.items():
+            if clave in texto:
+                return definicion
+        return None
+
     @staticmethod
     def _json_de(contenido: str) -> dict[str, Any]:
         """El resultado llega como string JSON; un error de herramienta no lo es."""
@@ -341,11 +390,19 @@ class MockProvider(LLMProvider):
                 provider="mock",
             )
 
+        # Preguntas teóricas de música/piano: el Mock también las contesta para
+        # que la demo funcione sin red ni clave (el LLM real las responde por el
+        # system prompt de chat.py).
+        teoria = self._respuesta_teoria(texto)
+        if teoria is not None:
+            return LLMResponse(text=teoria, provider="mock")
+
         return LLMResponse(
             text=(
                 "Eso todavía no sé hacerlo. Puedo buscar piezas, reproducir, pausar, "
                 "reanudar, parar, abrir una sesión de práctica y contestar a la "
-                "oferta del mentor («otra vez», «muéstralo», «sigo yo»)."
+                "oferta del mentor («otra vez», «muéstralo», «sigo yo»). También "
+                "respondo preguntas de teoría musical (compás, acorde, tempo…)."
             ),
             provider="mock",
         )
@@ -544,6 +601,21 @@ class OpenAICompatibleProvider(LLMProvider):
             provider=self.provider_name,
         )
 
+    @staticmethod
+    def _compact_state(state: dict[str, Any]) -> str:
+        flat: dict[str, Any] = {}
+        for key, value in state.items():
+            if key == "evaluation" and isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    if sub_key == "counts" and isinstance(sub_value, dict):
+                        for count_key, count_value in sub_value.items():
+                            flat["count_" + count_key] = count_value
+                    elif sub_key not in ("notes", "extras"):
+                        flat[sub_key] = sub_value
+            else:
+                flat[key] = value
+        return json.dumps(flat, ensure_ascii=False, separators=(",", ":"), default=str)
+
     def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
         """Pide al LLM una acción pedagógica en JSON estructurado (B-012.6).
 
@@ -564,10 +636,13 @@ class OpenAICompatibleProvider(LLMProvider):
             "Reglas:\n"
             f"- `action` debe ser una de: {', '.join(sorted(ALLOWED_ACTIONS))}.\n"
             "- `params` solo puede llevar los parámetros del esquema de esa acción: no inventes claves.\n"
-            "- `reason`: una frase corta en español con el porqué.\n"
+            "- `reason`: el mensaje que le dirías al alumno en segunda persona (tú), con voz de profesor empático y corto (una frase). Debe hablar al alumno, no describir la tarea ni la decisión interna.\n"
             "Esquema de params por acción:\n"
             f"{_esquema_de_acciones()}\n\n"
-            f"Estado de la sesión:\n{json.dumps(state, ensure_ascii=False, default=str)}"
+            "Estado de la sesión (JSON compacto, claves aplanadas; `worst_units` son los "
+            "segundos de inicio de los compases con más errores, `drift_direction` indica "
+            "si el estudiante va temprano/tarde/a tiempo, `error_type` el error dominante):\n"
+            f"{self._compact_state(state)}"
         )
 
         payload: dict[str, Any] = {

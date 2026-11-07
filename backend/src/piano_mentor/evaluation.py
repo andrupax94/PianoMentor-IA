@@ -334,6 +334,43 @@ class PerformanceEvaluator:
         score_total = 100.0 * (NOTES_WEIGHT * notes_score + TIMING_WEIGHT * timing_score)
         score_total -= EXTRA_PENALTY * min(counts[STATUS_EXTRA], EXTRA_PENALTY_LIMIT)
 
+        note_details = [
+            {
+                "start_seconds": start,
+                "expected_pitches": list(pitches),
+                "status": match.status,
+                "received_pitches": match.received_pitches,
+                "deviation_ms": match.deviation_ms,
+            }
+            for (start, pitches), match in zip(units, matches, strict=True)
+        ]
+
+        # --- Insights compactos para el agente (menos tokens, mejor conclusión) ---
+        drift_mean = _mean(deviations_ms) if deviations_ms else 0.0
+        if drift_mean < -25:
+            drift_direction = "early"
+        elif drift_mean > 25:
+            drift_direction = "late"
+        else:
+            drift_direction = "ok"
+
+        # Error dominante: el que más unidades afecta.
+        error_candidates = {
+            "pitch": counts.get(STATUS_WRONG_PITCH, 0),
+            "timing": counts.get(STATUS_EARLY, 0) + counts.get(STATUS_LATE, 0),
+            "omission": counts.get(STATUS_OMITTED, 0),
+            "extra": counts.get(STATUS_EXTRA, 0),
+        }
+        if expected_total == 0 or sum(error_candidates.values()) == 0:
+            error_type = "none"
+        else:
+            error_type = max(error_candidates, key=lambda key: error_candidates[key])
+
+        # Compases (unidades) donde falló: solo los no correctos, acotados.
+        worst_units = [nd["start_seconds"] for nd in note_details if nd["status"] != STATUS_CORRECT][:6]
+
+        received_ratio = round(len(notes) / expected_total, 3) if expected_total else 0.0
+
         return {
             "status": "computed",
             "tolerance_ms": tolerance_ms,
@@ -344,21 +381,17 @@ class PerformanceEvaluator:
             "timing_score": round(timing_score, ROUNDING),
             "accuracy_pct": round(accuracy_pct, ROUNDING),
             "timing_ms": round(timing_ms, MS_ROUNDING),
-            "drift_ms": round(_mean(deviations_ms), MS_ROUNDING),
+            "drift_ms": round(drift_mean, MS_ROUNDING),
             "score_total": round(max(score_total, 0.0), 1),
-            "notes": [
-                {
-                    "start_seconds": start,
-                    "expected_pitches": list(pitches),
-                    "status": match.status,
-                    "received_pitches": match.received_pitches,
-                    "deviation_ms": match.deviation_ms,
-                }
-                for (start, pitches), match in zip(units, matches, strict=True)
-            ],
+            "notes": note_details,
             "extras": [
                 {"pitch": pitch, "t_s": t_s, "status": STATUS_EXTRA} for pitch, t_s in extras
             ],
+            # Insights para el agente (compactos, sin detalle por nota):
+            "drift_direction": drift_direction,
+            "error_type": error_type,
+            "worst_units": worst_units,
+            "received_ratio": received_ratio,
         }
 
 

@@ -4,7 +4,7 @@
 import styles from "./GaugeChart.module.css";
 import type { GaugeChartProps } from "./GaugeChart.types";
 
-const RADIUS = 44;
+const RADIUS = 36;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function GaugeChart({ value = 0, label = "", color = "var(--accent)" }: GaugeChartProps) {
@@ -12,21 +12,21 @@ export function GaugeChart({ value = 0, label = "", color = "var(--accent)" }: G
   const offset = CIRCUMFERENCE - (clamped / 100) * CIRCUMFERENCE;
   return (
     <div className={styles.gauge}>
-      <svg width="110" height="110" viewBox="0 0 110 110" role="img" aria-label={`${label}: ${clamped}%`}>
-        <circle cx="55" cy="55" r={RADIUS} fill="none" stroke="#2b3544" strokeWidth="10" />
+      <svg width="90" height="90" viewBox="0 0 90 90" role="img" aria-label={`${label}: ${clamped}%`}>
+        <circle cx="45" cy="45" r={RADIUS} fill="none" stroke="#2b3544" strokeWidth="8" />
         <circle
-          cx="55"
-          cy="55"
+          cx="45"
+          cy="45"
           r={RADIUS}
           fill="none"
           stroke={color}
-          strokeWidth="10"
+          strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={offset}
-          transform="rotate(-90 55 55)"
+          transform="rotate(-90 45 45)"
         />
-        <text x="55" y="61" textAnchor="middle" className={styles.number}>
+        <text x="45" y="50" textAnchor="middle" className={styles.number}>
           {clamped}%
         </text>
       </svg>

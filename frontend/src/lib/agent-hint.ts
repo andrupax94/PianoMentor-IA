@@ -35,10 +35,52 @@ const RULE_BASED_PROVIDERS = new Set(["deterministic", "mock"]);
  * La procedencia (`provider`/`used_fallback`) es diagnóstico, no contenido del
  * alumno, así que no se enseña aquí.
  */
+/**
+ * Motivos internos que emiten las reglas deterministas y el MockProvider: son
+ * códigos, no mensajes para el alumno, y no deben filtrarse a la burbuja
+ * (skill piano-mentor-chat-burbuja, principio 4: determinista, sin códigos).
+ */
+const INTERNAL_REASONS = new Set<string>([
+  "demo_period_ended",
+  "agent_has_control",
+  "student_silent",
+  "low_precision",
+  "repeated_errors",
+  "timing_off",
+  "all_good",
+  "mock_agent_control",
+  "mock_student_silent",
+  "mock_low_precision",
+  "mock_repeated_errors",
+  "mock_timing_off",
+  "mock_all_good",
+]);
+
+/**
+ * True si `reason` es un código interno (sin espacios) o un motivo de las
+ * reglas/Mock, no un mensaje para el alumno.
+ */
+function isInternalReason(reason: string): boolean {
+  if (!reason) return true;
+  if (INTERNAL_REASONS.has(reason)) return true;
+  if (reason.startsWith("mock_") || reason.startsWith("gate_")) return true;
+  return false;
+}
+
 export function hintMessage(step: AgentStepResponse): string {
   const label = AGENT_ACTION_LABELS[step.action] ?? step.action;
   const reason = step.reason.trim();
-  return reason ? `${label}: ${reason}` : label;
+  if (isInternalReason(reason)) {
+    // Sin mensaje para el alumno, la etiqueta sola es la pista.
+    return label;
+  }
+  // La pista (give_hint) se muestra sin el prefijo «Dar una pista:»: solo el
+  // mensaje del mentor. El resto de acciones conservan la etiqueta para dar
+  // contexto («Bajar el tempo: …», «Demostración: …»).
+  if (step.action === "give_hint") {
+    return reason;
+  }
+  return `${label}: ${reason}`;
 }
 
 /**

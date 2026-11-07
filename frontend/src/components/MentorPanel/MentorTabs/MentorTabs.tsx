@@ -87,7 +87,7 @@ export function MentorTabs({ weakPoint = "Transición de mano izquierda", visibl
             >
               {tab.id === "carga" && <MidiUploader />}
               {tab.id === "rendimiento" && (
-                <PerformanceStats weakPoint={weakPoint} />
+                <PerformanceStats />
               )}
             </div>
           );

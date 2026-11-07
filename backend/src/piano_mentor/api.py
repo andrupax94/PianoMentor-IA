@@ -1598,9 +1598,15 @@ def _evaluation_or_none(session_id: str, session_state: dict[str, object]) -> di
     if session_state.get("status") == "idle":
         return None
     try:
-        return evaluation_service.evaluate(session_id)
+        full = evaluation_service.evaluate(session_id)
     except ValidationError:
         return None
+    # Versión compacta para el agente: se eliminan los arrays `notes`/`extras`
+    # (muy pesados en tokens y redundantes con los agregados) y se conservan
+    # los insights (drift_direction, error_type, worst_units, received_ratio)
+    # para que el LLM concluya mejor con menos consumo.
+    compact = {key: value for key, value in full.items() if key not in ("notes", "extras")}
+    return compact
 
 
 @router.post("/sessions/{session_id}/agent-step", response_model=ActionResponse)

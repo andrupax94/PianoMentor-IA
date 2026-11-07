@@ -276,6 +276,16 @@ export function MentorChat({
   const askHint = useCallback(async () => {
     const sessionId = session.sessionId;
     if (sessionId === null || busy) return;
+    // Sin interpretación (sesión inactiva) el agente no tiene contexto del
+    // rendimiento: pedirle una pista solo haría esperar para recibir «Esperar».
+    // Se avisa de forma determinista, sin llamar al backend.
+    if (session.state?.status === "idle" || session.state === null) {
+      setReply(
+        "Todavía no te he escuchado tocar. Reproduce o practica un poco y " +
+          "vuelve a pedirme la pista; así podré decirte qué mejorar.",
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     // Limpia la respuesta para que la burbuja muestre «Pensando…»; la
@@ -295,7 +305,7 @@ export function MentorChat({
     } finally {
       setBusy(false);
     }
-  }, [busy, session.sessionId]);
+  }, [busy, session.sessionId, session.state]);
 
   /** «Sí, muéstralo»: la demo se ejecuta con los parámetros guardados del backend. */
   const acceptOffer = useCallback(() => {
