@@ -364,6 +364,19 @@ export class PlaybackEngine {
     this.anchorPos_s = this.position_s;
   }
 
+  /**
+   * Gate ya tocado por anticipación (ajuste 2026-11-07, petición del usuario):
+   * el gate-controller detectó que las teclas del gate ya están pulsadas
+   * antes de que la cascada llegue — timing erróneo que apunta el agente, pero
+   * las teclas cuentan como válidas. El transporte NO se congela en él: se
+   * marca como tocado (como si ya hubiera sonado) y el tick sigue programando
+   * el audio a través del gate, sin silencio ni salto de posición.
+   */
+  markGatePlayed(time_s: number): void {
+    if (!this.gateEnabled) return;
+    this.gatesPlayedUntil_s = Math.max(this.gatesPlayedUntil_s, time_s);
+  }
+
   /** Salta al gate siguiente sin esperar (recuperación manual). */
   skipGate(): void {
     if (!this.gateEnabled || !this.currentGate) return;

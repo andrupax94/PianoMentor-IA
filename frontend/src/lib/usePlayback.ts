@@ -203,6 +203,15 @@ export function usePlayback(tickMs = 25) {
   }, [sync]);
 
   /**
+   * B-032.8 ajuste (2026-11-07): gate satisfecho por anticipación — se marca
+   * como tocado y el transporte lo cruza sonando, sin congelar.
+   */
+  const markGatePlayed = useCallback((time_s: number) => {
+    engineRef.current?.markGatePlayed(time_s);
+    sync();
+  }, [sync]);
+
+  /**
    * Salta al gate siguiente (recuperación manual; B-032.5).
    */
   const skipGate = useCallback(() => {
@@ -324,6 +333,7 @@ export function usePlayback(tickMs = 25) {
     setPreroll,
     resolveGate,
     wrongGate,
+    markGatePlayed,
     skipGate,
     auditionOn,
     auditionOff,

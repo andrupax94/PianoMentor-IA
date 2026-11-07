@@ -323,6 +323,9 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       },
       clockMs: () => performance.now(),
       onHit: () => transportRef.current.resolveGate(),
+      // B-032.8 ajuste (2026-11-07): tecla correcta pulsada antes de tiempo —
+      // el gate cuenta y la pieza sigue, sin congelar ni saltar.
+      onEarlyHit: (gate) => transportRef.current.markGatePlayed(gate.time_s),
       // B-032.8: con una tecla errónea la cascada regresa al punto de pulsación.
       onWrong: () => transportRef.current.wrongGate(),
       options: { enabled: true, hand },

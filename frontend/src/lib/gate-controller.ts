@@ -2,7 +2,14 @@
 // context: Sin DOM ni React; vive en PracticeBridge. El transporte expone el gate actual y el estado waiting; este módulo solo mide y emite.
 
 import type { Gate, GateHand, GateOutcome } from "./practice-gate";
-import { gateSatisfied, gateWrong, strikeFor, waitTimeoutMs } from "./practice-gate";
+import {
+  EARLY_HIT_WINDOW_MS,
+  EARLY_HIT_WINDOW_S,
+  gateSatisfied,
+  gateWrong,
+  strikeFor,
+  waitTimeoutMs,
+} from "./practice-gate";
 import type { PlaybackSnapshot } from "./playback-engine";
 import { subscribeNoteInput, type NoteInputEvent } from "./note-input";
 import { audioTrace } from "./audio-trace";
@@ -28,6 +35,13 @@ export interface GateControllerDeps {
   clockMs: () => number;
   /** Se llama cuando el gate se satisface; quien escucha reanuda el motor. */
   onHit: () => void;
+  /**
+   * B-032.8 ajuste (2026-11-07, petición del usuario): gate satisfecho por
+   * ANTICIPACIÓN — las teclas ya estaban pulsadas antes de que la cascada
+   * llegara. La antelación es un error de timing (para el agente/evaluación),
+   * no un motivo de espera: el transporte no se congela, el audio sigue.
+   */
+  onEarlyHit?: (gate: Gate) => void;
   /** B-032.8: se llama con una tecla errónea; el transporte pega la cascada a la línea. */
   onWrong?: () => void;
   /** Opciones iniciales. */
@@ -56,6 +70,7 @@ export function createGateController(deps: GateControllerDeps): GateController {
   let { getSnapshot, subscribeNoteInput: subscribeInput, sendPracticeEvent, clockMs, onHit, options } =
     deps;
   const onWrong = deps.onWrong ?? ((): void => {});
+  const onEarlyHit = deps.onEarlyHit ?? ((): void => {});
   let unsubscribeNotes: (() => void) | null = null;
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   /**
@@ -104,6 +119,33 @@ export function createGateController(deps: GateControllerDeps): GateController {
   const checkGate = () => {
     if (!options.enabled) return;
     const snapshot = getSnapshot();
+
+    // Anticipación (ajuste 2026-11-07, petición del usuario): mientras suena,
+    // si las teclas del gate venidero YA están pulsadas dentro de la ventana
+    // temprana, el gate se consume SIN congelar — la antelación es timing que
+    // apunta el agente/evaluación, no espera. El motor la oye por onEarlyHit.
+    if (snapshot.status === "playing" && snapshot.upcomingGate) {
+      const upcoming = snapshot.upcomingGate;
+      const remaining_s = upcoming.time_s - snapshot.position_s;
+      const held = [...pressedAt.keys()];
+      if (
+        remaining_s >= 0 &&
+        remaining_s <= EARLY_HIT_WINDOW_S &&
+        gateSatisfied(upcoming, held) &&
+        // Ya consumido (dedup): ni el sondeo ni otra pulsación repiten el
+        // anticipado para el mismo gate.
+        !(lastOutcome === "hit" && lastGateId === upcoming.id)
+      ) {
+        audioTrace(
+          `gate ${upcoming.id}: ANTICIPADO (faltaban ${remaining_s.toFixed(3)} s), ` +
+            `teclas=[${held.join(",")}] — el transporte pasa sin congelar`,
+        );
+        sendOutcome(upcoming, "hit");
+        onEarlyHit(upcoming);
+        return;
+      }
+    }
+
     if (snapshot.status !== "waiting" || !snapshot.currentGate) return;
     const gate = snapshot.currentGate;
 
@@ -112,11 +154,13 @@ export function createGateController(deps: GateControllerDeps): GateController {
     }
     const waitStartMs: number = waitingSinceMs;
 
-    // Solo cuentan pulsaciones hechas durante esta espera: una tecla que
-    // llevaba sonando desde antes del congelado (anticipación) no resuelve
-    // el gate a cero — el margen del rebote se muestra completo.
+    // Cuentan las pulsaciones recientes: hechas durante esta espera o dentro
+    // de la ventana de anticipación inmediatamente anterior — así un acorde
+    // anticipado a medias se completa sin volver a pulsar todo (una pulsación
+    // correcta es válida aunque sea temprana). Las viejas (de antes de la
+    // ventana) no resuelven nada: el margen del rebote se muestra completo.
     const pressedInWait = [...pressedAt.entries()]
-      .filter(([, at]) => at >= waitStartMs)
+      .filter(([, at]) => at >= waitStartMs - EARLY_HIT_WINDOW_MS)
       .map(([pitch]) => pitch);
 
     const timeoutMs = waitTimeoutMs({ tempoBpm: snapshot.tempo_bpm });

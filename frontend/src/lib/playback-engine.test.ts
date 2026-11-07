@@ -309,6 +309,30 @@ describe("PlaybackEngine", () => {
     expect(lastOptions).toEqual({ keepAudition: true });
   });
 
+  it("markGatePlayed: el gate anticipado NO congela y el audio cruza sonando (ajuste 2026-11-07)", () => {
+    const harness = makeHarness();
+    harness.engine.load(SCORE, { audible: [] }); // el audio de la pieza entera calla; lo que suena es la tecla del alumno… y en este test comprobamos que el gate no congela
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+    harness.engine.play();
+
+    // Antes de llegar al gate (t=1,0): anticipado — se marca como tocado.
+    harness.advance(0.5);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("playing");
+    harness.engine.markGatePlayed(1.0);
+
+    // La posición cruza el gate sin congelar nunca…
+    harness.advance(0.8);
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("playing");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(1.3, 6);
+    expect(harness.engine.snapshot().currentGate).toBeNull();
+
+    // …y el venidero ya es el segundo (el consumido no vuelve).
+    expect(harness.engine.snapshot().upcomingGate?.pitches).toEqual([62]);
+  });
+
   it("expongo el gate venidero en el snapshot también sin espera (B-033.2: robot en flujo)", () => {    const harness = makeHarness();
     // Sin gates activos (modo espera apagado): no hay currentGate, pero la
     // cascada va pasando los gates y el snapshot lo cuenta para el robot.

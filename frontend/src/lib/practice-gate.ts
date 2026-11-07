@@ -44,6 +44,18 @@ export interface WaitTimeoutOptions {
 /** Dos eventos con menos de esta diferencia de tiempo pertenecen al mismo gate (acorde). */
 export const CHORD_TOLERANCE_S = 0.005;
 
+/**
+ * Ventana de anticipación (ajuste 2026-11-07, petición del usuario): una
+ * tecla CORRECTA pulsada hasta este tiempo antes de que la cascada llegue al
+ * gate NO congela nada — la antelación es un error de timing (lo apunta el
+ * agente/evaluación con el flujo de notas y su `t_ms`), no un error que
+ * devuelva la tecla por inválida ni pare la reproducción. El modo espera solo
+ * responde a «no se pulsa» o «se pulsa una equivocada».
+ */
+export const EARLY_HIT_WINDOW_S = 0.4;
+/** Igual, en milisegundos (las marcas de pulsación del controller). */
+export const EARLY_HIT_WINDOW_MS = EARLY_HIT_WINDOW_S * 1000;
+
 /** GateHand incluye las notas sin mano asignada: sin saber de qué mano son, no se pueden ignorar. */
 function handMatches(eventHand: NoteHand | undefined, wanted: GateHand): boolean {
   if (wanted === "both") return true;
