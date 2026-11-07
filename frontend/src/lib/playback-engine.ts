@@ -8,7 +8,7 @@ import {
   eventsInWindow,
   type ScheduledEvent,
 } from "./playback-schedule";
-import { assignMeasure, CHORD_TOLERANCE_S, gatesForSchedule, type Gate, type GateHand } from "./practice-gate";
+import { assignMeasure, CHORD_TOLERANCE_S, defaultPreroll_s, gatesForSchedule, type Gate, type GateHand } from "./practice-gate";
 import { decayOffset_s, gateOvershoot_s, waitingGateOffset_s } from "./gate-display";
 import type { PieceMeasures, PlayableNote } from "./api-client";
 import { audioTrace } from "./audio-trace";
@@ -136,8 +136,16 @@ export class PlaybackEngine {
    * siempre con la nueva semántica de `gateAt`.
    */
   private gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
-  /** Preroll antes del inicio real (B-032.5). */
+  /**
+   * Duración ACTIVA del preroll: la fija play() al empezar desde cero
+   * (B-032.5). El ajuste del 2026-11-07 (petición del usuario) hace que el
+   * motor SIEMPRE dé margen al empezar la pieza — el Stop apagaba los
+   * gates y el play arrancaba en la primera tecla sin tiempo para ver
+   * caer las barras.
+   */
   private preroll_s = 0;
+  /** ¿Fijó el llamador (setPreroll) el objetivo? Si no, manda el tempómetro por defecto. */
+  private prerollExplicit = false;
   private prerollElapsed_s = 0;
   /**
    * B-032.6: inicios de compás de la pieza en segundos de partitura sin
@@ -229,9 +237,20 @@ export class PlaybackEngine {
       this.scheduledUpto_s = -CHORD_TOLERANCE_S;
     }
 
-    // B-032.5: en modo práctica, play desde el inicio arranca la cuenta atrás.
-    if (this.gateEnabled && this.position_s === 0 && this.preroll_s > 0) {
+    // Margen al empezar SIEMPRE (2026-11-07, petición del usuario): el Stop
+    // dejaba los gates apagados y el play arrancaba en la primera tecla sin
+    // tiempo para ver caer las barras. El preroll ya no depende de los
+    // gates: es la diferencia entre el margen objetivo (el valor explícito
+    // de setPreroll, o un compás/2 s a falta de tempo) y la demora que la
+    // pieza ya trae en su silencio inicial — la que ya arranca tarde no
+    // gana margen extra. Reanudar de mitad de pieza nunca cuenta atrás.
+    const target = this.prerollExplicit ? this.preroll_s : defaultPreroll_s(this.baseTempo_bpm);
+    const preroll = Math.max(0, target - this.firstNoteScaled_s());
+    if (this.position_s === 0 && preroll > 0) {
       this.status = "preroll";
+      // La duración activa del preroll es el margen RESULTANTE: del tick y
+      // del display de cuenta atrás viejo del sobreajunte (target completo).
+      this.preroll_s = preroll;
       this.prerollElapsed_s = 0;
       this.anchorWall_s = this.clock.now();
       this.anchorPos_s = 0;
@@ -338,6 +357,7 @@ export class PlaybackEngine {
   /** Duración de la cuenta atrás antes del primer gate (B-032.5). */
   setPreroll(seconds: number): void {
     this.preroll_s = Math.max(0, seconds);
+    this.prerollExplicit = true;
   }
 
   /** El gate actual se ha satisfecho: el transporte reanuda desde ahí (B-032.5). */
@@ -585,6 +605,13 @@ export class PlaybackEngine {
       return assignMeasure([candidate], scaledStarts)[0] ?? candidate;
     }
     return null;
+  }
+
+  private firstNoteScaled_s(): number {
+    // La pieza entera (no la parte audible): la demora «ya trae» el primer
+    // instante de la partitura, aunque el modo deje sonar solo una mano.
+    const list = this.gateEvents.length > 0 ? this.gateEvents : this.events;
+    return list.length > 0 ? list[0].time_s : this.duration_s;
   }
 
   private finishPreroll(): void {

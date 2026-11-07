@@ -32,6 +32,9 @@ function makeEngine() {
     { scheduleNote: () => undefined, silence: () => undefined },
   );
   engine.load(SCORE, { duration_s: 8 });
+  // Esta pieza prueba compases, no el margen: play inmediato acá (el preroll
+  // por defecto del 2026-11-07 sentaría al motor en su cuenta atrás).
+  engine.setPreroll(0);
   return {
     engine,
     advance: (dt: number) => {

@@ -32,7 +32,7 @@ interface Harness {
   advance: (dt: number) => void;
 }
 
-function makeHarness(horizon_s = 0.1): Harness {
+function makeHarness(horizon_s = 0.1, prerollActivo = false): Harness {
   let now = 0;
   const scheduled: { event: ScheduledEvent; at: number }[] = [];
   let silences = 0;
@@ -48,6 +48,10 @@ function makeHarness(horizon_s = 0.1): Harness {
     },
     horizon_s,
   );
+  // Los tests de transporte básico piden play inmediato (sin cuenta atrás):
+  // el preroll por defecto es de la petición del 2026-11-07 y se verifica en
+  // sus casos propios (los del preroll fijan el suyo con setPreroll).
+  if (!prerollActivo) engine.setPreroll(0);
   return {
     engine,
     scheduled,
@@ -60,6 +64,41 @@ function makeHarness(horizon_s = 0.1): Harness {
 }
 
 describe("PlaybackEngine", () => {
+  it("margen al empezar SIEMPRE: play desde 0 cuenta atrás sin gates (Stop→play, 2026-11-07)", () => {
+    // La petición del usuario: tras Stop (gates apagados en flujo) el play
+    // arrancaba en la primera tecla sin el tiempo de ver caer las barras.
+    const harness = makeHarness(0.1, true);
+    harness.engine.load(SCORE); // primera nota en t=1.0; target 2 s → margen 1 s.
+    harness.engine.play(); // sin setGateOptions: los gates no existen aquí.
+    expect(harness.engine.snapshot().status).toBe("preroll");
+    expect(harness.engine.snapshot().prerollRemaining_s).toBeCloseTo(1.0, 9);
+
+    harness.advance(1.0);
+    harness.engine.tick(); // cumple el margen → toca.
+    expect(harness.engine.snapshot().status).toBe("playing");
+    expect(harness.engine.snapshot().position_s).toBeCloseTo(0, 9);
+  });
+
+  it("la pieza que ya trae demora no gana margen extra (se ajusta, no se dobla)", () => {
+    // El silencio inicial de la obra ya es el margen: si la primera nota
+    // cae en el 4.9, el objetivo 2 s no añade ni un milisegundo.
+    const harness = makeHarness(0.1, true);
+    harness.engine.load([note({ start_seconds: 4.9 }), note({ start_seconds: 6.0 })]);
+    harness.engine.play();
+    expect(harness.engine.snapshot().status).toBe("playing");
+  });
+
+  it("stop→play reinicia la cuenta atrás aunque el modo espera esté apagado", () => {
+    const harness = makeHarness(0.1, true);
+    harness.engine.load(SCORE);
+    harness.engine.play();
+    harness.advance(3);
+    harness.engine.tick();
+    harness.engine.stop();
+    harness.engine.play(); // gates nunca activados en este arnés.
+    expect(harness.engine.snapshot().status).toBe("preroll");
+  });
+
   it("programa los eventos del horizonte con el tiempo de reloj correcto", () => {
     const harness = makeHarness();
     harness.engine.load(SCORE);
@@ -278,7 +317,8 @@ describe("PlaybackEngine", () => {
     // pero el transporte se congela en la nota que el alumno debe tocar.
     harness.engine.load(SCORE, { audible: [] });
     harness.engine.setGateOptions({ enabled: true, hand: "right" });
-    harness.engine.setPreroll(1);
+    // Objetivo 2 s con primera nota en t=1.0 → cuenta atrás resultante 1 s.
+    harness.engine.setPreroll(2);
 
     harness.engine.play();
     expect(harness.engine.snapshot().status).toBe("preroll");
@@ -359,7 +399,9 @@ describe("PlaybackEngine", () => {
     // En «dos manos» el transporte calla (audible vacía) pero el transporte viva.
     harness.engine.load(SCORE, { audible: [] });
     harness.engine.setGateOptions({ enabled: true, hand: "both" });
-    harness.engine.setPreroll(1);
+    // Objetivo 2 s con la primera nota en t=1.0: el margen resultante es 1 s
+    // (el ajuste del 2026-11-07 conserva la demora que la pieza ya trae).
+    harness.engine.setPreroll(2);
 
     harness.engine.play();
     harness.advance(1);
@@ -375,7 +417,8 @@ describe("PlaybackEngine", () => {
     const harness = makeHarness();
     harness.engine.load(SCORE, { tempo_bpm: 120 });
     harness.engine.setGateOptions({ enabled: true, hand: "both" });
-    harness.engine.setPreroll(1);
+    // Objetivo 2 s, primera nota en 1.0 → margen resultante 1 s.
+    harness.engine.setPreroll(2);
 
     harness.engine.play();
     expect(harness.engine.snapshot().status).toBe("preroll");
@@ -400,7 +443,8 @@ describe("PlaybackEngine", () => {
     const harness = makeHarness();
     harness.engine.load(SCORE);
     harness.engine.setGateOptions({ enabled: true, hand: "both" });
-    harness.engine.setPreroll(2);
+    // Objetivo 3 s, primera nota en 1.0 → cuenta atrás resultante 2 s.
+    harness.engine.setPreroll(3);
 
     harness.engine.play();
     expect(harness.engine.displayPosition_s()).toBeCloseTo(-2, 6);
