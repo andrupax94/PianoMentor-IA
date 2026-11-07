@@ -227,8 +227,87 @@ describe("practice-scenarios", () => {
     rigFlow.runner.stop();
   });
 
-  it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {
-    const rigFast = rig("teclas_rapidas");
+  it("flujo: la adopción del gate siguiente no aplasta un golpe pendiente pegado a la puerta", () => {
+    // La carrera real del log (2026-11-07): el golpe del gate debía salir a
+    // 11989 y la adopción del siguiente lo borró a 11998 — notas ausentes.
+    const rigRace = rig("perfecta");
+    rigRace.runner.start();
+
+    // Gate en camino a 0,3 s: se adopta y el golpe queda agendado.
+    rigRace.setFlow(0.7, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigRace.advance(100);
+    expect(rigRace.submissions).toEqual([]);
+
+    // El transporte cruza el gate y el venidero ya asoma: la adopción del
+    // 1.5 (pos ya pasado el 1.0) ya no puede aplastar el golpe pendiente.
+    rigRace.setFlow(1.01, {
+      id: "gate-1.5000",
+      time_s: 1.5,
+      duration_s: 0.4,
+      pitches: [64],
+      hands: ["right"],
+      measure: 0,
+    });
+    rigRace.advance(100);
+    expect(rigRace.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    rigRace.runner.stop();
+  });
+
+  it("flujo: el disparo aterrizado unos ms pasado el gate pulsa igual (carrera de relojes)", () => {
+    // El muro del golpe venció exactamente en el instante del gate, pero la
+    // posición del motor ya lo pastó de 5 ms: nextGate lo descarta de
+    // upcomingGate — el pulso sale DE TODOS MODOS, ligero tarde ("pasaban").
+    const rigLate = rig("perfecta");
+    rigLate.runner.start();
+
+    rigLate.setFlow(0.65, {
+      id: "gate-1.0000",
+      time_s: 1.0,
+      duration_s: 0.5,
+      pitches: [60],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigLate.advance(100);
+    expect(rigLate.submissions).toEqual([]);
+
+    // El gate ya se giró bajo el plan (upcoming es el siguiente) y el
+    // disparo aterriza: la tolerancia del pulso tardío lo deja sonar.
+    rigLate.setFlow(1.02, {
+      id: "gate-1.5000",
+      time_s: 1.5,
+      duration_s: 0.4,
+      pitches: [64],
+      hands: ["right"],
+      measure: 0,
+    });
+    rigLate.advance(100);
+    expect(rigLate.submissions).toEqual([{ pitch: 60, velocity: 80 }]);
+
+    // Ligeramente fuera de tolerancia: no pulsa un gate remoto.
+    rigLate.setFlow(1.05, {
+      id: "gate-2.0000",
+      time_s: 2.0,
+      duration_s: 0.5,
+      pitches: [65],
+      hands: ["left"],
+      measure: 0,
+    });
+    rigLate.advance(2000);
+    expect(rigLate.submissions.map((s) => s.pitch)).toEqual([60, 65]);
+
+    rigLate.runner.stop();
+  });
+
+  it("teclas_rapidas sostiene mitad del gate (el gesto corto del v1)", () => {    const rigFast = rig("teclas_rapidas");
     rigFast.runner.start();
 
     rigFast.advance(100);

@@ -199,6 +199,17 @@ export function createPracticeScenarioRunner(
   const pollIntervalMs = deps.pollIntervalMs ?? 100;
   const { submitNoteOn, submitNoteOff, clockMs, canEmit } = deps;
 
+  /**
+   * Tolerancia del pulso tardío (2026-11-07, gates sin pulso en el log): el
+   * muro del golpe se agenda con el reloj del sondeo y la posición del motor
+   * avanza con el suyo — en el disparo la posición puede caer unos ms PASADA
+   * la hora del gate, y `nextGate` la descarta con 5 ms de margen
+   * (CHORD_TOLERANCE_S). A esa carrera el pulso se pierde por completo. Con
+   * esta tolerancia el golpe sale igual, ligero tarde («pasaban X s»): roza
+   * el instante y siempre suena — nunca otra nota ausente.
+   */
+  const PRESS_LATE_TOLERANCE_S = 0.25;
+
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   /**
    * Golpe programado (2026-11-07, diagnóstico de timings): al adoptar el gate
@@ -214,6 +225,8 @@ export function createPracticeScenarioRunner(
   let pressExpected = false;
   let lastGateId: string | null = null;
   let plan: GatePlan | null = null;
+  /** Instante de partitura del gate agendado (referencia del pulso tardío). */
+  let planGateTimeS = 0;
   /**
    * Sostenes independientes por gate (2026-11-07): cada golpe agenda su
    * propia suelta a muro+hold — los sostenes superpuestos no se cortan
@@ -246,14 +259,17 @@ export function createPracticeScenarioRunner(
 
   /**
    * El golpe agendado: pulsa las teclas del plan y fija el muro real del
-   * golpe (la suelta se mide desde aquí, no desde la adopción). Si el gate
-   * cambió bajo el plan, el pulso no sale — el gate que llegue se replanifica.
+   * golpe (la suleta se mide desde aquí, no desde la adopción). En flujo
+   * admite hasta PRESS_LATE_TOLERANCE_S de retraso (carrera de relojes);
+   * cualquier desenlace que no pulse deja su rastro — nunca más un
+   * aborto en silencio, que era la nota perdida sin explicación.
    */
   const firePress = () => {
     pressTimer = null;
     if (!pressExpected || plan === null || plan.pitches.length === 0 || plan.holdMs === null) return;
     if (!canEmit()) {
       // Pendiente: el apócope del sondeo lo pulsa cuando el puerto reabra.
+      audioTrace(`robot pulso (puerta cerrada, queda pendiente) gate=${lastGateId}`);
       return;
     }
     const snapshot = deps.getSnapshot();
@@ -263,15 +279,37 @@ export function createPracticeScenarioRunner(
         : snapshot.status === "playing"
           ? snapshot.upcomingGate ?? null
           : null;
-    if (gateNow === null || gateNow.id !== lastGateId) {
+    // ¿Sigue siendo el gate al que apunta el golpe? En espera el gate está
+    // congelado: identidad estricta. En flujo, si el disparo aterrizó unos ms
+    // pasado el instante (carrera de relojes, ver PRESS_LATE_TOLERANCE_S),
+    // el gate ya no asoma en upcomingGate y el golpe sale DE TODOS MODOS.
+    let target: string | null = lastGateId;
+    let tardeS = 0;
+    if (snapshot.status === "waiting" && gateNow?.id === lastGateId) {
+      target = lastGateId;
+    } else if (snapshot.status === "playing") {
+      tardeS = snapshot.position_s - planGateTimeS;
+      target =
+        gateNow?.id === lastGateId || (tardeS >= 0 && tardeS <= PRESS_LATE_TOLERANCE_S)
+          ? lastGateId
+          : null;
+    } else {
+      target = null;
+    }
+    if (target === null) {
       pressExpected = false;
       pressDeadlineMs = null;
+      audioTrace(
+        `robot pulso cancelado gate=${lastGateId} gateAhora=${gateNow?.id ?? "—"} ` +
+          `pos=${snapshot.position_s.toFixed(3)} planTime_s=${planGateTimeS.toFixed(3)}`,
+      );
       return;
     }
     pressExpected = false;
     pressDeadlineMs = clockMs();
+    const aviso = tardeS > 0.0005 ? ` (pasaban ${tardeS.toFixed(3)} s)` : "";
     audioTrace(
-      `robot pulso gate=${lastGateId} pitch=[${plan.pitches.join(",")}] ` +
+      `robot pulso${aviso} gate=${lastGateId} pitch=[${plan.pitches.join(",")}] ` +
         `pos=${snapshot.position_s.toFixed(3)}`,
     );
     for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
@@ -318,22 +356,56 @@ export function createPracticeScenarioRunner(
     // los sostenes siguen su curso aunque el puerto esté cerrado.
     if (!canEmit()) return;
 
-    // 2) Gate nuevo a la vista (en espera o en camino): se adopta SIEMPRE —
+    // 2) Apócope ANTES de la adopción: si el golpe del gate actual ya cumplió
+    // su muro (temporizador no disparado o sondeo lo pilló tarde), sale
+    // aquí — ligero tarde pero sonando — en vez de quedar aplastado por el
+    // clearPress de la adopción siguiente (gates sin pulso, 2026-11-07).
+    if (pressExpected && pressDeadlineMs !== null && clockMs() >= pressDeadlineMs) {
+      firePress();
+    }
+
+    // 3) Gate nuevo a la vista (en espera o en camino): se adopta SIEMPRE —
     // aunque haya sostenes en marcha (sus suletas ya están agendadas) — y se
     // agenda el golpe a su muro.
     if (gate !== null && gate.id !== lastGateId) {
+      // El golpe pendiente que el clearPress aplastaría: si el gate agendado
+      // está pegado a la posición —vencido por el reloj, o la adopción le
+      // llega antes— sale aquí, no desaparece en silencio (2026-11-07: los
+      // «plan→plan sin pulso» del log eran esto y la carrera de abajo).
+      if (
+        pressExpected &&
+        pressDeadlineMs !== null &&
+        snapshot.status === "playing" &&
+        plan !== null &&
+        plan.pitches.length > 0 &&
+        plan.holdMs !== null
+      ) {
+        const diffS = snapshot.position_s - planGateTimeS;
+        if (diffS >= -PRESS_LATE_TOLERANCE_S) {
+          firePress();
+        } else {
+          audioTrace(
+            `robot golpe abandonado gate=${lastGateId} pos=${snapshot.position_s.toFixed(3)} ` +
+              `planTime_s=${planGateTimeS.toFixed(3)}`,
+          );
+        }
+      }
       clearPress();
       pressExpected = false;
       pressDeadlineMs = null;
       lastGateId = gate.id;
       plan = planFor(scenario, gate, seed, snapshot);
+      planGateTimeS = gate.time_s;
       // Trazas del robot (?traceAudio, diagnóstico de timings): qué gate, qué
       // plan y a qué distancia score del gate estaba la posición al adoptarlo.
       audioTrace(
         `robot plan gate=${gate.id} time_s=${gate.time_s.toFixed(3)} pos=${snapshot.position_s.toFixed(3)} ` +
           `pressAtMs=${plan.pressAtMs} holdMs=${plan.holdMs ?? "—"}`,
       );
-      if (plan.pitches.length === 0 || plan.holdMs === null) return;
+      if (plan.pitches.length === 0 || plan.holdMs === null) {
+        audioTrace(`robot sin plan gate=${gate.id} (sin pitches o sin hold)`);
+        return;
+      }
       // Agenda del golpe: en flujo cae en el INSTANTE DEL GATE (muro = gate −
       // posición, convertido a reloj por el tempoFactor); en espera, en su
       // `pressAtMs` de siempre (el gate ya está congelado en su línea).
@@ -351,9 +423,9 @@ export function createPracticeScenarioRunner(
       pressTimer = setTimeout(firePress, delayMs);
     }
 
-    // Apócope: si el temporizador aún no disparó —o la pestaña estaba
-    // regulada—, el pulso sale en el sondeo cumplido su muro; firePress fijará
-    // su propio muro real y el agendado no-op si ya pulsó.
+    // Apócope de cola: un gate adoptado con delay 0 no debe esperar al
+    // siguiente sondeo (vitest no dispara el timeout agendado dentro del
+    // mismo avance); pressExpected impide el disparo doble.
     if (pressExpected && pressDeadlineMs !== null && clockMs() >= pressDeadlineMs) {
       firePress();
     }

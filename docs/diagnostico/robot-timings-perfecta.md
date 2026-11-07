@@ -172,11 +172,7 @@ Todo en `frontend/src/lib` salvo el puente:
 - `practice-scenarios.ts` — el runner completo (sondeo de 100 ms, plan por
   escenario, adopción, pulsación y suelta; trazas «robot plan/agenda/pulso/
   suelta» en línea única, sin pila — solo el `silence()` del sampler conserva
-  la suya plegable). Segundo refuerzo del mismo día: sostenes independientes
-  por gate (`pendingReleases`, suelta agendada a muro+hold) y adopción que ya
-  no espera manos libres — los sostenes largos (holdMs 880–1880) solapaban el
-  gate siguiente y el robot lo perdía (el fragmento «plan gate-23 pos=22.520
-  con gate-22 sonando» lo señala).
+  la suya plegable). Tercer refuerzo del mismo día: la carrera del disparo.
 - `playback-engine.ts` — `snapshot()` (con `upcomingGate` a la posición viva),
   `tick()` y la granularidad del horizonte de programación.
 - `note-input.ts` — el puerto de notas (fuente `debug` para el robot).
@@ -184,4 +180,44 @@ Todo en `frontend/src/lib` salvo el puente:
   instante, anticipación), por si se cruzan los datasets.
 
 `backend/…` está en manos del chat paralelo del LLM: este diagnóstico no lo
-toca; si hiciera falta, lo consultamos con ese chat.`
+toca; si hiciera falta, lo consultamos con ese chat.
+
+## 11. La última carrera: gates planificados sin pulso (2026-11-07)
+
+Con el margen de adopción resuelto llegó el último síntoma del log: gates
+con `robot plan`+`robot agenda` pero **sin `robot pulso`/`noteOn`** (0.5,
+1.5, 2.0, 3.5, 5.0, 6.875…). La clave estaba en el propio motor:
+`CHORD_TOLERANCE_S = 5 ms` — `nextGate` descarta un gate cuando
+`time_s < pos − 5 ms`. El golpe agendado por `setTimeout` vencía EXACTAMENTE
+en el instante del gate; en el disparo la posición podía acabar unos ms
+PASADA su hora, el gate ya no asomaba en `upcomingGate` y el `firePress`
+abortaba en silencio (sin traza). Moneda al aire en 5 ms: los disparos que
+aterrizaron un pelo antes consumían el gate ANTICIPADO (0.000 s); los que
+cayeron un pelo después perdían la nota. Además el `clearPress` de la
+adopción siguiente aplastaba golpes vencidos-o-a-un-pelín del muro que el
+sondeo pillara vencidos (gate-0.5000: vencía a 11989, la adopción del 0.875
+llegó a 11998: ni traza).
+
+**Fix en el runner:**
+
+1. **Pulso tardío tolerado** (`PRESS_LATE_TOLERANCE_S = 0.25`): si al
+   disparar la posición está pegada al instante del gate (hasta 250 ms
+   pasado) el golpe sale DE TODOS MODOS, con traza
+   `robot pulso (pasaban X s)` — ligero tarde pero sonando. En espera la
+   identidad del gate sigue siendo estricta.
+2. **El apócope del golpe vencido pasa ANTES de la adopción** y el
+   `clearPress` de la adopción dispara primero cualquier golpe pendiente
+   pegado a la posición (`diffS >= −tolerancia`); lo remoto se declara en el
+   log (`robot golpe abandonado`).
+3. **Ningún aborto en silencio**: `robot pulso cancelado` (con gate actual y
+   pos), `robot pulso (puerta cerrada…)` y `robot sin plan` dicen siempre el
+   porqué.
+
+Matices honestos: un golpe consumido fuera de la ventana de ±5 ms no genera
+evento de práctica para ese gate (el gate ya no está en `upcomingGate`);
+el audio y la demo quedan enteros, la evaluación pierde esa línea. Si el
+backend evaluara esos gates, el ajuste iría en `nextGate`/equivalente —
+fuera de este alcance.
+
+Tests nuevos: «la adopción … no aplasta un golpe pendiente pegado a la
+puerta» y «el disparo aterrizado unos ms pasado el gate pulsa igual…».
