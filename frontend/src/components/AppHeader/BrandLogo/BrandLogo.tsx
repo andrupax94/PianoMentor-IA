@@ -4,7 +4,7 @@
 import styles from "./BrandLogo.module.css";
 import type { BrandLogoProps } from "./BrandLogo.types";
 
-export function BrandLogo({ brandName = "PianoMentor AI", brandNameP1 = "PianoMentor", brandNameP2 = "AI" }: BrandLogoProps) {
+export function BrandLogo({ brandName = "PianoMentor IA", brandNameP1 = "PianoMentor", brandNameP2 = "IA" }: BrandLogoProps) {
   return (
     <div className={styles.brand} aria-label={brandName}>
       <div className={styles.brandIcon}></div>
