@@ -15,6 +15,7 @@ import {
   type SampleTier,
 } from "./piano-model";
 import type { PolySynth, SilenceOptions } from "./synth";
+import { audioTrace, audioTraceStack } from "./audio-trace";
 
 /** Origen por defecto; admite CDN con NEXT_PUBLIC_AUDIO_BASE_URL (ver contingencia en B-007.5). */
 export const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_AUDIO_BASE_URL ?? "/audio/piano";
@@ -243,6 +244,7 @@ export function createPianoSampler(
     // Al saturar se roba la voz más vieja, igual que la voz de reserva.
     if (voices.size >= MAX_SAMPLED_VOICES) {
       const oldest = [...voices].reduce((a, b) => (a.bornAt <= b.bornAt ? a : b));
+      audioTrace(`robo de la voz más vieja (tope ${MAX_SAMPLED_VOICES}) sobre pitch=${pitch}`);
       stopVoice(oldest, ctx.currentTime, 0.05);
     }
     const samplePitch = samplePitchFor(pitch, pitches);
@@ -366,7 +368,11 @@ export function createPianoSampler(
       fallback?.scheduleNote(pitch, velocity, duration_s, startAt);
     },
     noteOn(pitch, velocity): void {
-      if (sustained.has(pitch)) return;
+      audioTrace(`noteOn (audición) pitch=${pitch} velocity=${velocity}`);
+      if (sustained.has(pitch)) {
+        audioTraceStack(`noteOn descartado: ${pitch} ya sostenido`);
+        return;
+      }
       if (!manifest) {
         stats.reserved += 1;
         fallback?.noteOn(pitch, velocity);
@@ -383,12 +389,16 @@ export function createPianoSampler(
       sustained.set(pitch, voice);
     },
     noteOff(pitch): void {
+      audioTrace(`noteOff (audición) pitch=${pitch}`);
       const voice = sustained.get(pitch);
       sustained.delete(pitch);
       if (voice) stopVoice(voice, ctx.currentTime, 0.4);
       fallback?.noteOff(pitch);
     },
     silence(options?: SilenceOptions): void {
+      audioTrace(`silence() keepAudition=${options?.keepAudition === true}`);
+      // Si el corte de sonido se debe a este silencio, la pila dice quién mandó.
+      audioTraceStack("silence() del sampler");
       // El congelado del gate (B-032.5) pide respetar la pulsación viva del
       // alumno: su tecla (pressed temprano y aún sostenida) NO se corta.
       const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;

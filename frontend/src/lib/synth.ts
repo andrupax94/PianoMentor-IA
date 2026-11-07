@@ -11,6 +11,7 @@ import {
   releaseS,
 } from "./piano-model";
 import { pitchToFrequency } from "./playback-schedule";
+import { audioTrace } from "./audio-trace";
 
 /** Opciones del silencio global de un sintetizador. */
 export interface SilenceOptions {
@@ -144,6 +145,7 @@ export function createPolySynth(
       stopVoice(voice, ctx.currentTime, 0.4);
     },
     silence(options?: SilenceOptions): void {
+      audioTrace(`voce reserva silence() keepAudition=${options?.keepAudition === true}`);
       const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;
       const now = ctx.currentTime;
       for (const voice of [...voices]) {

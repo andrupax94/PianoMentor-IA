@@ -11,6 +11,7 @@ import {
 import { assignMeasure, CHORD_TOLERANCE_S, gatesForSchedule, type Gate, type GateHand } from "./practice-gate";
 import { decayOffset_s, gateOvershoot_s, waitingGateOffset_s } from "./gate-display";
 import type { PieceMeasures, PlayableNote } from "./api-client";
+import { audioTrace } from "./audio-trace";
 
 export type { ScheduledEvent };
 
@@ -342,6 +343,7 @@ export class PlaybackEngine {
   /** El gate actual se ha satisfecho: el transporte reanuda desde ahí (B-032.5). */
   resolveGate(): void {
     if (this.status !== "waiting" || !this.currentGate) return;
+    audioTrace(`resolveGate: reanudado (pos ${this.position_s.toFixed(3)})`);
     // B-032.8: si el hit llega antes del rebobinado, la barra lleva un exceso
     // por encima de la línea; se desvanece al reanudar para que la cascada no
     // salte de regreso.
@@ -499,6 +501,7 @@ export class PlaybackEngine {
   }
 
   private enterWaiting(gate: Gate): void {
+    audioTrace(`enterWaiting: congelado en ${gate.id} (pos ${this.position_s.toFixed(3)})`);
     this.position_s = gate.time_s;
     this.status = "waiting";
     this.currentGate = gate;
