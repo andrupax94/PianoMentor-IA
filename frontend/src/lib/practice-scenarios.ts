@@ -4,6 +4,7 @@
 import type { Gate } from "./practice-gate";
 import { waitTimeoutMs } from "./practice-gate";
 import type { PlaybackSnapshot } from "./playback-engine";
+import { audioTrace } from "./audio-trace";
 
 /** Escenarios disponibles (el nombre también manda en B-033.2). */
 export type ScenarioId =
@@ -239,6 +240,10 @@ export function createPracticeScenarioRunner(
       plan.holdMs !== null &&
       clockMs() - gateStartMs >= plan.pressAtMs + plan.holdMs
     ) {
+      audioTrace(
+        `robot suelta gate=${(lastGateId ?? "?").toString()} totalMs=${Math.round(clockMs() - gateStartMs)} ` +
+          `holdMs=${plan.holdMs}`,
+      );
       releaseHeld();
       gestureDone = true;
     }
@@ -257,6 +262,12 @@ export function createPracticeScenarioRunner(
       plan = planFor(scenario, gate, seed, snapshot);
       heldPitches = null;
       gestureDone = false;
+      // Trazas del robot (?traceAudio, diagnóstico de timings): qué gate, qué
+      // plan y por cuánta distancia score del gate estaba la posición.
+      audioTrace(
+        `robot plan gate=${gate.id} time_s=${gate.time_s.toFixed(3)} pos=${snapshot.position_s.toFixed(3)} ` +
+          `pressAtMs=${plan.pressAtMs} holdMs=${plan.holdMs ?? "—"}`,
+      );
     }
     if (!plan || plan.holdMs === null || plan.pitches.length === 0) return;
 
@@ -268,6 +279,11 @@ export function createPracticeScenarioRunner(
       gate !== null &&
       clockMs() - gateStartMs >= plan.pressAtMs
     ) {
+      audioTrace(
+        `robot pulso gate=${gate.id} elapsedMs=${Math.round(clockMs() - gateStartMs)} ` +
+          `pressAtMs=${plan.pressAtMs} pos=${snapshot.position_s.toFixed(3)} ` +
+          `pitch=[${plan.pitches.join(",")}]`,
+      );
       for (const pitch of plan.pitches) submitNoteOn({ pitch, velocity: VELOCITY });
       heldPitches = plan.pitches;
     }
