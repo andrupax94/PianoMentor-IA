@@ -212,6 +212,17 @@ export function createPracticeScenarioRunner(
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   /**
+   * Vigilancia del reloj del motor (2026-11-07, notas fantasma del 4.5 y del
+   * 18.875): la posición del transporte corre con el reloj del AudioContext
+   * y el dispositivo puede detener su reloj ~0.4–0.5 s (glitch de audio).
+   * Congelada la posición, los golpes agendados disparan contra ella —
+   * acordes en la hora equivocada, teclas descartadas «ya sostenido» y
+   * acordes inaudibles. La traza solo CUENTA el paro; no cambia el pulso.
+   */
+  let watchPos: number | null = null;
+  let watchWallMs = 0;
+  let watchStallSinceMs: number | null = null;
+  /**
    * Golpe programado (2026-11-07, diagnóstico de timings): al adoptar el gate
    * se agenda el pulso con `setTimeout` al instante de pared del gate
    * (remaining_seconds / tempoFactor), y NO en el sondeo en que se adopta —
@@ -331,6 +342,42 @@ export function createPracticeScenarioRunner(
 
   const poll = () => {
     const snapshot = deps.getSnapshot();
+
+    // Vigilancia del reloj: en playing lag posición debe avanzar ~dt·tempoFactor
+    // entre sondeos; si avanza menos de la mitad, el AudioContext se paró.
+    if (snapshot.status === "playing") {
+      const nowMs = clockMs();
+      if (watchPos === null) {
+        watchPos = snapshot.position_s;
+        watchWallMs = nowMs;
+        watchStallSinceMs = null;
+      } else {
+        const expectedS = ((nowMs - watchWallMs) / 1000) * snapshot.tempoFactor;
+        const deficitS = expectedS - (snapshot.position_s - watchPos);
+        if (expectedS > 0.02 && deficitS > 0.05) {
+          if (watchStallSinceMs === null) {
+            watchStallSinceMs = watchWallMs;
+            audioTrace(
+              `motor reloj DETENIDO (pos=${snapshot.position_s.toFixed(3)} estática ` +
+                `${Math.round(nowMs - watchWallMs)} ms, adeudo=${deficitS.toFixed(3)} s)`,
+            );
+          }
+        } else {
+          if (watchStallSinceMs !== null) {
+            audioTrace(
+              `motor reloj reanudado tras ~${Math.round(nowMs - watchStallSinceMs)} ms ` +
+                `(pos=${snapshot.position_s.toFixed(3)})`,
+            );
+            watchStallSinceMs = null;
+          }
+          watchPos = snapshot.position_s;
+          watchWallMs = nowMs;
+        }
+      }
+    } else {
+      watchPos = null;
+      watchStallSinceMs = null;
+    }
 
     // 0) Las suletas van por gate y por reloj: cada sostén se suelta cuando
     // toca (muro del golpe + hold escrito), al margen del modo — el rescate

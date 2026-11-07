@@ -221,3 +221,36 @@ fuera de este alcance.
 
 Tests nuevos: «la adopción … no aplasta un golpe pendiente pegado a la
 puerta» y «el disparo aterrizado unos ms pasado el gate pulsa igual…».
+
+## 12. El reloj del AudioContext se detiene (2026-11-07, segunda ronda del log)
+
+Con la carrera resuelta (todo gate tiene su pulso; desvíos de `pasaban`
+0.001–0.014 s), el log del usuario dejó el ÚLTIMO síntoma: la posición del
+transporte se CONGELA ~0.4–0.5 s en ventanas aleatorias («errores
+diferentes en cada reproducción»), y sigue congelada en `plan` → `agenda`
+→ `pulso` → `suelta` (gates 4.5000 con `pos=4.010` cuatro veces seguidas,
+y 18.8750 con `pos=18.510`).
+
+La posición corre con el reloj del AudioContext (`usePlayback`:
+`{ now: () => ctx.currentTime }`, calculada en vivo por anclas), así que
+una posición estática con el reloj de pared corriendo ⇒ **el dispositivo
+de audio paró su reloj** (glitch del sistema/driver). No hay nada en el
+código que suspenda el contexto en plena reproducción.
+
+Efectos encadenados durante el paro (la cadena de la nota fantasma):
+1. los temporizadores de pared siguen vivos → el robot pulsa contra la
+   posición parada (gate-4.5 pulsado 490 ms antes, con las teclas del 4.0
+   aún bajadas → `noteOn descartado: ya sostenido` ×4 → acorde inaudible);
+2. el gate-18.875 se consume `ANTICIPADO (faltaban 0.365 s)` en espera;
+3. el audio del motor congelado = silencio fantasma.
+
+**Acción tomada:** vigilancia del reloj en el sondeo del runner — traza
+`motor reloj DETENIDO` (pos, ms estáticos, adeudo) y `motor reloj
+reanudado tras X ms`. Solo cuenta el paro: no cambia el comportamiento de
+los pulsos (retener pulsos contra el reloj parado rompe los tests de muro
+estático y adelanta la decisión a los datos del próximo log). Respuesta
+pendiente del entorno del usuario: ¿sin grabación de Audacity abierto?
+¿con auriculares o altavoces distintos? ¿en otro navegador (Chrome vs
+Edge)? Si el DETENIDO se repite fuera de grabaciones, aparece la opción
+de retener el pulso hasta la reanudación (pulso tardío dentro de la
+tolerancia del 0.25, ya respaldada por firePress).
