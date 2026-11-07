@@ -143,6 +143,47 @@ describe("gate-controller", () => {
     controller.stop();
   });
 
+  it("la tecla pulsada antes del congelado no resuelve el gate a cero: el margen se muestra", () => {
+    // El usuario anticipa: pulsa la nota correcta mientras el transporte aún
+    // suena; el gate deja de congelarse y la pulsación vieja no puede resolver
+    // nada — si no, el rebote del 60 % desaparecía (petición del usuario).
+    let nowMs = 500;
+    const controller = createGateController({
+      getSnapshot: () => current,
+      subscribeNoteInput,
+      sendPracticeEvent: (event) => events.push(event),
+      clockMs: () => nowMs,
+      onHit: () => {
+        hits += 1;
+      },
+      options: { enabled: true, hand: "left" },
+    });
+    controller.start();
+
+    current = PLAYING_SNAPSHOT;
+    emitNoteOn({ pitch: 60, velocity: 80, source: "pc" }); // anticipación: suena, nadie evalúa
+
+    // Congelado (2000 ms): la marca de la espera nace a partir de aquí.
+    nowMs = 2000;
+    current = WAITING_SNAPSHOT;
+    // La sonda: una pulsación nueva (equivocada) revela el estado del gate.
+    emitNoteOn({ pitch: 64, velocity: 80, source: "pc" });
+
+    // La tecla anticipada NO resolvió el gate al entrar en espera: solo se
+    // emite el wrong de la sonda, jamás un hit.
+    expect(events).toHaveLength(1);
+    expect(events[0].outcome).toBe("wrong");
+    expect(hits).toBe(0);
+
+    // Volver a pulsar: la re-pulsación (aunque la tecla siguiera sonando)
+    // cuenta como nueva porque su marca es de la espera en curso.
+    emitNoteOn({ pitch: 60, velocity: 80, source: "pc" });
+    expect(events[1]).toMatchObject({ gate: "gate-1.0000", outcome: "hit" });
+    expect(hits).toBe(1);
+
+    controller.stop();
+  });
+
   it("no duplica el mismo outcome para el mismo gate", () => {
     const controller = makeController();
     controller.start();

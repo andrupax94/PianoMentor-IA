@@ -27,6 +27,8 @@ interface Harness {
   engine: PlaybackEngine;
   scheduled: { event: ScheduledEvent; at: number }[];
   silences: () => number;
+  /** Opciones pasadas a cada `silence()` (para las llamadas del congelado). */
+  silenceOpts: () => unknown[];
   advance: (dt: number) => void;
 }
 
@@ -34,12 +36,14 @@ function makeHarness(horizon_s = 0.1): Harness {
   let now = 0;
   const scheduled: { event: ScheduledEvent; at: number }[] = [];
   let silences = 0;
+  const silenceLog: unknown[] = [];
   const engine = new PlaybackEngine(
     { now: () => now },
     {
       scheduleNote: (event, at) => scheduled.push({ event, at }),
-      silence: () => {
+      silence: (options?: unknown) => {
         silences += 1;
+        silenceLog.push(options);
       },
     },
     horizon_s,
@@ -48,6 +52,7 @@ function makeHarness(horizon_s = 0.1): Harness {
     engine,
     scheduled,
     silences: () => silences,
+    silenceOpts: () => silenceLog,
     advance: (dt: number) => {
       now += dt;
     },
@@ -286,8 +291,25 @@ describe("PlaybackEngine", () => {
     expect(harness.engine.snapshot().currentGate?.pitches).toEqual([60]);
   });
 
-  it("expongo el gate venidero en el snapshot también sin espera (B-033.2: robot en flujo)", () => {
+  it("al congelar el gate, el silencio respeta la pulsación viva del alumno (B-033 ajuste 2026-11-07)", () => {
+    // El usuario pulsó antes de la línea y mantiene la tecla: el silencio del
+    // congelado silencia el audio programado de la pieza, NO su tecla.
     const harness = makeHarness();
+    harness.engine.load(SCORE, { audible: [] });
+    harness.engine.setGateOptions({ enabled: true, hand: "both" });
+    harness.engine.setPreroll(0);
+
+    harness.engine.play();
+    harness.advance(1.02); // la posición llega al gate (t=1,0)
+    harness.engine.tick();
+    expect(harness.engine.snapshot().status).toBe("waiting");
+
+    // El último silencio es el del congelado y marca keepAudition.
+    const lastOptions = harness.silenceOpts().at(-1);
+    expect(lastOptions).toEqual({ keepAudition: true });
+  });
+
+  it("expongo el gate venidero en el snapshot también sin espera (B-033.2: robot en flujo)", () => {    const harness = makeHarness();
     // Sin gates activos (modo espera apagado): no hay currentGate, pero la
     // cascada va pasando los gates y el snapshot lo cuenta para el robot.
     harness.engine.load(SCORE);

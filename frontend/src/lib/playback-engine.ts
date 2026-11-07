@@ -24,7 +24,7 @@ export interface PlaybackClock {
 /** Salida de audio: programa una nota en un instante del reloj o silencia todo. */
 export interface NoteVoice {
   scheduleNote(event: ScheduledEvent, atTime_s: number): void;
-  silence(): void;
+  silence(options?: { keepAudition?: boolean }): void;
 }
 
 export interface PlaybackSnapshot {
@@ -511,8 +511,12 @@ export class PlaybackEngine {
     this.hitLead_s = 0;
     // Las notas que arrancan en el instante del gate (la mano audible de la IA)
     // quedan pendientes: se reagenda el audio al reanudar desde el hit.
+    // B-033 ajuste (petición del usuario, 2026-11-07): la tecla que el usuario
+    // mantiene (pulsada antes de la línea) NO se corta: el silencio aquí es
+    // del audio programado de la pieza, no de la audición viva — antes le
+    // sonaba al corte por completo la tecla que llevaba pulsada.
     this.scheduledUpto_s = gate.time_s - CHORD_TOLERANCE_S;
-    this.voice.silence();
+    this.voice.silence({ keepAudition: true });
   }
 
   /**

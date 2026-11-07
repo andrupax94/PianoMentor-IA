@@ -12,6 +12,17 @@ import {
 } from "./piano-model";
 import { pitchToFrequency } from "./playback-schedule";
 
+/** Opciones del silencio global de un sintetizador. */
+export interface SilenceOptions {
+  /**
+   * true: no corta las notas sostenidas por audición (`noteOn` del alumno).
+   * El congelado del gate (B-032.5) la usa para no matar la tecla que el
+   * usuario mantiene pulsada: cortarla era el corte de sonido completo que
+   * notaba al pulsar antes de la línea (petición del usuario, 2026-11-07).
+   */
+  keepAudition?: boolean;
+}
+
 export interface PolySynth {
   /** Programa una nota con duración (transporte). */
   scheduleNote(pitch: number, velocity: number, duration_s: number, atTime_s: number): void;
@@ -19,8 +30,8 @@ export interface PolySynth {
   noteOn(pitch: number, velocity: number): void;
   /** Suelta una nota sostenida. */
   noteOff(pitch: number): void;
-  /** Silencia todo lo que suene, programado o sostenido. */
-  silence(): void;
+  /** Silencia todo lo que suene; con `keepAudition` respeta las sostenidas. */
+  silence(options?: SilenceOptions): void;
 }
 
 /** Tope de voces simultáneas de la reserva: al saturar se corta la más vieja. */
@@ -132,10 +143,15 @@ export function createPolySynth(
       sustained.delete(pitch);
       stopVoice(voice, ctx.currentTime, 0.4);
     },
-    silence(): void {
+    silence(options?: SilenceOptions): void {
+      const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;
       const now = ctx.currentTime;
-      for (const voice of [...voices]) stopVoice(voice, now, 0.05);
-      sustained.clear();
+      for (const voice of [...voices]) {
+        // Las voces sostenidas del alumno (su dedo sigue en la tecla) no se tocan.
+        if (keepAudition?.has(voice)) continue;
+        stopVoice(voice, now, 0.05);
+      }
+      if (keepAudition === null) sustained.clear();
     },
   };
 }

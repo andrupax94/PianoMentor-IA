@@ -14,7 +14,7 @@ import {
   type SampleLayer,
   type SampleTier,
 } from "./piano-model";
-import type { PolySynth } from "./synth";
+import type { PolySynth, SilenceOptions } from "./synth";
 
 /** Origen por defecto; admite CDN con NEXT_PUBLIC_AUDIO_BASE_URL (ver contingencia en B-007.5). */
 export const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_AUDIO_BASE_URL ?? "/audio/piano";
@@ -388,11 +388,17 @@ export function createPianoSampler(
       if (voice) stopVoice(voice, ctx.currentTime, 0.4);
       fallback?.noteOff(pitch);
     },
-    silence(): void {
+    silence(options?: SilenceOptions): void {
+      // El congelado del gate (B-032.5) pide respetar la pulsación viva del
+      // alumno: su tecla (pressed temprano y aún sostenida) NO se corta.
+      const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;
       const now = ctx.currentTime;
-      for (const voice of [...voices]) stopVoice(voice, now, 0.03);
-      sustained.clear();
-      fallback?.silence();
+      for (const voice of [...voices]) {
+        if (keepAudition?.has(voice)) continue;
+        stopVoice(voice, now, 0.03);
+      }
+      if (keepAudition === null) sustained.clear();
+      fallback?.silence(options);
     },
     warmup(notePitches: number[]): void {
       void ready.then(() => {

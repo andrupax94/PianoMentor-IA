@@ -57,25 +57,33 @@ export function createGateController(deps: GateControllerDeps): GateController {
   const onWrong = deps.onWrong ?? ((): void => {});
   let unsubscribeNotes: (() => void) | null = null;
   let pollTimer: ReturnType<typeof setInterval> | null = null;
-  const pressed = new Set<number>();
+  /**
+   * Teclas pulsadas con su instante: la marca de tiempo decide qué pulsaciones
+   * cuentan en el gate en espera (2026-11-07, petición del usuario): una tecla
+   * pulsada ANTES de congelar el transporte (anticipación del alumno) no
+   * resuelve el gate al entrar en espera — mataba el margen del rebote (el
+   * 60 % quedaba en 0 %, resolvía de golpe). Vale la pulsación hecha durante
+   * la espera; re-pulsar cuenta (refresh de `pressedAt`).
+   */
+  const pressedAt = new Map<number, number>();
   let lastGateId: string | null = null;
   let waitingSinceMs: number | null = null;
   let lastOutcome: GateOutcome | null = null;
 
   const clear = () => {
-    pressed.clear();
+    pressedAt.clear();
     lastGateId = null;
     waitingSinceMs = null;
     lastOutcome = null;
   };
 
   const onNoteOn = ({ pitch }: NoteInputEvent) => {
-    pressed.add(pitch);
+    pressedAt.set(pitch, clockMs());
     checkGate();
   };
 
   const onNoteOff = ({ pitch }: NoteInputEvent) => {
-    pressed.delete(pitch);
+    pressedAt.delete(pitch);
   };
 
   const sendOutcome = (gate: Gate, outcome: GateOutcome) => {
@@ -101,12 +109,20 @@ export function createGateController(deps: GateControllerDeps): GateController {
     if (waitingSinceMs === null) {
       waitingSinceMs = clockMs();
     }
+    const waitStartMs: number = waitingSinceMs;
+
+    // Solo cuentan pulsaciones hechas durante esta espera: una tecla que
+    // llevaba sonando desde antes del congelado (anticipación) no resuelve
+    // el gate a cero — el margen del rebote se muestra completo.
+    const pressedInWait = [...pressedAt.entries()]
+      .filter(([, at]) => at >= waitStartMs)
+      .map(([pitch]) => pitch);
 
     const timeoutMs = waitTimeoutMs({ tempoBpm: snapshot.tempo_bpm });
     const elapsedMs = clockMs() - waitingSinceMs;
     const timedOut = elapsedMs >= timeoutMs;
 
-    const outcome = strikeFor(gate, pressed, timedOut);
+    const outcome = strikeFor(gate, pressedInWait, timedOut);
     // B-032.8: onWrong solo en la transición. El sondeo repite el outcome cada
     // 100 ms; si el callback saliera siempre, el desvanecimiento del rebote se
     // reiniciaba sin parar y la cascada se quedaba pasada de la línea.
