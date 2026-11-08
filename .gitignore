@@ -58,6 +58,7 @@ logs/
 # IDE and OS files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 .DS_Store
@@ -83,3 +84,15 @@ opencode.exe
 # Los MP3 derivados de frontend/public/audio/piano/ sí se versionan; atribución en THIRD_PARTY_NOTICES.md.
 frontend/.cache/
 nota.txt
+
+# Impeccable: artefactos de diseño versionables (PRODUCT.md, DESIGN.md,
+# .impeccable/design.json, .impeccable/config.json, .impeccable/surfaces/,
+# .impeccable/live/config.json, .impeccable/critique/ignore.md) SÍ se suben.
+# Solo se ignoran los directorios de runtime y la config local del desarrollador:
+.impeccable/config.local.json
+.impeccable/questions/
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/critique/*.json
+.impeccable/critique/*.md
+!.impeccable/critique/ignore.md

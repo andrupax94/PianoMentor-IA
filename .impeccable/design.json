@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T00:00:00Z",
+  "title": "Design System: PianoMentor AI",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Steel Blue",
+        "canonical": "#83a9d2",
+        "tonalRamp": ["#1a2a47", "#243659", "#3a5a8a", "#5a7fae", "#83a9d2", "#a3c0dd", "#c4d7e8", "#e4eef5"]
+      },
+      "gold": {
+        "role": "secondary",
+        "displayName": "Gold",
+        "canonical": "#f5a623",
+        "tonalRamp": ["#4a3310", "#6b4a16", "#8c621c", "#ad7a22", "#ce9228", "#f5a623", "#f7b84f", "#fad59b"]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Deep Navy",
+        "canonical": "#0c1829",
+        "tonalRamp": ["#040a12", "#08111e", "#0c1829", "#12233d", "#1a2f52", "#243a66", "#3a5080", "#5a70a0"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "canonical": "#e8eefb",
+        "tonalRamp": ["#7f8ca6", "#9aa6be", "#b6c0d4", "#cfd6e4", "#e0e5f0", "#e8eefb", "#f0f4fc", "#f8fafd"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Titulares de página y secciones principales." },
+      "body": { "displayName": "Body", "purpose": "Párrafos, controles y texto general." },
+      "label": { "displayName": "Label", "purpose": "Eyebrow, etiquetas y metadatos." }
+    },
+    "shadows": [
+      { "name": "inset-glow", "value": "inset 0 0 50px -40px #ffffff", "purpose": "Brillo suave en superficies destacadas." },
+      { "name": "glass-card", "value": "0 4px 30px rgba(0,0,0,0.15)", "purpose": "Contenedores flotantes con backdrop-blur." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Easing por defecto para transiciones de estado." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "480px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1000px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Botón de acción principal sobre fondos oscuros.",
+      "html": "<button class=\"ds-btn-primary\">CONTINUAR</button>",
+      "css": ".ds-btn-primary { background: #83a9d2; color: #07110f; padding: 12px 16px; border: 0; border-radius: 8px; font-family: Manrope, Reem Kufi, sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s, transform 0.2s; } .ds-btn-primary:hover { background: #f5a623; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid #f5a623; outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "cristal",
+      "description": "Contenedor flotante con glassmorphism sobre fondos navy.",
+      "html": "<div class=\"ds-glass-panel\"><span>Contenido</span></div>",
+      "css": ".ds-glass-panel { background: rgba(255,255,255,0.08); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); box-shadow: 0 4px 30px rgba(0,0,0,0.15); border: 1px solid #1a2a47; border-radius: 8px; padding: 16px; color: #e8eefb; font-family: Manrope, Reem Kufi, sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Midnight Recital",
+    "overview": "PianoMentor AI es un mentor de piano virtual con IA. Su interfaz evoca una sala de concierto a media luz: navy profundo con superficies de cristal y acentos en oro y azul acero. La atmósfera es nocturna, concentrada y pedagógica.",
+    "keyCharacteristics": [
+      "Color-scheme oscuro por defecto; fondos navy en capas.",
+      "Un único acento primario (azul acero) para acciones principales.",
+      "Glassmorphism en contenedores flotantes.",
+      "Tipografía de contraste: Gabriola display, Manrope cuerpo.",
+      "Bootstrap únicamente para el grid; el resto CSS Modules con tokens."
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "El acento primario (azul acero) se usa en ≤10 % de cualquier pantalla.", "section": "colors" },
+      { "name": "The Two Voices Rule", "body": "Solo dos familias tipográficas: Gabriola para display/identidad y Manrope para todo lo demás.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Las superficies son planas en reposo; sombras y blur aparecen solo por estado o en contenedores flotantes.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar siempre los tokens de globals.css (var(--*)).",
+      "Do usar Bootstrap únicamente para grid.",
+      "Do usar CSS Modules por componente y el trío .tsx/.module.css/.types.ts.",
+      "Do respetar prefers-reduced-motion: reduce.",
+      "Do mantener color-scheme dark."
+    ],
+    "donts": [
+      "Don't importar bootstrap.css ni bootstrap-utilities.css.",
+      "Don't usar clases de componentes de Bootstrap (.btn, .card, .nav, .modal, .alert, .dropdown, .bg-*, .text-*, .m-*, .p-*).",
+      "Don't usar .gap-* de Bootstrap.",
+      "Don't hardcodear colores fuera de los tokens.",
+      "Don't copiar el HTML de Stitch tal cual."
+    ]
+  }
+}

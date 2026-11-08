@@ -13,6 +13,12 @@ Que cualquier cambio de estilo siga la misma forma que ya tiene la web (módulos
 por componente, tokens compartidos) y que Bootstrap se quede exactamente donde el
 proyecto lo pidió: **solo su sistema de grids**.
 
+## Herramientas de diseño UI
+
+Cuando haya que crear o rediseñar una pantalla, usar **Stitch MCP** (`tools.stitch.*`) para generar el diseño/HTML de referencia y la skill **`impeccable`** para revisar, pulir y auditar el resultado. Ambas son ayuda de diseño, no sustituyen las reglas de abajo: el HTML de Stitch se adapta a los componentes React, tokens y CSS Modules del proyecto; Impeccable se aplica sobre el código resultante. Ninguna de las dos autoriza a importar Bootstrap completo, usar clases prohibidas (`.btn`, `.card`, `.bg-*`, etc.) ni añadir colores sueltos fuera de los tokens.
+
+**Aviso de identidad Stitch:** el proyecto Stitch existente (`projects/91769299213639956`) usa el sistema auto-generado "Acoustic Intelligence" (tema claro, violeta, Epilogue/Plus Jakarta Sans/JetBrains Mono), que **no coincide** con la identidad real (oscuro, navy+oro, Gabriola+Manrope). Sus pantallas son referencia **exploratoria**, no fiel. Ver `docs/design/stitch/README.md`. No adoptar ese tema ni esas fuentes.
+
 ## Regla 1 — Bootstrap: solo layout, y solo en código nuevo
 
 Esta es la regla con la que nace esta skill y manda sobre todo lo demás:

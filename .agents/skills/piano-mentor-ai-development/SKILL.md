@@ -146,6 +146,10 @@ Usar Docker desde el inicio para reproducibilidad. Separar dependencias de produ
 
 ## Frontend web
 
+Para crear o rediseñar pantallas, apoyarse en **Stitch MCP** (`tools.stitch.*`) para generar el diseño/HTML de referencia y en la skill **`impeccable`** para revisar y pulir el resultado. El HTML de Stitch se adapta a los componentes React, tokens y CSS Modules del proyecto (ver skill `piano-mentor-css`); no se copia tal cual ni se introducen frameworks CSS nuevos.
+
+**Aviso de identidad Stitch:** el proyecto Stitch existente (`projects/91769299213639956`) usa el sistema auto-generado "Acoustic Intelligence" (tema claro, violeta, Epilogue/Plus Jakarta Sans/JetBrains Mono), que **no coincide** con la identidad real (oscuro, navy+oro, Gabriola+Manrope). Sus pantallas son referencia **exploratoria**, no fiel. Ver `docs/design/stitch/README.md`. No adoptar ese tema ni esas fuentes.
+
 Next.js y TypeScript, con Web Audio para el sonido y SVG para el teclado. El sampler de piano (Salamander) se programa contra `AudioContext.currentTime` y conserva una voz sintetizada de reserva; la evaluación vive en el backend y el navegador solo reproduce y pinta. Usar WebSocket para el estado de sesión en tiempo real y HTTP para piezas, sesiones y acciones.
 
 La interfaz debe hacer visible el estado en todo momento:
