@@ -349,6 +349,25 @@ describe("PlaybackEngine", () => {
     expect(lastOptions).toEqual({ keepAudition: true });
   });
 
+  it("cargar, pausar, parar, buscar y cambiar tempo respetan la tecla sostenida (2026-11-08)", () => {
+    // Antes todos esos silencios iban sin keepAudition y mataban con fade de
+    // 0.03 s la tecla que el alumno mantenía: otro corte abrupto del mismo
+    // síntoma. Ahora el audio de la pieza se corta y la audición viva no.
+    const harness = makeHarness();
+    harness.engine.load(SCORE);
+    harness.engine.play();
+    harness.engine.pause();
+    harness.engine.play();
+    harness.engine.stop();
+    harness.engine.seek(1);
+    harness.engine.setTempoFactor(1.25);
+
+    expect(harness.silences()).toBeGreaterThanOrEqual(5);
+    for (const options of harness.silenceOpts()) {
+      expect(options).toEqual({ keepAudition: true });
+    }
+  });
+
   it("markGatePlayed: el gate anticipado NO congela y el audio cruza sonando (ajuste 2026-11-07)", () => {
     const harness = makeHarness();
     harness.engine.load(SCORE, { audible: [] }); // el audio de la pieza entera calla; lo que suena es la tecla del alumno… y en este test comprobamos que el gate no congela

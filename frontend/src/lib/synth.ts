@@ -4,11 +4,13 @@
 
 import {
   attackS,
+  MIN_FADE_S,
   partialAmps,
   partialDecayS,
   partialFreqs,
   peakGain,
   releaseS,
+  TAIL_S,
 } from "./piano-model";
 import { pitchToFrequency } from "./playback-schedule";
 
@@ -49,6 +51,8 @@ interface ActiveVoice {
   /** Instante de creación, para robar la voz más vieja. */
   bornAt: number;
   released: boolean;
+  /** Velocity del golpe: en la suelta define el ancho del release (`releaseS`). */
+  velocity: number;
 }
 
 /**
@@ -106,7 +110,13 @@ export function createPolySynth(
       return { osc, gain };
     });
 
-    const voice: ActiveVoice = { partials, env, bornAt: ctx.currentTime, released: false };
+    const voice: ActiveVoice = {
+      partials,
+      env,
+      bornAt: ctx.currentTime,
+      released: false,
+      velocity,
+    };
     voices.add(voice);
     return voice;
   }
@@ -141,7 +151,11 @@ export function createPolySynth(
       const voice = sustained.get(pitch);
       if (!voice) return;
       sustained.delete(pitch);
-      stopVoice(voice, ctx.currentTime, 0.4);
+      // Misma suelta que el sampler y que el reproductor: la cola de TAIL_S
+      // antes del fade, en vez de un corte inmediato de 0.4 s (B-030/paridad).
+      const fadeS = Math.max(releaseS(voice.velocity), MIN_FADE_S);
+      const holdS = Math.max(0, TAIL_S - fadeS);
+      stopVoice(voice, ctx.currentTime + holdS, fadeS);
     },
     silence(options?: SilenceOptions): void {
       const keepAudition = options?.keepAudition === true ? new Set(sustained.values()) : null;

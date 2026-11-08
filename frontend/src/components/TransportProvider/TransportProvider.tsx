@@ -69,9 +69,19 @@ export function TransportProvider({ children }: { children: ReactNode }) {
     const unsubscribeGate = subscribeNoteInputGate((enabled) => {
       if (!enabled) releaseAll();
     });
+    // Red de seguridad: al perder el foco el navegador deja de entregar `keyup`
+    // (pestaña en segundo plano u otra app) y la tecla quedaría sonando en
+    // bucle — desde el ajuste de suelta ningún `silence()` la corta, porque
+    // respetan la audición viva. Al volver se suelta lo mismo que al cerrar la
+    // puerta: sin pulsación no hay nota que sostener.
+    const releaseOnBlur = () => releaseAll();
+    window.addEventListener("blur", releaseOnBlur);
+    document.addEventListener("visibilitychange", releaseOnBlur);
     return () => {
       unsubscribe();
       unsubscribeGate();
+      window.removeEventListener("blur", releaseOnBlur);
+      document.removeEventListener("visibilitychange", releaseOnBlur);
       releaseAll();
     };
   }, [player.auditionOn, player.auditionOff]);

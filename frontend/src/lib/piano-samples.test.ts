@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FakeAudioContext, FakeGainNode, fakeFetch } from "./audio-doubles";
-import type { PianoManifest } from "./piano-model";
+import { TAIL_S, type PianoManifest } from "./piano-model";
 import { createPianoSampler, type PianoSamplerOptions } from "./piano-samples";
 import type { PolySynth } from "./synth";
 
@@ -187,6 +187,30 @@ describe("createPianoSampler · reproducción", () => {
     sampler.noteOff(60);
     expect(ctx.bufferSources.every((source) => source.stoppedAt.length > 0)).toBe(true);
     expect(calls.off).toEqual([60]);
+  });
+
+  it("noteOff suelta con la cola del reproductor, no de golpe (paridad B-030)", async () => {
+    const { ctx, sampler } = await setup();
+    await sampler.preload("hq");
+    sampler.noteOn(60, 90);
+    // gains[0] es el envolvente de la voz; las capas soft/hard van detrás.
+    const env = ctx.gains[0];
+    const sources = [...ctx.bufferSources];
+
+    sampler.noteOff(60);
+
+    // Antes: rampa a 0.0001 en 0.4 s desde el propio noteOff (80 dB → mudo en
+    // ~150 ms), el corte abrupto que se notaba al soltar. Ahora la caída se
+    // agenda pasada la cola y las fuentes paran con ella.
+    const hold = env.gain.setAtTime.at(-1);
+    const fade = env.gain.exponential.at(-1);
+    expect(hold?.at).toBeGreaterThan(0);
+    expect(fade?.value).toBe(0.0001);
+    expect(fade?.at).toBeCloseTo(TAIL_S, 6);
+    for (const source of sources) {
+      expect(source.stoppedAt.every((at) => at >= TAIL_S)).toBe(true);
+      expect(source.stoppedAt.at(-1)).toBeCloseTo(TAIL_S + 0.02, 6);
+    }
   });
 });
 

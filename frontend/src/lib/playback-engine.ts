@@ -55,6 +55,16 @@ export interface PlaybackSnapshot {
 
 const DEFAULT_HORIZON_S = 0.1;
 
+/**
+ * Silencio del transporte: corta el audio programado de la pieza, pero respeta
+ * la tecla que el alumno mantiene pulsada. Un `silence()` a secas la mataba con
+ * fade de 0.03 s — cargar, pausar, parar, buscar o cambiar el tempo cortaban de
+ * golpe la audición viva mientras el reproductor dejaba su cola (petición del
+ * usuario, 2026-11-08). La tecla la suelta su propio `noteOff`, con la cola de
+ * `TAIL_S`.
+ */
+const SILENCE_KEEP_AUDITION = { keepAudition: true } as const;
+
 const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   status: "stopped",
   position_s: 0,
@@ -174,7 +184,7 @@ export class PlaybackEngine {
     this.events = buildSchedule(this.audible, this.tempoFactor);
     this.duration_s = this.scaledDuration();
     this.scheduledUpto_s = this.position_s;
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
     if (this.status === "playing" || this.status === "waiting") {
       this.anchorWall_s = this.clock.now();
       this.anchorPos_s = this.position_s;
@@ -201,7 +211,7 @@ export class PlaybackEngine {
       measures?: PieceMeasures | null;
     },
   ): void {
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
     this.notes = notes;
     this.audible = options?.audible ?? notes;
     this.tempoFactor = clampTempoFactor(options?.tempoFactor ?? 1.0);
@@ -254,7 +264,7 @@ export class PlaybackEngine {
       this.prerollElapsed_s = 0;
       this.anchorWall_s = this.clock.now();
       this.anchorPos_s = 0;
-      this.voice.silence();
+      this.voice.silence(SILENCE_KEEP_AUDITION);
       return;
     }
 
@@ -282,7 +292,7 @@ export class PlaybackEngine {
     // sin perder las notas de un instante de gate (por ejemplo si se pausó
     // desde la espera).
     this.scheduledUpto_s = Math.min(this.scheduledUpto_s, this.position_s);
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
   }
 
   stop(): void {
@@ -298,7 +308,7 @@ export class PlaybackEngine {
     this.wrongResetOffset_s = 0;
     this.hitLead_s = 0;
     this.gatesPlayedUntil_s = -Number.MAX_SAFE_INTEGER;
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
   }
 
   /** Salta a una posición (recortada a la duración); si suena, sigue sonando desde ahí. */
@@ -315,7 +325,7 @@ export class PlaybackEngine {
     // un gate justo en la posición sigue siendo alcanzable (2× la tolerancia
     // para que el filtrado del nextGate lo deje pasar).
     this.gatesPlayedUntil_s = this.position_s - 2 * CHORD_TOLERANCE_S;
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
     if (this.status === "playing" || this.status === "waiting") {
       this.anchorWall_s = this.clock.now();
       this.anchorPos_s = this.position_s;
@@ -332,7 +342,7 @@ export class PlaybackEngine {
     this.gateEvents = buildSchedule(this.notes, this.tempoFactor);
     this.duration_s = this.scaledDuration();
     this.scheduledUpto_s = this.position_s;
-    this.voice.silence();
+    this.voice.silence(SILENCE_KEEP_AUDITION);
     if (this.status === "playing" || this.status === "waiting") {
       this.anchorWall_s = this.clock.now();
       this.anchorPos_s = this.position_s;

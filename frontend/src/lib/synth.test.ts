@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FakeAudioContext, FakeGainNode } from "./audio-doubles";
-import { attackS, DEFAULT_PARTIALS, peakGain, releaseS } from "./piano-model";
+import { attackS, DEFAULT_PARTIALS, peakGain, releaseS, TAIL_S } from "./piano-model";
 import { pitchToFrequency } from "./playback-schedule";
 import { createPolySynth, MAX_VOICES } from "./synth";
 
@@ -83,6 +83,24 @@ describe("createPolySynth", () => {
     expect(ctx.oscillators).toHaveLength(DEFAULT_PARTIALS);
     synth.noteOff(60);
     expect(ctx.oscillators.every((osc) => osc.stoppedAt.length > 0)).toBe(true);
+  });
+
+  it("noteOff de la reserva suelta con la misma cola que el reproductor", () => {
+    const { ctx, synth } = setup();
+    synth.noteOn(60, 90);
+    // gains[0] es el envolvente; los parciales van detrás.
+    const env = ctx.gains[0];
+    synth.noteOff(60);
+
+    const fade = env.gain.exponential.at(-1);
+    expect(fade?.value).toBe(0.0001);
+    // La caída termina con la cola (TAIL_S), no 0.4 s después del release.
+    expect(fade?.at).toBeCloseTo(TAIL_S, 6);
+    // Y no empieza en el instante del soltar: antes aguanta su nivel.
+    expect(env.gain.setAtTime.at(-1)?.at).toBeGreaterThan(0);
+    for (const osc of ctx.oscillators) {
+      expect(osc.stoppedAt.at(-1)).toBeCloseTo(TAIL_S + 0.02, 6);
+    }
   });
 
   it("noteOff sin nota suelta no rompe", () => {

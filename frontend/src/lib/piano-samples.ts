@@ -6,8 +6,10 @@ import {
   detuneCents,
   layerMix,
   manifestPitches,
+  MIN_FADE_S,
   releaseS,
   samplePitchFor,
+  TAIL_S,
   tierForPitch,
   type PianoManifest,
   type SampleFile,
@@ -75,6 +77,8 @@ interface ActiveSampledVoice {
   bornAt: number;
   /** Pitch que la montó (para las trazas de diagnóstico). */
   pitch: number;
+  /** Velocity del golpe: en la suelta define el ancho del release (`releaseS`). */
+  velocity: number;
 }
 
 /** `decodeAudioData` en formato promesa, con recambio para navegantes antiguos. */
@@ -287,7 +291,10 @@ export function createPianoSampler(
 
     if (layers.length === 0 || totalWeight <= 0) {
       env.disconnect();
-      return { voice: { sources: [], env, bornAt: ctx.currentTime, pitch }, usedSamples: false };
+      return {
+        voice: { sources: [], env, bornAt: ctx.currentTime, pitch, velocity },
+        usedSamples: false,
+      };
     }
 
     // Si solo está decodificada una de las dos capas, se normaliza para no bajar el volumen.
@@ -296,7 +303,16 @@ export function createPianoSampler(
       layer.gain.gain.value = layer.weight * normalise;
       layer.source.start(startAt);
     }
-    return { voice: { sources: layers.map((layer) => layer.source), env, bornAt: ctx.currentTime, pitch }, usedSamples: true };
+    return {
+      voice: {
+        sources: layers.map((layer) => layer.source),
+        env,
+        bornAt: ctx.currentTime,
+        pitch,
+        velocity,
+      },
+      usedSamples: true,
+    };
   }
 
   /** Devuelve true si la nota se hizo con muestra real; false si hay que reservar la voz. */
@@ -312,9 +328,8 @@ export function createPianoSampler(
     if (firstSource && firstSource.buffer) bufferDuration = firstSource.buffer.duration;
     // Dejar sonar la muestra casi entera (cola natural del piano) en vez de
     // cortarla en duration + release corto: eso es lo que sonaba "seco".
-    const tailS = 1.5;
-    const fadeS = Math.max(releaseS(velocity), 0.5);
-    const baseRing = Math.max(duration_s, 0.35) + tailS;
+    const fadeS = Math.max(releaseS(velocity), MIN_FADE_S);
+    const baseRing = Math.max(duration_s, 0.35) + TAIL_S;
     const ringS = Math.min(baseRing, Math.max(0.35, bufferDuration - 0.05));
     const stopAt = startAt + ringS;
     const fadeStart = Math.max(startAt, stopAt - fadeS);
@@ -337,6 +352,24 @@ export function createPianoSampler(
       // Un buffer ya terminado no debe romper la pausa.
     }
     voices.delete(voice);
+  }
+
+  /**
+   * Suelta de audición (la tecla del alumno o la del robot): misma envoltura que
+   * `scheduleVoice` — el nivel se mantiene durante la cola y solo el final baja.
+   * Antes aquí había un fade inmediato de 0.4 s (80 dB en 400 ms, mudo en ~150 ms)
+   * que mataba la muestra con ganancia todavía alta: ese era el corte abrupto al
+   * soltar, mientras el reproductor dejaba sonar sus 1,5 s de cola.
+   */
+  function releaseVoice(voice: ActiveSampledVoice, atTime: number): void {
+    const fadeS = Math.max(releaseS(voice.velocity), MIN_FADE_S);
+    const holdS = Math.max(0, TAIL_S - fadeS);
+    audioTrace(
+      `releaseVoice pitch=${voice.pitch} hold=${holdS.toFixed(2)}s fade=${fadeS}s`,
+    );
+    // `stopVoice` con instante futuro: la ganancia aguanta su nivel actual
+    // hasta `atTime + holdS` y recién entonces hace el fade y para las fuentes.
+    stopVoice(voice, atTime + holdS, fadeS);
   }
 
   const ready = (async () => {
@@ -400,7 +433,7 @@ export function createPianoSampler(
       audioTrace(`noteOff (audición) pitch=${pitch} ctx=${ctx.currentTime.toFixed(3)}`);
       const voice = sustained.get(pitch);
       sustained.delete(pitch);
-      if (voice) stopVoice(voice, ctx.currentTime, 0.4);
+      if (voice) releaseVoice(voice, ctx.currentTime);
       fallback?.noteOff(pitch);
     },
     silence(options?: SilenceOptions): void {

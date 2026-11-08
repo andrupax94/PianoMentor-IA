@@ -177,6 +177,18 @@ export function releaseS(velocity: number): number {
   return 0.1 + 0.12 * (1 - clampVelocity(velocity) / 127);
 }
 
+/**
+ * Cola de anillo en segundos: la nota suena `TAIL_S` más allá de su fin antes
+ * de empezar a bajar (B-030). Es la que hace que el reproductor no suene seco;
+ * la suelta de audición (`noteOn`/`noteOff`) usa la misma cola para que la tecla
+ * del alumno y el robot suelten igual que una nota programada (petición del
+ * usuario, 2026-11-08: «en modo observar sí se escucha bien»).
+ */
+export const TAIL_S = 1.5;
+
+/** Fade de salida mínimo en segundos: por debajo, la caída se percibe cortada. */
+export const MIN_FADE_S = 0.5;
+
 /** Ganancia de pico de la voz de reserva (las sumas de parciales ya vienen normalizadas). */
 export function peakGain(velocity: number): number {
   const v = clampVelocity(velocity);
