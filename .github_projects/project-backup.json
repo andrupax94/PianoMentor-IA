@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-08T17:04:08.9052043Z",
+  "exportedAtUtc": "2026-11-08T18:17:45.0488141Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1988,7 +1988,7 @@
       "id": "PVTI_lAHOAxy1qM4Bl7PszhFbGWs",
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Review",
       "target date": "2026-11-09",
       "title": "[B-032.7] La demostración se ofrece, no se impone (intervención por consentimiento)"
     },
