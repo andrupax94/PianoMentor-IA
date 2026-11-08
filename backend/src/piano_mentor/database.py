@@ -593,6 +593,36 @@ def list_practice_signals_since(
     ).fetchall()
 
 
+def list_practice_signals(
+    conn: sqlite3.Connection,
+    session_id: str,
+) -> list[sqlite3.Row]:
+    """Todas las señales de una sesión, viejas primero, con su marca temporal (B-033.3).
+
+    A diferencia de `list_practice_signals_since` (que recorta al baseline del
+    bucle de strikes), el informe mira la sesión completa: por `id` está el
+    orden de llegada y por `created_at` la ventana de la práctica.
+    """
+    return conn.execute(
+        "SELECT id, gate, measure, outcome, wait_ms, hand, created_at"
+        " FROM practice_signals WHERE session_id = ? ORDER BY id",
+        (session_id,),
+    ).fetchall()
+
+
+def list_agent_decisions(
+    conn: sqlite3.Connection,
+    session_id: str,
+) -> list[sqlite3.Row]:
+    """Todas las intervenciones de una sesión, en orden temporal (B-033.3)."""
+    return conn.execute(
+        "SELECT id, measure, action, params_json, reason, provider,"
+        " baseline_signal_id, created_at"
+        " FROM agent_decisions WHERE session_id = ? ORDER BY id",
+        (session_id,),
+    ).fetchall()
+
+
 def max_signal_id_at(
     conn: sqlite3.Connection,
     session_id: str,

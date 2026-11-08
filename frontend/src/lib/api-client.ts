@@ -566,6 +566,84 @@ export async function getSessionState(sessionId: string): Promise<SessionState> 
   return request<SessionState>(`/api/v1/sessions/${encodeURIComponent(sessionId)}/state`);
 }
 
+/** Bloque de sesión del informe de práctica (B-033.3), alineado con `PracticeSessionBlock`. */
+export interface PracticeReportSession {
+  session_id: string;
+  piece_id: string;
+  piece_title: string | null;
+  tempo: number | null;
+  status: string;
+  control: string;
+  mode: string;
+  hand: string;
+  created_at: string | null;
+  first_signal_at: string | null;
+  last_signal_at: string | null;
+  practiced_s: number | null;
+  signal_count: number;
+}
+
+/** Agregado por compás del informe: conteos por outcome y orden de llegada (B-033.3). */
+export interface PracticeReportMeasure {
+  measure: number | null;
+  counts: Record<string, number>;
+  arrival: number[];
+  last_outcome_by_gate: Record<string, string>;
+}
+
+/** Una intervención del agente grabada en `agent_decisions` (B-033.3). */
+export interface PracticeReportDecision {
+  id: number;
+  measure: number | null;
+  action: string;
+  params: Record<string, unknown>;
+  reason: string;
+  provider: string;
+  baseline_signal_id: number | null;
+  created_at: string | null;
+}
+
+/** Señal cruda del modo espera truncada, alineada con `PracticeSignalItem` (B-033.3). */
+export interface PracticeReportSignal {
+  id: number;
+  gate: string;
+  measure: number | null;
+  outcome: string;
+  wait_ms: number;
+  hand: string;
+  created_at: string | null;
+}
+
+/** Informe consolidado de la sesión (B-033.3), alineado con `PracticeReportResponse`. */
+export interface PracticeReport {
+  session: PracticeReportSession;
+  by_measure: PracticeReportMeasure[];
+  agent_decisions: PracticeReportDecision[];
+  signals: {
+    total: number;
+    returned: number;
+    truncated: boolean;
+    items: PracticeReportSignal[];
+  };
+  evaluation: Record<string, unknown> | null;
+  generated_at: string;
+}
+
+/**
+ * Lee el informe consolidado de la sesión en GET /api/v1/sessions/{id}/practice-report
+ * (B-033.3). `limit` trunca solo las señales crudas (`signals.items`); una
+ * sesión inexistente responde 404 con `ApiError.code === "session_not_found"`.
+ */
+export async function getPracticeReport(
+  sessionId: string,
+  limit?: number,
+): Promise<PracticeReport> {
+  const query = limit === undefined ? "" : `?limit=${limit}`;
+  return request<PracticeReport>(
+    `/api/v1/sessions/${encodeURIComponent(sessionId)}/practice-report${query}`,
+  );
+}
+
 /**
  * Cambia el modo de práctica de la sesión en PATCH /api/v1/sessions/{id}
  * (B-032.4). Es estado, no un evento: el backend lo persiste y lo difunde por

@@ -52,6 +52,26 @@ const FONT_CLASS = {
   sm: styles.fontSm,
 } as const;
 
+/**
+ * B-033.3: el modo maximizado del chat (dev-only) reserva el alto del panel
+ * para la interpretación del mentor. El informe técnico ya no vive aquí: va
+ * como sub-pestaña «Informe» del panel Depurar (SessionDebug). La
+ * interpretación (destacados del informe redactados por el agente con
+ * fallback determinista) llega con B-033.4; mientras tanto, el hueco se
+ * explica: sin lazy condicional, que aquí ya no se monta nada aparte.
+ */
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+/**
+ * B-033.3: texto del hueco maximizado. En dev habla de B-033.4 y de dónde
+ * mirar el informe técnico (información útil para quien depura); en
+ * producción el cuerpo definitivo llega con B-033.4 y el texto que lo cubre
+ * es de cara al alumno, sin nada interno.
+ */
+const MAXIMIZED_NOTE = IS_DEV
+  ? "La interpretación del mentor vivirá aquí (B-033.4). El informe técnico lo miras en el panel de estado, pestaña «Depurar → Informe»."
+  : "Muy pronto tu profesor te contará aquí qué hiciste bien y en qué afinar. De momento, sigue tu progreso desde el panel de estado.";
+
 function readStoredChatId(): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -74,6 +94,7 @@ function storeChatId(chatId: string): void {
 export function MentorChat({
   exampleMessage = "Hola En que puedo Ayudarte?",
   onClose,
+  onReportModeChange,
 }: MentorChatProps) {
   const router = useRouter();
   /** Sesión abierta en la portada: el chip de pista solo existe con práctica. */
@@ -85,6 +106,12 @@ export function MentorChat({
   const [visibleChars, setVisibleChars] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * B-033.3: modo interpretación de la IA (el «maximizado»). El estado es de
+   * la instancia; el panel del mentor se entera por `onReportModeChange` y
+   * oculta al resto de sus bloques mientras el chat ocupa todo el alto.
+   */
+  const [reportMode, setReportMode] = useState(false);
   const chatIdRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   /**
@@ -172,6 +199,26 @@ export function MentorChat({
   useEffect(() => {
     chatIdRef.current = readStoredChatId();
   }, []);
+
+  /**
+   * B-033.3: alterna el modo interpretación. La cola de salida queda sin avisos
+   * colgados si el chat se desmonta maximizado: el cleanup lo devuelve a
+   * false (igual que el aplazamiento del aviso de cierre en PracticeBridge).
+   */
+  const toggleReportMode = useCallback(() => {
+    setReportMode((current) => {
+      const next = !current;
+      onReportModeChange?.(next);
+      return next;
+    });
+  }, [onReportModeChange]);
+
+  useEffect(
+    () => () => {
+      onReportModeChange?.(false);
+    },
+    [onReportModeChange],
+  );
 
   // Obtiene la sesión de navegador (U-008.3): el token para enviar y el nombre
   // para la bienvenida. La bienvenida NO se guarda en `reply` (estado de la
@@ -395,19 +442,45 @@ export function MentorChat({
           <strong>PianoMentor <span>Chat</span></strong>
           <p>Tu Profesor de piano IA</p>
         </div>
-        {/* Solo el chat flotante llega con onClose y lo enseña (D-002.5). */}
-        {onClose && (
+        {/* B-033.3 + revisión del 2026-11-08: alternador de la interpretación
+            (evaluación) de la IA, de producto — no dev-only, porque el conte-
+            nido técnico ya vive en «Depurar → Informe». Mientras llega la
+            interpretación (B-033.4), maximizado muestra el hueco con la nota
+            por entorno. Vuelve el chat con el mismo botón. */}
+        <div className={styles.headingActions}>
           <button
-            className={styles.closeButton}
             type="button"
-            aria-label="Cerrar chat"
-            onClick={onClose}
-          >
-            <span className={styles.closeIcon} aria-hidden="true" />
-          </button>
-        )}
+            className={styles.reportToggle}
+            aria-expanded={reportMode}
+            aria-label={reportMode ? "Minimizar la interpretación de la IA" : "Interpretación de la IA"}
+            title="Interpretación de la IA"
+            onClick={toggleReportMode}
+          />
+          {/* Solo el chat flotante llega con onClose y lo enseña (D-002.5). */}
+          {onClose && (
+            <button
+              className={styles.closeButton}
+              type="button"
+              aria-label="Cerrar chat"
+              onClick={onClose}
+            >
+              <span className={styles.closeIcon} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* B-033.3: maximizado, el chat reserva el alto del panel con la burbuja
+          de siempre. El informe técnico va a «Depurar → Informe»
+          (SessionDebug); el hueco acoge la interpretación del mentor, que
+          llega con B-033.4 — y mientras tanto se escribe dentro de la burbuja,
+          con sus clases, no como texto suelto fuera del globo. */}
+      {reportMode ? (
+        <div className={`${styles.bubble} ${styles.fontSm}`} aria-live="polite">
+          {MAXIMIZED_NOTE}
+        </div>
+      ) : (
+        <>
       <div
         className={`${styles.bubble} ${FONT_CLASS[chatFontSize(shown)]}`}
         aria-live="polite"
@@ -470,7 +543,9 @@ export function MentorChat({
           onKeyDown={onKeyDown}
           disabled={busy}
         />
-      </div>
+        </div>
+        </>
+      )}
     </section>
   );
 }

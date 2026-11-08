@@ -296,3 +296,57 @@
 .input:disabled {
   opacity: 0.6;
 }
+
+/* B-033.3 (dev-only): franja de acciones de la derecha de la cabecera. Toma
+   el hueco con margin-left:auto para que los n botones que hayan no compitan
+   por el espacio libre, y desde aquí crece nada más lo dev-only. */
+.headingActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Alternador del modo informe: misma píldora circular que el cierre, dibujada
+   con el icono de informe (un cuadrado con esquina doblada) por CSS, como la
+   × del botón de cierre (D-002.5). `aria-expanded` manda el estado. */
+.reportToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-mute);
+  cursor: pointer;
+}
+
+.reportToggle::before {
+  content: "";
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  background: none;
+}
+
+.reportToggle[aria-expanded="true"]::before {
+  background: currentColor;
+  border-radius: 2px;
+  /* Punto relleno: el informe está abierto y el botón lo cierra. */
+  box-shadow: inset 0 0 0 3px transparent;
+}
+
+.reportToggle:hover {
+  color: var(--gold-soft);
+  border-color: var(--gold-soft);
+}
+
+.reportToggle:focus-visible {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
+}

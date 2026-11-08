@@ -76,6 +76,7 @@ from .midi import (
 from .passwords import hash_password
 from .passwords import verify_password as verify_user_password
 from .practice import PracticeService
+from .practice_report import normalize_limit, session_report
 from .schemas import (
     AUTH_LEVELS,
     GENRES_UI,
@@ -103,6 +104,7 @@ from .schemas import (
     PiecePreviewResponse,
     PieceResponse,
     PieceSummary,
+    PracticeReportResponse,
     SessionCreate,
     SessionPracticeModeRequest,
     SessionResponse,
@@ -1139,13 +1141,15 @@ def list_pieces(source: str | None = Query(default=None), authorization: str | N
     que un arranque limpio no sirva la Library vacía.
     """
     ensure_catalog_loaded()
-    user_sub = None
-    try:
+    # U-005: anónimo si no hay header; con header presente e inválido, 401
+    # (igual que POST /pieces). Así el frontend puede detectar una sesión
+    # caducada en lugar de recibir silenciosamente el listado anónimo.
+    if authorization and authorization.strip():
         user = _current_user(authorization)
         user_sub = getattr(user, "id", None)
         if user_sub is None and isinstance(user, dict):
             user_sub = user.get("id")
-    except Exception:
+    else:
         user_sub = None
     rows = find_pieces(source, owner_id=user_sub, include_anonymous=(user_sub is None))
     if user_sub is None:
@@ -1467,6 +1471,31 @@ def create_session(payload: SessionCreate) -> SessionResponse:
 @router.get("/sessions/{session_id}/state", response_model=SessionStateResponse)
 def get_session_state(session_id: str) -> SessionStateResponse:
     return SessionStateResponse(**_session_state_or_404(session_id))
+
+
+@router.get("/sessions/{session_id}/practice-report", response_model=PracticeReportResponse)
+def get_session_practice_report(
+    session_id: str,
+    limit: int | None = Query(default=None, ge=1),
+) -> PracticeReportResponse:
+    """Informe consolidado de la sesión (B-033.3).
+
+    Junta lo persistido por B-032.6 (señales del modo espera e intervenciones
+    del agente) con la versión compacta de la evaluación (B-032.3) — la misma
+    que consume el agente. `limit` trunca `signals.items` (default acotado;
+    el agregado por compás y las decisiones nunca se truncan) y la respuesta
+    es determinista: el mismo id devuelve siempre el mismo orden.
+    """
+    session_state = _session_state_or_404(session_id)
+    try:
+        report = session_report(session_id, normalize_limit(limit))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    report["evaluation"] = _evaluation_or_none(session_id, session_state)
+    return PracticeReportResponse(**report)
 
 
 @router.patch("/sessions/{session_id}", response_model=SessionStateResponse)

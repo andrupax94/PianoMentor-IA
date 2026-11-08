@@ -81,6 +81,99 @@ class SessionPracticeModeRequest(BaseModel):
     hand: str | None = None
 
 
+class PracticeSignalItem(BaseModel):
+    """Una señal cruda del modo espera, tal y como se persistió (B-033.3)."""
+
+    id: int
+    gate: str
+    measure: int | None = None
+    outcome: str
+    wait_ms: float = 0.0
+    hand: str = "both"
+    created_at: str | None = None
+
+
+class PracticeMeasureReport(BaseModel):
+    """Agregación de práctica de un compás (B-033.3).
+
+    `counts` lleva los cuatro outcomes, incluidos los ceros; `arrival` son los
+    ids de las señales en el orden en que llegaron y `last_outcome_by_gate` el
+    último outcome de cada gate del compás — lo mismo que consumen las reglas.
+    """
+
+    measure: int | None = None
+    counts: dict[str, int] = {}
+    arrival: list[int] = []
+    last_outcome_by_gate: dict[str, str] = {}
+
+
+class PracticeDecisionItem(BaseModel):
+    """Una intervención del agente grabada en `agent_decisions` (B-033.3)."""
+
+    id: int
+    measure: int | None = None
+    action: str
+    params: dict[str, object] = {}
+    reason: str = ""
+    provider: str = "deterministic"
+    baseline_signal_id: int | None = None
+    created_at: str | None = None
+
+
+class PracticeSignalCount(BaseModel):
+    """Recuento y truncado de `signals` del informe (B-033.3)."""
+
+    total: int = 0
+    returned: int = 0
+    truncated: bool = False
+
+
+class PracticeSignalsSection(PracticeSignalCount):
+    """Sección de señales crudas truncadas del informe (B-033.3)."""
+
+    items: list[PracticeSignalItem] = []
+
+
+class PracticeSessionBlock(BaseModel):
+    """Bloque de sesión del informe (B-033.3).
+
+    La ventana (`first_signal_at`/`last_signal_at`) y la duración
+    (`practiced_s`, entre la primera y la última señal) se derivan de las
+    señales porque la «práctica activa» no está persistida; `None` si la
+    sesión todavía no tiene señales.
+    """
+
+    session_id: str
+    piece_id: str
+    piece_title: str | None = None
+    tempo: float | None = None
+    status: str = "idle"
+    control: str = "student"
+    mode: str = "observe"
+    hand: str = "both"
+    created_at: str | None = None
+    first_signal_at: str | None = None
+    last_signal_at: str | None = None
+    practiced_s: float | None = None
+    signal_count: int = 0
+
+
+class PracticeReportResponse(BaseModel):
+    """Informe consolidado de una sesión de práctica (B-033.3).
+
+    Es lectura de lo ya persistido por B-032.6 (señales e intervenciones);
+    `evaluation` es la versión compacta de la evaluación de la sesión (B-032.3)
+    o `null` si no hay nada que evaluar.
+    """
+
+    session: PracticeSessionBlock
+    by_measure: list[PracticeMeasureReport] = []
+    agent_decisions: list[PracticeDecisionItem] = []
+    signals: PracticeSignalsSection = PracticeSignalsSection()
+    evaluation: dict[str, object] | None = None
+    generated_at: str
+
+
 class ActionRequest(BaseModel):
     """Acción que el agente quiere ejecutar en la sesión (B-012.4).
 

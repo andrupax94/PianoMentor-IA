@@ -1,4 +1,4 @@
-/* description: Estilos de la pestaña Depurar del panel de estado (B-033.2): lista de escenarios, estado del robot y registro en vivo con el anillo de entradas. */
+/* description: Estilos de la pestaña Depurar del panel de estado (B-033.2): strip de sub-pestañas (B-033.3: Escenarios/Registro/Informe), lista de escenarios, estado del robot y registro en vivo con el anillo de entradas. */
 /* context: Dev-only: solo se carga con NODE_ENV !== "production". Estética del panel: fondo oscuro translúcido, acento dorado, tipografía pequeña y apretada. */
 
 .debug {
@@ -6,6 +6,43 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
+}
+
+/* Strip de sub-pestañas interno (B-033.3): mismo patrón del strip
+   Estado/Depurar del panel — píldoras chiquitas con la activa marcada. */
+.subtabs {
+  display: flex;
+  gap: 6px;
+}
+
+.subtab,
+.subtabActive {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.subtabActive {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.14);
+  color: #f0e6c8;
+  font-weight: 700;
+}
+
+.subtab:hover:not(.subtabActive),
+.subtabActive:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+}
+
+.subtab:focus-visible,
+.subtabActive:focus-visible {
+  outline: 2px solid var(--gold-soft, #f5c04a);
+  outline-offset: 1px;
 }
 
 .debug h3 {

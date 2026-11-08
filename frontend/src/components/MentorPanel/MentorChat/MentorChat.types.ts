@@ -8,6 +8,12 @@ export interface MentorChatProps {
   exampleMessage?: string;
   /** Cierra el chat flotante que lo hospeda (D-002.5); sin prop no se pinta el botón y el panel del mentor no se entera. */
   onClose?: () => void;
+  /**
+   * Aviso de que el modo informe (B-033.3, dev-only) se abre o se cierra.
+   * El panel del mentor lo usa para ocultar al resto de sus bloques mientras
+   * el informe ocupa todo el alto; el flotante sin panel no lo necesita.
+   */
+  onReportModeChange?: (maximized: boolean) => void;
 }
 
 /** Una conversación completa, útil para tests y para el guion de la demo. */

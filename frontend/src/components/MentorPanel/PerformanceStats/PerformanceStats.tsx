@@ -1,5 +1,5 @@
 "use client";
-// description: Rendimiento del pasaje (medidores y punto débil).
+// description: Rendimiento del pasaje (medidores). El hueco del «hint» (franja del punto débil bajo los medidores) queda deshabilitado por petición del usuario del 2026-11-08, con el JSX conservado en comentario.
 // context: B-006.4; armazón estático. B-032.10: el prop weakPoint existía y no se pintaba — ahora la tarjeta crece en columna y lo muestra como franja dorada bajo los medidores. Los medidores llevan los colores de la cascada (Timing con la mano derecha, Notas con la izquierda). Ahora se cablea a la evaluación real (B-012.2) cuando hay sesión abierta; sin datos se muestra un placeholder.
 import { useCallback, useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
@@ -107,9 +107,16 @@ export function PerformanceStats({
         <GaugeChart value={measureTiming ?? 0} label="Timing compás" color="var(--hand-right)" />
         <GaugeChart value={measureNotes ?? 0} label="Notas compás" color="var(--hand-left)" />
       </div>
+      {/*
+        Petición del usuario (2026-11-08): el hueco del «hint» (franja del
+        punto débil y sus mensajes de carga/vacío) queda deshabilitado por
+        ahora; las líneas vuelven cuando B-033.4 (la interpretación del
+        mentor en el chat) decida qué se pinta en este bloque.
+
       {loading && <p className={styles.weak}>Cargando rendimiento…</p>}
       {showEmpty && !loading && <p className={styles.weak}>Sin datos aún: toca algo para ver tu rendimiento.</p>}
       {!showEmpty && !loading && <p className={styles.weak}>{weakPoint ?? "Sin debilidad clara"}</p>}
+      */}
     </section>
   );
 }
