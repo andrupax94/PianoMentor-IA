@@ -85,13 +85,20 @@ export function SongRow({ song, index, selected, preview, onSelect, onPlay }: So
       <td className={`${styles.td} ${styles.action}`}>
         <button
           type="button"
-          className={`${styles.play} ${playing ? styles.playing : ""}`}
-          aria-label={playing ? `Pausar ${song.title}` : `Reproducir ${song.title}`}
+          className={`${styles.play} ${playing ? styles.playing : ""} ${loading ? styles.loading : ""}`}
+          aria-label={loading ? `Cargando ${song.title}` : playing ? `Pausar ${song.title}` : `Reproducir ${song.title}`}
           aria-pressed={playing}
           disabled={loading}
           onClick={() => onPlay(song)}
         >
-          {playing ? (
+          {loading ? (
+            <img
+              src="/assets/icons/loading.svg"
+              alt=""
+              aria-hidden="true"
+              className={styles.loadingIcon}
+            />
+          ) : playing ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <rect x="6" y="5" width="4" height="14" rx="1" />
               <rect x="14" y="5" width="4" height="14" rx="1" />

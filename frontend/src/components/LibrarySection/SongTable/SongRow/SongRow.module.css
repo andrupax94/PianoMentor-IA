@@ -177,6 +177,13 @@
   cursor: progress;
 }
 
+.loadingIcon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  pointer-events: none;
+}
+
 /* Mientras suena esta fila, el botón invita a pausar. */
 .play.playing {
   background: var(--gold);

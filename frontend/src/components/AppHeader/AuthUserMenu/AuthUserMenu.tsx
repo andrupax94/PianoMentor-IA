@@ -10,6 +10,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { signIn, signOut } from "next-auth/react";
 
 import { toAuthUserInfo, type AuthSessionRaw, type AuthUserInfo } from "../../../lib/auth-user";
+import { ApiError, registerAuthSession } from "../../../lib/api-client";
 import { AuthSignInModal } from "./AuthSignInModal/AuthSignInModal";
 import { UserAvatar } from "../UserAvatar/UserAvatar";
 import styles from "./AuthUserMenu.module.css";
@@ -39,28 +40,66 @@ export function AuthUserMenu({ fallbackInitial = "A" }: AuthUserMenuProps) {
   // Una única consulta al montar. El sign-in y el sign-out recargan la
   // página entera (redirect de Google o del login con contraseña), con lo
   // que este efecto vuelve a ejecutarse: no hace falta escuchar la sesión.
+  // Además se valida el token contra el backend: si caducó (id_token de
+  // Google ~1 h, JWT propio 12 h) la sesión local de Auth.js ya no sirve y
+  // se limpia para que la UI no mienta (icono de usuario sin piezas).
   useEffect(() => {
     let active = true;
 
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((raw: AuthSessionRaw | null) => {
+    (async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const raw: AuthSessionRaw | null = response.ok ? await response.json() : null;
         if (!active) return;
-        const { user: info } = toAuthUserInfo(raw ?? null);
+        const { user: info, accessToken } = toAuthUserInfo(raw ?? null);
         if (!info) {
           setStatus("anonymous");
           return;
         }
+        // Comprobación real contra el backend: el token puede haber caducado.
+        if (accessToken) {
+          try {
+            await registerAuthSession(accessToken);
+          } catch (err) {
+            if (
+              err instanceof ApiError &&
+              (err.code === "auth_invalid_token" ||
+                err.code === "auth_invalid_header" ||
+                err.code === "auth_missing_header")
+            ) {
+              if (!active) return;
+              await signOut({ redirect: false });
+              if (active) {
+                setUser(null);
+                setStatus("anonymous");
+              }
+              window.location.reload();
+              return;
+            }
+            // Otro error (backend caído, etc.): conservamos la sesión local.
+          }
+        }
+        if (!active) return;
         setUser(info);
         setStatus("signed");
-      })
-      .catch(() => {
+      } catch {
         if (active) setStatus("anonymous");
-      });
+      }
+    })();
 
     return () => {
       active = false;
     };
+  }, []);
+
+  // Otras partes de la app (p. ej. la Library) pueden detectar un token
+  // caducado al llamar al backend y avisar aquí para limpiar la sesión.
+  useEffect(() => {
+    function onInvalid() {
+      void signOut({ redirect: false }).then(() => window.location.reload());
+    }
+    window.addEventListener("piano-mentor:auth-invalid", onInvalid);
+    return () => window.removeEventListener("piano-mentor:auth-invalid", onInvalid);
   }, []);
 
   // AUTOLOGIN=true (solo fuera de producción): entra directo en la cuenta

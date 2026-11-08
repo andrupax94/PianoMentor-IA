@@ -19,4 +19,13 @@ Este documento recoge los recursos de terceros que viajan con el proyecto (muest
 | Regeneración | `npm run samples` en `frontend/` (`scripts/fetch-piano-samples.mjs`) |
 | Piano Image |Foto de <a href="https://unsplash.com/es/@noemierssl?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Noémie Roussel</a> en <a href="https://unsplash.com/es/fotos/piano-vertical-en-blanco-y-negro-29_GYAQqHx0?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a> |
 
+## Animación de carga (Library, vista previa)
+
+| Campo | Valor |
+|---|---|
+| Recurso | Animación "pl" usada como indicador de carga en el botón de vista previa de la Library (`frontend/public/assets/icons/loading.svg`) |
+| Autor | jkantner |
+| Origen | [CodePen](https://codepen.io/jkantner) |
+| Derivación | Colores adaptados a la paleta naranja del proyecto; integrada como SVG autocontenido con su CSS de animación |
+
 La licencia CC BY 3.0 permite usar, remezclar y redistribuir el material, incluso con fines comerciales, **siempre que se cite al autor**. Esta atribución, el enlace a la licencia y la nota de derivación cumplen ese requisito; si los ficheros se mueven a un almacén externo (por ejemplo Cloudflare R2), la atribución debe viajar con ellos, por ejemplo en la propia carpeta y en la interfaz.

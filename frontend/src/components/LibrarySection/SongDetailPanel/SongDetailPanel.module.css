@@ -4,7 +4,6 @@
   gap: 20px;
   align-self: start;
   padding: 24px;
-  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 20px;
 }
@@ -47,12 +46,33 @@
 }
 .stats dd { margin: 0; font-size: 18px; font-weight: 600; }
 
+.primary,
+.practice,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .primary {
   height: 52px;
   border: 0;
   border-radius: 999px;
   background: linear-gradient(90deg, #d28a10, #f8d56a);
   color: #1a1405;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.practice {
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1e6fd9, #5fd1ff);
+  color: #06121f;
   font: inherit;
   font-size: 16px;
   font-weight: 700;
@@ -68,6 +88,19 @@
   font: inherit;
   font-size: 15px;
   cursor: pointer;
+}
+
+.buttonIcon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex: none;
+}
+
+.unavailable {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .empty { color: var(--text-mute); }

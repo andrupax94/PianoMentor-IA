@@ -28,7 +28,7 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
 
   if (!song) {
     return (
-      <aside className={styles.panel}>
+      <aside className={`${styles.panel} cristal-azul`}>
         <p className={styles.empty}>Selecciona una canción.</p>
       </aside>
     );
@@ -72,7 +72,7 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
   }
 
   return (
-    <aside className={styles.panel}>
+    <aside className={`${styles.panel} cristal-azul`}>
       <div className={styles.cover}>
         {song.cover ? (
           <img className={styles.coverImg} src={song.cover} alt="" />
@@ -108,17 +108,19 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
         </div>
       </dl>
 
-      <button type="button" className={styles.primary} onClick={continueInLearn}>
-        Continuar en Learn
+      <button type="button" className={`${styles.primary} ${styles.withIcon}`} onClick={continueInLearn}>
+        <img src="/assets/icons/play.svg" alt="" aria-hidden="true" className={styles.buttonIcon} />
+        Reproducir en Piano
       </button>
 
       <button
         type="button"
-        className={styles.secondary}
+        className={`${styles.practice} ${styles.withIcon}`}
         onClick={practice}
         disabled={openingSession}
       >
-        {openingSession ? "Abriendo sesión…" : "Practicar esta pieza"}
+        <img src="/assets/icons/piano.svg" alt="" aria-hidden="true" className={styles.buttonIcon} />
+        {openingSession ? "Abriendo sesión…" : "Comenzar sesión de práctica"}
       </button>
 
       {error && (
@@ -129,10 +131,12 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
 
       <button
         type="button"
-        className={styles.secondary}
+        className={`${styles.secondary} ${styles.withIcon} ${styles.unavailable}`}
         aria-expanded={showUploader}
+        disabled
         onClick={() => setShowUploader((open) => !open)}
       >
+        <img src="/assets/icons/midi.svg" alt="" aria-hidden="true" className={styles.buttonIcon} />
         Subir archivo MIDI
       </button>
 

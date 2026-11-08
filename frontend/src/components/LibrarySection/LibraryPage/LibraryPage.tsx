@@ -6,8 +6,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
-import { getPieceList, getPieceNotes, type PieceNotesResponse } from "../../../lib/api-client";
+import { ApiError, getPieceList, getPieceNotes, type PieceNotesResponse } from "../../../lib/api-client";
 import {
   EMPTY_FILTERS,
   matchesFilters,
@@ -70,8 +71,27 @@ export function LibraryPage() {
         setSelectedId((current) => current ?? loaded[0]?.id ?? null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((err) => {
+        if (!active) return;
+        // Sesión caducada en el backend: avisar a la cabecera (que limpia la
+        // cookie de Auth.js) y reintentar el listado como anónimo para no
+        // dejar la biblioteca vacía.
+        if (err instanceof ApiError && (err.code === "auth_invalid_token" || err.code === "auth_invalid_header")) {
+          window.dispatchEvent(new CustomEvent("piano-mentor:auth-invalid"));
+          getPieceList("corpus", undefined)
+            .then((items) => {
+              if (!active) return;
+              const loaded = toSongs(items ?? []);
+              setSongs(loaded);
+              setSelectedId((current) => current ?? loaded[0]?.id ?? null);
+              setState("ready");
+            })
+            .catch(() => {
+              if (active) setState("error");
+            });
+          return;
+        }
+        setState("error");
       });
 
     return () => {
@@ -114,7 +134,7 @@ export function LibraryPage() {
       }
 
       setPreviewError(null);
-      setLoadingId(song.id);
+      flushSync(() => setLoadingId(song.id));
       try {
         let score = scoresRef.current.get(song.id);
         if (!score) {
@@ -129,7 +149,13 @@ export function LibraryPage() {
         setPreviewId(song.id);
         // El gesto del clic desbloquea el AudioContext; si el navegador lo rechaza,
         // la pieza queda cargada y el botón sigue ahí para reintentar.
-        void play().catch(() => undefined);
+        const loadStartedAt = Date.now();
+        await play().catch(() => undefined);
+        // Duración mínima del spinner para que la carga se perciba.
+        const remaining = 1000 - (Date.now() - loadStartedAt);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
       } catch {
         setPreviewError("No se pudo cargar la pieza para escucharla. Comprueba el backend.");
       } finally {
@@ -146,7 +172,7 @@ export function LibraryPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.card}>
+      <section className={`${styles.card} cristal-azul`}>
         <h1 className={styles.title}>Library</h1>
         <p className={styles.subtitle}>
           {songs.length} canciones · {mastered} dominadas · {inProgress} en progreso
@@ -177,7 +203,7 @@ export function LibraryPage() {
               songs={current.items}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              preview={{ id: previewId, playing: status === "playing", loadingId }}
+              preview={{ id: previewId, playing: status === "playing" || status === "preroll", loadingId }}
               onPlay={handlePreview}
               sort={sort}
               onSort={handleSort}

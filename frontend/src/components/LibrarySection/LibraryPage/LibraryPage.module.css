@@ -12,7 +12,6 @@
 }
 
 .card {
-  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 20px;
   padding: 28px 24px 8px;
