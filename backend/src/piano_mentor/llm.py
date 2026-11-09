@@ -109,8 +109,17 @@ class LLMProvider(ABC):
     """Contrato de proveedor: dada una conversación y las herramientas, propone."""
 
     @abstractmethod
-    def chat(self, messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> LLMResponse:
-        """Devuelve texto y, opcionalmente, una llamada a función del registro."""
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        tools: list[dict[str, Any]],
+        max_tokens: int | None = None,
+    ) -> LLMResponse:
+        """Devuelve texto y, opcionalmente, una llamada a función del registro.
+
+        `max_tokens` (B-033.4 revisión): presupuesto de respuesta que pide el
+        turno; `None` deja el default del proveedor (400 en los compatibles).
+        """
 
     def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
         """Propone una acción pedagógica dado el estado de la sesión (B-012.6).
@@ -271,7 +280,12 @@ class MockProvider(LLMProvider):
 
     # -- Respuesta -------------------------------------------------------------
 
-    def chat(self, messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> LLMResponse:
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        tools: list[dict[str, Any]],
+        max_tokens: int | None = None,
+    ) -> LLMResponse:
         user_text = ""
         for message in reversed(messages):
             if message.get("role") == "user":
@@ -547,20 +561,30 @@ class OpenAICompatibleProvider(LLMProvider):
         model: str,
         provider_name: str,
         timeout_s: float = 10.0,
+        max_tokens: int = 400,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.provider_name = provider_name
         self.timeout_s = timeout_s
+        self.max_tokens = max_tokens
 
-    def chat(self, messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> LLMResponse:
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        tools: list[dict[str, Any]],
+        max_tokens: int | None = None,
+    ) -> LLMResponse:
         import httpx
 
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": 400,
+            # B-033.4 revisión: el turno puede pedir más presupuesto que el
+            # default 400 (la interpretación en su ventana grande); el techo
+            # lo acota ChatService antes de llegar aquí.
+            "max_tokens": max_tokens if max_tokens is not None else self.max_tokens,
         }
         # Sin herramientas (última llamada para forzar texto) se omiten las claves
         # `tools`/`tool_choice`: algunos proveedores rechazan un `tools: []`.
@@ -706,11 +730,21 @@ class FallbackProvider(LLMProvider):
         """Un turno sin texto ni funciones no es una respuesta, es un fallo."""
         return not (respuesta.text or "").strip() and not respuesta.tool_calls
 
-    def chat(self, messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> LLMResponse:
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        tools: list[dict[str, Any]],
+        max_tokens: int | None = None,
+    ) -> LLMResponse:
         motivo: str | None = None
         for provider in self.providers:
             try:
-                respuesta = provider.chat(messages, tools)
+                # La regla del turno: el kwarg solo viaja si llegó (los
+                # proveedores de test con firma corta siguen valiendo).
+                if max_tokens is not None:
+                    respuesta = provider.chat(messages, tools, max_tokens=max_tokens)
+                else:
+                    respuesta = provider.chat(messages, tools)
             except Exception as exc:  # pylint: disable=broad-except  # noqa: BLE001
                 motivo = str(exc)
                 continue

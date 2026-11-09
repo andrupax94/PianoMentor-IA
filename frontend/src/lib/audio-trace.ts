@@ -1,5 +1,7 @@
-// description: Trazas de diagnóstico del audio (2026-11-07): registra en consola las operaciones relevantes del sampler/transporte cuando el navegador abre la app con el parámetro ?traceAudio — dev-only, silencio total en producción y por defecto.
-// context: Nace del corte de sonido residual con la pulsación anticipada (B-032.8): grabando el audio, este log dice QUÉ operación silenció la voz y cuándo. No toca el flujo de sonido: solo imprime pila de llamadas recortada.
+// description: Trazas de diagnóstico del audio (2026-11-07): registra en consola las operaciones relevantes del sampler/transporte cuando el navegador abre la app con el parámetro ?traceAudio — dev-only, silencio total en producción y por defecto. Desde B-033.5 publica la misma línea en el Registro del menú de depuración.
+// context: Nace del corte de sonido residual con la pulsación anticipada (B-032.8): grabando el audio, este log dice QUÉ operación silenció la voz y cuándo. No toca el flujo de sonido: solo imprime pila de llamadas recortada. Desde B-033.5 la misma línea va también al Registro del menú de depuración (practice-debug, canal audio) cuando la traza está activa — se escribe en los dos lados a la vez y el registro conserva su anillo.
+
+import { publishDebugLog } from "./practice-debug";
 
 const MARK = "%c[audio]";
 const STYLE = "color:#d4af37;font-weight:700";
@@ -59,10 +61,19 @@ export function setTraceAudio(enabled: boolean): boolean {
  * Traza de audio: activada con ?traceAudio en la URL. Línea única, sin pila
  * (el facsímil de pila hacía los logs kilométricos); para las llamadas que
  * SILNCIAN el sampler sigue existiendo audioTraceStack con la pila plegable.
+ * B-033.5: además de la consola, la misma línea entra en el Registro del menú
+ * de depuración (canal `audio`), con la traza activada — un solo texto, los
+ * dos lados; el anillo del registro decide cuántas conserva.
  */
 export function audioTrace(...args: unknown[]): void {
   if (!active()) return;
+  // El texto se compone una vez sin estilos: la consola recibe el color
+  // aparte y el registro el texto plano igual al que se ve en consola.
+  const text = args
+    .map((value) => (typeof value === "string" ? value : JSON.stringify(value) ?? String(value)))
+    .join(" ");
   console.info(MARK, STYLE, ...args);
+  publishDebugLog("audio", `[audio] ${text}`);
 }
 
 /** Igual pero evoca console.trace para la pila completa desplegable. */
@@ -71,6 +82,9 @@ export function audioTraceStack(message: string): void {
   console.groupCollapsed(MARK, STYLE, message);
   console.trace();
   console.groupEnd();
+  // Aunque la pila quedase plegable solo en consola, el mensaje entra al
+  // registro: los alias que silencian son los más útiles y curiosos ahí.
+  publishDebugLog("audio", `[audio] ${message} (pila en la consola)`);
 }
 
 /** Banner de arranque: distingue «sin trazas» (no activas) de «trazas caídas». */

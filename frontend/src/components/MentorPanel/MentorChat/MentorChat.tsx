@@ -1,9 +1,10 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover.
-// context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover. B-033.4 da contenido al modo interpretación (maximizado, revisión del 2026-11-08: botón de producto): descarga el informe de la sesión una vez (getPracticeReport), renderiza los bloques deterministas del `summary` (session-interpretation.ts, lib pura) y pide la redacción amable del agente por un turno efímero del chat (ephemeral, sin historial) cuya procedencia va a session-store.lastStep; con el Mock o si falla, el fallback es el determinismo, sin error visible.
+// context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render. La interpretación (B-033.4) comparte chat_id con la conversación para que el agente redacte con memoria, pero su turno no se graba en la historia y su render va en la burbuja maximizada (no en la de la conversación).
 
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -22,9 +23,16 @@ import {
 import {
   ApiError,
   createSession,
+  getPracticeReport,
   runAgentStep,
   sendAgentMessage,
 } from "../../../lib/api-client";
+import type { PracticeReport } from "../../../lib/api-client";
+import {
+  buildInterpretation,
+  interpretationContext,
+  interpretationPrompt,
+} from "../../../lib/session-interpretation";
 import { isPendingOffer, offerMessage, repeatOfferMessage } from "../../../lib/agent-offer";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishOfferChoice } from "../../../lib/offer-choice";
@@ -53,24 +61,35 @@ const FONT_CLASS = {
 } as const;
 
 /**
- * B-033.3: el modo maximizado del chat (dev-only) reserva el alto del panel
- * para la interpretación del mentor. El informe técnico ya no vive aquí: va
- * como sub-pestaña «Informe» del panel Depurar (SessionDebug). La
- * interpretación (destacados del informe redactados por el agente con
- * fallback determinista) llega con B-033.4; mientras tanto, el hueco se
- * explica: sin lazy condicional, que aquí ya no se monta nada aparte.
+ * B-033.4: mensajes del modo interpretación cuando no hay cuerpo que dar
+ * (sin sesión abierta, sin señales todavía o falla la lectura del informe).
+ * Son texto de cara al alumno: sin referencias internas ni de depuración.
  */
-const IS_DEV = process.env.NODE_ENV !== "production";
+const INTERP_NOTE_NO_SESSION =
+  "Todavía no hay práctica abierta. Cuando practiques, aquí te cuento cómo te fue.";
+
+const INTERP_NOTE_EMPTY =
+  "Todavía no hay práctica que comentar: toca algo en tu sesión y vuelve.";
+
+const INTERP_NOTE_ERROR = "No he podido leer el informe de la sesión en este momento.";
 
 /**
- * B-033.3: texto del hueco maximizado. En dev habla de B-033.4 y de dónde
- * mirar el informe técnico (información útil para quien depura); en
- * producción el cuerpo definitivo llega con B-033.4 y el texto que lo cubre
- * es de cara al alumno, sin nada interno.
+ * B-033.5 (petición del usuario): «Volver a generar opinión de la IA».
+ * Habilitación anti-abuso: mínimo 3 minutos desde la última generación Y
+ * señales nuevas de práctica en la sesión (comprobado con una consulta
+ * ligera cada 30 s, solo mientras el modo está abierto). Con Mock el
+ * click recarga el determinismo (no quema nada de LLM).
  */
-const MAXIMIZED_NOTE = IS_DEV
-  ? "La interpretación del mentor vivirá aquí (B-033.4). El informe técnico lo miras en el panel de estado, pestaña «Depurar → Informe»."
-  : "Muy pronto tu profesor te contará aquí qué hiciste bien y en qué afinar. De momento, sigue tu progreso desde el panel de estado.";
+const REGEN_COOLDOWN_MS = 3 * 60_000;
+const REGEN_CHECK_MS = 30_000;
+
+/** mm:ss de un resto de milisegundos para la pista del botón. */
+function countdownText(ms: number): string {
+  const total = Math.ceil(ms / 1000);
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 function readStoredChatId(): string | null {
   if (typeof window === "undefined") return null;
@@ -112,6 +131,38 @@ export function MentorChat({
    * oculta al resto de sus bloques mientras el chat ocupa todo el alto.
    */
   const [reportMode, setReportMode] = useState(false);
+  /**
+   * B-033.4: la interpretación del mentor en el modo maximizado. El informe
+   * va una vez por sesión (el ref lo recuerda; session_id cambia, se
+   * descarga) desde `getPracticeReport` (B-033.3) y de su `summary` salen los
+   * bloques deterministas. La redacción del agente va por el canal del chat
+   * en un turno `ephemeral` (no ensucia la conversación): con proveedor real
+   * se pinta encima de los bloques y con el Mock (o si falla) se queda solo
+   * el determinismo, sin error visible — el fallback de la casa.
+   */
+  const [interpPhase, setInterpPhase] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [interpReport, setInterpReport] = useState<PracticeReport | null>(null);
+  const [interpError, setInterpError] = useState<string | null>(null);
+  const [redaction, setRedaction] = useState<string | null>(null);
+  /**
+   * B-033.5: la generación en vigor del modo (incrementa al pulsar el botón
+   * regenerar) y el rastro de la última: cuándo se pidió y cuántas señales
+   * tenía el informe que la alimentó. Con ambos decides si se puede generar
+   * otra: ≥3 min y señales nuevas.
+   */
+  const [generation, setGeneration] = useState(0);
+  const [lastRun, setLastRun] = useState<{ at: number; signals: number } | null>(null);
+  /** Señales ya confirmadas por la comprobación periódica (null = sin dato). */
+  const [checkedSignals, setCheckedSignals] = useState<number | null>(null);
+  /**
+   * Guarda del modo: qué clave (sesión+generación) ya se pidió y si la
+   * redacción también. Cambia la clave → se re-pregunta todo.
+   */
+  const interpRef = useRef<{ key: string; asked: boolean; redacted: boolean }>({
+    key: "",
+    asked: false,
+    redacted: false,
+  });
   const chatIdRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   /**
@@ -219,6 +270,149 @@ export function MentorChat({
     },
     [onReportModeChange],
   );
+
+  // B-033.4: cambia la sesión abierta → la interpretación se limpia; el
+  // informe de la sesión anterior no debe sobrevivir al cambio de práctica.
+  // B-033.5: la generación y su rastro también vuelven a cero.
+  useEffect(() => {
+    interpRef.current = { key: "", asked: false, redacted: false };
+    setInterpReport(null);
+    setInterpPhase("idle");
+    setInterpError(null);
+    setRedaction(null);
+    setGeneration(0);
+    setLastRun(null);
+    setCheckedSignals(null);
+  }, [session.sessionId]);
+
+  /**
+   * B-033.4: abrir el modo interpretación descarga el informe (una vez por
+   * clave sesión+generación) y con práctica en él pide la redacción del
+   * agente por el turno efímero del chat. El fallback es determinista: el
+   * Mock (o cualquier fallo del turno) no rompe nada — los bloques
+   * deterministas son el mensaje.
+   */
+  useEffect(() => {
+    if (!reportMode) return;
+    const sessionId = session.sessionId;
+    const key = `${sessionId ?? "none"}|${generation}`;
+    const guard = interpRef.current;
+    if (guard.asked && guard.key === key) return;
+    guard.asked = true;
+    guard.key = key;
+    guard.redacted = false;
+    setInterpReport(null);
+    setRedaction(null);
+    if (sessionId === null) {
+      setInterpPhase("idle");
+      return; // sin sesión: texto de espera, sin fetch
+    }
+    setInterpPhase("loading");
+    getPracticeReport(sessionId)
+      .then((report) => {
+        setInterpReport(report);
+        setInterpPhase("ready");
+        setLastRun({ at: Date.now(), signals: report.summary.signals });
+        setCheckedSignals(null); // la comprobación vuelve a mirar desde cero
+      })
+      .catch((failure: unknown) => {
+        setInterpPhase("error");
+        setInterpError(
+          failure instanceof ApiError
+            ? failure.message
+            : "No se pudo leer el informe de la práctica.",
+        );
+      });
+  }, [reportMode, session.sessionId, generation]);
+
+  // La redacción llega aparte: solo cuando hay informe encontrado y el modo
+  // pedido. Un turno del chat en `ephemeral` (sin historial) interpreta la
+  // práctica; la procedencia viaja al estado de sesión igual que la pista.
+  useEffect(() => {
+    if (!reportMode || interpReport === null || interpRef.current.redacted) return;
+    interpRef.current.redacted = true; // una sola petición por informe cargado
+    const interpretation = buildInterpretation(interpReport.summary);
+    if (!interpretation.hasPractice) return;
+
+    let alive = true;
+    sendAgentMessage(
+      {
+        message: interpretationPrompt(),
+        chat_id: chatIdRef.current,
+        context: interpretationContext(
+          interpretation,
+          typeof window === "undefined" ? {} : { page: window.location.pathname },
+        ),
+        ephemeral: true,
+        // Revisión del 2026-11-09: la ventana maximizada tiene sitio — se pide
+        // más presupuesto que el default 400 (el backend lo acota al techo).
+        max_tokens: 1200,
+      },
+      tokenRef.current ?? undefined,
+    )
+      .then((response) => {
+        if (!alive) return;
+        // Procedencia para el diagnóstico del estado de sesión (fuera de prod).
+        updateSession({
+          lastStep: { provider: response.provider, used_fallback: response.used_fallback },
+        });
+        // Fallback determinista: con el Mock (último de la cadena) los bloques
+        // deterministas ya son el mensaje; nada de redacción simuada.
+        if (response.provider === "mock" || response.used_fallback) return;
+        if (response.reply.trim()) setRedaction(response.reply.trim());
+      })
+      .catch(() => {
+        // Sin redacción el modo sigue siendo legible: sin error visible.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [reportMode, interpReport]);
+
+  // B-033.5: mientras el modo esté abierto, un tictac de 1 s para la cuenta
+  // atrás del enfriamiento y una comprobación ligera cada 30 s que mira si
+  // hay señales nuevas (el criterio «ciclo completado» del botón). Sin modo
+  // abierto: cero peticiones de más (el efecto queda muerto).
+  useEffect(() => {
+    if (!reportMode) return;
+    const tictac = window.setInterval(() => {
+      setLastRun((current) => (current === null ? current : { ...current }));
+    }, 1000);
+    return () => window.clearInterval(tictac);
+  }, [reportMode]);
+
+  useEffect(() => {
+    if (!reportMode || session.sessionId === null) return;
+    const sessionId = session.sessionId;
+    const comprobador = window.setInterval(async () => {
+      try {
+        const report = await getPracticeReport(sessionId);
+        setCheckedSignals(report.summary.signals);
+      } catch {
+        // sin dato, la comprobación solo retarda la habilitación (honesto)
+      }
+    }, REGEN_CHECK_MS);
+    return () => window.clearInterval(comprobador);
+  }, [reportMode, session.sessionId]);
+
+  /** ¿Puede regenerarse ya? (enfriamiento pasado y señales nuevas confirmadas) */
+  const regenRemaining = lastRun === null ? 0 : lastRun.at + REGEN_COOLDOWN_MS - Date.now();
+  const canRegenerate =
+    interpPhase === "ready" &&
+    interpReport !== null &&
+    interpReport.summary.signals > 0 &&
+    lastRun !== null &&
+    regenRemaining <= 0 &&
+    checkedSignals !== null &&
+    checkedSignals > lastRun.signals;
+
+  /** Botón regenerar: nueva clave → el efecto recarga informe y redacción. */
+  const regenerate = useCallback(() => {
+    if (!canRegenerate || busy) return;
+    setInterpPhase("idle");
+    setCheckedSignals(null);
+    setGeneration((current) => current + 1);
+  }, [busy, canRegenerate]);
 
   // Obtiene la sesión de navegador (U-008.3): el token para enviar y el nombre
   // para la bienvenida. La bienvenida NO se guarda en `reply` (estado de la
@@ -434,6 +628,66 @@ export function MentorChat({
    */
   const ghostHint = chatFontSize(shown) !== "lg";
 
+  /**
+   * B-033.4: el cuerpo del modo interpretación. Con sesión → informe descargado
+   * (loading/ready/error), y con práctica en él los bloques deterministas
+   * precedidos, si llega, por la redacción amable del agente (turno efímero
+   * del chat). Sin sesión o sin señales, el mensaje de espera correspondiente.
+   */
+  const interpretation = interpReport ? buildInterpretation(interpReport.summary) : null;
+  let interpBody: ReactNode;
+  if (session.sessionId === null) {
+    interpBody = INTERP_NOTE_NO_SESSION;
+  } else if (interpPhase === "loading" || interpPhase === "idle") {
+    interpBody = "Revisando tu práctica…";
+  } else if (interpPhase === "error") {
+    interpBody = interpError ?? INTERP_NOTE_ERROR;
+  } else if (interpretation !== null && !interpretation.hasPractice) {
+    interpBody = INTERP_NOTE_EMPTY;
+  } else if (interpretation !== null) {
+    interpBody = (
+      <div className={styles.report}>
+        <div className={styles.reportActions}>
+          <button
+            type="button"
+            className={styles.reportRegen}
+            disabled={!canRegenerate}
+            aria-label={
+              canRegenerate
+                ? "Volver a generar la opinión de la IA con la práctica nueva"
+                : `Volver a generar la opinión de la IA (otra opinión en ${countdownText(Math.max(regenRemaining, 0))} y con señales nuevas)`
+            }
+            title={
+              canRegenerate
+                ? "Rehace la interpretación con lo nuevo de la práctica (turno efímero, sin ensuciar la conversación)"
+                : "Vuelve a estar disponible pasados 3 minutos de la última opinión y con señales nuevas de práctica"
+            }
+            onClick={regenerate}
+          >
+            Volver a generar opinión de la IA
+          </button>
+          {!canRegenerate && regenRemaining > 0 && (
+            <span className={styles.regenHint}>
+              otra opinión en {countdownText(regenRemaining)}
+              {checkedSignals !== null && !canRegenerate ? " · siguen sin aparecer señales nuevas" : ""}
+            </span>
+          )}
+        </div>
+        {redaction !== null && <p className={styles.reportNarration}>{redaction}</p>}
+        {interpretation.blocks.map((block) => (
+          <section key={block.heading} className={styles.reportBlock}>
+            <h4 className={styles.reportHeading}>{block.heading}</h4>
+            <ul className={styles.reportList}>
+              {block.lines.map((line, lineIndex) => (
+                <li key={lineIndex}>{line}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <section className={styles.chat} aria-label="Chat del mentor">
       <div className={styles.heading}>
@@ -470,14 +724,17 @@ export function MentorChat({
         </div>
       </div>
 
-      {/* B-033.3: maximizado, el chat reserva el alto del panel con la burbuja
-          de siempre. El informe técnico va a «Depurar → Informe»
-          (SessionDebug); el hueco acoge la interpretación del mentor, que
-          llega con B-033.4 — y mientras tanto se escribe dentro de la burbuja,
-          con sus clases, no como texto suelto fuera del globo. */}
+      {/* B-033.4: maximizado, el chat reserva el alto del panel y la burbuja
+          acoge la interpretación del mentor: la redacción amable (turno efímero
+          del chat) cuando hay LLM y, siempre, los bloques deterministas del
+          `summary`. El informe técnico sigue en «Depurar → Informe». */}
       {reportMode ? (
-        <div className={`${styles.bubble} ${styles.fontSm}`} aria-live="polite">
-          {MAXIMIZED_NOTE}
+        <div
+          className={`${styles.bubble} ${styles.fontSm} ${styles.reportMode}`}
+          aria-live="polite"
+          aria-busy={interpPhase === "loading"}
+        >
+          {interpBody}
         </div>
       ) : (
         <>

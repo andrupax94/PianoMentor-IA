@@ -1,4 +1,4 @@
-// description: Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso, ahora con id_token opcional de Google para owner_id); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback); desde U-005 añade registerAuthSession (POST /auth/session) con AuthUser/AuthSessionResponse y los códigos auth_*, y loginWithPassword (POST /auth/login) para el login simple con contraseña (AuthLoginResponse con access_token).
+// description: Cliente HTTP tipado hacia FastAPI con tipos de los contratos Pydantic (PieceResponse con source y deduplicated; PieceNotesResponse con la rejilla PieceMeasures y los opcionales tracks/chords y PlayableNote.hand de B-009.3; PieceCatalogItem para la lista del catálogo) y errores ApiError con código estable. Expone previewPiece (POST /pieces/preview, efímero), getPieceList (GET /pieces?source=corpus|upload), getPieceNotes (con opciones withHands/withChords) y uploadPiece (conservado sin uso, ahora con id_token opcional de Google para owner_id); desde B-012.1 añade createSession (POST /sessions) y getSessionState (GET /sessions/{id}/state) con los tipos SessionResponse/SessionState, los estados idle/playing/paused y el control student/agent; y desde B-012.8 añade sendAgentMessage (POST /agent/chat) con los tipos AgentChatRequest/AgentChatResponse, AgentClientAction y AgentToolCall; desde B-012.6 añade runAgentStep (POST /sessions/{id}/agent-step) con el tipo AgentStepResponse (action, status, provider, reason y used_fallback); desde U-005 añade registerAuthSession (POST /auth/session) con AuthUser/AuthSessionResponse y los códigos auth_*, y loginWithPassword (POST /auth/login) para el login simple con contraseña (AuthLoginResponse con access_token); desde B-033.3 añade getPracticeReport (GET /sessions/{id}/practice-report, con PracticeReport y sus bloques) y desde B-033.4 los tipos del resumen determinista (PracticeSummary y sus subobjetos) y la bandera ephemeral del turno de chat que no graba historial.
 // context: Único punto de llamadas REST desde componentes; usado por B-004 y reutilizado por B-012. La subida persistente se conserva a propósito, aunque hoy la interfaz use previewPiece. Los campos de B-009.3 son opcionales en los tipos y no los pide ningún componente todavía: el uso visible (manos, acordes) es de B-012. Los códigos session_not_found, invalid_event_payload y ws_error se reconocen como errores estables, al igual que invalid_chat_payload, unknown_tool y tool_failed del chat; los auth_* de identidad llegan con U-005.
 
 export interface PieceMetadata {
@@ -614,11 +614,55 @@ export interface PracticeReportSignal {
   created_at: string | null;
 }
 
+/** Un compás a mejorar del resumen, alineado con `PracticeWorstMeasure` (B-033.4). */
+export interface PracticeSummaryWorstMeasure {
+  measure: number | null;
+  counts: Record<string, number>;
+  attempts: number;
+  hit_ratio: number;
+}
+
+/** El fallo dominante del resumen, alineado con `PracticeDominantFailure` (B-033.4). */
+export interface PracticeSummaryDominantFailure {
+  outcome: string;
+  count: number;
+  gate: string | null;
+}
+
+/** Intervenciones del agente agregadas, alineado con `PracticeInterventionsSummary` (B-033.4). */
+export interface PracticeSummaryInterventions {
+  count: number;
+  by_action: Record<string, number>;
+  by_reason: Record<string, number>;
+}
+
+/** Lo clave de la evaluación compacta citado en el resumen (B-032.3 vía B-033.4). */
+export interface PracticeSummaryEvaluation {
+  score_total: number | null;
+  error_type: string | null;
+  received_ratio: number | null;
+}
+
+/** Destacados deterministas del informe, alineado con `PracticeSummary` (B-033.4). */
+export interface PracticeSummary {
+  signals: number;
+  active_measures: number;
+  distinct_gates: number;
+  practiced_s: number | null;
+  outcomes: Record<string, number>;
+  hit_ratio: number | null;
+  worst_measures: PracticeSummaryWorstMeasure[];
+  dominant_failure: PracticeSummaryDominantFailure | null;
+  interventions: PracticeSummaryInterventions;
+  evaluation: PracticeSummaryEvaluation | null;
+}
+
 /** Informe consolidado de la sesión (B-033.3), alineado con `PracticeReportResponse`. */
 export interface PracticeReport {
   session: PracticeReportSession;
   by_measure: PracticeReportMeasure[];
   agent_decisions: PracticeReportDecision[];
+  summary: PracticeSummary;
   signals: {
     total: number;
     returned: number;
@@ -752,6 +796,14 @@ export interface AgentChatRequest {
   message: string;
   chat_id?: string | null;
   context?: AgentChatContext | null;
+  /** B-033.4: turno que no se graba en la memoria de la conversación. */
+  ephemeral?: boolean;
+  /**
+   * B-033.4 revisión (2026-11-09): presupuesto de la respuesta; el backend lo
+   * acota al techo (`llm_max_tokens_techo`). La interpretación pide más que el
+   * default del proveedor (400): su ventana es grande.
+   */
+  max_tokens?: number;
 }
 
 /** Respuesta de POST /api/v1/agent/chat, alineada con ChatMessageResponse. */

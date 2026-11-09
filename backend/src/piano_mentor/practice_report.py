@@ -1,5 +1,5 @@
-# description: Informe consolidado de práctica (B-033.3): función pura `build_report` que arma el JSON del informe (sesión con ventana derivada de las señales, agregación por compás con conteos por outcome, decisiones del agente en orden temporal y señales crudas truncadas) y `session_report` que reúne lo persistido por B-032.6.
-# context: Solo lectura de lo ya persistido: no calcula métricas pedagógicas nuevas ni toca el transporte. La evaluación (B-032.3) la inyecta la API con la misma versión compacta que consume el agente. Determinista: el mismo id de sesión con los mismos datos devuelve el mismo informe en cuanto a listas y números (orden estable por `id`); `generated_at` es el único campo volátil.
+# description: Informe consolidado de práctica (B-033.3 + summary de B-033.4): función pura `build_report` que arma el JSON del informe (sesión con ventana derivada de las señales, agregación por compás con conteos por outcome, decisiones del agente en orden temporal, destacados `summary` deterministas que traduce la interpretación del chat y señales crudas truncadas) y `session_report` que reúne lo persistido por B-032.6.
+# context: Solo lectura de lo ya persistido: no calcula métricas pedagógicas nuevas ni toca el transporte. La evaluación (B-032.3) la inyecta la API con la misma versión compacta que consume el agente, y el `summary` solo agrega lo servido (outcomes, compases a mejorar, fallo dominante, intervenciones). Determinista: el mismo id de sesión con los mismos datos devuelve el mismo informe (orden estable por `id`, desempates fijos); `generated_at` es el único campo volátil.
 
 """Informe consolidado de una sesión de práctica (B-033.3).
 
@@ -94,6 +94,115 @@ def aggregate_by_measure(
     return [groups[measure] for measure in order]
 
 
+def build_summary(
+    signals: list[dict[str, object]],
+    decisions: list[Mapping[str, object]],
+    evaluation: dict[str, object] | None,
+    practiced_s: float | None,
+) -> dict[str, object]:
+    """Destacados deterministas de la práctica (B-033.4): la parte que el
+    alumno lee.
+
+    Solo agrega lo ya servido, sin métricas pedagógicas nuevas: conteos por
+    outcome, los compases con peor proporción de aciertos, el fallo dominante,
+    lo que el agente intervino y lo clave de la evaluación (B-032.3). Toda
+    elección tiene desempate estable (orden de `OUTCOMES`, orden de llegada,
+    orden por `id`) para que la misma sesión dé el mismo resumen.
+
+    Sin señales devuelve su forma vacía: sin ratios (`None`), listas vacías y
+    cero intervenciones — el front presenta «todavía no hay práctica que
+    comentar».
+    """
+    outcomes = dict.fromkeys(OUTCOMES, 0)
+    gates: set[str] = set()
+    failed_gates: dict[str, int] = {}
+    for signal in signals:
+        outcome = str(signal.get("outcome"))
+        outcomes[outcome] = int(outcomes.get(outcome, 0)) + 1
+        gate = str(signal.get("gate"))
+        gates.add(gate)
+        if outcome != "hit":
+            failed_gates[gate] = int(failed_gates.get(gate, 0)) + 1
+
+    total = len(signals)
+    # Ratio global de aciertos; None sin señales (no es 0: no hubo práctica).
+    hit_ratio = round(outcomes["hit"] / total, 3) if total else None
+
+    # Compases a mejorar: los 3 con peor proporción de aciertos. El desempate
+    # es primero más intentos (más evidencia del fallo) y después orden de
+    # llegada del agregado, de modo que el mismo informe los ordena igual.
+    aggregate = aggregate_by_measure(signals)
+    scored: list[tuple[float, int, int, dict[str, object]]] = []
+    for index, group in enumerate(aggregate):
+        counts = group["counts"]
+        assert isinstance(counts, dict)
+        attempts = sum(int(value) for value in counts.values())
+        ratio = round(int(counts["hit"]) / attempts, 3) if attempts else None
+        assert ratio is not None  # un compás del agregado tiene ≥ 1 señal
+        scored.append((ratio, -attempts, index, group))
+    scored.sort(key=lambda item: (item[0], item[1], item[2]))
+    worst_measures = [
+        {
+            "measure": group["measure"],
+            "counts": group["counts"],
+            "attempts": -neg_attempts,
+            "hit_ratio": ratio,
+        }
+        for ratio, neg_attempts, _, group in scored[:3]
+    ]
+
+    # Fallo dominante entre los fallidos: el outcome más repetido (desempate
+    # por el orden estable de `OUTCOMES`) y el gate con más fallos (desempate
+    # por orden de llegada de las señales). El None es natural en sesiones
+    # perfectas: nada falló, no hay «peor fallo».
+    dominant_failure: dict[str, object] | None = None
+    if total and total - outcomes["hit"] > 0:
+        dominant_outcome = max(OUTCOMES[1:], key=lambda name: (outcomes[name], -OUTCOMES.index(name)))
+        dominant_gate = max(failed_gates, key=lambda gate: (failed_gates[gate], str(gate))) if failed_gates else None
+        dominant_failure = {
+            "outcome": dominant_outcome,
+            "count": outcomes[dominant_outcome],
+            "gate": dominant_gate,
+        }
+
+    # Intervenciones: por acción y por razón (las razones estables de las
+    # reglas, p. ej. `gate_repeated_strikes`), en orden temporal de llegada.
+    by_action: dict[str, int] = {}
+    by_reason: dict[str, int] = {}
+    for decision in decisions:
+        action = str(decision.get("action"))
+        by_action[action] = int(by_action.get(action, 0)) + 1
+        if reason := str(decision.get("reason") or ""):
+            by_reason[reason] = int(by_reason.get(reason, 0)) + 1
+
+    # Lo clave de la evaluación compacta (B-032.3), si la hay: nada de los
+    # arrays pesados, solo los tres números que citan los destacados.
+    evaluation_summary: dict[str, object] | None = None
+    if evaluation:
+        evaluation_summary = {
+            "score_total": evaluation.get("score_total"),
+            "error_type": evaluation.get("error_type"),
+            "received_ratio": evaluation.get("received_ratio"),
+        }
+
+    return {
+        "signals": total,
+        "active_measures": len(aggregate),
+        "distinct_gates": len(gates),
+        "practiced_s": practiced_s,
+        "outcomes": outcomes,
+        "hit_ratio": hit_ratio,
+        "worst_measures": worst_measures,
+        "dominant_failure": dominant_failure,
+        "interventions": {
+            "count": len(decisions),
+            "by_action": by_action,
+            "by_reason": by_reason,
+        },
+        "evaluation": evaluation_summary,
+    }
+
+
 def decision_block(row: Mapping[str, object]) -> dict[str, object]:
     """Fila de `agent_decisions` al dict del informe, con sus params como objeto."""
     params: dict[str, object] = {}
@@ -159,6 +268,7 @@ def build_report(
         },
         "by_measure": aggregate_by_measure(signals),
         "agent_decisions": [decision_block(row) for row in decisions],
+        "summary": build_summary(signals, decisions, evaluation, _seconds_between(first_ts, last_ts)),
         "signals": {
             "total": len(signals),
             "returned": len(returned),
@@ -173,11 +283,14 @@ def build_report(
 def session_report(
     session_id: str,
     limit: int = REPORT_SIGNAL_LIMIT_DEFAULT,
+    evaluation: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Reúne lo persistido de la sesión y monta el informe (B-033.3).
 
     Lanza `session_not_found` si la sesión no existe (la API la convierte en
-    404 con código estable, igual que los demás endpoints de sesión).
+    404 con código estable, igual que los demás endpoints de sesión). La
+    evaluación compacta (B-032.3) le llega ya resuelta por la API para que el
+    `summary` de B-033.4 la cite en su nacimiento.
     """
     capped = normalize_limit(limit)
     with database.open_db() as conn:
@@ -192,4 +305,4 @@ def session_report(
     piece = dict(piece_row) if piece_row is not None else None
     signals = [dict(signal) for signal in signal_rows]
     decisions = [dict(decision) for decision in decision_rows]
-    return build_report(session, piece, signals, decisions, capped)
+    return build_report(session, piece, signals, decisions, capped, evaluation)

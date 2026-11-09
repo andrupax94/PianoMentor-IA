@@ -1488,13 +1488,18 @@ def get_session_practice_report(
     """
     session_state = _session_state_or_404(session_id)
     try:
-        report = session_report(session_id, normalize_limit(limit))
+        # La evaluación se resuelve ANTES del informe: el `summary` de
+        # B-033.4 la cita en su nacimiento (no se parchea después).
+        report = session_report(
+            session_id,
+            normalize_limit(limit),
+            evaluation=_evaluation_or_none(session_id, session_state),
+        )
     except ValidationError as exc:
         raise HTTPException(
             status_code=404 if exc.code in NOT_FOUND_CODES else 400,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
-    report["evaluation"] = _evaluation_or_none(session_id, session_state)
     return PracticeReportResponse(**report)
 
 
@@ -1729,6 +1734,8 @@ def agent_chat(
             chat_id=payload.chat_id,
             context=payload.context,
             user_name=user_name,
+            ephemeral=payload.ephemeral,
+            max_tokens=payload.max_tokens,
         )
     except ValueError as exc:
         raise HTTPException(

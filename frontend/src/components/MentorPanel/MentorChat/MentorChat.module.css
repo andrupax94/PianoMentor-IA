@@ -1,352 +1,842 @@
-/* description: Estilos del chat: burbuja de alto mínimo 174px que absorbe el espacio sobrante del panel, flex:1, con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7, translúcido con texto no corto: .hintGhost), botón de cierre circular del flotante (D-002.5) y estilo del input. B-032.10 añade el feed informativo (.feed/.informantLine): pila de líneas cortas DENTRO de la burbuja, apagadas y con acento dorado, separadas de la conversación. */
+/* description: Estilos del chat: burbuja de alto mínimo 174px que absorbe el espacio sobrante del panel, flex:1, con overflow-y auto y scrollbar fina (safe center), tres tamaños de letra (fontLg/fontMd/fontSm), cursor parpadeante con prefers-reduced-motion, hueco absoluto del chip «Pedir pista» (B-032.7, translúcido con texto no corto: .hintGhost), botón de cierre circular del flotante (D-002.5) y estilo del input. B-032.10 añade el feed informativo (.feed/.informantLine): pila de líneas cortas DENTRO de la burbuja, apagadas y con acento dorado, separadas de la conversación. B-033.4 añade el cuerpo de la interpretación en el modo maximizado (.reportMode arriba alineado, .reportNarration con acento dorado, .reportBlock/.reportHeading/.reportList para los bloques deterministas). */
 /* context: B-012.8; la altura fija de la burbuja evita que el layout salte y el overflow-y auto permite leer respuestas largas con scroll en vez de recortarlas. D-002.3 realoca aquí el alto de la fila Tomar Control que retiró del selector; el botón de cierre (D-002.5) solo existe cuando el hospedador pasa onClose y su × va dibujada con CSS. Con B-032.7 el chip no se posiciona a sí mismo: lo encaja .hintSlot dentro de la burbuja. */
 
 .chat {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 12px;
+
   border-radius: 16px;
+
   padding: 16px;
+
   /* B-032.10: el chat crece para absorber el espacio sobrante del panel
+
      (pbito del usuario), igual que el resto de bloques dejan el suyo. */
+
   flex: 1;
+
   min-height: 0;
+
 }
+
+
 
 .heading {
+
   display: flex;
+
   align-items: center;
+
   gap: 12px;
+
 }
+
+
 
 .heading p {
+
   margin: 2px 0 0;
+
   color: #aab6c2;
+
   font-size: 0.85rem;
+
 }
+
+
 
 .avatar {
+
   width: 60px;
+
   height: 60px;
+
   background-image: url("/assets/icons/bot.svg");
+
   background-position: center;
+
   background-repeat: no-repeat;
+
   font-size: 1.8rem;
+
 }
+
+
 
 .chat__title {
+
   font-size: 22px;
+
 }
+
+
 
 .chat__title>p {
+
   font-size: 12px;
+
 }
+
+
 
 .chat__title>strong>span {
+
   color: var(--gold);
+
 }
+
+
 
 /* Feed informativo de la práctica (B-032.10): pila de líneas cortas y
+
    deterministas DENTRO de la burbuja («Reproduciendo…», «Te llevo al piano
+
    para practicar X»), con acento dorado a la izquierda para que no se
+
    confundan con la conversación. El almacén deja solo las últimas (tope 3). */
+
 .feed {
+
   list-style: none;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 6px;
+
   width: 100%;
+
   margin: 0;
+
   padding: 0;
+
 }
+
+
 
 .informantLine {
+
   margin: 0;
+
   padding: 2px 10px 2px 14px;
+
   border-left: 2px solid var(--gold-soft);
+
   color: #aab6c2;
+
   line-height: 1.3;
+
 }
+
+
 
 .informantLine:last-child {
+
   color: var(--text-soft);
+
 }
+
+
 
 /* Botón de cierre del chat flotante (D-002.5): solo lo renderiza MentorChat
+
    cuando el hospedador le pasa onClose, así que el panel del mentor de la
+
    principal no lo ve. La × va dibujada con dos barras rotadas: no hay icono
+
    de cierre en el banco de assets. */
+
 .closeButton {
+
   position: relative;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   width: 32px;
+
   height: 32px;
+
   margin-left: auto;
+
   flex-shrink: 0;
+
   padding: 0;
+
   border: 1px solid var(--line-strong);
+
   border-radius: 999px;
+
   background: transparent;
+
   color: var(--text-mute);
+
   cursor: pointer;
+
 }
+
+
 
 .closeButton:hover {
+
   color: var(--text);
+
   border-color: var(--text-mute);
+
 }
+
+
 
 .closeButton:focus-visible {
+
   outline: 2px solid var(--gold-soft);
+
   outline-offset: 2px;
+
 }
+
+
 
 .closeIcon {
+
   position: relative;
+
   width: 14px;
+
   height: 14px;
+
 }
+
+
 
 .closeIcon::before,
-.closeIcon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 12px;
-  height: 2px;
-  border-radius: 1px;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(45deg);
-}
 
 .closeIcon::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
+
+  content: "";
+
+  position: absolute;
+
+  left: 50%;
+
+  top: 50%;
+
+  width: 12px;
+
+  height: 2px;
+
+  border-radius: 1px;
+
+  background: currentColor;
+
+  transform: translate(-50%, -50%) rotate(45deg);
+
 }
+
+
+
+.closeIcon::after {
+
+  transform: translate(-50%, -50%) rotate(-45deg);
+
+}
+
+
 
 /* La burbuja absorbe el alto disponible del panel: mínimo 174px (donde cabe
+
    el mensaje corto y el chip) y crece hasta ocupar el espacio sobrante, que
+
    antes quedaba muerto bajo las pestañas (B-032.10, petición del usuario).
+
    El texto se reduce de lg a sm para caber; si aun así desborda (respuestas
+
    largas), aparece el scroll en vertical en vez de crecer o recortarse.
+
    `safe center` centra los mensajes cortos y, al desbordar, alinea arriba
+
    para poder hacer scroll hasta el principio.
+
    D-002.3 absorbe el alto de la fila que quitamos (Tomar Control: 50px más el
+
    canal de 8px que la separaba), que ahora vive aquí. */
+
 .bubble {
 
+
+
   position: relative;
+
   border-radius: 16px;
+
   padding: 14px 16px;
+
   flex: 1;
+
   min-height: 174px;
+
   display: flex;
+
   align-items: center;
+
   align-items: safe center;
+
   margin: 0;
+
   color: var(--text);
+
   line-height: 1.35;
+
   overflow-y: auto;
+
   overflow-x: hidden;
+
   word-break: break-word;
+
   scrollbar-width: thin;
+
   scrollbar-color: #3a475a transparent;
+
   background-color: var(--bg);
+
   color: var(--text-soft);
+
   font-weight: 400;
+
   font-family: var(--font2);
+
   margin-top: 10px;
+
   box-shadow: var(--shadow1);
+
 }
+
+
 
 .bubble::before {
+
   content: "";
+
   position: absolute;
+
   inset: 0;
+
   border-radius: inherit;
+
   border: 3px solid transparent;
+
   /* Grosor del borde */
+
   background: var(--gradient1) border-box;
+
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+
   -webkit-mask-composite: xor;
+
   mask-composite: exclude;
+
   pointer-events: none;
+
 }
+
+
 
 /* Scrollbar discreta para navegadores con pseudioelemento WebKit/Blink. */
+
 .bubble::-webkit-scrollbar {
+
   width: 8px;
+
 }
+
+
 
 .bubble::-webkit-scrollbar-track {
+
   background: transparent;
+
 }
+
+
 
 .bubble::-webkit-scrollbar-thumb {
+
   background: #3a475a;
+
   border-radius: 999px;
+
 }
+
+
 
 .bubble::-webkit-scrollbar-thumb:hover {
+
   background: #4a5a70;
+
 }
+
+
 
 /* Hueco absoluto del chip «Pedir pista al agente» (B-012.6): la píldora ya
+
    no se posiciona a sí misma, este span decide dónde vive dentro de la
+
    burbuja (B-032.7). B-032.10: con textos largos el chip se vuelve
+
    translúcido (.hintGhost) para no tapar la lectura y vuelve entero al pasar
+
    el ratón, con una transición suave de por medio. */
+
 .hintSlot {
+
   position: absolute;
+
   display: flex;
+
   bottom: 5px;
+
   right: 5px;
+
   transition: opacity 0.3s ease;
+
 }
+
+
 
 .hintGhost {
+
   opacity: 0.35;
+
 }
+
+
 
 .hintGhost:hover {
+
   opacity: 1;
+
 }
+
+
 
 /* Tamaño dinámico: mensajes cortos en grande, largos en pequeño. */
+
 .fontLg {
+
   font-size: 1.15rem;
+
 }
+
+
 
 .fontMd {
+
   font-size: 0.95rem;
+
 }
+
+
 
 .fontSm {
+
   font-size: 0.8rem;
+
 }
+
+
 
 /* Cursor parpadeante mientras la respuesta se escribe. */
+
 .cursor {
+
   display: inline-block;
+
   margin-left: 1px;
+
   color: var(--accent);
+
   animation: chat-blink 1s steps(1) infinite;
+
 }
+
+
 
 @keyframes chat-blink {
+
   50% {
+
     opacity: 0;
+
   }
+
 }
+
+
 
 @media (prefers-reduced-motion: reduce) {
+
   .cursor {
+
     animation: none;
+
   }
+
 }
+
+
 
 .error {
+
   margin: 0;
+
   color: #e08585;
+
   font-size: 0.8rem;
+
 }
+
+
 
 .input__container {
+
   position: relative;
+
   border-radius: 20px;
+
   color: inherit;
+
   font: inherit;
+
   overflow: hidden;
+
   background: var(--bg);
+
   box-shadow: var(--shadow1);
+
 }
+
+
 
 .input__container::before {
+
   content: "";
+
   position: absolute;
+
   inset: 0;
+
   border-radius: inherit;
+
   border: 3px solid transparent;
+
   /* Grosor del borde */
+
   background: var(--gradient1) border-box;
+
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+
   -webkit-mask-composite: xor;
+
   mask-composite: exclude;
+
   pointer-events: none;
+
 }
+
+
 
 .input {
+
   border: none;
+
   width: 100%;
+
   position: relative;
+
   padding: 12px 16px;
+
   font: inherit;
+
   background: transparent;
 
+
+
 }
+
+
+
 
 
 .input:focus-visible {
+
   outline: 2px solid var(--gradient1);
+
   outline-offset: 1px;
+
 }
+
+
 
 .input:disabled {
+
   opacity: 0.6;
+
 }
+
+
 
 /* B-033.3 (dev-only): franja de acciones de la derecha de la cabecera. Toma
+
    el hueco con margin-left:auto para que los n botones que hayan no compitan
+
    por el espacio libre, y desde aquí crece nada más lo dev-only. */
+
 .headingActions {
+
   display: flex;
+
   align-items: center;
+
   gap: 6px;
+
   margin-left: auto;
+
   flex-shrink: 0;
+
 }
 
+
+
 /* Alternador del modo informe: misma píldora circular que el cierre, dibujada
+
    con el icono de informe (un cuadrado con esquina doblada) por CSS, como la
+
    × del botón de cierre (D-002.5). `aria-expanded` manda el estado. */
+
 .reportToggle {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 32px;
+
+  height: 32px;
+
+  padding: 0;
+
+  border: 1px solid var(--line-strong);
+
+  border-radius: 999px;
+
+  background: transparent;
+
+  color: var(--text-mute);
+
+  cursor: pointer;
+
+}
+
+
+
+.reportToggle::before {
+
+  content: "";
+
+  width: 13px;
+
+  height: 13px;
+
+  border: 2px solid currentColor;
+
+  border-radius: 3px;
+
+  background: none;
+
+}
+
+
+
+.reportToggle[aria-expanded="true"]::before {
+
+  background: currentColor;
+
+  border-radius: 2px;
+
+  /* Punto relleno: el informe está abierto y el botón lo cierra. */
+
+  box-shadow: inset 0 0 0 3px transparent;
+
+}
+
+
+
+.reportToggle:hover {
+
+  color: var(--gold-soft);
+
+  border-color: var(--gold-soft);
+
+}
+
+
+
+.reportToggle:focus-visible {
+
+  outline: 2px solid var(--gold-soft);
+
+  outline-offset: 2px;
+
+}
+
+
+
+/* ===== Interpretación de la IA (B-033.4): el cuerpo del modo maximizado ===== */
+
+
+
+/* El modo interpretación alinea arriba: los bloques se leen de principio a
+
+   fin y el centrado «safe» de la burbuja de conversación no valdría a medias */
+
+.reportMode {
+
+  align-items: flex-start;
+
+}
+
+
+
+/* La redacción del agente (turno efímero del chat) va primero, como párrafo
+
+   del profesor, con el acento dorado que ya marca al feed informativo: es su
+
+   voz, no una lista. */
+
+.reportNarration {
+
+  margin: 0 0 10px;
+
+  padding: 2px 0 2px 12px;
+
+  border-left: 2px solid var(--gold-soft);
+
+  color: var(--text);
+
+}
+
+
+
+.reportBlock {
+
+  display: block;
+
+  width: 100%;
+
+}
+
+
+
+.reportBlock + .reportBlock {
+
+  margin-top: 10px;
+
+}
+
+
+
+.reportHeading {
+
+  margin: 0 0 4px;
+
+  color: var(--gold);
+
+  font-family: var(--font1);
+
+  font-size: 0.95rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.01em;
+
+}
+
+
+
+.reportList {
+
+  margin: 0;
+
+  padding-left: 18px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  color: var(--text-soft);
+
+}
+
+
+
+.reportList li::marker {
+  color: var(--gold-soft);
+}
+
+/* B-033.5: la acción de regenerar va suelta al principio del cuerpo (sticky:
+   sigue a la vista si el contenido hace scroll) y con la pista del enfriamiento si aun no puede. */
+.reportActions {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid var(--line-strong);
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 10px;
+  background: var(--bg);
+}
+
+.reportRegen {
+  padding: 6px 12px;
+  border: 1px solid var(--gold-soft);
   border-radius: 999px;
   background: transparent;
-  color: var(--text-mute);
+  color: var(--gold-soft);
+  font: inherit;
+  font-size: 0.78rem;
   cursor: pointer;
 }
 
-.reportToggle::before {
-  content: "";
-  width: 13px;
-  height: 13px;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-  background: none;
+.reportRegen:hover:not(:disabled) {
+  color: var(--gold);
+  border-color: var(--gold);
 }
 
-.reportToggle[aria-expanded="true"]::before {
-  background: currentColor;
-  border-radius: 2px;
-  /* Punto relleno: el informe está abierto y el botón lo cierra. */
-  box-shadow: inset 0 0 0 3px transparent;
+.reportRegen:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
-.reportToggle:hover {
-  color: var(--gold-soft);
-  border-color: var(--gold-soft);
-}
-
-.reportToggle:focus-visible {
+.reportRegen:focus-visible {
   outline: 2px solid var(--gold-soft);
   outline-offset: 2px;
+}
+
+.regenHint {
+  color: var(--text-mute);
+  font-size: 0.72rem;
 }

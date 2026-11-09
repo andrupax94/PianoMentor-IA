@@ -1,4 +1,4 @@
-# description: Tests del informe consolidado de práctica (B-033.3): endpoint `GET /sessions/{id}/practice-report` (404 estable, informe vacío de sesión sin señales, agregación por compás con conteos por outcome y último outcome por gate, decisiones del agente en orden con params como objeto, truncado de `signals` con `limit`, determinismo y sección `evaluation` compacta de B-032.3).
+# description: Tests del informe consolidado de práctica (B-033.3 + summary de B-033.4): endpoint `GET /sessions/{id}/practice-report` (404 estable, informe vacío de sesión sin señales, agregación por compás con conteos por outcome y último outcome por gate, decisiones del agente en orden con params como objeto, truncado de `signals` con `limit`, determinismo, sección `evaluation` compacta de B-032.3 y destacados `summary` deterministas de B-033.4).
 # context: La señales se insertan por el servicio (`receive_practice_event`, la vía del WS sin el bucle de strikes) para controlar el agregado; la correlación señal→decisión real se prueba una vez con el WebSocket (mismo patrón de `test_sessions.py`) y las decisiones fuera del bucle se insertan con `insert_agent_decision`. La BD queda aislada por `conftest.py`.
 
 """Tests del informe de práctica: endpoint B-033.3 sobre B-032.6/B-032.3."""
@@ -294,6 +294,100 @@ class TestEvaluation:
         assert "extras" not in evaluation
         assert evaluation["counts"]["correct"] >= 0
         assert 0 <= evaluation["score_total"] <= 100
+
+
+class TestSummary:
+    """Destacados deterministas del informe (B-033.4)."""
+
+    def test_a_fresh_session_has_the_empty_summary(self, session_id: str) -> None:
+        report = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()
+
+        assert report["summary"] == {
+            "signals": 0,
+            "active_measures": 0,
+            "distinct_gates": 0,
+            "practiced_s": None,
+            "outcomes": {"hit": 0, "miss": 0, "wrong": 0, "timeout": 0},
+            "hit_ratio": None,
+            "worst_measures": [],
+            "dominant_failure": None,
+            "interventions": {"count": 0, "by_action": {}, "by_reason": {}},
+            "evaluation": None,
+        }
+
+    def test_it_counts_outcomes_and_ranks_the_worst_measures(self, session_id: str) -> None:
+        for gate, outcome, measure in [
+            ("g1", "hit", 0),
+            ("g1", "hit", 0),
+            ("g1", "wrong", 0),
+            ("g1", "wrong", 0),
+            ("g2", "timeout", 1),
+            ("g3", "miss", 1),
+            ("g4", "wrong", 2),
+            ("g5", "hit", 3),
+            ("g6", "hit", 3),
+        ]:
+            _insert_signal(session_id, gate, outcome, measure)
+
+        summary = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()["summary"]
+
+        assert summary["signals"] == 9
+        assert summary["active_measures"] == 4
+        assert summary["distinct_gates"] == 6
+        assert summary["outcomes"] == {"hit": 4, "miss": 1, "wrong": 3, "timeout": 1}
+        assert summary["hit_ratio"] == 0.444  # 4 de 9
+        assert summary["worst_measures"] == [
+            # 0 de 2 (más evidencia del fallo), 0 de 1 y 2 de 4: los tres
+            # primeros con peor ratio; el compás 3 (1.0) se queda fuera.
+            {"measure": 1, "counts": {"hit": 0, "miss": 1, "wrong": 0, "timeout": 1}, "attempts": 2, "hit_ratio": 0.0},
+            {"measure": 2, "counts": {"hit": 0, "miss": 0, "wrong": 1, "timeout": 0}, "attempts": 1, "hit_ratio": 0.0},
+            {"measure": 0, "counts": {"hit": 2, "miss": 0, "wrong": 2, "timeout": 0}, "attempts": 4, "hit_ratio": 0.5},
+        ]
+        # El fallo dominante: `wrong` (3) sobre el gate que más falló (g1 ×2).
+        assert summary["dominant_failure"] == {"outcome": "wrong", "count": 3, "gate": "g1"}
+
+    def test_a_clean_session_has_no_dominant_failure(self, session_id: str) -> None:
+        _insert_signal(session_id, "g1", "hit", 0)
+
+        summary = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()["summary"]
+
+        assert summary["hit_ratio"] == 1.0
+        assert summary["dominant_failure"] is None
+
+    def test_interventions_are_counted_by_action_and_reason(self, session_id: str) -> None:
+        _insert_signal(session_id, "g1", "hit", 0)
+        _insert_decision(session_id, 1, measure=0)
+        _insert_decision(
+            session_id,
+            2,
+            action="offer_demo",
+            reason="gate_timeout_silence",
+            measure=0,
+        )
+
+        summary = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()["summary"]
+
+        assert summary["interventions"] == {
+            "count": 2,
+            "by_action": {"slow_down": 1, "offer_demo": 1},
+            "by_reason": {"gate_repeated_strikes": 1, "gate_timeout_silence": 1},
+        }
+
+    def test_it_quotes_the_compact_evaluation(self, session_id: str) -> None:
+        service.receive_event(
+            session_id, {"type": "note_on", "pitch": 72, "velocity": 80, "t_s": 0.0}
+        )
+        _insert_signal(session_id, "g1", "hit", 0)
+
+        report = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()
+        quoted = report["summary"]["evaluation"]
+
+        assert quoted is not None
+        # Exactamente los tres números clave, nada de los arrays pesados.
+        assert set(quoted) == {"score_total", "error_type", "received_ratio"}
+        assert quoted["score_total"] == report["evaluation"]["score_total"]
+        assert quoted["error_type"] == report["evaluation"]["error_type"]
+        assert quoted["received_ratio"] == report["evaluation"]["received_ratio"]
 
 
 class TestDeterminism:

@@ -1,11 +1,11 @@
-// description: Registro en vivo del modo depuración (B-033.2): anillo de entradas (señales de práctica, teclas del robot, intervenciones del agente y eventos de escenario), estado del robot (escenario activo y semilla) y los textos de las entradas. El menú dev lo pinta; ni en producción se publica.
+// description: Registro en vivo del modo depuración (B-033.2 + B-033.5): anillo de entradas (señales de práctica, teclas del robot, intervenciones del agente, eventos de escenario y, nuevo, las trazas [audio] del sampler/transporte cuando el switch del acortador está activo), estado del robot y los textos de las entradas. El menú dev lo pinta y parce también el texto plano del paquete descargado (registro.txt); ni en producción se publica.
 // context: Módulo puro, sin DOM ni React, al estilo de session-store/agent-playback: los publicadores son PracticeBridge (señal practice, acciones del agente, robot) y el registro se lee con useSyncExternalStore. La publicación es no-op bajo NODE_ENV === "production", así que el bundle prod no arrastra historial.
 
 import type { PracticeEvent } from "./gate-controller";
 import type { AgentActionMessage } from "./websocket-client";
 
 /** Categorías del registro: qué canal produjo la entrada. */
-export type DebugLogKind = "practice" | "note" | "agent" | "scenario" | "system";
+export type DebugLogKind = "practice" | "note" | "agent" | "scenario" | "system" | "audio";
 
 /** Una línea del registro del modo depuración. */
 export interface DebugLogEntry {
@@ -15,8 +15,11 @@ export interface DebugLogEntry {
   text: string;
 }
 
-/** Líneas que conserva el anillo: los más viejos se descartan. */
-const MAX_DEBUG_ENTRIES = 120;
+/** Líneas que conserva el anillo: los más viejos se descartan. Desde B-033.5
+ * el canal `audio` hace pasar por aquí las trazas del sampler (una por
+ * operación), cásica que 120 se agotaban en la primera frase de práctica: con
+ * 400 hay sesiones completas de escenario + rastro de audio a la vez. */
+const MAX_DEBUG_ENTRIES = 400;
 
 let nextEntryId = 1;
 let entries: readonly DebugLogEntry[] = [];

@@ -35,15 +35,15 @@ describe("practice-debug", () => {
     unsubscribe();
   });
 
-  it("el anillo descarta las líneas más viejas y respeta el tope", () => {
+  it("el anillo descarta las líneas más viejas y respeta el tope (400 desde B-033.5)", () => {
     resetDebugLog();
-    for (let index = 0; index < 130; index += 1) {
+    for (let index = 0; index < 410; index += 1) {
       publishDebugLog("note", `tecla ${index}`);
     }
     const snapshot = getDebugLogSnapshot();
-    expect(snapshot.length).toBeLessThanOrEqual(120);
+    expect(snapshot.length).toBeLessThanOrEqual(400);
     expect(snapshot[0]?.text).toBe("tecla 10");
-    expect(snapshot[snapshot.length - 1]?.text).toBe("tecla 129");
+    expect(snapshot[snapshot.length - 1]?.text).toBe("tecla 409");
   });
 
   it("los cambios del robot notifican y quedan anotados en el registro", () => {

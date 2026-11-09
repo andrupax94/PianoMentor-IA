@@ -1,4 +1,4 @@
-// description: Hook React del transporte (B-006.2): snapshot, notas, rejilla de compases (measures), acciones, audición y getPosition; load acepta `audible` para el acompañamiento (B-012.7).
+// description: Hook React del transporte (B-006.2): snapshot, notas, rejilla de compases (measures), acciones, audición y getPosition; load acepta `audible` para el acompañamiento (B-012.7). B-033.5: al montar el motor publica el tap del limitador para la grabación rec del modo depuración.
 // context: B-006.2/B-007.5/B-012.7; la lógica testeable vive en playback-engine.ts, aquí solo el cableado: cadena master → limitador → destino y el sampler de muestras con su voz de reserva. `audible` deja el audio en la mano de la IA sin borrar la pieza de la cascada (B-012.7).
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import {
 import type { PieceMeasures, PlayableNote } from "./api-client";
 import { createPianoSampler, type PianoSampler } from "./piano-samples";
 import { createPolySynth } from "./synth";
+import { publishAudioTap } from "./practice-recorder";
 
 /** Voz del motor sobre el sampler compartido (reutilizado en audición). */
 function createEngineVoice(sampler: PianoSampler): NoteVoice {
@@ -115,6 +116,11 @@ export function usePlayback(tickMs = 25) {
         },
       });
       samplerRef.current = sampler;
+      // B-033.5: el nodo por donde TODO el piano pasa ya mezclado (el
+      // limitador, justo antes del destino) es el tap de la grabación rec:
+      // el almacén de la grabación lo recibe aquí y conecta/desconecta su
+      // propio cable sin tocar el grafo de sonido real.
+      publishAudioTap({ ctx, node: limiter });
       // La carga se dispara al montar (useEffect), no aquí, para que la barra
       // avance aunque no se pulse ninguna tecla.
       engineRef.current = new PlaybackEngine(
@@ -315,6 +321,9 @@ export function usePlayback(tickMs = 25) {
       samplerRef.current = null;
       void ctxRef.current?.close().catch(() => undefined);
       ctxRef.current = null;
+      // Tap inválido: el grafo de sonido acaba de morir y una grabación en
+      // curso queda huérfana; el almacén rompe el cable (B-033.5).
+      publishAudioTap(null);
     };
   }, []);
 

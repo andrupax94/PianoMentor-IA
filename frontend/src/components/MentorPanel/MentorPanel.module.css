@@ -50,3 +50,14 @@
   font-size: 0.85rem;
   color: var(--text-soft);
 }
+
+/* B-033.5: en el modo maximizado del chat, el panel de estado (con el menú
+   de depuración dentro) flota encima del chat: la ventana sigue ocupando el
+   100 % del alto y la herramienta queda siempre a mano, esquina inferior
+   derecha como siempre, sin participar del layout del panel. */
+.statusOverlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 30;
+}

@@ -1,5 +1,5 @@
-/* description: Estilos de la pestaña Depurar del panel de estado (B-033.2): strip de sub-pestañas (B-033.3: Escenarios/Registro/Informe), lista de escenarios, estado del robot y registro en vivo con el anillo de entradas. */
-/* context: Dev-only: solo se carga con NODE_ENV !== "production". Estética del panel: fondo oscuro translúcido, acento dorado, tipografía pequeña y apretada. */
+/* description: Estilos de la pestaña Depurar del panel de estado (B-033.2): strip de sub-pestañas (B-033.3: Escenarios/Registro/Informe), lista de escenarios, estado del robot, registro en vivo con el anillo de entradas por canal y, de B-033.5, el interruptor «rec» de grabación temporal y el botón «Reiniciar sesión» del Informe. */
+/* context: Dev-only: solo se carga con NODE_ENV !== "production". Estética del panel: fondo oscuro translúcido, acento dorado, tipografía pequeña y apretada. El rec encendido marca la píldora en verde (estado vivo: grabando/WAV listo) y el Reiniciar usa el acento dorado porque borra y cambia de sesión. */
 
 .debug {
   display: flex;
@@ -184,7 +184,7 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
-/* Colores del registro por canal del canal: práctica, teclas, agente y escenarios. */
+/* Colores del registro por canal: práctica, teclas, agente y escenarios. */
 .row.practice {
   color: #a4d1fd;
 }
@@ -204,4 +204,48 @@
 
 .row.system {
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* B-033.5: las trazas [audio] con el look apagado que marca la consola del
+   navegador (mismo filtro dorado de la cabecera, sotto voce por el volumen). */
+.row.audio {
+  color: rgba(212, 175, 55, 0.75);
+}
+
+/* B-033.5: interruptor «rec» del Registro — el estado grabando marca el
+   interruptor en verde de la esquina (es de uso lógico: grabando/listo). */
+.recRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.recRow .desc {
+  flex: 1;
+}
+
+.recOn {
+  composes: secondary;
+  border-color: #4a9b6c;
+  color: #7adba1;
+}
+
+/* B-033.5: «Reiniciar sesión» del Informe — píldora de aviselo: se pinta con
+   la fuerza del acento dorado, porque borra y cambia de sesión. */
+.resetRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.resetRow .desc {
+  flex: 1;
+}
+
+.resetButton {
+  composes: secondary;
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
 }

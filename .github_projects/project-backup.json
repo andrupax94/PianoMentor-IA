@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-08T18:17:45.0488141Z",
+  "exportedAtUtc": "2026-11-09T17:36:05.0270839Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -2163,9 +2163,28 @@
       "id": "PVTI_lAHOAxy1qM4Bl7PszhG_aIs",
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Review",
       "target date": "2026-11-09",
       "title": "[B-033.4] Interpretación del informe en el chat: destacados deterministas + redacción del agente"
+    },
+    {
+      "content": {
+        "body": "# [B-033.5] Herramientas de depuración «en vivo»: regenerar opinión, Depurar sobre el chat maximizado, [audio] en Registro, grabación rec y paquete .zip\n\n**Estado:** implementada (2026-11-09). Padre: **B-033** (#110); hermana de B-033.4 (nace del pulido que el usuario pidió para la ventana de interpretación). Documentación completa: `docs/issues/B-033/B-033.5.md`.\n\n## Qué entrega\n\n1. **«Volver a generar opinión de la IA»** en la ventana de interpretación del chat, con regla anti-abuso: ≥ 3 min desde la última generación (cuenta atrás visible) **Y** señales nuevas confirmadas con un comprobador ligero cada 30 s — solo mientras el modo está abierto (sin modo, cero peticiones).\n2. **El menú de depuración no se oculta** maximizando el chat: el chat sigue al 100 % del panel y la burbuja de estado (Estado/Depurar) flota encima (overlay, esquina inferior derecha).\n3. **Trazas `[audio]` en el Registro**: `audio-trace` escribe la misma línea en consola y en el registro (canal `audio`) cuando el switch «Traza de audio» está activo; el anillo del registro sube a 400 entradas para soportar el volumen.\n4. **Interruptor «rec»** en Registro: grabación temporal (solo memoria, desaparece al recargar, nada se envía) con arranque automático cuando suena algo de la IA (robot de escenarios o demostración) y parada al terminar; tope 5 min; convierte a **WAV mono 16-bit** (lib/wav.ts, codificador puro) al terminar.\n5. **«Descargar pack (.zip)»** en Informe: ZIP STORE puro sin dependencias (lib/zip.ts, validado contra descompresor real) con **4 ficheros** — `informe.json` (consolidado con evaluación y summary), `registro.txt` (el Registro con sus `[audio]`), `grabacion.wav` si la rec capturó algo, y `LÉEME.md` que explica el paquete y sus avisos.\n6. **«Reiniciar sesión»** junto a Informe: para robot/transporte/rec, descarta grabación, limpia registro y consola, y abre una **práctica nueva de la misma pieza** (id nuevo → informe/evaluación/señales desde cero, sin borrar nada del back-end). Deshabilitado con `control: agent`.\n\n## Decisiones fijadas con el usuario (2026-11-09)\n\n- Regenerar: criterio anti-abuso a mi juicio (cooldown + ciclo nuevo, comprobación solo con el modo abierto).\n- Maximizado: chat 100 %, menú de depuración mediante overlay (sin repartir el alto).\n- `[audio]`: se escriben en los dos lados (consola + Registro) con la traza activa.\n- rec: WAV mono 16-bit vale; disparo automático con robot/demostración y parada al terminar.\n- El pack lleva un cuarto fichero `.md` de contexto.\n- Reiniciar sesión: opción A (nueva sesión de la misma pieza), no endpoint destructivo.\n\n## Verificación\n\n- Front: `tsc` limpio, **591 tests** (54 ficheros; nuevos: `snapshot-pack.test.ts` (12), anillo de `practice-debug` a 400), `npm run build` limpio, cabeceras del fichero reorganizadas y sincronizadas con `files.csv` (+6 filas nuevas, todas `[igual]`).\n- Pendiente de verificación manual en el navegador (último criterio del doc): Depurar visible al maximizar, `[audio]` en Registro, rec que arranca/para sola, paquete que baja con los 4 ficheros y «Reiniciar sesión».\n",
+        "number": 117,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "[B-033.5] Pulido del modo depuración: regenerar opinión, [audio] en Registro, grabación rec y paquete .zip",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/117"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhHQ-BA",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Review",
+      "target date": "2026-11-09",
+      "title": "[B-033.5] Pulido del modo depuración: regenerar opinión, [audio] en Registro, grabación rec y paquete .zip"
     }
   ],
   "notes": [

@@ -1,5 +1,5 @@
-// description: Tests de los helpers puros del informe de práctica (B-033.3): texto de error amable del 404 estable (session_not_found describe la sesión sin señales), paso del mensaje del ApiError, genérico fuera de ApiError, formateo con sangría de 2 y el nombre del archivo de descarga con el id de la sesión.
-// context: Puro y sin DOM, al estilo de los demás tests de lib; la descarga (blob + ancla) la pinta el componente y no se toca aquí.
+// description: Tests de los helpers puros del informe de práctica (B-033.3): texto de error amable del 404 estable (session_not_found describe la sesión sin señales), paso del mensaje del ApiError, genérico fuera de ApiError y formateo con sangría de 2. La descarga del paquete .zip (B-033.5) se prueba en snapshot-pack.test.ts.
+// context: Puro y sin DOM, al estilo de los demás tests de lib; la descarga (blob + ancla) nace en snapshot-pack y no se toca aquí.
 
 import { describe, expect, it } from "vitest";
 
@@ -7,7 +7,6 @@ import { ApiError, type PracticeReport } from "./api-client";
 import {
   formatPracticeReport,
   practiceReportErrorText,
-  practiceReportFilename,
 } from "./practice-report";
 
 describe("practiceReportErrorText", () => {
@@ -47,15 +46,5 @@ describe("formatPracticeReport", () => {
       JSON.stringify(report, null, 2),
     );
     expect(formatPracticeReport(report).split("\n")[1] ?? "").toContain(`"session"`);
-  });
-});
-
-describe("practiceReportFilename", () => {
-  it("nombra el json con el id de la sesión", () => {
-    const report = {
-      session: { session_id: "ses-42" },
-    } as unknown as PracticeReport;
-
-    expect(practiceReportFilename(report)).toBe("practice-report-ses-42.json");
   });
 });

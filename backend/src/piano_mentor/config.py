@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     opencode_base_url: str = "https://opencode.ai/inference/openai/v1"
     chat_memory_window: int = 20
     llm_timeout_s: float = 10.0
+    # Techo del presupuesto de respuesta por turno (B-033.4 revisión 2026-11-09):
+    # el chat general no lo toca (el proveedor usa su 400) y el turno de la
+    # interpretación puede pedir más — la ventana maximizada es grande.
+    llm_max_tokens_techo: int = 2000
 
     # --- Cloudflare R2 (storage de piezas subidas, B-029.1) ----------------
     # Con credenciales presentes, las subidas de usuario van a R2 y sobreviven

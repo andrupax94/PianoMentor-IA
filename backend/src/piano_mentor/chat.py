@@ -102,26 +102,40 @@ class ChatService:
         chat_id: str | None = None,
         context: dict[str, object] | None = None,
         user_name: str | None = None,
+        ephemeral: bool = False,
+        max_tokens: int | None = None,
     ) -> ChatTurnResult:
         if not message or not message.strip():
             raise ValueError("message no puede estar vacío")
         chat_id = chat_id or str(uuid.uuid4())
 
+        # B-033.4 revisión: presupuesto de la respuesta acotado al techo (el
+        # peticionario pide, el sistema fija los límites), None = el default
+        # del proveedor. Solo se pasa si llegó: así los proveedores de test
+        # con firma corta siguen valiendo.
+        if max_tokens is not None:
+            max_tokens = max(1, min(int(max_tokens), settings.llm_max_tokens_techo))
+
         # Si es un chat nuevo y conocemos el nombre, dejamos el saludo de bienvenida.
+        # Un turno efímero (B-033.4) no deja huella: ni saludo ni mensajes en la
+        # memoria de la conversación (la interpretación no es conversación).
         is_new_chat = not get_chat_history(chat_id, limit=1)
-        if is_new_chat and user_name:
-            welcome = (
-                f"¡Hola {user_name}! Soy tu profesor de piano de PianoMentor AI. "
-                "Pregúntame lo que quieras sobre práctica, piezas o teoría musical."
-            )
-            save_chat_message(chat_id, "assistant", welcome)
+        if not ephemeral:
+            if is_new_chat and user_name:
+                welcome = (
+                    f"¡Hola {user_name}! Soy tu profesor de piano de PianoMentor AI. "
+                    "Pregúntame lo que quieras sobre práctica, piezas o teoría musical."
+                )
+                save_chat_message(chat_id, "assistant", welcome)
 
         # 2. Construir historial (ventana rodante) + system prompt + usuario actual.
         history = get_chat_history(chat_id, limit=settings.chat_memory_window)
         messages = self._build_messages(history, message.strip(), context or {}, user_name)
 
         # 1. Guardar el mensaje del usuario (después de leer el historial para no duplicarlo).
-        save_chat_message(chat_id, "user", message.strip())
+        # Un turno efímero no lo graba: la interpretación nunca entra al historial.
+        if not ephemeral:
+            save_chat_message(chat_id, "user", message.strip())
 
         # 3. Bucle agente <-> herramientas (tope de pasos).
         client_action: dict[str, object] | None = None
@@ -130,7 +144,10 @@ class ChatService:
         respuesta: LLMResponse | None = None
 
         for _step in range(self.MAX_STEPS):
-            respuesta = self.provider.chat(messages, list_tools())
+            if max_tokens is not None:
+                respuesta = self.provider.chat(messages, list_tools(), max_tokens=max_tokens)
+            else:
+                respuesta = self.provider.chat(messages, list_tools())
 
             if not respuesta.tool_calls:
                 final_text = respuesta.text or ""
@@ -215,7 +232,10 @@ class ChatService:
             # llamada sin herramientas le obliga a redactar con lo que tiene, en
             # vez de mostrarle un mensaje técnico de "tope de pasos".
             try:
-                respuesta = self.provider.chat(messages, [])
+                if max_tokens is not None:
+                    respuesta = self.provider.chat(messages, [], max_tokens=max_tokens)
+                else:
+                    respuesta = self.provider.chat(messages, [])
             except Exception:  # pylint: disable=broad-except  # noqa: BLE001
                 respuesta = None
             if respuesta is not None and respuesta.text:
@@ -228,8 +248,9 @@ class ChatService:
             if respuesta is not None:
                 respuesta.used_fallback = True
 
-        # 4. Guardar la respuesta del asistente.
-        save_chat_message(chat_id, "assistant", final_text)
+        # 4. Guardar la respuesta del asistente (salvo en el turno efímero).
+        if not ephemeral:
+            save_chat_message(chat_id, "assistant", final_text)
 
         return ChatTurnResult(
             chat_id=chat_id,
@@ -253,7 +274,12 @@ class ChatService:
         nombre_line = f" El usuario se llama {user_name}." if user_name else ""
         system_prompt = (
             "Eres el profesor de piano de PianoMentor AI. Respondes en español, de forma "
-            "breve y directa. Solo puedes invocar funciones de la lista blanca; si el "
+            "breve y directa. Escribes en TEXTO PLANO, sin markdown: nada de **asteriscos** "
+            "de negrita, ni títulos con #, ni listas con - ni bloques de código; para "
+            "estructurarte usa saltos de línea y frases cortas de conversación. El tono es "
+            "el de las IA de chat actuales: cercano, de persona, y cuando ayude puedes echar "
+            "algún icono (emoji) — siempre con moderación. "
+            "Solo puedes invocar funciones de la lista blanca; si el "
             "usuario pide algo que no cubre ninguna función, diles que no puedes y recuérdale "
             "qué sí puedes hacer. Nunca toques MIDI ni el reloj de reproducción tú mismo: "
             "solo propones acciones y el sistema las ejecuta. "

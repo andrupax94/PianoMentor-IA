@@ -442,6 +442,30 @@ def test_chat_memoria_guarda_ambos_mensajes() -> None:
     assert roles.count("assistant") == 2
 
 
+def test_turno_efimero_no_deja_historial() -> None:
+    """B-033.4: la interpretación de la práctica viaja por el chat pero no ensucia la memoria.
+
+    Ni saludo (de un chat nuevo), ni mensaje del usuario, ni respuesta: la
+    conversación queda tal como estaba.
+    """
+    servicio = ChatService(MockProvider())
+    servicio.run("pon pausa", chat_id="chat-normal")
+
+    from piano_mentor.database import get_chat_history
+
+    resultado = servicio.run(
+        "interpreta mi práctica", chat_id="chat-efimero", ephemeral=True
+    )
+    assert resultado.reply  # la respuesta existe, simplemente no se graba
+    assert get_chat_history("chat-efimero", limit=20) == []
+
+    # Y con un chat_id ya vivo, la historia se conserva intacta.
+    servicio.run("pon pausa", chat_id="chat-efimero-2")
+    servicio.run("hola", chat_id="chat-efimero-2", ephemeral=True)
+    roles = [m["role"] for m in get_chat_history("chat-efimero-2", limit=20)]
+    assert roles == ["user", "assistant"]  # solo los del primer turno normal
+
+
 # ---------------------------------------------------------------------------
 # Endpoint POST /agent/chat
 # ---------------------------------------------------------------------------
@@ -460,6 +484,26 @@ def test_endpoint_agent_chat_pausa() -> None:
     assert cuerpo["client_action"]["name"] == "pausar"
 
 
+def test_endpoint_agent_chat_efimero_no_persiste() -> None:
+    """El turno efímero por HTTP responde igual y no escribe en la memoria."""
+    respuesta = client.post(
+        "/api/v1/agent/chat",
+        json={
+            "message": "interpreta mi práctica",
+            "chat_id": "chat-efimero-http",
+            "ephemeral": True,
+        },
+    )
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["provider"] == "mock"
+    assert cuerpo["reply"]
+
+    from piano_mentor.database import get_chat_history
+
+    assert get_chat_history("chat-efimero-http", limit=20) == []
+
+
 def test_endpoint_agent_chat_mensaje_vacio_422() -> None:
     respuesta = client.post(
         "/api/v1/agent/chat",
@@ -467,6 +511,25 @@ def test_endpoint_agent_chat_mensaje_vacio_422() -> None:
     )
     assert respuesta.status_code == 422
     assert respuesta.json()["detail"]["code"] == "invalid_chat_payload"
+
+
+def test_max_tokens_viaja_al_proveedor_con_techo() -> None:
+    """B-033.4 revisión: el presupuesto pide el turno y el sistema lo acota."""
+    vistos: list[int | None] = []
+
+    class ProviderQueMira(LLMProvider):
+        def chat(self, messages, tools, max_tokens=None):  # type: ignore[override]
+            vistos.append(max_tokens)
+            return LLMResponse(text="Listo.", provider="falso")
+
+    servicio = ChatService(ProviderQueMira())
+    # Sin pedido: no se pasa nada (los proveedores de test con firma corta valen).
+    servicio.run("hola", chat_id="chat-max-1")
+    # Con pedido y absurdo: el techo (llm_max_tokens_techo) manda.
+    servicio.run("hola", chat_id="chat-max-2", max_tokens=532_100)
+
+    assert vistos[0] is None
+    assert vistos[1] is not None and vistos[1] <= 2000
 
 
 def test_endpoint_agent_chat_encadena_buscar_y_reproduce(piece_id: str) -> None:

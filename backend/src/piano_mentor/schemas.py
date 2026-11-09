@@ -158,17 +158,80 @@ class PracticeSessionBlock(BaseModel):
     signal_count: int = 0
 
 
+class PracticeWorstMeasure(BaseModel):
+    """Un compás a mejorar del `summary` del informe (B-033.4).
+
+    `attempts` es el total de señales del compás y `hit_ratio` su proporción
+    de aciertos (0-1, 3 decimales); los conteos vienen de lo ya agregado.
+    """
+
+    measure: int | None = None
+    counts: dict[str, int] = {}
+    attempts: int = 0
+    hit_ratio: float
+
+
+class PracticeDominantFailure(BaseModel):
+    """El fallo dominante del `summary` (B-033.4).
+
+    El outcome más repetido entre los fallidos y el gate con más fallos;
+    `None` de bloque entero si la práctica no falló nada.
+    """
+
+    outcome: str
+    count: int
+    gate: str | None = None
+
+
+class PracticeInterventionsSummary(BaseModel):
+    """Intervenciones del agente agregadas del `summary` (B-033.4)."""
+
+    count: int = 0
+    by_action: dict[str, int] = {}
+    by_reason: dict[str, int] = {}
+
+
+class PracticeEvaluationSummary(BaseModel):
+    """Lo clave de la evaluación compacta (B-032.3) citada en el `summary`."""
+
+    score_total: float | None = None
+    error_type: str | None = None
+    received_ratio: float | None = None
+
+
+class PracticeSummary(BaseModel):
+    """Destacados deterministas del informe (B-033.4): lo que el alumno lee.
+
+    Solo agrega lo ya servido; su forma vacía (sin señales) lleva ratios en
+    `None` y listas vacías — el front enseña «todavía no hay práctica que
+    comentar». Todos los desempates son estables (el mismo informe siempre).
+    """
+
+    signals: int = 0
+    active_measures: int = 0
+    distinct_gates: int = 0
+    practiced_s: float | None = None
+    outcomes: dict[str, int] = {}
+    hit_ratio: float | None = None
+    worst_measures: list[PracticeWorstMeasure] = []
+    dominant_failure: PracticeDominantFailure | None = None
+    interventions: PracticeInterventionsSummary = PracticeInterventionsSummary()
+    evaluation: PracticeEvaluationSummary | None = None
+
+
 class PracticeReportResponse(BaseModel):
     """Informe consolidado de una sesión de práctica (B-033.3).
 
     Es lectura de lo ya persistido por B-032.6 (señales e intervenciones);
     `evaluation` es la versión compacta de la evaluación de la sesión (B-032.3)
-    o `null` si no hay nada que evaluar.
+    o `null` si no hay nada que evaluar; `summary` (B-033.4) agrega los
+    destacados deterministas que traduce la interpretación del chat.
     """
 
     session: PracticeSessionBlock
     by_measure: list[PracticeMeasureReport] = []
     agent_decisions: list[PracticeDecisionItem] = []
+    summary: PracticeSummary = PracticeSummary()
     signals: PracticeSignalsSection = PracticeSignalsSection()
     evaluation: dict[str, object] | None = None
     generated_at: str
@@ -389,11 +452,20 @@ class ToolCallResult(BaseModel):
 
 
 class ChatMessageRequest(BaseModel):
-    """Petición al chat del agente (B-012.8)."""
+    """Petición al chat del agente (B-012.8).
+
+    `ephemeral` (B-033.4): turno que no se graba en la memoria de la
+    conversación — la petición de interpretación de la práctica entra y sale
+    sin ensuciar el historial que viaja al LLM, igual que el feed informativo.
+    """
 
     message: str
     chat_id: str | None = None
     context: dict[str, object] | None = None
+    ephemeral: bool = False
+    # B-033.4 revisión: presupuesto de la respuesta que pide el turno; el
+    # servicio lo acota al techo configurado (llm_max_tokens_techo).
+    max_tokens: int | None = None
 
 
 class ChatMessageResponse(BaseModel):
