@@ -3,11 +3,18 @@
 // description: Burbuja de estado de sesión (D-002.5): FAB «i» que despliega el panel flotante en la esquina inferior derecha con el estado vivo. B-033.2: solo en desarrollo añade pestañas Estado/Depurar; el panel crece a ~340px y 70vh en dev y el código del menú no existe en producción (el import lazy es condicional).
 // context: El estado es un almacén de módulo (session-store), no props del servidor, y el transporte se lee del contexto único de la portada. Con B-032.10 el mini cuadro se alimenta del store, no de este componente. Sesión en /{id}: nunca aparece sin práctica en la portada (el widget lo monta MentorPanel).
 
-import { useState, lazy, Suspense, useSyncExternalStore } from "react";
+import { useState, lazy, Suspense, useSyncExternalStore, useEffect } from "react";
 
 import { getSessionSnapshot, subscribeSession } from "../lib/session-store";
 import { useTransport } from "../lib/transport-context";
 import { SessionStatus } from "./SessionStatus";
+import { toAuthUserInfo, type AuthSessionRaw } from "../lib/auth-user";
+import {
+  isDebugBubbleVisible,
+  isDebugModeRequested,
+  isAllowedDebugUser,
+  DEBUG_BUBBLE_ALLOWED_EMAILS,
+} from "../lib/debug-bubble";
 import styles from "./SessionStatusLive.module.css";
 
 /**
@@ -22,11 +29,99 @@ const DebugPanelLazy = IS_DEV
 
 type StatusTab = "estado" | "depurar";
 
-export function SessionStatusLive() {
+export interface SessionStatusLiveProps {
+  /** Correo del usuario (sobrescribe la lectura de /api/auth/session). Útil en tests. */
+  userEmail?: string | null;
+  /** Fuerza el modo depuración (sobrescribe ?debugmode de la URL). Útil en tests. */
+  debugMode?: boolean;
+}
+
+export function SessionStatusLive({ userEmail: userEmailProp, debugMode: debugModeProp }: SessionStatusLiveProps = {}) {
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
   const transport = useTransport();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<StatusTab>("estado");
+
+  // --- Gating en producción: oculta la burbuja salvo ?debugmode + usuario autorizado ---
+  const hasUserEmailProp = userEmailProp !== undefined;
+  const hasDebugModeProp = debugModeProp !== undefined;
+
+  const [debugMode, setDebugMode] = useState<boolean>(() => {
+    if (IS_DEV) return true;
+    if (hasDebugModeProp) return debugModeProp as boolean;
+    if (typeof window !== "undefined") return isDebugModeRequested(window.location.search);
+    return false;
+  });
+  const [userEmail, setUserEmail] = useState<string | null>(() => {
+    if (IS_DEV) return null;
+    return hasUserEmailProp ? (userEmailProp ?? null) : null;
+  });
+  const [checked, setChecked] = useState<boolean>(() => {
+    if (IS_DEV) return true;
+    if (hasUserEmailProp || hasDebugModeProp) return true;
+    // En SSR no hay sesión; se resolverá en el cliente. Mientras tanto, oculto.
+    return typeof window === "undefined";
+  });
+
+  // Lectura de la URL (solo producción, y solo si no se fuerza por prop).
+  useEffect(() => {
+    if (IS_DEV || hasDebugModeProp || typeof window === "undefined") return;
+    const readUrl = () => setDebugMode(isDebugModeRequested(window.location.search));
+    readUrl();
+    window.addEventListener("popstate", readUrl);
+    return () => window.removeEventListener("popstate", readUrl);
+  }, [IS_DEV, hasDebugModeProp]);
+
+  // Lectura de la sesión (solo producción, y solo si no se pasa por prop).
+  useEffect(() => {
+    if (IS_DEV || hasUserEmailProp) {
+      if (IS_DEV || hasUserEmailProp) setChecked(true);
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const raw: AuthSessionRaw | null = response.ok ? await response.json() : null;
+        const { user: info } = toAuthUserInfo(raw ?? null);
+        if (active) setUserEmail(info?.email ?? null);
+      } catch {
+        if (active) setUserEmail(null);
+      } finally {
+        if (active) setChecked(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [IS_DEV, hasUserEmailProp]);
+
+  // Si se fuerza por prop, sincroniza el flag checked.
+  useEffect(() => {
+    if (IS_DEV) return;
+    if (hasUserEmailProp || hasDebugModeProp) setChecked(true);
+  }, [IS_DEV, hasUserEmailProp, hasDebugModeProp, userEmailProp, debugModeProp]);
+
+  // Sincroniza props cuando cambian.
+  useEffect(() => {
+    if (hasUserEmailProp) setUserEmail(userEmailProp ?? null);
+  }, [hasUserEmailProp, userEmailProp]);
+  useEffect(() => {
+    if (hasDebugModeProp) setDebugMode(debugModeProp as boolean);
+  }, [hasDebugModeProp, debugModeProp]);
+
+  const effectiveUserEmail = hasUserEmailProp ? (userEmailProp ?? null) : userEmail;
+  const effectiveDebugMode = hasDebugModeProp ? (debugModeProp as boolean) : debugMode;
+
+  const visible = isDebugBubbleVisible({
+    isDev: IS_DEV,
+    userEmail: IS_DEV ? null : effectiveUserEmail,
+    debugMode: IS_DEV ? true : effectiveDebugMode,
+  });
+
+  // En producción, hasta resolver la sesión, no se pinta (evita flash no autorizado).
+  if (!IS_DEV && !checked) return null;
+  if (!visible) return null;
 
   return (
     <div className={styles.widget}>
@@ -92,3 +187,11 @@ export function SessionStatusLive() {
     </div>
   );
 }
+
+// Reexportaciones de conveniencia para tests/documentación.
+export {
+  isDebugBubbleVisible,
+  isDebugModeRequested,
+  isAllowedDebugUser,
+  DEBUG_BUBBLE_ALLOWED_EMAILS,
+} from "../lib/debug-bubble";
