@@ -209,6 +209,29 @@ def _dormir(segundos: float) -> None:
     time.sleep(segundos)
 
 
+# --- Caos de verificación (B-036.1, dev-only) ---------------------------------
+
+#: Modos del caos: "" (apagado), «una» (un 429 simulado en el primer intento de
+#: cada llamada al proveedor) y «siempre» (todos los intentos fallan simulados:
+#: se ve el agotamiento de reintentos y el salto a la cadena). Vive en la
+#: memoria del proceso y lo gobierna el menú Depurar vía /dev/llm/chaos
+#: (404 en producción); aquí no hay env var de por medio.
+_MODOS_DE_CAOS = ("", "una", "siempre")
+_chaos_modo: str = ""
+
+
+def llm_chaos_modo() -> str:
+    """Modo de caos activo en este proceso ("" = apagado)."""
+    return _chaos_modo
+
+
+def fijar_llm_chaos(modo: str) -> str:
+    """Fija el modo de caos; un modo desconocido apaga. Devuelve el modo."""
+    global _chaos_modo
+    _chaos_modo = modo if modo in _MODOS_DE_CAOS else ""
+    return _chaos_modo
+
+
 def _error_simulado(httpx_module: Any, cuerpo: str) -> Any:
     """Un HTTPStatusError 429 de mentira con Retry-After de 2 s (B-036.1).
 
@@ -689,20 +712,24 @@ class OpenAICompatibleProvider(LLMProvider):
         historial = list(payload["messages"])
         reintentos = 0
         recortado = False
+        intento = 0
         tope_reintentos = max(0, int(settings.llm_retry_intentos))
         while True:
+            intento += 1
             payload["messages"] = historial
             try:
-                # Knob de caos (B-036.1, verificación): un 429 de mentira con
-                # Retry-After, ANTES de tocar la red, para probar a mano el
-                # reintento/la espera/el salto sin saturar el proveedor real.
-                pendientes = max(0, int(settings.llm_fallos_simulados))
-                if pendientes > 0:
-                    settings.llm_fallos_simulados = pendientes - 1
+                # Caos de verificación (B-036.1, dev-only, menú Depurar): un
+                # 429 de mentira con Retry-After, ANTES de tocar la red. Modo
+                # "una": solo el primer intento de cada llamada; modo
+                # "siempre": todos fallan simulados (se ve el agotamiento y
+                # el salto de la cadena).
+                modo_caos = llm_chaos_modo()
+                if modo_caos == "siempre" or (modo_caos == "una" and intento == 1):
                     logger.warning(
-                        "[llm] %s: 429 SIMULADO (knob de caos); quedan %d",
+                        "[llm] %s: 429 SIMULADO (caos «%s», intento %d)",
                         self.provider_name,
-                        pendientes - 1,
+                        modo_caos,
+                        intento,
                     )
                     raise _error_simulado(httpx_module, "rate limit simulado")
                 with httpx_module.Client(timeout=self.timeout_s) as client:

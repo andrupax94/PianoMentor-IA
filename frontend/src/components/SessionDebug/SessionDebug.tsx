@@ -1,4 +1,4 @@
-// description: Pestaña «Depurar» del panel de estado (B-033.2, dev-only) con tres sub-pestañas: «Escenarios» (lanzar los escenarios del pianista robot de B-033.1 con relanzar y parar), «Registro» (registro en vivo de señales e intervenciones, trazas [audio] si «Traza de audio» está activa e interruptor «rec» de grabación temporal) e «Informe» (el informe técnico JSON de B-033.3 + unzip descargable de B-033.5 y el botón «Reiniciar sesión»).
+// description: Pestaña «Depurar» del panel de estado (B-033.2, dev-only) con cuatro sub-pestañas: «Escenarios» (lanzar los escenarios del pianista robot de B-033.1 con relanzar y parar), «Registro» (registro en vivo de señales e intervenciones, trazas [audio] si «Traza de audio» está activa e interruptor «rec» de grabación temporal), «Informe» (el informe técnico JSON de B-033.3 + unzip descargable de B-033.5 y el botón «Reiniciar sesión») y «LLM» (caos de verificación de B-036.1: simular 429 una vez o siempre para probar los reintentos sin saturar el proveedor).
 // context: Solo se carga con NODE_ENV !== "production" (lazy en SessionStatusLive). No gobierna el transporte directamente: al lanzar un escenario hace stop + play desde 0 por las vías existentes y el resto es disparar-observar (eventos practice:scenario-* que captura PracticeBridge). El log vive en practice-debug.ts (las trazas [audio] entran por audio-trace, canal audio); el interruptor rec lo gobierna rec-store (arranque automático con robot/demostración, WAV temporal en memoria); «Reiniciar sesión» para robot/transporte/rec/registro/consola/grabación y abre una sesión NUEVA de la misma pieza (el informe y la evaluación parten de cero con el id nuevo); el informe es fetch on-demand en su sub-pestaña (la interpretación pedagógica del mentor vive en el chat, B-033.4).
 
 "use client";
@@ -31,11 +31,12 @@ import { useTransport } from "../../lib/transport-context";
 import { getWaitModeSnapshot, setWaitModeEnabled, subscribeWaitMode } from "../../lib/wait-mode-store";
 import { useRouter } from "next/navigation";
 import { PracticeReport } from "./PracticeReport/PracticeReport";
+import { LlmDebug } from "./LlmDebug/LlmDebug";
 import { usePracticeModeChange } from "../PracticeModeBridge";
 import styles from "./SessionDebug.module.css";
 
-/** Sub-pestañas internas del panel Depurar (escenarios/registro/informe). */
-type DebugTab = "escenarios" | "registro" | "informe";
+/** Sub-pestañas internas del panel Depurar (escenarios/registro/informe/llm). */
+type DebugTab = "escenarios" | "registro" | "informe" | "llm";
 
 /** Etiqueta y descripción corta de cada escenario (menú v1). */
 const SCENARIO_LABELS: Record<ScenarioId, { label: string; desc: string }> = {
@@ -139,9 +140,10 @@ export function SessionDebug() {
     }
   };
 
-  if (session.sessionId === null && tab !== "informe") {
+  if (session.sessionId === null && tab !== "informe" && tab !== "llm") {
     // Antes todo el panel callaba sin sesión; con sub-pestañas, «Informe»
-    // sigue navegable y las otras dos explican (como hacía B-033.2).
+    // sigue navegable y las otras dos explican (como hacía B-033.2). La pestaña
+    // LLM tampoco necesita sesión: el caos es global del proceso del backend.
     return (
       <div className={styles.debug}>
         <DebugTabstrip tab={tab} setTab={setTab} />
@@ -264,6 +266,10 @@ export function SessionDebug() {
           <PracticeReport sessionId={session.sessionId} />
         </>
       )}
+
+      {/* B-036.1: caos del LLM para verificar a mano los reintentos. No
+          necesita sesión: el modo vive en el proceso del backend. */}
+      {tab === "llm" && <LlmDebug />}
     </div>
   );
 }
@@ -308,6 +314,15 @@ function DebugTabstrip({
         onClick={() => setTab("informe")}
       >
         Informe
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "llm"}
+        className={tab === "llm" ? styles.subtabActive : styles.subtab}
+        onClick={() => setTab("llm")}
+      >
+        LLM
       </button>
     </div>
   );

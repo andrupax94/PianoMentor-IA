@@ -211,6 +211,9 @@ const ERROR_CODES = [  "invalid_extension",
   "invalid_chat_payload",
   "unknown_tool",
   "tool_failed",
+  // B-036.1: el caos del LLM es dev-only; el backend responde 404 con este
+  // código en producción y el front lo traduce honesto (sin formularios raros).
+  "dev_only",
   "unexpected_response",
   "network_error",
 ] as const;
@@ -510,6 +513,30 @@ export async function createSession(pieceId: string): Promise<SessionResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ piece_id: pieceId }),
+  });
+}
+
+// --- Caos del LLM para verificar a mano (B-036.1, dev-only) -------------------
+
+/** Modo de caos del LLM: "" apagado, «una» (un 429 simulado en el primer
+ * intento de cada llamada) y «siempre» (todos: se ve el salto de cadena). */
+export type LlmChaosModo = "" | "una" | "siempre";
+
+export interface LlmChaosState {
+  modo: LlmChaosModo;
+}
+
+/** Lee el modo de caos activo en el backend (GET /api/v1/dev/llm/chaos). */
+export async function getLlmChaos(): Promise<LlmChaosState> {
+  return request<LlmChaosState>("/api/v1/dev/llm/chaos");
+}
+
+/** Fija el modo de caos del LLM (POST /api/v1/dev/llm/chaos). */
+export async function setLlmChaos(modo: LlmChaosModo): Promise<LlmChaosState> {
+  return request<LlmChaosState>("/api/v1/dev/llm/chaos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ modo }),
   });
 }
 

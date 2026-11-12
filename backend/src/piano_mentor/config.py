@@ -68,12 +68,10 @@ class Settings(BaseSettings):
     # cola aplazada de B-036.3). Sin Retry-After se espera 1 s, 2 s, ...
     llm_retry_intentos: int = 1
     llm_retry_espera_max_s: float = 8.0
-    # Knob de caos (B-036.1, dev/verificación): las primeras N llamadas al
-    # proveedor simulan un 429 con Retry-After de 2 s ANTES de tocar la red.
-    # 0 = desactivado (producción siempre 0). Sirve para probar a mano el
-    # reintento, la espera, el log y el salto sin saturar Groq/Gemini de
-    # verdad; con N > reintentos se ve además el salto a la cadena.
-    llm_fallos_simulados: int = 0
+    # El caos de verificación (429 de mentira para probar el reintento a mano)
+    # NO es configuración: vive en memoria del proceso y lo gobierna el menú
+    # Depurar del front vía POST /api/v1/dev/llm/chaos (dev-only, 404 en
+    # producción). Ver llm.py (`fijar_llm_chaos`).
 
     # --- Cloudflare R2 (storage de piezas subidas, B-029.1) ----------------
     # Con credenciales presentes, las subidas de usuario van a R2 y sobreviven

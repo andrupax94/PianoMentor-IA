@@ -37,6 +37,7 @@ from .auth import (
 )
 from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
+from .llm import fijar_llm_chaos, llm_chaos_modo
 from .config import settings
 from .database import (
     consume_auth_token,
@@ -97,6 +98,8 @@ from .schemas import (
     ChordSummary,
     EvaluationResponse,
     HealthResponse,
+    LlmChaosRequest,
+    LlmChaosResponse,
     NoteResponse,
     PieceMeasures,
     PieceMetadata,
@@ -1751,6 +1754,38 @@ def agent_chat(
         else None,
         used_tools=[ToolCallResult(**t) for t in result.used_tools],
     )
+
+
+# --- Caos del LLM para verificar a mano (B-036.1, dev-only) -------------------
+
+
+def _solo_desarrollo() -> None:
+    """404 si el entorno es producción: el caos no existe fuera de dev."""
+    if settings.environment == "production":
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "dev_only", "message": "Esta utilidad solo existe en desarrollo."},
+        )
+
+
+@router.get("/dev/llm/chaos", response_model=LlmChaosResponse)
+def leer_llm_chaos() -> LlmChaosResponse:
+    """Modo de caos del LLM activo en este proceso (B-036.1, dev-only)."""
+    _solo_desarrollo()
+    return LlmChaosResponse(modo=llm_chaos_modo())
+
+
+@router.post("/dev/llm/chaos", response_model=LlmChaosResponse)
+def fijar_llm_chaos_endpoint(payload: LlmChaosRequest) -> LlmChaosResponse:
+    """Fija el modo de caos del LLM (B-036.1, dev-only).
+
+    El interruptor del menú Depurar del front manda aquí; los modos y su
+    efecto (429 simulado antes de tocar la red) viven en `llm.py`.
+    """
+    _solo_desarrollo()
+    modo = fijar_llm_chaos(payload.modo)
+    logger.info("[dev] caos del LLM: %s", modo or "(apagado)")
+    return LlmChaosResponse(modo=modo)
 
 
 @router.websocket("/ws/sessions/{session_id}")

@@ -1,0 +1,64 @@
+/* description: Estilos de la sub-pestaña «LLM» del menú Depurar (B-036.1, dev-only): fila de modos como píldoras de la casa (oscuras translúcidas, acento dorado en la activa), descripción apagada y error honesto. */
+/* context: Dev-only; convive con la estética del MentorPanel (fondo translúcido, acento dorado var(--gold-soft)), misma familia de píldora que PracticeReport/SessionDebug sin inventar una nueva. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.modos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Píldora de la casa: oscura translúcida; la activa toma el acento dorado. */
+.modo,
+.modoActive {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.modo:hover:not(:disabled) {
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
+}
+
+.modoActive {
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modo:disabled,
+.modoActive:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.desc {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--danger, #e07a6a);
+}

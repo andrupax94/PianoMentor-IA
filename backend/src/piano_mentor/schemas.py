@@ -2,6 +2,7 @@
 # context: Contrato tipado entre frontend y backend.
 
 from pydantic import BaseModel, Field
+from typing import Literal
 
 from piano_mentor.midi import Hand
 
@@ -466,6 +467,23 @@ class ChatMessageRequest(BaseModel):
     # B-033.4 revisión: presupuesto de la respuesta que pide el turno; el
     # servicio lo acota al techo configurado (llm_max_tokens_techo).
     max_tokens: int | None = None
+
+
+class LlmChaosRequest(BaseModel):
+    """Modo de caos del LLM que pide el menú Depurar (B-036.1, dev-only).
+
+    `""` apaga; «una» simula un 429 en el primer intento de cada llamada al
+    proveedor; «siempre» los simula en todos los intentos (se ve el
+    agotamiento de reintentos y el salto de la cadena).
+    """
+
+    modo: Literal["", "una", "siempre"] = ""
+
+
+class LlmChaosResponse(BaseModel):
+    """Estado del caos del LLM tras leerlo o fijarlo."""
+
+    modo: str = ""
 
 
 class ChatMessageResponse(BaseModel):

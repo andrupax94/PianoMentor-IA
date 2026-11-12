@@ -5,10 +5,20 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from piano_mentor import llm
 from piano_mentor.config import settings
-from piano_mentor.llm import FallbackProvider, MockProvider, OpenAICompatibleProvider
+from piano_mentor.llm import (
+    FallbackProvider,
+    MockProvider,
+    OpenAICompatibleProvider,
+    fijar_llm_chaos,
+    llm_chaos_modo,
+)
+from piano_mentor.main import app
+
+client = TestClient(app)
 
 _PETICION = httpx.Request("POST", "https://ejemplo.test/v1/chat/completions")
 
@@ -90,7 +100,7 @@ def _tanda_limpia(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(llm, "_dormir", lambda segundos: _esperas.append(segundos))
     monkeypatch.setattr(settings, "llm_retry_intentos", 1)
     monkeypatch.setattr(settings, "llm_retry_espera_max_s", 8.0)
-    monkeypatch.setattr(settings, "llm_fallos_simulados", 0)
+    fijar_llm_chaos("")
 
 
 class TestReintentosTransitorios:
@@ -264,33 +274,76 @@ class TestRecortarHistorial:
         assert llm._recortar_historial(mensajes) == mensajes
 
 
-class TestKnobDeCaos:
-    """llm_fallos_simulados (B-036.1, verificación a mano): 429 de mentira sin red."""
+class TestCaosDeVerificacion:
+    """Modo de caos (B-036.1, dev-only): 429 de mentira sin tocar la red."""
 
-    def test_simulado_reintenta_y_sale_por_red_real(self) -> None:
+    def test_modo_una_simula_solo_el_primer_intento(self) -> None:
+        fijar_llm_chaos("una")
+        _respuestas.append(_ok("hola real"))
+
+        respuesta = _provider().chat([{"role": "user", "content": "hola"}], [])
+
+        assert respuesta.text == "hola real"
+        # El 429 simulado no tocó la red: solo hay 1 petición de verdad.
+        assert len(_peticiones) == 1
+        assert _esperas == [2.0]
+        # Apagado: sin simulaciones.
+        fijar_llm_chaos("")
+        _respuestas.append(_ok("hola 2"))
+        respuesta = _provider().chat([{"role": "user", "content": "hola"}], [])
+        assert respuesta.text == "hola 2"
+        assert len(_peticiones) == 2
+        assert _esperas == [2.0]
+
+    def test_modo_siempre_agota_reintentos_y_salta_a_mock(self) -> None:
+        fijar_llm_chaos("siempre")
+
+        cadena = FallbackProvider([_provider(), MockProvider()])
+        respuesta = cadena.chat([{"role": "user", "content": "hola"}], [])
+
+        assert respuesta.provider == "mock"
+        assert respuesta.used_fallback is True
+        # Ningún intento llegó a la red; solo la espera del reintento.
+        assert _peticiones == []
+        assert _esperas == [2.0]
+
+    def test_modo_desconocido_apaga(self) -> None:
+        fijar_llm_chaos("una")
+        assert fijar_llm_chaos("cualquiera") == ""
+        assert llm_chaos_modo() == ""
+
+
+class TestEndpointChaosDevOnly:
+    """GET/POST /dev/llm/chaos: dev-only, 404 en producción."""
+
+    def test_leer_y_fijar_en_desarrollo(self) -> None:
         monkeypatch_setting = pytest.MonkeyPatch()
-        monkeypatch_setting.setattr(settings, "llm_fallos_simulados", 1)
+        monkeypatch_setting.setattr(settings, "environment", "development")
         try:
-            _respuestas.append(_ok("hola real"))
-            respuesta = _provider().chat([{"role": "user", "content": "hola"}], [])
-            assert respuesta.text == "hola real"
-            # El 429 simulado no tocó la red: solo hay 1 petición de verdad.
-            assert len(_peticiones) == 1
-            assert _esperas == [2.0]
+            lectura = client.get("/api/v1/dev/llm/chaos")
+            assert lectura.status_code == 200
+            assert lectura.json() == {"modo": ""}
+
+            fijado = client.post("/api/v1/dev/llm/chaos", json={"modo": "una"})
+            assert fijado.status_code == 200
+            assert fijado.json() == {"modo": "una"}
+            assert llm_chaos_modo() == "una"
+            assert client.get("/api/v1/dev/llm/chaos").json() == {"modo": "una"}
         finally:
+            fijar_llm_chaos("")
             monkeypatch_setting.undo()
 
-    def test_mas_simulados_que_reintentos_propaga_y_salta_a_mock(self) -> None:
+    def test_modo_invalido_422(self) -> None:
+        respuesta = client.post("/api/v1/dev/llm/chaos", json={"modo": "a veces"})
+        assert respuesta.status_code == 422
+
+    def test_404_en_produccion(self) -> None:
         monkeypatch_setting = pytest.MonkeyPatch()
-        monkeypatch_setting.setattr(settings, "llm_fallos_simulados", 5)
+        monkeypatch_setting.setattr(settings, "environment", "production")
         try:
-            cadena = FallbackProvider([_provider(), MockProvider()])
-            respuesta = cadena.chat([{"role": "user", "content": "hola"}], [])
-            assert respuesta.provider == "mock"
-            assert respuesta.used_fallback is True
-            # Ningún intento llegó a la red; solo la espera del reintento.
-            assert _peticiones == []
-            assert _esperas == [2.0]
+            assert client.get("/api/v1/dev/llm/chaos").status_code == 404
+            assert client.post("/api/v1/dev/llm/chaos", json={"modo": "una"}).status_code == 404
+            assert llm_chaos_modo() == ""
         finally:
             monkeypatch_setting.undo()
 

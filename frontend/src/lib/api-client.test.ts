@@ -7,12 +7,14 @@ import {
   ApiError,
   createSession,
   evaluateSession,
+  getLlmChaos,
   getPieceNotes,
   getSessionState,
   previewPiece,
   registerUser,
   runAgentStep,
   sendAgentMessage,
+  setLlmChaos,
   updateSessionPracticeMode,
   uploadPiece,
   type AgentChatResponse,
@@ -675,5 +677,53 @@ describe("registerUser", () => {
         level: "beginner",
       }),
     ).rejects.toMatchObject({ code: "network_error" });
+  });
+});
+
+describe("getLlmChaos / setLlmChaos (B-036.1, dev-only)", () => {
+  it("lee el modo activo del backend", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ modo: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const estado = await getLlmChaos();
+
+    expect(estado).toEqual({ modo: "" });
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toMatch(/\/api\/v1\/dev\/llm\/chaos$/);
+  });
+
+  it("fija el modo con el cuerpo { modo }", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ modo: "una" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const estado = await setLlmChaos("una");
+
+    expect(estado).toEqual({ modo: "una" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/api\/v1\/dev\/llm\/chaos$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ modo: "una" });
+  });
+
+  it("en producción el 404 del backend llega como error de la API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: { code: "dev_only", message: "Esta utilidad solo existe en desarrollo." } }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getLlmChaos()).rejects.toMatchObject({ code: "dev_only", status: 404 });
   });
 });
