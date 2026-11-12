@@ -30,8 +30,8 @@ import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { useTransport } from "../../lib/transport-context";
 import { getWaitModeSnapshot, setWaitModeEnabled, subscribeWaitMode } from "../../lib/wait-mode-store";
 import { useRouter } from "next/navigation";
-import { PracticeReport } from "./PracticeReport/PracticeReport";
 import { LlmDebug } from "./LlmDebug/LlmDebug";
+import { PracticeReport } from "./PracticeReport/PracticeReport";
 import { usePracticeModeChange } from "../PracticeModeBridge";
 import styles from "./SessionDebug.module.css";
 
