@@ -29,7 +29,7 @@ import {
  * 4 (términos) quedan construidos pero ocultos: el wizard se percibe como
  * de 3 pasos (2 → 5). Activar el step 4 requiere P-001 (documentos legales).
  */
-const ENABLE_EXTRA_STEPS = false;
+const ENABLE_EXTRA_STEPS = true;
 
 const REGISTER_FALLBACK = "No hemos podido crear la cuenta. Inténtalo de nuevo en unos minutos.";
 const NETWORK_FALLBACK = "Sin conexión con el servidor. Revisa tu red e inténtalo de nuevo.";
