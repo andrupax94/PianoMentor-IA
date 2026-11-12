@@ -209,6 +209,23 @@ def _dormir(segundos: float) -> None:
     time.sleep(segundos)
 
 
+def _error_simulado(httpx_module: Any, cuerpo: str) -> Any:
+    """Un HTTPStatusError 429 de mentira con Retry-After de 2 s (B-036.1).
+
+    Lo usa el knob de caos (`llm_fallos_simulados`) para verificar a mano el
+    reintento sin saturar el proveedor real: la respuesta es httpx de verdad,
+    así que el except de la política la trata igual que una del proveedor.
+    """
+    respuesta = httpx_module.Response(
+        429,
+        text=cuerpo,
+        headers={"Retry-After": "2"},
+        request=httpx_module.Request("POST", "https://simulado.local/chat/completions"),
+    )
+    respuesta.raise_for_status()
+    raise AssertionError("httpx.Response.raise_for_status no levantó 429")
+
+
 def _parse_arguments(raw: Any) -> dict[str, Any]:
     """Normaliza los argumentos de un tool_call a dict, tolerando JSON roto.
 
@@ -676,6 +693,18 @@ class OpenAICompatibleProvider(LLMProvider):
         while True:
             payload["messages"] = historial
             try:
+                # Knob de caos (B-036.1, verificación): un 429 de mentira con
+                # Retry-After, ANTES de tocar la red, para probar a mano el
+                # reintento/la espera/el salto sin saturar el proveedor real.
+                pendientes = max(0, int(settings.llm_fallos_simulados))
+                if pendientes > 0:
+                    settings.llm_fallos_simulados = pendientes - 1
+                    logger.warning(
+                        "[llm] %s: 429 SIMULADO (knob de caos); quedan %d",
+                        self.provider_name,
+                        pendientes - 1,
+                    )
+                    raise _error_simulado(httpx_module, "rate limit simulado")
                 with httpx_module.Client(timeout=self.timeout_s) as client:
                     response = client.post(
                         f"{self.base_url}/chat/completions",

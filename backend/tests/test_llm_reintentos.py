@@ -90,6 +90,7 @@ def _tanda_limpia(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(llm, "_dormir", lambda segundos: _esperas.append(segundos))
     monkeypatch.setattr(settings, "llm_retry_intentos", 1)
     monkeypatch.setattr(settings, "llm_retry_espera_max_s", 8.0)
+    monkeypatch.setattr(settings, "llm_fallos_simulados", 0)
 
 
 class TestReintentosTransitorios:
@@ -261,6 +262,37 @@ class TestRecortarHistorial:
             {"role": "user", "content": "u"},
         ]
         assert llm._recortar_historial(mensajes) == mensajes
+
+
+class TestKnobDeCaos:
+    """llm_fallos_simulados (B-036.1, verificación a mano): 429 de mentira sin red."""
+
+    def test_simulado_reintenta_y_sale_por_red_real(self) -> None:
+        monkeypatch_setting = pytest.MonkeyPatch()
+        monkeypatch_setting.setattr(settings, "llm_fallos_simulados", 1)
+        try:
+            _respuestas.append(_ok("hola real"))
+            respuesta = _provider().chat([{"role": "user", "content": "hola"}], [])
+            assert respuesta.text == "hola real"
+            # El 429 simulado no tocó la red: solo hay 1 petición de verdad.
+            assert len(_peticiones) == 1
+            assert _esperas == [2.0]
+        finally:
+            monkeypatch_setting.undo()
+
+    def test_mas_simulados_que_reintentos_propaga_y_salta_a_mock(self) -> None:
+        monkeypatch_setting = pytest.MonkeyPatch()
+        monkeypatch_setting.setattr(settings, "llm_fallos_simulados", 5)
+        try:
+            cadena = FallbackProvider([_provider(), MockProvider()])
+            respuesta = cadena.chat([{"role": "user", "content": "hola"}], [])
+            assert respuesta.provider == "mock"
+            assert respuesta.used_fallback is True
+            # Ningún intento llegó a la red; solo la espera del reintento.
+            assert _peticiones == []
+            assert _esperas == [2.0]
+        finally:
+            monkeypatch_setting.undo()
 
 
 class TestLogDelSalto:
