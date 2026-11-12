@@ -1,16 +1,11 @@
 // description: Layout global de la aplicación web.
-// context: Envoltorio común de páginas: carga el grid de Bootstrap y sus fracciones de medio paso (solo layout, antes de globals), los estilos globales y monta AgentDock.
+// context: Envoltorio común de páginas: carga Tailwind (globals.css con @import tailwindcss + @config al tema de Stitch), los estilos globales, la fuente Manrope (next/font) y los <link> de Google Fonts para Material Symbols y JetBrains Mono; monta AgentDock. Bootstrap retirado el 2026-11-12.
 
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import { AgentDock } from "../components/AgentDock/AgentDock";
-// Bootstrap reducido a su sistema de grid (contenedores, columnas, display, flex
-// y alineación), sin reboot ni componentes: va antes de globals.css para que los
-// estilos propios ganen en empates. Solo se aplica a código nuevo (skill CSS).
-import "bootstrap/dist/css/bootstrap-grid.css";
-// Medios enteros de columna (col-1-5, col-md-2-5…) que Bootstrap no trae: se
-// define aquí el mismo contrato de .row y va pegado a su grid, antes de globals.
-import "./grid-fractions.css";
+// Bootstrap y su extensión de fracciones de columna se han retirado (2026-11-12):
+// Tailwind (grid/flex/gap) cubre el mismo layout sin otro framework CSS.
 import "./globals.css";
 
 const manrope = Manrope({
@@ -32,6 +27,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="es" className={manrope.variable}>
       <body>
+        {/* Iconos Material Symbols (los que usa el HTML de Stitch) + JetBrains Mono para código.
+            React 19 iza estos <link> al <head> (App Router no admite <head> manual). */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=JetBrains+Mono:wght@400;500;600;700&display=block"
+        />
         {children}
         {/* El chat del mentor en la página principal; flotante en el resto. */}
         <AgentDock />

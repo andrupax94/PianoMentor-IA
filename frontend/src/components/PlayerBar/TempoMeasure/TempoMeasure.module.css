@@ -39,7 +39,9 @@
 }
 
 /* Campo editable del tempo (B-006.5): ancho para 3-4 dígitos y borde
-   suave hasta que recibe foco; el resto de la línea no cambia. */
+   suave hasta que recibe foco; el resto de la línea no cambia. El acento
+   dorado del spinner era una regla global de globals.css que se eliminó
+   (pisaba a Tailwind): vive aquí, scoped al componente. */
 .bpm {
   width: 5.4ch;
   padding: 1px 4px;
@@ -50,9 +52,20 @@
   font-size: 0.85rem;
   font-weight: bold;
   width: 60px;
+  accent-color: var(--gold);
 }
 
 .bpm:focus {
   border-color: var(--accent);
   outline: none;
+}
+
+/* Flechitas del spinner en tono con la página (Chromium). */
+.bpm::-webkit-inner-spin-button {
+  opacity: .55;
+}
+
+.bpm:hover::-webkit-inner-spin-button,
+.bpm:focus::-webkit-inner-spin-button {
+  opacity: 1;
 }

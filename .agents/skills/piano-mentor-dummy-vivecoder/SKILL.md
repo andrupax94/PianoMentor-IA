@@ -279,7 +279,7 @@ El usuario se maneja bien con **estilos y HTML de componentes**, así que esta t
 
 **Convención de cada componente** (se repite en todo el proyecto): una carpeta con `Nombre.tsx` (lo que dibuja), `Nombre.module.css` (sus estilos, solo para él) y `Nombre.types.ts` (qué datos recibe). Si solo vas a retocar apariencia, normalmente basta con el `.tsx` y el `.module.css`.
 
-**Reglas de estilo del proyecto:** Bootstrap 5.3 se usa **solo por su rejilla de columnas**; todo lo demás va en **CSS Modules** y con **tokens** (variables) de `globals.css`. Para cualquier duda de CSS, existe la skill `piano-mentor-css`.
+**Reglas de estilo del proyecto:** Bootstrap fue **retirado** (2026-11-12); el layout nuevo va con **Tailwind v4** (tema de Stitch ya conectado: colores navy+oro, escala tipográfica, Material Symbols) y los estilos de componente en **CSS Modules**, siempre con los **tokens** de `globals.css`. Para cualquier duda de CSS, existe la skill `piano-mentor-css`.
 
 **Rutas (páginas) importantes:** `/` es la portada; `/{id-de-sesión}` es **la misma portada con una práctica activa** (no una página distinta, para que el piano y el chat no se reinicien al empezar a practicar); `/library`; `/registro`; y un grupo `(home)` entre paréntesis, que en Next.js solo agrupa archivos sin aparecer en la URL.
 

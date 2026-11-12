@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-09 18:00 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-12 16:31 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -976,6 +976,7 @@ piano-mentor-ai/
 ├── backend/tests/test_evaluation.py
 ├── backend/tests/test_hands.py
 ├── backend/tests/test_health.py
+├── backend/tests/test_llm_reintentos.py
 ├── backend/tests/test_mailer.py
 ├── backend/tests/test_measure_grid.py
 ├── backend/tests/test_measure_range.py
@@ -1028,6 +1029,7 @@ piano-mentor-ai/
 ├── docs/design/main_page_box.jpg
 ├── docs/design/main_page_desing.jpg
 ├── docs/design/stitch/
+├── docs/design/stitch/PROJECT-CONTEXT.md
 ├── docs/design/stitch/README.md
 ├── docs/diagnostico/
 ├── docs/diagnostico/corte-sonido-pulsacion-temprana.md
@@ -1137,6 +1139,9 @@ piano-mentor-ai/
 ├── docs/issues/B-034/B-034.md
 ├── docs/issues/B-035/
 ├── docs/issues/B-035/B-035.md
+├── docs/issues/B-036/
+├── docs/issues/B-036/B-036.1.md
+├── docs/issues/B-036/B-036.md
 ├── docs/issues/D-002/
 ├── docs/issues/D-002/D-002.1.md
 ├── docs/issues/D-002/D-002.2.md
@@ -1187,6 +1192,7 @@ piano-mentor-ai/
 ├── frontend/next.config.ts
 ├── frontend/package-lock.json
 ├── frontend/package.json
+├── frontend/postcss.config.js
 ├── frontend/public/
 ├── frontend/public/assets/
 ├── frontend/public/assets/covers/
@@ -1227,6 +1233,19 @@ piano-mentor-ai/
 ├── frontend/public/audio/
 ├── frontend/public/audio/piano/
 ├── frontend/public/audio/piano/manifest.json
+├── frontend/public/docs/
+├── frontend/public/docs/legal/
+├── frontend/public/docs/legal/privacidad.md
+├── frontend/public/docs/legal/terminos.md
+├── frontend/public/docs/project/
+├── frontend/public/docs/project/design.md
+├── frontend/public/docs/project/getting-started.md
+├── frontend/public/docs/project/glossary.md
+├── frontend/public/docs/project/product.md
+├── frontend/public/docs/project/project-context.md
+├── frontend/public/docs/project/readme.md
+├── frontend/public/docs/project/third-party-notices.md
+├── frontend/public/docs/project/troubleshooting.md
 ├── frontend/scripts/
 ├── frontend/scripts/fetch-piano-samples.mjs
 ├── frontend/src/
@@ -1241,10 +1260,16 @@ piano-mentor-ai/
 ├── frontend/src/app/api/auth/
 ├── frontend/src/app/api/auth/[...nextauth]/
 ├── frontend/src/app/api/auth/[...nextauth]/route.ts
+├── frontend/src/app/documentacion/
+├── frontend/src/app/documentacion/page.tsx
 ├── frontend/src/app/globals.css
-├── frontend/src/app/grid-fractions.css
 ├── frontend/src/app/icon.svg
 ├── frontend/src/app/layout.tsx
+├── frontend/src/app/legal/
+├── frontend/src/app/legal/privacidad/
+├── frontend/src/app/legal/privacidad/page.tsx
+├── frontend/src/app/legal/terminos/
+├── frontend/src/app/legal/terminos/page.tsx
 ├── frontend/src/app/library/
 ├── frontend/src/app/library/page.tsx
 ├── frontend/src/app/practice/
@@ -1420,6 +1445,10 @@ piano-mentor-ai/
 ├── frontend/src/components/Register/RegisterWizard.steps.ts
 ├── frontend/src/components/Register/RegisterWizard.tsx
 ├── frontend/src/components/SessionDebug/
+├── frontend/src/components/SessionDebug/LlmDebug/
+├── frontend/src/components/SessionDebug/LlmDebug/LlmDebug.module.css
+├── frontend/src/components/SessionDebug/LlmDebug/LlmDebug.tsx
+├── frontend/src/components/SessionDebug/LlmDebug/LlmDebug.types.ts
 ├── frontend/src/components/SessionDebug/PracticeReport/
 ├── frontend/src/components/SessionDebug/PracticeReport/PracticeReport.module.css
 ├── frontend/src/components/SessionDebug/PracticeReport/PracticeReport.tsx
@@ -1432,6 +1461,8 @@ piano-mentor-ai/
 ├── frontend/src/components/SessionStatusLive.tsx
 ├── frontend/src/components/SoundLoadingOverlay/
 ├── frontend/src/components/SoundLoadingOverlay/SoundLoadingOverlay.tsx
+├── frontend/src/components/StitchDocs/
+├── frontend/src/components/StitchDocs/Documentation.tsx
 ├── frontend/src/components/TransportProvider/
 ├── frontend/src/components/TransportProvider/TransportProvider.tsx
 ├── frontend/src/lib/
@@ -1461,6 +1492,8 @@ piano-mentor-ai/
 ├── frontend/src/lib/chat-feed.ts
 ├── frontend/src/lib/chat-prompt.test.ts
 ├── frontend/src/lib/chat-prompt.ts
+├── frontend/src/lib/debug-bubble.ts
+├── frontend/src/lib/docs-registry.ts
 ├── frontend/src/lib/falling-notes.test.ts
 ├── frontend/src/lib/falling-notes.ts
 ├── frontend/src/lib/gate-controller.test.ts
@@ -1477,11 +1510,13 @@ piano-mentor-ai/
 ├── frontend/src/lib/key-shadows.ts
 ├── frontend/src/lib/key-states.test.ts
 ├── frontend/src/lib/key-states.ts
+├── frontend/src/lib/legal.ts
 ├── frontend/src/lib/library-preview.test.ts
 ├── frontend/src/lib/library-preview.ts
 ├── frontend/src/lib/library.test.ts
 ├── frontend/src/lib/library.ts
 ├── frontend/src/lib/loading-service.ts
+├── frontend/src/lib/markdown.ts
 ├── frontend/src/lib/measures.test.ts
 ├── frontend/src/lib/measures.ts
 ├── frontend/src/lib/mentor-tab-events.ts
@@ -1548,6 +1583,7 @@ piano-mentor-ai/
 ├── frontend/src/lib/websocket-client.test.ts
 ├── frontend/src/lib/websocket-client.ts
 ├── frontend/src/lib/zip.ts
+├── frontend/tailwind.config.js
 ├── frontend/tsconfig.json
 ├── frontend/tsconfig.tsbuildinfo
 ├── frontend/vitest.config.ts
@@ -1606,7 +1642,7 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/migrations/0005_add_sessions.sql` | Migración 0005: crea sessions (id, piece_id, status, control, current_measure, position_s, created_at, updated_at) y session_events (log append-only con type, pitch, velocity, t_s y received_at), con índices por pieza y por sesión (B-012.1). | sessions guarda el estado vivo y session_events es el log de la interpretación que leerá la evaluación (B-012.2). Sin claves foráneas, como el resto del esquema; t_s es el reloj del estudiante y received_at solo diagnóstico. |
 | `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados; calcula content_hash y marca source='corpus' para que subir un MIDI idéntico reutilice el catálogo. ensure_catalog_loaded siembra el corpus cuando la tabla no tiene ninguna pieza suya (B-027.4). | CLI python -m piano_mentor.catalog para forzar la carga; GET /pieces llama a ensure_catalog_loaded, así que un arranque limpio ya sirve la Library. Un catálogo ausente o inválido se avisa por el log y no rompe el listado. B-003.3 no toca el formato del catálogo. |
 | `backend/src/piano_mentor/tools.py` | Registro de funciones del chat con lista blanca cerrada (B-012.8): define ToolDef (name, description en español, parameters como JSON Schema y side server/client) y REGISTRY con 12 funciones — listar_piezas, buscar_pieza, info_pieza y estado_sesion de servidor; reproducir_pieza, pausar, reanudar, parar y abrir_practica de navegador; y, desde B-032.7, aceptar_oferta, descartar_oferta y repetir_demo de navegador (la respuesta del alumno a la oferta del mentor, sin parámetros: los de la demo los guarda el backend). Expone list_tools(), tool_names(), execute_tool() y ToolError. buscar_pieza compara por palabras sueltas (sin acentos, con prefijo cuando el lado corto llega a 4 letras) y ordena los candidatos por número de coincidencias, conservando el orden del catálogo en los empates. | La lista blanca es el criterio de honestidad del agente: lo que no está aquí se rechaza antes de ejecutarse. El reparto side fija la frontera arquitectónica: el backend ejecuta las de servidor (tienen la BD) y solo devuelve la intención de las de navegador, porque el transporte y el audio viven en el navegador (B-012.8 decisión 3). La búsqueda por palabras en vez de la frase entera es lo que permite encadenar buscar -> reproducir en un turno: el proveedor reduce la orden a palabras clave y el servidor devuelve candidatos ordenados y deterministas (así «minueto bach» encuentra el Minueto antes que una Invention que solo encaja con «bach»). |
-| `backend/src/piano_mentor/llm.py` | Proveedores de LLM para el chat del agente (B-012.8). | Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista. |
+| `backend/src/piano_mentor/llm.py` | Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log. | Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista. |
 | `backend/src/piano_mentor/chat.py` | Orquestación de un turno del chat del agente (B-012.8). | Historial + contexto -> proveedor -> validación contra lista blanca -> |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales), conversión ticks→segundos con TempoMap, nota normalizada (emparejamiento, acordes, orden estable y notas sin cerrar) y la especificación de la frase de práctica de B-012.1 (22 notas, 8 s, dos manos separadas por registro). | Confianza en el parsing, el mapa de tempo y el normalizador. |
@@ -1637,18 +1673,17 @@ piano-mentor-ai/
 | `backend/tests/test_agent_chat.py` | Chat del agente: registro de funciones (con las respuestas a la oferta del mentor, B-032.7), MockProvider, memoria y endpoint (B-012.8). | Todo probado con MockProvider (sin red ni clave), incluido su bucle de dos pasos |
 | `backend/tests/test_agent_chat_integration.py` | Pruebas de integración del proveedor real (B-012.8 bloque B), marcadas como `integration`: Groq elige función de cliente y de servidor con argumentos, responde texto sin función, completa el bucle con ChatService y devuelve client_action; Gemini hace tool calling; la cadena no se rompe si un proveedor cae. Se omiten en la suite normal (addopts -m 'not integration') y se ejecutan con `python -m pytest -q -m integration`. | Única red del backend contra LLM reales; necesita claves reales, así que nunca corre en CI. Verifican el camino exacto (tool_call -> ejecución -> resultado) que el MockProvider oculta. |
 | `frontend/Dockerfile` | Imagen reproducible del frontend Next.js. | Servir la UI en local y base del despliegue en Vercel. |
-| `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript, Bootstrap 5.3 solo para su sistema de grid). | Instalar y arrancar la web; Bootstrap no se usa para componentes ni para estilos ya escritos. |
+| `frontend/package.json` | Dependencias y scripts del frontend (Next.js, TypeScript, Tailwind v4 con el tema de Stitch). Bootstrap retirado el 2026-11-12; el layout nuevo va con Tailwind o CSS Modules. | Instalar y arrancar la web; no introducir frameworks CSS adicionales. |
 | `frontend/next.config.ts` | Configuración de Next.js. | Ajustes de build y runtime web. |
 | `frontend/tsconfig.json` | Configuración del compilador TypeScript, versionada desde B-027.3 con el alias @/* -> ./src/*. | Tipos estrictos en el frontend. Está en git a propósito: si se ignora, cada clon queda sin paths y los imports con @/ no resuelven. next-env.d.ts y *.tsbuildinfo siguen ignorados. |
 | `frontend/vitest.config.ts` | Configuración de Vitest del frontend: entorno node y tests de src/**/*.test.ts(x). | La suite es pura (sin DOM ni red); fija el entorno y el patrón de ficheros para que npm test, el Explorador de pruebas de VS Code y vitest run coincidan. |
 | `frontend/AGENTS.md` | Aviso que next dev escribe y reescribe para agentes (bloque nextjs-agent-rules): leer los docs de la versión instalada antes de tocar código. | Mantenido por Next; borrarlo solo recrea el cambio sin commitear, así que se versiona tal cual. |
-| `frontend/src/app/layout.tsx` | Layout global de la aplicación web. | Envoltorio común de páginas: carga el grid de Bootstrap y sus fracciones de medio paso (solo layout, antes de globals), los estilos globales y monta AgentDock. |
+| `frontend/src/app/layout.tsx` | Layout global de la aplicación web. | Envoltorio común de páginas: carga Tailwind (globals.css con @import tailwindcss + @config al tema de Stitch), los estilos globales, la fuente Manrope (next/font) y los <link> de Google Fonts para Material Symbols y JetBrains Mono; monta AgentDock. Bootstrap retirado el 2026-11-12. |
 | `frontend/src/app/(home)/layout.tsx` | Layout de la portada, con y sin sesión de práctica activa. | La práctica es la propia portada: al compartir layout entre / y /{id}, la navegación no remonta el piano ni el panel del mentor y el chat se queda donde estaba. La sesión la monta la página [sessionId] con PracticeBridge. El transporte vive en TransportProvider (B-032.2), por encima del piano y de las páginas, para que la sesión y el piano compartan un solo reloj. |
 | `frontend/src/app/(home)/layout.module.css` | Layout de dos columnas de la portada, con o sin sesión de práctica. | B-006.4 / 100% de alto de pantalla; la columna izquierda (.main) pasa a PlaybackArea en B-007.3. Vive en el grupo (home) desde la reposición de la práctica sobre la portada. |
 | `frontend/src/app/(home)/page.tsx` | Portada sin sesión: todo lo visible vive en el layout del grupo. | Con la práctica reubicada sobre la portada, / y /{id} comparten layout; el piano y el panel del mentor no se remontan al pasar de una a otra. |
 | `frontend/src/app/(home)/[sessionId]/page.tsx` | Portada con una sesión de práctica activa: monta el puente de la sesión. | La práctica vive en /{id} sobre la portada (reposición post-B-012.1); el piano, el chat y el resto de la página ya están en el layout del grupo. |
 | `frontend/src/app/globals.css` | Estilos globales de la aplicación: paleta de tokens (incluidos los colores de mano de la cascada, con el violeta de la IA del acompañamiento — B-012.7), tipografía, botones y el estilo base de los inputs numéricos (flechitas del spinner en tono con la página). | Base visual de la web; los tokens de D-002.1 y B-012.7 viven aquí para que los componentes solo consuman var(...). |
-| `frontend/src/app/grid-fractions.css` | Medios enteros de columna para el grid de Bootstrap (col-X-5). | Extensión propia del sistema de columnas, importada tras bootstrap-grid.css y antes de globals.css; solo layout, como el resto de Bootstrap. |
 | `frontend/src/app/practice/[sessionId]/page.tsx` | Compatibilidad de la ruta antigua de práctica: redirige a /{sessionId}. | B-012.1 nació en /practice/{id}; la reposición mueve la práctica a la portada con el id en la URL, y este enlace viejo no se rompe (marcadores, guion de demo, pruebas manuales). |
 | `frontend/src/app/library/page.tsx` | Ruta /library (Server Component): AppHeader con active='library' + LibraryPage + AppFooter. | B-027.3; el catálogo y el transporte de preview viven en LibraryPage (cliente). |
 | `frontend/src/components/MidiUploader.tsx` | Selector de un MIDI a mano: valida en cliente, lo manda a POST /pieces/preview (efímero) y publica la partitura en piece-store para que suene en el piano, sin guardarla. | B-027.3; vive en el MentorPanel (Learn) y en SongDetailPanel (Library). Si no estamos en /, navega al piano tras cargarla; la subida persistente (uploadPiece) se conserva sin uso. |

@@ -1,113 +1,127 @@
 ---
 name: piano-mentor-css
-description: Cualquier operación CSS en PianoMentor AI: regla de uso de Bootstrap (solo los sistemas de agrupación, alineamiento, display, flex y grid, y solo en código nuevo), convenciones de CSS Modules y globals.css, tokens del diseño, estilos inline, orden de importaciones, verificación del CSS compilado y sincronización con la arquitectura. Usar al escribir o modificar estilos, clases o classNames.
+description: Cualquier operación CSS en PianoMentor AI: Tailwind v4 (tema de Stitch conectado) y CSS Modules, tokens del diseño, estilos inline, orden de importaciones, verificación del CSS compilado y sincronización con la arquitectura. Usar al escribir o modificar estilos, clases o classNames.
 ---
-<!-- description: Skill de CSS: regla de Bootstrap, módulos, tokens, orden y verificación. -->
+<!-- description: Skill de CSS: Tailwind v4 + CSS Modules, tokens, orden y verificación. -->
 <!-- context: Cargar antes de tocar cualquier fichero .css o un className. -->
 
 # PianoMentor CSS
 
+## Cambio de stack (2026-11-12): de Bootstrap a Tailwind
+
+Historia del cambio, para que nadie vuelva a luchar contra esto:
+
+- **Antes**: Bootstrap 5.3 importado **solo como grid** (`bootstrap-grid.css` +
+  extensión propia `grid-fractions.css`), con CSS Modules para el resto. Los
+  diseños que Stitch genera (HTML con Tailwind o con Bootstrap completo) no se
+  podían pegar: sus clases de componente (`.btn`, `.card`, `.bg-*`, `.text-*`)
+  no existían en el grid y quedaban sin estilo.
+- **Por qué se retiró**: además de bloquear los diseños de Stitch, el orden de
+  capas causaba conflictos reales — las reglas del proyecto sin capa (`h1`,
+  `button`, `input[type=number]`, `.grid` en `globals.css`) ganaban a las
+  utilidades de Tailwind (`@layer utilities`), y el preflight de Tailwind
+  activó bordes latentes (el `border-bottom-width: 3px` del nav). Dos sistemas
+  de diseño compitiendo en el mismo CSS.
+- **Ahora**: Tailwind **v4** con `@tailwindcss/postcss`, `@import "tailwindcss"`
+  y `@config "../../tailwind.config.js"` al principio de `globals.css`. El
+  `tailwind.config.js` lleva la **paleta completa de Stitch** (colores,
+  escala tipográfica `headline/body/label`, espaciado, radios), así que el HTML
+  que Stitch exporta se pega tal cual y resuelve. El layout que quedaba de
+  Bootstrap (el footer) se migró a Tailwind, se desinstaló la dependencia y se
+  borraron `bootstrap-grid.css` y `grid-fractions.css`.
+- **Limpieza asociada**: se eliminaron de `globals.css` las reglas globales de
+  `h1`, `button` e `input[type="number"]` (pisaban cualquier componente de
+  Stitch) y `.grid` pasó a llamarse `.card-grid` (colisión de nombre con la
+  utilidad Tailwind `grid`). El acento dorado del input de BPM vive ahora en
+  `TempoMeasure.module.css`, scoped al componente.
+
 ## Objetivo
 
-Que cualquier cambio de estilo siga la misma forma que ya tiene la web (módulos
-por componente, tokens compartidos) y que Bootstrap se quede exactamente donde el
-proyecto lo pidió: **solo su sistema de grids**.
+Que cualquier cambio de estilo siga la misma forma que ya tiene la web:
+**Tailwind para layout/utilidades rápidas y CSS Modules para estilos de
+componente**, con tokens compartidos y sin frameworks CSS adicionales.
 
 ## Herramientas de diseño UI
 
-Cuando haya que crear o rediseñar una pantalla, usar **Stitch MCP** (`tools.stitch.*`) para generar el diseño/HTML de referencia y la skill **`impeccable`** para revisar, pulir y auditar el resultado. Ambas son ayuda de diseño, no sustituyen las reglas de abajo: el HTML de Stitch se adapta a los componentes React, tokens y CSS Modules del proyecto; Impeccable se aplica sobre el código resultante. Ninguna de las dos autoriza a importar Bootstrap completo, usar clases prohibidas (`.btn`, `.card`, `.bg-*`, etc.) ni añadir colores sueltos fuera de los tokens.
+Cuando haya que crear o rediseñar una pantalla, usar **Stitch MCP**
+(`tools.stitch.*`) para generar el diseño y la skill **`impeccable`** para
+revisar y pulir el resultado. Contexto del proyecto ya subido a Stitch como
+DESIGN.md (`docs/design/stitch/PROJECT-CONTEXT.md`): identidad navy+oro,
+tokens de `globals.css`, contratos `.shell`/`.cristal`, header y footer siempre
+visibles, Tailwind-first. El HTML de Stitch se pega como JSX con sus clases
+Tailwind; solo se adapta lo dinámico (estado, eventos, fetch). No introducir
+frameworks CSS nuevos.
 
-**Aviso de identidad Stitch:** el proyecto Stitch existente (`projects/91769299213639956`) usa el sistema auto-generado "Acoustic Intelligence" (tema claro, violeta, Epilogue/Plus Jakarta Sans/JetBrains Mono), que **no coincide** con la identidad real (oscuro, navy+oro, Gabriola+Manrope). Sus pantallas son referencia **exploratoria**, no fiel. Ver `docs/design/stitch/README.md`. No adoptar ese tema ni esas fuentes.
-
-## Regla 1 — Bootstrap: solo layout, y solo en código nuevo
-
-Esta es la regla con la que nace esta skill y manda sobre todo lo demás:
-
-> **Bootstrap solo se usa para los sistemas de agrupación, alineamiento, display,
-> flex y grid. Y solo en lo que se genere de ahora en adelante: los estilos ya
-> escritos no se reconvierten a Bootstrap.**
-
-Cómo está montado para que se pueda cumplir:
-
-- `bootstrap@5.3.8` en `frontend/package.json`, **pero solo se importa un fichero**:
-  `bootstrap/dist/css/bootstrap-grid.css` en `src/app/layout.tsx`, **antes** de
-  `./globals.css`. El orden de importación manda (docs de Next): así lo propio
-  gana en cualquier empate.
-- No están importados `bootstrap.css` (reboot + componentes) ni
-  `bootstrap-utilities.css`. **Si escribes una clase que no está en el grid, no
-  se aplica y no hay error**: es el fallo silencioso más fácil de cometer aquí.
-- No se usa el JS de Bootstrap (ni se instaló).
-
-Qué hay dentro de `bootstrap-grid.css` (medido: 1 194 clases, 68,7 kB fuente,
-50,7 kB compilado) — **sistemas permitidos**:
-
-| Sistema | Clases disponibles |
-|---|---|
-| Agrupación | `.container`, `.container-fluid`, `.container-{sm,md,lg,xl,xxl}`, `.row` |
-| Display | `.d-none`, `.d-block`, `.d-flex`, `.d-grid`, `.d-inline-*`, `.d-{breakpoint}-*`, `.d-print-*` |
-| Alineamiento | `.justify-content-*`, `.align-items-*`, `.align-self-*` |
-| Flex | `.flex-row`, `.flex-column`, `.flex-wrap`, `.flex-nowrap`, `.flex-fill`, `.flex-grow-*`, `.flex-shrink-*`, `.order-*` |
-| Grid | `.col`, `.col-{n}`, `.col-{breakpoint}-{n}`, `.offset-*`, `.row-cols-*`, canales `.g-*`, `.gx-*`, `.gy-*`, `.d-grid` |
-
-Y el proyecto añade, en `src/app/grid-fractions.css`, los **medios enteros de
-columna** que el grid no trae: `.col-{n}-5` y `.col-{breakpoint}-{n}-5` con
-`n = 1..11` (1,5 … 11,5 columnas) en las 6 vistas. Mismo contrato (`flex: 0 0
-auto` + ancho en % sobre 12) y mismos puntos de ruptura que Bootstrap, así que
-se combinan con `.row`, `col-{n}` y `offset-*` sin más. **No existen sin
-importar ese fichero** y no son de Bootstrap: son nuestra extensión del grid.
-
-**Fuera de regla (no existen en el fichero importado):**
-
-- Componentes: `.btn`, `.card`, `.nav`, `.modal`, `.alert`, `.dropdown`…
-- Reboot/tipografía: `h1`-`h6`, `p`, `a`, `body` de Bootstrap.
-- Colores y textos: `.bg-*`, `.text-*`, `.border*`, `.shadow`.
-- Spacing propio de Bootstrap: `.m-*`, `.p-*`, `.mt-*`…
-- **`.gap-*`**: no está en el grid. Si lo necesitas en flex, escribe `gap: 16px`
-  en tu `*.module.css`. **No** importes `bootstrap-utilities.css` para conseguirlo:
-  desbloquearía colores, textos y spacing que esta regla excluye.
-
-**No reconvertir lo existente**: los estilos ya escritos (31 ficheros
-`*.module.css` en `src/components` más `page.module.css`; 34 `.css` en total)
-conservan sus clases propias. `AppFooter` tiene su `.container` y `SongRow` su `.row` **en sus módulos**
-(a CSS Modules, con nombres hasheados): no colisionan con los de Bootstrap y no
-hay motivo para tocarlos.
+**Aviso de identidad Stitch:** el proyecto Stitch antiguo
+(`projects/91769299213639956`) usa el sistema auto-generado "Acoustic
+Intelligence" (tema claro, violeta, Epilogue/Plus Jakarta Sans), que **no
+coincide** con la identidad real (oscuro, navy+oro, Manrope). Sus pantallas son
+referencia **exploratoria**. El proyecto activo para diseñar es
+`projects/3261337811183860602` ("PianoMentor Docs"), que ya parte del tema
+correcto y tiene el contexto subido.
 
 ## Cómo se estila aquí
 
-- **CSS Modules por componente**: cada componente tiene su `X.module.css` al lado
-  y se usa como `className={styles.x}`. Lo compartido va a `globals.css` (el único
-  CSS global, más `page.module.css`).
+- **Tailwind v4 para layout y utilidades**: flex/grid/gap, espaciado, colores
+  del tema (`bg-surface-container`, `text-primary`, `text-on-surface-variant`…),
+  radios, tipografía de la escala Stitch (`text-headline-*`, `text-body-*`,
+  `text-label-*`). El tema vive en `frontend/tailwind.config.js`.
+- **CSS Modules por componente**: cada componente tiene su `X.module.css` al
+  lado y se usa como `className={styles.x}`. Lo compartido va a `globals.css`.
+  Los estilos de estado/animación complejos (transiciones, glassmorphism
+  propio, estilos por breakpoint no triviales) siguen yendo al módulo.
 - **Cabecera obligatoria** en cada `.css` y en cada `.tsx`:
-  `/* description: … */` y `/* context: … */` (en TSX con `//`). Su texto vive en
-  `docs/architecture/files.csv`: es la fuente de verdad y el script `--write` lo reescribe
-  desde ahí, así que mantén ambos idénticos.
-- **Tokens, nunca colores sueltos**: la paleta vive en `:root` de `globals.css`
-  (`--bg`, `--panel`, `--line`, `--accent`, `--text`, `--text-soft`, `--text-mute`,
-  dorados `--gold*`, `--blue`, tipografías `--font1`/`--font2`, `--gradient1..3`,
-  `--shadow1`). Su comentario de cabecera lo dice: *los componentes solo los consumen*.
-  Un color nuevo se añade primero como token.
-- **Estilo inline solo para valores dinámicos**: `style={{ … }}` aparece únicamente
-  cuando el valor depende de props o estado (ancho de barra `${clamped}%`,
-  `maskImage` con el icono de cada pestaña, mostrar/ocultar por estado). Lo estático
-  va al módulo.
-- **Consultas de pantalla por componente**, en `max-width`: 1000 px (LibraryPage),
-  900 px (AgentDock) y 480 px (AppFooter), más `prefers-reduced-motion: reduce`
-  para respetar la animación reducida (MentorChat).
-- **Comprueba que la clase existe**: `styles.x` sin regla correspondiente en el
-  módulo **compila y no aplica nada**. Caso real hoy: `SessionStatus.tsx` usa
-  `styles.panel` y `SessionStatus.module.css` está **vacío (0 bytes)**.
+  `/* description: … */` y `/* context: … */` (en TSX con `//`). Su texto vive
+  en `docs/architecture/files.csv`: es la fuente de verdad y el script `--write`
+  lo reescribe desde ahí, así que mantén ambos idénticos.
+- **Tokens, nunca colores sueltos**: la paleta del proyecto vive en `:root` de
+  `globals.css` (`--bg`, `--panel`, `--line`, `--accent`, `--text`, dorados
+  `--gold*`, `--gradient1..3`, manos de la cascada `--hand-*`…). La paleta de
+  Stitch vive en `tailwind.config.js`. Un color nuevo se añade primero como
+  token en el sitio que le corresponda (proyecto → `globals.css`; tema
+  Stitch → config).
+- **Estilo inline solo para valores dinámicos**: `style={{ … }}` únicamente
+  cuando el valor depende de props o estado (altura de footer expandible,
+  opacidad por estado). Lo estático va al módulo o a clases Tailwind.
+- **Consultas de pantalla**: Tailwind (`md:`, `lg:`…) para componentes nuevos;
+  los módulos legacy usan `max-width`: 1000 px (LibraryPage), 900 px
+  (AgentDock) y 480 px (AppFooter), más `prefers-reduced-motion: reduce`.
+- **Comprueba que la clase existe**: `styles.x` sin regla en el módulo
+  **compila y no aplica nada**.
+
+## Cuidados con Tailwind (los fallos reales que ya ocurrieron)
+
+- **Precedencia por capas**: las utilidades de Tailwind viven en
+  `@layer utilities`. **Cualquier regla sin capa** (CSS Modules incluidos,
+  que van sin capa) gana a una utilidad sobre el mismo elemento. Si un estilo
+  de módulo no aplica una utilidad, es esto.
+- **Preflight activo**: Tailwind resetea bordes (`border-style: solid`,
+  `border-width: 0`), tipografías de headings y márgenes. Reglas como
+  `border-bottom-width: 3px` sin estilo explícito ahora **se pintan** (caso
+  real: borde blanco bajo los nav-items). Define el borde completo o no lo
+  declares.
+- **Sin estilos globales de elementos**: no re-añadir reglas globales de
+  `h1`, `button`, `input` a `globals.css`; cada componente lleva su
+  tipografía y estados (módulo o clases).
+- **Contenido escaneado**: las clases de HTML generado en runtime (p. ej. el
+  conversor de Markdown de la documentación) se generan porque sus literales
+  viven en `src/lib/markdown.ts`, fichero escaneado por el `content` de la
+  config. Si metes clases dinámicas por concatenación, verifícalas en el build.
+- **Fuentes**: `sans` usa `var(--font-manrope)` (next/font); iconos
+  **Material Symbols Outlined** y **JetBrains Mono** llegan por Google Fonts
+  en el layout raíz. En React: `<span className="material-symbols-outlined
+  text-[18px]">icono</span>`.
 
 ## Orden de importaciones
 
 ```tsx
-import "bootstrap/dist/css/bootstrap-grid.css"; // antes: lo propio gana en empates
-import "./grid-fractions.css"; // medios enteros del grid, pegados a su fuente
-import "./globals.css";
+// src/app/layout.tsx
+import "./globals.css"; // contiene al principio: @import "tailwindcss"; + @config
 ```
 
-Las tres en `src/app/layout.tsx`, en ese orden. Los módulos de componente se
-importan en su componente. Si mueves el orden, revisa el build: en producción
-Next concatena el CSS y **el orden puede cambiar respecto a dev**.
+Los módulos de componente se importan en su componente. No hay CSS de
+terceros en el layout salvo los `<link>` de Google Fonts (Material Symbols +
+JetBrains Mono), que React 19 iza al `<head>`.
 
 ## Verificación
 
@@ -118,55 +132,43 @@ npm test                  # vitest: todo en verde
 npm run build             # compila y concatena el CSS
 ```
 
-Comprobar que el grid entró y que no entró nada prohibido (los patrones con `\{`
-son para CSS minificado de producción):
+Comprobar que el tema de Tailwind entró y que no queda Bootstrap (los
+patrones con `\{` son para CSS minificado de producción):
 
 ```powershell
 $all = (Get-ChildItem .next/static/chunks/*.css | Get-Content -Raw) -join "`n"
 @(
-    @{ p = '--bs-gutter-x';          si = $true  },   # grid
-    @{ p = '\.container\{';          si = $true  },   # agrupación
-    @{ p = '\.d-flex\{';             si = $true  },   # display
-    @{ p = '\.align-items-center\{'; si = $true  },   # alineamiento
-    @{ p = '\.flex-grow-1\{';        si = $true  },   # flex
-    @{ p = '\.col-1-5\{';            si = $true  },   # fracciones (grid-fractions.css)
-    @{ p = '\.col-xxl-11-5\{';       si = $true  },   # fracciones en la última vista
-    @{ p = 'font-family:system-ui';  si = $false },   # reboot (prohibido)
-    @{ p = '\.btn\{';                si = $false },   # componentes (prohibido)
-    @{ p = '\.bg-primary\{';         si = $false }    # colores (prohibido)
+    @{ p = '--tw-';                    si = $true  },  # utilidades Tailwind
+    @{ p = '--color-surface-container'; si = $true },  # tema de Stitch en el CSS
+    @{ p = '\.bg-surface-container\{';  si = $true },  # clases del tema resuelven
+    @{ p = '--bs-gutter-x';            si = $false },  # grid Bootstrap (retirado)
+    @{ p = '\.col-1-5\{';              si = $false },  # fracciones (retiradas)
+    @{ p = 'font-family:system-ui';    si = $false }   # reboot (nunca existió aquí)
 ) | ForEach-Object {
     $hay = [regex]::IsMatch($all, $_.p)
-    "{0,-30} {1,-9} {2}" -f $_.p, $(if ($hay) { 'PRESENTE' } else { 'ausente' }),
+    "{0,-32} {1,-9} {2}" -f $_.p, $(if ($hay) { 'PRESENTE' } else { 'ausente' }),
         $(if ($hay -eq $_.si) { 'OK' } else { 'FALLA' })
 }
 ```
 
-Y el orden dentro del chunk: `--bs-gutter-x` (grid) y `.col-1-5` (fracciones)
-deben aparecer **antes** que `--bg:` (globals).
-
-```powershell
-$f = Get-ChildItem .next/static/chunks/*.css |
-    Where-Object { (Get-Content $_.FullName -Raw) -match '--bs-gutter-x' } | Select-Object -First 1
-$c = Get-Content $f.FullName -Raw
-$g = $c.IndexOf('--bs-gutter-x'); $fr = $c.IndexOf('.col-1-5'); $gl = $c.IndexOf('--bg:')
-"grid@{0}  fracciones@{1}  globals@{2}  ->  {3}" -f $g, $fr, $gl,
-    $(if ($g -lt $fr -and $fr -lt $gl) { 'OK (grid, fracciones, globals)' } else { 'FALLA (orden)' })
-```
-
 ## Sincronía con la arquitectura
 
-1. Añade o actualiza la fila en `docs/architecture/files.csv` (nuevos `.css`/`.tsx`
-   y cambios de `layout.tsx`/`package.json`).
-2. `python docs/architecture/generate_architecture.py` para regenerar `ARCHITECTURE.md`.
-3. `python docs/architecture/generate_architecture.py --write --dry-run` → tu fila debe
-   dar `[igual]` (si da `escribiría`, tu cabecera no coincide con el CSV).
+1. Añade o actualiza la fila en `docs/architecture/files.csv` (nuevos
+   `.css`/`.tsx` y cambios de `layout.tsx`/`package.json`).
+2. `python docs/architecture/generate_architecture.py` para regenerar
+   `ARCHITECTURE.md`.
+3. `python docs/architecture/generate_architecture.py --write --dry-run` → tu
+   fila debe dar `[igual]` (si da `escribiría`, tu cabecera no coincide con el
+   CSV).
 
 ## Checklist
 
-- [ ] ¿Es código nuevo? Si es lo ya escrito, no se mete Bootstrap.
-- [ ] ¿Es agrupación, alineamiento, display, flex o grid? Si no, no es Bootstrap.
-- [ ] La clase existe en `bootstrap-grid.css` (no en `bootstrap.css` ni en utilities).
-- [ ] Colores/tipografía/spacing: tokens de `globals.css` o tu módulo, no Bootstrap.
-- [ ] `styles.x` existe realmente en el `.module.css`.
+- [ ] ¿Layout? → Tailwind (flex/grid/gap/breakpoints) o CSS Module si es complejo.
+- [ ] ¿Colores/tipografía? → tema Tailwind (Stitch) o tokens de `globals.css`; nunca hex suelto.
+- [ ] ¿`styles.x` existe realmente en el `.module.css`?
+- [ ] ¿Reglas sin capa que puedan pisar utilidades Tailwind sobre el mismo elemento?
+- [ ] ¿Bordes completos (width+style+color), no solo width?
 - [ ] Cabecera `description`/`context` igual en el fichero y en `files.csv`.
 - [ ] `tsc`, `npm test` y `next build` en verde; CSS compilado revisado.
+- [ ] Si la pantalla viene de Stitch: header y footer visibles, iconos Material
+      Symbols, y nada de frameworks CSS nuevos.
