@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-09T17:36:05.0270839Z",
+  "exportedAtUtc": "2026-11-12T14:52:48.1640782Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -2147,7 +2147,7 @@
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Review",
+      "status": "Done",
       "target date": "2026-11-09",
       "title": "[B-035] MIDI con hardware real: estado visible y validado"
     },
@@ -2185,6 +2185,101 @@
       "status": "Review",
       "target date": "2026-11-09",
       "title": "[B-033.5] Pulido del modo depuración: regenerar opinión, [audio] en Registro, grabación rec y paquete .zip"
+    },
+    {
+      "content": {
+        "body": "Origen: revisión de cómo tratamos hoy los «Too many requests» (429) y «message too large» de los proveedores LLM — hoy ambos caen en el mismo saco: excepción → salto al siguiente proveedor → Mock, sin reintentos, sin esperar y sin registrar el motivo. Detalle completo en `docs/issues/B-036/B-036.md`.\n\nCuando Groq/Gemini devuelven 429 (saturación), 5xx o timeout, el turno del chat hoy salta de proveedor en silencio y, si todos fallan, contesta el Mock/reglas deterministas. El alumno no ve error, pero pierde la redacción amable del LLM **para siempre**: esa respuesta nunca llegará, aunque los servidores estén bien un minuto después.\n\nLa vertical añade dos piezas:\n\n1. **Reintento con espera** ante errores transitorios (429/5xx/timeout), respetando `Retry-After` cuando el proveedor lo manda. Mientras espera, la burbuja del chat muestra **mensajes musicales rotatorios** («Estamos afinando tu respuesta 🎻»…) para que la espera sea encanto, no silencio.\n2. **Respuesta aplazada:** si aun así no hay LLM, el fallback determinista contesta como siempre (nunca se queda el alumno sin respuesta), pero **el trabajo queda «a por hacer» en una cola**: un proceso reintenta el turno más tarde (menos tráfico / tokens disponibles) y, cuando la redacción esté lista, se envía **por correo** al usuario.\n   - **Con sesión iniciada:** el chat dice «Los servidores están trabajando en ello: te avisaremos por correo cuando tu respuesta esté lista» (usa el correo de la cuenta).\n   - **Sin sesión:** el chat dice lo mismo y **pide un correo** (por el input de texto del propio chat, con regex tolerante) para enviar la respuesta cuando esté lista.\n\nSubs:\n- [ ] B-036.1 — Política de reintentos en la cadena LLM (backend)\n- [ ] B-036.2 — Mensajes musicales de espera en la burbuja (frontend)\n- [ ] B-036.3 — Cola de respuestas aplazadas + correo (backend)\n- [ ] B-036.4 — UX del aplazamiento en el chat (frontend + backend)\n",
+        "number": 118,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "B-036: Chat ante LLM saturado — reintentos con espera y respuesta aplazada por correo",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/118"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhIK5ac",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "B-036: Chat ante LLM saturado — reintentos con espera y respuesta aplazada por correo"
+    },
+    {
+      "content": {
+        "body": "Sub de #118.\n\nEn `llm.py`: los errores transitorios (HTTP 429, 5xx, timeout/red) se reintentan **con espera** dentro del mismo proveedor antes de saltar: 1-2 reintentos, espera corta respetando `Retry-After` (techo configurable, p. ej. `llm_retry_espera_max_s: 8` — el turno HTTP no se puede congelar minutos). Los 400/413 (petición mala, contexto desbordado) **no se reintentan**: son permanentes.\n\n- Ante error de contexto («message too large»): recortar la ventana de historial a la mitad y reintentar una vez en el mismo proveedor, antes de dar el turno por aplazable.\n- Config nueva en `config.py`: `llm_retry_intentos`, `llm_retry_espera_max_s`.\n- **Log del salto de proveedor** (hoy silencioso): `[llm] groq: 429 (Retry-After 5s) → reintento → gemini` en el Registro de depuración/consola del backend.\n\nCriterios:\n- [ ] Un 429 con `Retry-After` produce espera + reintento en el mismo proveedor antes de saltar; un 400 no reintenta (tests).\n- [ ] Contexto grande: recorte del historial a la mitad + un reintento en el mismo proveedor (tests).\n- [ ] Techo de espera y sin `Retry-After`: espera por defecto configurable (tests).\n- [ ] Los saltos de proveedor quedan en el log con motivo.\n\nFuente: `docs/issues/B-036/B-036.md` (B-036.1).\n",
+        "number": 119,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "B-036.1: Política de reintentos en la cadena LLM (backend)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/119"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhIK6os",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Review",
+      "target date": "2026-11-09",
+      "title": "B-036.1: Política de reintentos en la cadena LLM (backend)"
+    },
+    {
+      "content": {
+        "body": "Sub de #118.\n\nEn `MentorChat` (estado de «pensando» que ya existe): mientras el turno está en vuelo, rotar cada ~2,5-3 s frases musicales variadas (nada de monotonia). Lista de frases en una lib pura (`lib/chat-espera.ts`, trío .ts/.test.ts) para que los tests las fijen y la traducción viva fuera del componente:\n\n- «Estamos afinando tu respuesta 🎻»\n- «Poniendo a punto el metrónomo ⏱»\n- «Buscando la tonalidad justa 🎹»\n- «Contando los compases… 1, 2, 3, 4 🥁»\n- «Calentando los dedos de la IA 🖐️»\n- «Afinando el La de 440 Hz 🎵»\n- «Subiendo el telón 🎭»\n- «Ajustando el pedal de resonancia 🦶»\n\n- La rotación solo cambia el texto (sin re-render de la conversación); al llegar la respuesta, se limpia el intervalo.\n- Tono coherente con la voz del mentor (`piano-mentor-chat-burbuja`): cercano, sin tecnicismos, sin prometer tiempos.\n\nCriterios:\n- [ ] La burbuja rota frases musicales variadas mientras el turno está en vuelo (no se repite la misma en corto).\n- [ ] La rotación se limpia al llegar la respuesta y no re-renderiza la conversación.\n\nFuente: `docs/issues/B-036/B-036.md` (B-036.2).\n",
+        "number": 120,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "B-036.2: Mensajes musicales de espera en la burbuja (frontend)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/120"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhIK61c",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "B-036.2: Mensajes musicales de espera en la burbuja (frontend)"
+    },
+    {
+      "content": {
+        "body": "Sub de #118.\n\n- **Migración nueva** (SQLite versionada, estilo 0006/0009): tabla `pending_llm_replies` — `id`, `chat_id`, `email`, `messages` (JSON del turno completo: historial + system + pregunta, para reintentarlo fiel), `status` (`pendiente`/`lista`/`enviada`/`fallida`), `attempts`, `next_attempt_at`, `created_at`, `answered_at`. El `email` nace NULL en anónimos y se asocia después (B-036.4).\n- **Encolado:** cuando el turno falla tras los reintentos y el salto por toda la cadena (motivo 429/saturación, no 400 de contexto), `ChatService` guarda el trabajo y la respuesta del turno lleva `deferred: true` (schema `ChatTurnResult`/respuesta HTTP).\n- **Worker de reintento** (MVP de un worker, `ARCHITECTURE.md`): tarea en segundo plano que cada ~60 s recoge pendientes vencidos (`next_attempt_at` pasado) y repite el turno con la cadena LLM. Backoff exponencial entre intentos (p. ej. 1 min → 5 min → 15 min → 1 h), tope de intentos → `fallida`.\n- **Entrega:**\n  - Al conseguir la redacción: `status = lista` y **se guarda como mensaje del mentor en el historial del `chat_id`** (así, al volver a la app, la conversación la muestra en su sitio).\n  - **Correo** con la respuesta (vía `mailer.py`, Resend, como U-006/U-007): asunto «Tu respuesta está lista · PianoMentor AI», cuerpo con el texto del mentor (texto plano, mismo tono) y enlace a la app. Función nueva `send_llm_reply_email`, con el patrón de tests que ya simula `resend.Emails.send`.\n- Sin claves de Resend configuradas (dev/CI): se registra en el log y el estado queda `lista`, sin romper.\n\nCriterios:\n- [ ] Turno fallido por saturación → trabajo en `pending_llm_replies` y `deferred: true` en la respuesta.\n- [ ] El worker recupera el turno más tarde con backoff, lo guarda en el historial del chat y manda el correo (test con Resend simulado).\n- [ ] Tope de intentos → `fallida`; dev/CI sin Resend no rompe.\n- [ ] El historial del chat recibe la respuesta aplazada como mensaje del mentor.\n\nFuente: `docs/issues/B-036/B-036.md` (B-036.3).\n",
+        "number": 121,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "B-036.3: Cola de respuestas aplazadas + correo (backend)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/121"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhIK7Cs",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "B-036.3: Cola de respuestas aplazadas + correo (backend)"
+    },
+    {
+      "content": {
+        "body": "Sub de #118.\n\n- Al recibir `deferred: true`, `MentorChat` muestra **el fallback determinista normal** (como hoy, nunca sin respuesta) y añade la nota del aplazamiento con la voz del mentor:\n  - Con sesión: «Los servidores están trabajando en ello 🎼 — te avisaremos por correo cuando tu respuesta esté lista.»\n  - Sin sesión: mismo mensaje + **el propio mentor pide el correo en una burbuja normal del chat** («¿Te dejas un correo y te la mando cuando esté? ✉️»). **No hay formulario nuevo visible**: el usuario responde por el input de texto de siempre.\n- **Recolección del correo por el input del chat** (regla del siguiente mensaje):\n  - El chat (frontend) queda en un estado ligero `esperando_correo` y el siguiente mensaje del usuario viaja marcado (`awaiting_email: true` en `ChatMessageRequest`).\n  - El backend **extrae el correo con regex tolerante** del texto libre (por si el usuario escribe de más: «mi correo es andres@gmail.com, gracias») — primer correo válido del texto, en minúsculas. Lib pura `extract_email` con tests (con ruido antes/después, dos correos en el texto → el primero, sin correo → `None`).\n  - **Correo encontrado:** se asocia al pendiente de ese `chat_id` (UPDATE en `pending_llm_replies`, patrón anti-abuso `_rate_limited` de `api.py`, tope de 1 pendiente sin enviar por chat) y el mentor confirma en una burbuja determinista corta («Hecho 🎼 te aviso en ese correo cuando esté lista»), sin turno de LLM para no gastar en la confirmación.\n  - **Sin correo en el mensaje:** el chat **vuelve a la normalidad** (se apaga `esperando_correo`) con una respuesta amable determinista («Sin problema 🎹») y **se guarda en el historial del chat una nota de contexto**: el usuario no facilitó correo para la respuesta aplazada — así el siguiente turno de LLM lo sabe (puede volver a ofrecerlo con naturalidad o dejarlo estar, según fluya la conversación). El pendiente queda huérfano pero vivo, ligado al `chat_id`: si más tarde el usuario da un correo al ser preguntado de nuevo (o inicia sesión), se asocia en ese momento.\n- Con sesión no se pregunta nada: el correo de la cuenta se asocia solo.\n\nCriterios:\n- [ ] La nota de aplazamiento solo aparece con `deferred: true`; el fallback determinista se muestra igual que hoy.\n- [ ] Sin sesión: el mentor pide el correo en burbuja normal y el **siguiente mensaje del input de texto** lo aporta (regex tolerante, sin formulario nuevo).\n- [ ] Si el usuario no escribe ningún correo, el chat vuelve a la normalidad y el siguiente turno de LLM sabe (nota en el historial) que no se facilitó correo; el pendiente queda ligado al `chat_id` para asociarse más tarde.\n- [ ] Anti-abuso: rate limit en la asociación de correo y tope de pendientes sin enviar por chat.\n\nFuente: `docs/issues/B-036/B-036.md` (B-036.4).\n",
+        "number": 122,
+        "repository": "andrupax94/PianoMentor-IA",
+        "title": "B-036.4: UX del aplazamiento en el chat (frontend + backend)",
+        "type": "Issue",
+        "url": "https://github.com/andrupax94/PianoMentor-IA/issues/122"
+      },
+      "id": "PVTI_lAHOAxy1qM4Bl7PszhIK7RU",
+      "labels": [
+        "enhancement"
+      ],
+      "priority": "P1",
+      "repository": "https://github.com/andrupax94/PianoMentor-IA",
+      "status": "Backlog",
+      "target date": "2026-11-09",
+      "title": "B-036.4: UX del aplazamiento en el chat (frontend + backend)"
     }
   ],
   "notes": [
