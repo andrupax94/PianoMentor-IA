@@ -10,7 +10,7 @@
 
 .layout {
   flex: 1;
-  min-height: 87vh;
+  min-height: 85vh;
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 24px;
