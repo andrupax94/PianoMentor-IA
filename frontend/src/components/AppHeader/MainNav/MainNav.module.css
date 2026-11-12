@@ -5,6 +5,11 @@
   display: flex;
   gap: 20px;
   margin-left: 50px;
+  align-items: center;
+}
+
+.nav p {
+  margin: 0;
 }
 
 .active {
@@ -22,12 +27,6 @@
   text-decoration: none;
 }
 
-.nav>a>p,
-.nav>span>p {
-  border-bottom-width: 3px;
-}
-
-
 .nav>a>span,
 .nav>span>span {
   display: flex;
@@ -40,4 +39,24 @@
   background-repeat: no-repeat;
   margin-left: 6px;
   background-position: center;
+}
+
+.contact {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.navItem {
+  height: 35px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }

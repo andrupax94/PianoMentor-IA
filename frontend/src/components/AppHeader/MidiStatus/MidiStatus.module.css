@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  margin: 0 0 0 auto;
   font-size: 0.85rem;
 }
 

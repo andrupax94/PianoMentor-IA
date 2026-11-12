@@ -1,16 +1,13 @@
 .footer {
-  --footer-base: #191e29;
-  --footer-bg: #07090c;
-  /* versión más oscura del color base */
-  --footer-text: rgba(255, 255, 255, 0.85);
-  --footer-text-muted: rgba(255, 255, 255, 0.65);
+  --footer-bg: #070e1c;
+  --footer-text: #dce2f6;
+  --footer-muted: #b9c7e7;
+  --footer-accent: #f2ca50;
 
   width: 100%;
-  /* Sticky footer (globals .shell es flex-column): margin-top auto absorbe
-     el hueco sobrante del shell y baja el footer al final sin position fixed. */
   margin-top: auto;
   background-color: var(--footer-bg);
-  border-top: 1px solid var(--footer-base);
+  border-top: 1px solid #2e3544;
 }
 
 .container {
@@ -22,14 +19,12 @@
   min-height: 44px;
   margin: 0 auto;
   padding: 0.5rem 1.5rem;
-
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-
 }
 
 .logo {
@@ -41,8 +36,149 @@
 .copy {
   margin: 0;
   font-size: 0.75rem;
-  font-weight: bold;
-  color: var(--footer-text-muted);
+  font-weight: 600;
+  color: var(--footer-muted);
+}
+
+.miniLinks {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+}
+
+.miniLinks a,
+.miniLinks button {
+  color: var(--footer-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.miniLinks a:hover,
+.miniLinks button:hover {
+  color: var(--footer-accent);
+}
+
+.contactTrigger {
+  font-size: 0.8rem;
+}
+
+.expanded {
+  padding: 1.5rem;
+  border-top: 1px solid #2e3544;
+  background: #0c1321;
+}
+
+.brandCol,
+.contactCol,
+.linksCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brandMark strong {
+  display: block;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.brandMark small {
+  color: var(--footer-muted);
+  font-size: 0.75rem;
+}
+
+.brandIcon {
+  font-size: 1.4rem;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--footer-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.contactCol h2,
+.linksCol h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.contactForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--footer-muted);
+}
+
+.contactForm input,
+.contactForm textarea {
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid #2e3544;
+  background: #151b2a;
+  color: #fff;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.contactForm input:focus,
+.contactForm textarea:focus {
+  outline: none;
+  border-color: var(--footer-accent);
+}
+
+.submit {
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--footer-accent);
+  color: #1a1400;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submit:hover {
+  opacity: 0.9;
+}
+
+.linksCol ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.linksCol a {
+  color: var(--footer-text);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.linksCol a:hover {
+  color: var(--footer-accent);
 }
 
 .github {
@@ -70,5 +206,9 @@
     flex-direction: column;
     gap: 0.4rem;
     padding: 0.6rem 1rem;
+  }
+  .miniLinks {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }

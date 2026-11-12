@@ -1,5 +1,5 @@
-// description: Encabezado principal: logo, navegación, estado MIDI y avatar.
-// context: B-006.4; armazón estático, sin lógica todavía.
+// description: Encabezado principal: compone logo, navegación, estado MIDI y avatar. B-035: ya no recibe `midiConnected` por props — MidiStatus lee su estado por sí mismo del almacén midi-store.
+// context: B-006.4; armazón estático. B-035: la detección Web MIDI real vive en TransportProvider/midi-store.
 
 import { BrandLogo } from "./BrandLogo/BrandLogo";
 import { MainNav } from "./MainNav/MainNav";

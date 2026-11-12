@@ -2,6 +2,8 @@
 // context: B-006.4; Learn y Library llevan a su página con <Link>; Progress y
 // Settings siguen sin ruta y no navegan.
 
+"use client";
+
 import Link from "next/link";
 
 import styles from "./MainNav.module.css";
@@ -47,6 +49,16 @@ export function MainNav({ active = "learn" }: MainNavProps) {
           </Link>
         );
       })}
+      <span className={styles.navItem}>
+        <button
+          type="button"
+          className={styles.contact}
+          data-contact-trigger="true"
+          onClick={() => window.dispatchEvent(new CustomEvent("piano-mentor:open-contact"))}
+        >
+          <p>Contacto</p>
+        </button>
+      </span>
     </nav>
   );
 }
