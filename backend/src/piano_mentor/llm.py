@@ -1,4 +1,4 @@
-# description: Proveedores de LLM para el chat del agente (B-012.8).
+# description: Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log.
 # context: Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista.
 # Los proveedores reales (Groq, Gemini) se configuran por base_url y clave; nunca
 # controlan MIDI ni el reloj de reproducción: solo proponen funciones del registro.
@@ -8,9 +8,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+from .config import settings
+
+logger = logging.getLogger("piano_mentor.llm")
 
 
 class LLMResponse:
@@ -128,6 +134,79 @@ class LLMProvider(ABC):
         no es válida; el caller usa las reglas deterministas como fallback.
         """
         return None
+
+
+# --- Política de reintentos ante LLM saturado (B-036.1) -----------------------
+
+#: Marcas (en minúsculas) con las que los proveedores cuentan que la petición
+#: no cabe en su ventana de contexto: es un error permanente que solo mejora
+#: recortando la petición, no esperando.
+_MARCAS_DE_CONTEXTO = (
+    "context length",
+    "maximum context",
+    "too large",
+    "too many tokens",
+    "reduce the length",
+    "input length",
+    "input token count",
+    "exceeds the maximum",
+)
+
+
+def _es_error_de_contexto(cuerpo: str) -> bool:
+    """True si el cuerpo del error dice que la petición no cabe en el contexto."""
+    texto = (cuerpo or "").lower()
+    return any(marca in texto for marca in _MARCAS_DE_CONTEXTO)
+
+
+def _es_transitorio(status: int) -> bool:
+    """429 (saturación) y 5xx ( servidor) merecen reintento; 4xx no."""
+    return status == 429 or status >= 500
+
+
+def _espera_del_retry_after(exc: Any) -> float | None:
+    """Segundos del header `Retry-After`, o None si no viene o no es número."""
+    try:
+        valor = exc.response.headers.get("retry-after")
+    except AttributeError:
+        return None
+    if not valor:
+        return None
+    try:
+        return max(0.0, float(valor))
+    except ValueError:
+        return None
+
+
+def _recortar_historial(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """La mitad del historial, por turnos completos (B-036.1).
+
+    Un turno empieza en un `user` y arrastra sus `assistant`/`tool` hasta el
+    siguiente `user`: nunca queda un `tool` huérfano, que el dialecto OpenAI
+    rechazaría con otro 400. El system y el último turno (el mensaje del
+    alumno) se quedan siempre; del resto se sueltan turnos desde el principio
+    hasta dejar como mucho la mitad de los mensajes no-system (como los turnos
+    van enteros, el objetivo se redondea a favor de conservar contexto).
+    """
+    prefix = [messages[0]] if messages and messages[0].get("role") == "system" else []
+    resto = messages[len(prefix):]
+    if len(resto) <= 1:
+        return list(messages)
+    objetivo = max(1, (len(resto) + 1) // 2)
+    turnos: list[list[dict[str, Any]]] = []
+    for mensaje in resto:
+        if mensaje.get("role") == "user" or not turnos:
+            turnos.append([mensaje])
+        else:
+            turnos[-1].append(mensaje)
+    while len(turnos) > 1 and sum(len(turno) for turno in turnos) > objetivo:
+        turnos.pop(0)
+    return prefix + [mensaje for turno in turnos for mensaje in turno]
+
+
+def _dormir(segundos: float) -> None:
+    """Punto único de espera para que los tests no duerman de verdad."""
+    time.sleep(segundos)
 
 
 def _parse_arguments(raw: Any) -> dict[str, Any]:
@@ -570,6 +649,96 @@ class OpenAICompatibleProvider(LLMProvider):
         self.timeout_s = timeout_s
         self.max_tokens = max_tokens
 
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+    def _post_con_reintentos(self, httpx_module: Any, payload: dict[str, Any]) -> Any:
+        """POST /chat/completions con la política de reintentos (B-036.1).
+
+        - Transitorios (429/5xx/timeout/red): hasta `llm_retry_intentos`
+          reintentos con espera corta — `Retry-After` del proveedor si viene,
+          si no 1 s, 2 s, ... — siempre con techo `llm_retry_espera_max_s`
+          (el turno HTTP vivo no se congela minutos: para eso está la cola
+          aplazada de B-036.3).
+        - Contexto desbordado (400/413 «too large»): el historial se recorta a
+          la mitad por turnos completos y se reintenta UNA vez, fuera de la
+          cuenta de transitorios.
+        - Resto (401, 403, 404, 400 sin marcas...): permanente, se propaga y
+          la cadena `FallbackProvider` salta al siguiente proveedor.
+        """
+        historial = list(payload["messages"])
+        reintentos = 0
+        recortado = False
+        tope_reintentos = max(0, int(settings.llm_retry_intentos))
+        while True:
+            payload["messages"] = historial
+            try:
+                with httpx_module.Client(timeout=self.timeout_s) as client:
+                    response = client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=self._headers(),
+                        json=payload,
+                    )
+                response.raise_for_status()
+                return response
+            except httpx_module.HTTPStatusError as exc:
+                cuerpo = str(getattr(exc.response, "text", "") or "")
+                if (
+                    _es_error_de_contexto(cuerpo)
+                    and not recortado
+                    and len(historial) > 2
+                ):
+                    recortado = True
+                    historial = _recortar_historial(historial)
+                    logger.warning(
+                        "[llm] %s: contexto desbordado; historial recortado a "
+                        "%d mensajes y reintento",
+                        self.provider_name,
+                        len(historial),
+                    )
+                    continue
+                status = int(exc.response.status_code)
+                if _es_transitorio(status) and reintentos < tope_reintentos:
+                    reintentos += 1
+                    espera = min(
+                        _espera_del_retry_after(exc) or float(reintentos),
+                        settings.llm_retry_espera_max_s,
+                    )
+                    logger.warning(
+                        "[llm] %s: HTTP %d; reintento %d/%d en %.1f s",
+                        self.provider_name,
+                        status,
+                        reintentos,
+                        tope_reintentos,
+                        espera,
+                    )
+                    _dormir(espera)
+                    continue
+                raise
+            except httpx_module.TransportError as exc:
+                # TimeoutException cuelga de TransportError: cubre timeouts y
+                # red caída con la misma rama.
+                if reintentos < tope_reintentos:
+                    reintentos += 1
+                    espera = min(
+                        float(reintentos),
+                        settings.llm_retry_espera_max_s,
+                    )
+                    logger.warning(
+                        "[llm] %s: %s; reintento %d/%d en %.1f s",
+                        self.provider_name,
+                        type(exc).__name__,
+                        reintentos,
+                        tope_reintentos,
+                        espera,
+                    )
+                    _dormir(espera)
+                    continue
+                raise
+
     def chat(
         self,
         messages: list[dict[str, str]],
@@ -591,17 +760,7 @@ class OpenAICompatibleProvider(LLMProvider):
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-        with httpx.Client(timeout=self.timeout_s) as client:
-            response = client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-        response.raise_for_status()
+        response = self._post_con_reintentos(httpx, payload)
         data = response.json()
         choice = data["choices"][0]["message"]
 
@@ -677,17 +836,7 @@ class OpenAICompatibleProvider(LLMProvider):
             # cortada (`finish_reason=length`) y había que descartarla.
             "max_tokens": PROPOSE_MAX_TOKENS,
         }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-        with httpx.Client(timeout=self.timeout_s) as client:
-            response = client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-        response.raise_for_status()
+        response = self._post_con_reintentos(httpx, payload)
         data = response.json()
         content = data["choices"][0]["message"].get("content") or ""
 
@@ -738,6 +887,7 @@ class FallbackProvider(LLMProvider):
     ) -> LLMResponse:
         motivo: str | None = None
         for provider in self.providers:
+            nombre = getattr(provider, "provider_name", "proveedor") or "proveedor"
             try:
                 # La regla del turno: el kwarg solo viaja si llegó (los
                 # proveedores de test con firma corta siguen valiendo).
@@ -747,9 +897,20 @@ class FallbackProvider(LLMProvider):
                     respuesta = provider.chat(messages, tools)
             except Exception as exc:  # pylint: disable=broad-except  # noqa: BLE001
                 motivo = str(exc)
+                # B-036.1: el salto ya no es silencioso — en el log queda el
+                # motivo (429, timeout, 401...) y a quién le toca ahora.
+                logger.warning(
+                    "[llm] %s falló (%s); salto al siguiente proveedor",
+                    nombre,
+                    motivo,
+                )
                 continue
             if self._es_vacia(respuesta):
                 motivo = "respuesta vacía (sin texto ni funciones)"
+                logger.warning(
+                    "[llm] %s devolvió una respuesta vacía; salto al siguiente proveedor",
+                    nombre,
+                )
                 continue
             if motivo:
                 respuesta.used_fallback = True

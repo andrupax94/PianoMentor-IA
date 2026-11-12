@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     # el chat general no lo toca (el proveedor usa su 400) y el turno de la
     # interpretación puede pedir más — la ventana maximizada es grande.
     llm_max_tokens_techo: int = 2000
+    # Reintentos ante LLM saturado (B-036.1): los transitorios (429/5xx/timeout)
+    # se reintentan con espera corta DENTRO del mismo proveedor antes de saltar
+    # de la cadena; el turno HTTP vivo no se congela minutos (eso lo hace la
+    # cola aplazada de B-036.3). Sin Retry-After se espera 1 s, 2 s, ...
+    llm_retry_intentos: int = 1
+    llm_retry_espera_max_s: float = 8.0
 
     # --- Cloudflare R2 (storage de piezas subidas, B-029.1) ----------------
     # Con credenciales presentes, las subidas de usuario van a R2 y sobreviven
