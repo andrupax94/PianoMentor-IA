@@ -24,6 +24,7 @@ Mantener PianoMentor AI como un sistema de enseñanza musical interactivo, no co
 8. Añadir o actualizar tests cuando se modifique parsing, timing, evaluación, validación o transiciones de estado.
 9. No ampliar el alcance del MVP sin documentar la razón.
 10. Registrar cada decisión de arquitectura como ADR en `docs/decisions/`; un ADR aceptado no se edita, se sustituye por el siguiente número.
+11. Para cualquier tarea legal o de cumplimiento (RGPD/LOPDGDD, privacidad, cookies/CMP, términos, aviso legal, derechos del interesado, transferencias), usar las skills `rgpd` y `terms-of-service` disponibles en `.agents/skills/`. Los textos generados son borradores para revisión legal, no asesoramiento jurídico.
 
 ## Arquitectura recomendada
 
