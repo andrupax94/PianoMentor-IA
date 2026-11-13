@@ -11,7 +11,6 @@ import { publishPianoPiece } from "../../../lib/piece-store";
 import { inform, playingText } from "../../../lib/chat-feed";
 import {
   cargarSwiper,
-  prefiereMenosMovimiento,
   type SwiperConstructor,
   type SwiperInstancia,
 } from "../../../lib/swiper-decor";
@@ -140,10 +139,14 @@ export function MentorDecor() {
       autoplay: {
         delay: 2_400,
         disableOnInteraction: false,
-        pauseOnMouseEnter: true,
+        // Sin pausa por hover: mirar el panel no es manipular (el cursor suele
+        // descansar sobre el carrusel y lo dejaría congelado). Mientras se
+        // arrastra, Swiper pausa el autoplay por sí solo y al soltar sigue.
+        // DECISIÓN 2026-11-13 (usuario): el autoplay es requisito explícito y
+        // NO se apaga con prefers-reduced-motion — con la puerta activa el
+        // carrusel quedaba congelado en cada navegador del equipo de pruebas.
+        // Es decorativo (sin información esencial), así que el coste es cero.
       },
-      // Sin animación automática si el sistema pide menos movimiento.
-      ...(prefiereMenosMovimiento() ? { autoplay: false } : {}),
     });
   }, [datosListos, constructorSwiper]);
 

@@ -137,6 +137,8 @@ LangGraph puede sustituir la orquestación posterior, pero no debe manejar cada 
 
 Usar Python, FastAPI, Pydantic, SQLite + sqlite-vec durante el MVP, Mido y Pytest. Mantener configuración por variables de entorno y proporcionar `.env.example`.
 
+**El `.env` real vive en la RAÍZ del repo** (junto a `docker-compose.yml`), ni en `backend/` ni en `frontend/`: front y back leen de ahí (el compose inyecta al backend y el front consume las `NEXT_PUBLIC_*`). El `.env.example` de la raíz es su plantilla versionada. Única excepción: `frontend/.env.local` (gitignored) para secretos y flags de Next que solo el front necesita (Auth.js de Google, `NEXT_PUBLIC_ENABLE_MIDI_UPLOAD` de B-023) — Next 16 solo lee los `.env*` de su propio directorio. Tras cambiar cualquier `NEXT_PUBLIC_*` hay que reiniciar `npm run dev`.
+
 Usar Docker desde el inicio para reproducibilidad. Separar dependencias de producción y desarrollo cuando sea práctico. En imágenes FastAPI:
 
 - copiar primero los archivos de dependencias para aprovechar la caché;

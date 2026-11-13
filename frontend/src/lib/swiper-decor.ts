@@ -13,14 +13,6 @@ export const URL_SWIPER_CSS_CDN =
   "https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.css";
 export const URL_SWIPER_CSS_LOCAL = "/vendor/swiper/swiper-bundle.min.css";
 
-/** El usuario pide menos movimiento si su sistema lo pide: sin autoplay. */
-export function prefiereMenosMovimiento(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export interface SwiperInstancia {
   destroy(deleteStyles?: boolean): void;
 }

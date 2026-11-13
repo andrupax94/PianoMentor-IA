@@ -8,7 +8,6 @@ import {
   URL_SWIPER_CSS_CDN,
   URL_SWIPER_CSS_LOCAL,
   URL_SWIPER_LOCAL,
-  prefiereMenosMovimiento,
   resetearCargaSwiper,
 } from "./swiper-decor";
 
@@ -21,12 +20,6 @@ describe("fuentes de Swiper", () => {
   it("el CSS viaja en el mismo orden: CDN primero, local de respaldo", () => {
     expect(URL_SWIPER_CSS_CDN).toMatch(/^https:\/\/cdn\.jsdelivr\.net\/npm\/swiper@.*\.css$/);
     expect(URL_SWIPER_CSS_LOCAL).toBe("/vendor/swiper/swiper-bundle.min.css");
-  });
-});
-
-describe("prefiereMenosMovimiento", () => {
-  it("es false fuera del navegador (SSR) sin romper", () => {
-    expect(prefiereMenosMovimiento()).toBe(false);
   });
 });
 
