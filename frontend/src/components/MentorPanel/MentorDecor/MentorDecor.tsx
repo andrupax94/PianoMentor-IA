@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { getPieceList } from "../../../lib/api-client";
+import { toAuthUserInfo, type AuthSessionRaw } from "../../../lib/auth-user";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { inform, playingText } from "../../../lib/chat-feed";
 import {
@@ -57,11 +58,25 @@ export function MentorDecor() {
   const [datosListos, setDatosListos] = useState(false);
   const instanciaRef = useRef<SwiperInstancia | null>(null);
 
-  // 1. Catálogo de piezas (paralelo a la carga de la librería).
+  // 1. Catálogo de piezas (paralelo a la carga de la librería). El token va
+  // incluido: con sesión abierta el catálogo trae también las subidas del
+  // usuario (B-029), no solo el corpus. El login/logout recarga la página
+  // entera (patrón de AuthUserMenu), así que este efecto re-fetch sola al
+  // remontar: no hace falta escuchar la sesión.
   useEffect(() => {
     let montado = true;
-    getPieceList("corpus")
-      .then((piezas) => {
+
+    (async () => {
+      let token: string | null = null;
+      try {
+        const respuesta = await fetch("/api/auth/session", { cache: "no-store" });
+        const cruda: AuthSessionRaw | null = respuesta.ok ? await respuesta.json() : null;
+        token = toAuthUserInfo(cruda ?? null).accessToken;
+      } catch {
+        // Sin sesión legible: catálogo público.
+      }
+      try {
+        const piezas = await getPieceList("corpus", token ?? undefined);
         if (!montado) return;
         const base = piezas
           .filter((p) => !!p.cover)
@@ -72,14 +87,14 @@ export function MentorDecor() {
             autor: p.composer ?? "",
           }));
         setSlides(base.length > 0 ? ciclar(base) : CARATULAS);
-      })
-      .catch(() => {
+      } catch {
         // Sin catálogo: los retratos estáticos siguen siendo la cara bonita.
         if (montado) setSlides(CARATULAS);
-      })
-      .finally(() => {
+      } finally {
         if (montado) setDatosListos(true);
-      });
+      }
+    })();
+
     return () => {
       montado = false;
     };
