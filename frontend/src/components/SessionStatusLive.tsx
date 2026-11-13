@@ -153,7 +153,7 @@ export function SessionStatusLive({ userEmail: userEmailProp, debugMode: debugMo
           setOpen(true);
         }}
       >
-        i
+        <span className={styles.fabIcon} aria-hidden="true" />
       </button>
       {/* El panel crece un poco en dev para acoger las pestañas sin tapar la pantalla (B-033.2). */}
       <div className={IS_DEV ? `${styles.panel} ${styles.panelDev}` : styles.panel} hidden={!open}>

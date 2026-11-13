@@ -35,6 +35,23 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fabIcon {
+  width: 25px;
+  height: 25px;
+  background-color: #0a0a0a;
+  -webkit-mask-image: url("/assets/icons/debug.svg");
+  mask-image: url("/assets/icons/debug.svg");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
 .panel {
