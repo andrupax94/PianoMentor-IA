@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-13T18:45:09.8178668Z",
+  "exportedAtUtc": "2026-11-13T18:52:07.5211865Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -1033,7 +1033,7 @@
       ],
       "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Done",
       "target date": "2026-11-16",
       "title": "[B-020] Integración final y pruebas end-to-end"
     },
@@ -1081,10 +1081,10 @@
     },
     {
       "content": {
-        "body": "## Objetivo\nVerificar desde Vercel la carga MIDI, sesión, evaluación y acción del agente en el backend público.\n\n## Metadatos\n\n| Campo | Valor |\n|---|---|\n| ID | B-023 |\n| Prioridad | P1 |\n| Semana | Semana 5 |\n| Área | Deploy |\n| Riesgo | Alto |\n| Tamaño | M |\n| Estado inicial | Backlog |\n| Dependencias | B-021;B-022 |\n\n## Criterio inicial\nImplementar, probar y documentar esta tarea sin mezclar responsabilidades de otras capas.\n\n> Fuente: [backlog inicial](../../blob/main/.github/project-backlog.csv)",
+        "body": "# [B-023] Integración final y prueba pública end-to-end (unión con B-020)\n\n> **Unión (2026-11-13):** esta issue absorbe a **B-020 (#22)** «Integración final y pruebas end-to-end»: validar el flujo local/Docker y ejecutar la prueba pública son el mismo trabajo de release. Lo que sigue es el cuerpo unificado.\n\n## Objetivo\n\nDejar la app lista y **probada de punta a punta** para invitar usuarios a la prueba pública: el flujo completo (registro → catálogo → práctica con gates/evaluación → chat del agente → informe) funciona sin errores, **local, en Docker y desplegado**, y el backend público conserva sus datos.\n\n**Decisión de alcance (2026-11-13, petición del usuario):** **subir MIDI queda fuera de esta prueba.** No hay tiempo de probar la subida como es; los criterios de aceptación **no la incluyen** y en la app desplegada la entrada de «Subir MIDI» se **deshabilita** — sin quitar la funcionalidad: el código, las pruebas y las rutas del backend siguen intactos, solo se oculta/desactiva la puerta en la interfaz para esta fase.\n\n## Alcance\n\n1. **Deshabilitar «Subir MIDI» en la UI** (sin borrar nada): un flag de build/entorno (`NEXT_PUBLIC_ENABLE_MIDI_UPLOAD`, `false` en el despliegue público, `true` en dev) oculta o deshabilita las entradas de subida (Library y detalle de pieza). La funcionalidad queda disponible para cuando se pruebe con calma.\n2. **Integración local** (de B-020): el flujo completo corre sin errores con el corpus del catálogo; la consola del front limpia y el log del backend sin 5xx.\n3. **Integración Docker**: `docker-compose` levanta front+backend y el mismo flujo funciona igual que en local.\n4. **Prueba pública desplegada** (de B-023 original): desde el frontend público (Vercel) contra el backend público (Render, con la persistencia de **B-031**): registro/verificación de correo, sesión de práctica con gates y evaluación, chat del agente (reproducir/pausar/parar/acción), informe de práctica y cierre.\n5. **Errores honestos**: con el backend caído o la red cortada, la app muestra sus mensajes propios (no pantallas en blanco ni errores crudos), y se recupera al volver el servicio.\n\n## Criterios de aceptación\n\n- [ ] La entrada de «Subir MIDI» aparece **deshabilitada/oculta** en el despliegue público; en dev sigue disponible y la funcionalidad (código, tests, rutas backend) no se toca.\n- [ ] Flujo completo **local** sin errores de consola ni 5xx en el log del backend.\n- [ ] Flujo completo en **Docker** igual que en local.\n- [ ] Flujo completo **desde el front público**: registro verificado → práctica (modos, gates, evaluación) → chat del agente → informe de práctica → cierre de sesión.\n- [ ] **Persistencia en Render** comprobada en la prueba (usuario creado sigue ahí tras un redeploy; ya verificado en B-031, se confirma durante la prueba).\n- [ ] Cortes de servicio cubiertos: mensajes propios de la app y recuperación sin recargar a mano.\n- [ ] Hallazgos de la prueba documentados en `docs/issues/B-023/B-023.md`.\n\n## Fuera de alcance\n\n- **Probar la subida de MIDI** (quedará como issue propia cuando haya tiempo de hacerla bien).\n- Mejoras nuevas de funcionalidad: esta issue solo valida y arregla lo que se rompa en el flujo validado.\n\n## Dependencias\n\n- **B-022** (#24, frontend en Vercel) y **B-031** (#98, persistencia de la BD en Render, cerrada y verificada).\n- **B-012** (sesión, agente y su bucle) como base del flujo.\n\n## Historia\n\n- **B-020 (#22)**, «Integración final y pruebas end-to-end» (P0, Semana 6, Calidad): validación local/Docker de errores, secretos, pausa, detención y recuperación — absorbida aquí.\n- **B-023 (#25)**, «Ejecutar prueba pública end-to-end» (P1, Semana 6, Deploy): verificaba «carga MIDI» + sesión + evaluación + agente desde Vercel — la carga MIDI sale de los criterios (deshabilitada en la UI) y el resto se une con lo de B-020.\n- Los despliegues originales de las dependencias cambiaron: B-021 (Hugging Face) y B-022 (Vercel) cerraron, y el backend público hoy es **Render** con **B-031**.\n",
         "number": 25,
         "repository": "andrupax94/PianoMentor-IA",
-        "title": "[B-023] Ejecutar prueba pública end-to-end",
+        "title": "[B-023] Integración final y prueba pública end-to-end (unión con B-020)",
         "type": "Issue",
         "url": "https://github.com/andrupax94/PianoMentor-IA/issues/25"
       },
@@ -1094,11 +1094,11 @@
         "Semana 5",
         "Deploy"
       ],
-      "priority": "P1",
+      "priority": "P0",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
       "status": "Backlog",
       "target date": "2026-11-16",
-      "title": "[B-023] Ejecutar prueba pública end-to-end"
+      "title": "[B-023] Integración final y prueba pública end-to-end (unión con B-020)"
     },
     {
       "content": {
