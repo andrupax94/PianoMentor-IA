@@ -5,6 +5,8 @@
   display: flex;
   height: 150px;
   padding: 0;
+  /* El efecto coverflow asoma carátulas por los lados: nada se sale. */
+  overflow: hidden;
 }
 
 .swiper {
@@ -26,17 +28,36 @@
 
 .caratula {
   width: 100%;
-  height: 118px;
+  height: 92px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
-.nombre {
-  margin: 0;
-  font-size: 0.6rem;
-  line-height: 1.1;
+/* Pieza arriba (dorado), compositor debajo (apagado): dos líneas caben. */
+.epigrafes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 100%;
+}
+
+.titulo {
+  font-size: 0.64rem;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autor {
+  font-size: 0.58rem;
+  line-height: 1.15;
   text-align: center;
   color: var(--text-soft);
   max-width: 100%;
