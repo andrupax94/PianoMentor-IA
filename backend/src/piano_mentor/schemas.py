@@ -500,6 +500,10 @@ class ChatMessageResponse(BaseModel):
     used_fallback: bool
     client_action: ToolCallResult | None = None
     used_tools: list[ToolCallResult] = []
+    # B-036.3: la cadena LLM se saturó y el trabajo quedó en la cola aplazada
+    # (el fallback determinista respondió igualmente); el front enseña la
+    # nota del aplazamiento y, sin sesión, pide el correo (B-036.4).
+    deferred: bool = False
 
 
 class AuthUser(BaseModel):

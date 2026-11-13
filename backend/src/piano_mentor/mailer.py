@@ -9,6 +9,7 @@ de contraseña (U-007) vía Resend."""
 from __future__ import annotations
 
 import logging
+from html import escape
 
 import resend
 
@@ -98,3 +99,35 @@ def send_password_reset_email(to: str, reset_link: str) -> None:
 def send_password_changed_notification(to: str) -> None:
     """Email de aviso tras cambio exitoso de contraseña (U-007)."""
     _send_email(to, _password_changed_subject(), _password_changed_html(to), "U-007")
+
+
+# --- Respuesta aplazada del chat (B-036.3) ------------------------------------
+
+
+def _reply_subject() -> str:
+    return "Tu respuesta está lista · PianoMentor AI"
+
+
+def _reply_html(texto: str, link: str) -> str:
+    """Cuerpo del email de la respuesta aplazada: el texto del mentor + enlace.
+
+    El texto viene del LLM en texto plano: se escapa y se respeta el salto de
+    línea como párrafos (nunca se interpola sin escapar)."""
+    parrafos = "".join(
+        f"<p style='margin:0 0 10px'>{escape(linea)}</p>"
+        for linea in texto.strip().split("\n")
+        if linea.strip()
+    )
+    return (
+        "<p>Tu respuesta del chat de PianoMentor AI ya está lista:</p>"
+        f"<blockquote style='border-left:3px solid #e8a13e;padding-left:12px'>{parrafos}</blockquote>"
+        f"<p><a href='{link}'>Volver a la app y seguir la conversación</a></p>"
+        "<p style='color:#8693ad'>Los servidores estaban ocupados cuando la pediste; "
+        "ya han afinado la respuesta. 🎹</p>"
+    )
+
+
+def send_llm_reply_email(to: str, texto: str) -> None:
+    """Entrega el email de la respuesta aplazada del chat (B-036.3)."""
+    link = settings.app_public_url.rstrip("/") or "https://www.pianomentoria.com"
+    _send_email(to, _reply_subject(), _reply_html(texto, link), "B-036.3")

@@ -19,6 +19,9 @@ def isolated_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Apunta DATABASE_URL a un archivo temporal durante cada test."""
     db_file = tmp_path / "test.db"
     monkeypatch.setattr(settings, "database_url", f"sqlite:///{db_file.as_posix()}")
+    # B-036.3: el hilo del worker de aplazados no corre en la suite (los tests
+    # del worker llaman a procesar_pendientes con reloj faso e inyecciones).
+    monkeypatch.setattr(settings, "llm_retry_worker", False)
     return db_file
 
 

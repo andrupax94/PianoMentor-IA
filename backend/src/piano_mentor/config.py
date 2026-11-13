@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     # cola aplazada de B-036.3). Sin Retry-After se espera 1 s, 2 s, ...
     llm_retry_intentos: int = 1
     llm_retry_espera_max_s: float = 8.0
+    # Worker de la cola de respuestas aplazadas (B-036.3): cada intervalo
+    # recoge los pendientes vencidos, reintenta el turno con la cadena y
+    # entrega la redacción (historial del chat + correo si hay dirección).
+    llm_retry_worker: bool = True
+    llm_retry_worker_intervalo_s: float = 60.0
     # El caos de verificación (429 de mentira para probar el reintento a mano)
     # NO es configuración: vive en memoria del proceso y lo gobierna el menú
     # Depurar del front vía POST /api/v1/dev/llm/chaos (dev-only, 404 en

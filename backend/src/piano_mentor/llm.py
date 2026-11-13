@@ -1,4 +1,4 @@
-# description: Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log.
+# description: Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log. Desde B-036.3, FallbackProvider anota `saturado`/`motivo_saturacion` (todos los reales cayeron con fallo transitorio) para que ChatService aplace el turno en la cola.
 # context: Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista.
 # Los proveedores reales (Groq, Gemini) se configuran por base_url y clave; nunca
 # controlan MIDI ni el reloj de reproducción: solo proponen funciones del registro.
@@ -207,6 +207,26 @@ def _recortar_historial(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _dormir(segundos: float) -> None:
     """Punto único de espera para que los tests no duerman de verdad."""
     time.sleep(segundos)
+
+
+def _fallo_transitorio(exc: BaseException | None) -> bool:
+    """True si la excepción del proveedor merece aplazarse (B-036.3).
+
+    429/5xx y timeout/red son transitorios (más tarde los servidores irán
+    mejor); 401/403/400 son permanentes y el aplazamiento no los arreglaría.
+    """
+    if exc is None:
+        return False
+    try:
+        import httpx
+
+        if isinstance(exc, httpx.HTTPStatusError):
+            return _es_transitorio(int(exc.response.status_code))
+        if isinstance(exc, (httpx.TimeoutException, httpx.TransportError)):
+            return True
+    except ImportError:
+        pass
+    return False
 
 
 # --- Caos de verificación (B-036.1, dev-only) ---------------------------------
@@ -929,6 +949,13 @@ class FallbackProvider(LLMProvider):
 
     def __init__(self, providers: list[LLMProvider]) -> None:
         self.providers = providers
+        # B-036.3: memoria del último turno — True si TODOS los proveedores
+        # reales (todos menos el último recurso) lanzaron excepción y al menos
+        # una fue transitoria (429/5xx/timeout): la cadena está saturada y el
+        # turno puede aplazarse a la cola (ChatService decide). Un proveedor
+        # que responde en balde (respuesta vacía) NO es saturación.
+        self.saturado = False
+        self.motivo_saturacion: str | None = None
 
     @staticmethod
     def _es_vacia(respuesta: LLMResponse) -> bool:
@@ -942,6 +969,12 @@ class FallbackProvider(LLMProvider):
         max_tokens: int | None = None,
     ) -> LLMResponse:
         motivo: str | None = None
+        # B-036.3: rastro de la ronda para decidir si la cadena se saturó.
+        reales_lanzaron = 0
+        reales_totales = max(0, len(self.providers) - 1)  # el último es recurso final
+        transitorio_visto = False
+        self.saturado = False
+        self.motivo_saturacion = None
         for provider in self.providers:
             nombre = getattr(provider, "provider_name", "proveedor") or "proveedor"
             try:
@@ -953,6 +986,9 @@ class FallbackProvider(LLMProvider):
                     respuesta = provider.chat(messages, tools)
             except Exception as exc:  # pylint: disable=broad-except  # noqa: BLE001
                 motivo = str(exc)
+                reales_lanzaron += 1
+                if _fallo_transitorio(exc):
+                    transitorio_visto = True
                 # B-036.1: el salto ya no es silencioso — en el log queda el
                 # motivo (429, timeout, 401...) y a quién le toca ahora.
                 logger.warning(
@@ -970,12 +1006,32 @@ class FallbackProvider(LLMProvider):
                 continue
             if motivo:
                 respuesta.used_fallback = True
+            # B-036.3: el turno cerró aquí (respuestas reales y de recurso
+            # final); si hubo saltos, queda anotado si la cadena se saturó.
+            if motivo:
+                self._anotar_saturacion(reales_lanzaron, reales_totales, transitorio_visto)
             return respuesta
         # Salida del bucle: no debería ocurrir porque el Mock siempre contesta,
         # pero el contrato es que un turno nunca se quede sin respuesta.
         respuesta = self.providers[-1].chat(messages, tools)
         respuesta.used_fallback = True
+        self._anotar_saturacion(reales_lanzaron, reales_totales, transitorio_visto)
         return respuesta
+
+    def _anotar_saturacion(
+        self, reales_lanzaron: int, reales_totales: int, transitorio_visto: bool
+    ) -> None:
+        """B-036.3: saturación = todos los reales cayeron y con fallo transitorio.
+
+        Si algún proveedor real devolvió una respuesta vacía (en balde, no
+        caído) la cadena no cuenta como saturada: eso es flakiness del modelo,
+        no tráfico. Se consulta tras el turno vía `provider.saturado` para
+        encolar el aplazamiento (ChatService → cola de B-036.3).
+        """
+        if reales_totales > 0 and reales_lanzaron >= reales_totales and transitorio_visto:
+            self.saturado = True
+            self.motivo_saturacion = "saturación de la cadena LLM (429/5xx/timeout)"
+            logger.warning("[llm] %s", self.motivo_saturacion)
 
     def propose_action(self, state: dict[str, Any]) -> ActionProposal | None:
         """Prueba cada proveedor hasta que uno propone una acción válida (B-012.6)."""

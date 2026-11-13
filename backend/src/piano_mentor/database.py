@@ -780,6 +780,94 @@ def get_chat_history(chat_id: str, limit: int = 20) -> list[sqlite3.Row]:
         return list(reversed(rows))
 
 
+# --- Cola de respuestas aplazadas del chat (B-036.3) --------------------------
+# Tabla pending_llm_replies (0015): el turno saturado queda «a por hacer» y el
+# worker de llm_aplazados lo reintenta con backoff; la redacción lograda va al
+# historial del chat y (si hay correo asociado) por email. Lectura/escritura
+# pura de lo que decide la capa de servicio: sin reglas pedagógicas aquí.
+
+
+def insert_pending_llm_reply(
+    conn: sqlite3.Connection,
+    chat_id: str,
+    messages: str,
+    email: str | None,
+    max_tokens: int | None,
+    created_at: str,
+    next_attempt_at: str,
+) -> int:
+    """Encola un turno aplazado; devuelve su id (B-036.3)."""
+    cursor = conn.execute(
+        "INSERT INTO pending_llm_replies"
+        " (chat_id, email, messages, max_tokens, status, attempts, next_attempt_at, created_at)"
+        " VALUES (?, ?, ?, ?, 'pendiente', 0, ?, ?)",
+        (chat_id, email, messages, max_tokens, next_attempt_at, created_at),
+    )
+    conn.commit()
+    return int(cursor.lastrowid or 0)
+
+
+def count_pending_llm_replies(conn: sqlite3.Connection, email: str) -> int:
+    """Cuántos pendientes SIN entregar tiene un correo (anti-abuso, B-036.3)."""
+    row = conn.execute(
+        "SELECT COUNT(*) AS total FROM pending_llm_replies"
+        " WHERE email = ? AND status IN ('pendiente', 'lista')",
+        (email,),
+    ).fetchone()
+    return int(row["total"]) if row is not None else 0
+
+
+def list_due_pending_llm_replies(
+    conn: sqlite3.Connection, now_iso: str, tope: int = 10
+) -> list[sqlite3.Row]:
+    """Pendientes vencidos (next_attempt_at <= ahora), en orden de cola."""
+    rows = conn.execute(
+        "SELECT * FROM pending_llm_replies"
+        " WHERE status = 'pendiente' AND next_attempt_at <= ?"
+        " ORDER BY id LIMIT ?",
+        (now_iso, tope),
+    ).fetchall()
+    return list(rows)
+
+
+def find_pending_llm_reply(conn: sqlite3.Connection, reply_id: int) -> sqlite3.Row | None:
+    """Un pendiente por id (tests y diagnóstico)."""
+    row = conn.execute(
+        "SELECT * FROM pending_llm_replies WHERE id = ?", (reply_id,)
+    ).fetchone()
+    return row
+
+
+def update_pending_llm_reply_retry(
+    conn: sqlite3.Connection, reply_id: int, attempts: int, next_attempt_at: str
+) -> None:
+    """Reintento fallido: suma attempts y reprograma el siguiente (backoff)."""
+    conn.execute(
+        "UPDATE pending_llm_replies SET attempts = ?, next_attempt_at = ? WHERE id = ?",
+        (attempts, next_attempt_at, reply_id),
+    )
+    conn.commit()
+
+
+def complete_pending_llm_reply(
+    conn: sqlite3.Connection, reply_id: int, status: str, answered_at: str
+) -> None:
+    """Cierra un pendiente: 'lista' (sin correo) o 'enviada' (correo mandado)."""
+    conn.execute(
+        "UPDATE pending_llm_replies SET status = ?, answered_at = ? WHERE id = ?",
+        (status, answered_at, reply_id),
+    )
+    conn.commit()
+
+
+def fail_pending_llm_reply(conn: sqlite3.Connection, reply_id: int) -> None:
+    """Tope de intentos alcanzado: el trabajo se da por perdido (honesto)."""
+    conn.execute(
+        "UPDATE pending_llm_replies SET status = 'fallida' WHERE id = ?", (reply_id,)
+    )
+    conn.commit()
+
+
 # --- Tokens de autenticación (U-007) ----------------------------------------
 # Tabla auth_tokens: propósito (verify | reset), hash SHA-256, user_sub, expiración, uso.
 

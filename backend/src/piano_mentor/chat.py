@@ -1,4 +1,4 @@
-# description: Orquestación de un turno del chat del agente (B-012.8).
+# description: Orquestación de un turno del chat del agente (B-012.8). Desde B-036.3, si la cadena LLM se saturó (FallbackProvider.saturado) el caller puede pasar `aplazar` para encolar el trabajo: el turno responde igual con el fallback y la respuesta lleva `deferred`.
 # context: Historial + contexto -> proveedor -> validación contra lista blanca ->
 # ejecución de funciones de servidor o devolución de la intención al navegador ->
 # redacción final. El LLM nunca toca MIDI ni el reloj de reproducción.
@@ -6,13 +6,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
-from typing import Any
+from typing import Any, Callable
 
 from .config import settings
 from .database import get_chat_history, save_chat_message
 from .llm import FallbackProvider, LLMProvider, LLMResponse, MockProvider, OpenAICompatibleProvider
 from .tools import REGISTRY, ToolError, execute_tool, list_tools, tool_names
+
+logger = logging.getLogger("piano_mentor.chat")
 
 
 def _assistant_tool_call_message(
@@ -78,6 +81,7 @@ class ChatTurnResult:
         used_fallback: bool,
         client_action: dict[str, object] | None,
         used_tools: list[dict[str, object]],
+        deferred: bool = False,
     ) -> None:
         self.chat_id = chat_id
         self.reply = reply
@@ -85,6 +89,9 @@ class ChatTurnResult:
         self.used_fallback = used_fallback
         self.client_action = client_action
         self.used_tools = used_tools
+        # B-036.3: True si la cadena LLM se saturó y el trabajo quedó en la
+        # cola de aplazados (el fallback determinista respondió igualmente).
+        self.deferred = deferred
 
 
 class ChatService:
@@ -104,6 +111,7 @@ class ChatService:
         user_name: str | None = None,
         ephemeral: bool = False,
         max_tokens: int | None = None,
+        aplazar: Callable[[str, list[dict[str, str]], int | None], None] | None = None,
     ) -> ChatTurnResult:
         if not message or not message.strip():
             raise ValueError("message no puede estar vacío")
@@ -252,6 +260,26 @@ class ChatService:
         if not ephemeral:
             save_chat_message(chat_id, "assistant", final_text)
 
+        # 5. Aplazamiento (B-036.3): si la cadena se saturó (todos los reales
+        # cayeron con 429/5xx/timeout), el turno queda «a por hacer» en la
+        # cola — la respuesta del fallback ya está guardada arriba, nunca
+        # burbuja vacía — y el front lo sabe con `deferred`. Solo turnos de
+        # conversación: la interpretación efímera tiene sus bloques y su
+        # botón de regenerar. El caller decide cómo persistir (api.py guarda
+        # la fila con el correo del usuario si lo hay).
+        deferred = False
+        if (
+            aplazar is not None
+            and not ephemeral
+            and getattr(self.provider, "saturado", False)
+        ):
+            try:
+                aplazar(chat_id, messages, max_tokens)
+                deferred = True
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                # La cola no puede romper el turno: el fallback ya respondió.
+                logger.exception("[chat] el aplazamiento del turno falló; se responde igual")
+
         return ChatTurnResult(
             chat_id=chat_id,
             reply=final_text,
@@ -261,6 +289,7 @@ class ChatService:
             else False,
             client_action=client_action,
             used_tools=used_tools,
+            deferred=deferred,
         )
 
     def _build_messages(

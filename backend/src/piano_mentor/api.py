@@ -1724,6 +1724,7 @@ def agent_chat(
     """
     try:
         service = ChatService(get_fallback_provider())
+        user = None
         user_name = None
         try:
             user = _current_user(authorization)
@@ -1732,6 +1733,7 @@ def agent_chat(
             )
         except Exception:
             user_name = None
+            user = None
         result = service.run(
             payload.message,
             chat_id=payload.chat_id,
@@ -1739,6 +1741,7 @@ def agent_chat(
             user_name=user_name,
             ephemeral=payload.ephemeral,
             max_tokens=payload.max_tokens,
+            aplazar=_aplazador_de_turno(_correo_de_usuario(user)),
         )
     except ValueError as exc:
         raise HTTPException(
@@ -1753,7 +1756,58 @@ def agent_chat(
         if result.client_action
         else None,
         used_tools=[ToolCallResult(**t) for t in result.used_tools],
+        deferred=result.deferred,
     )
+
+
+def _correo_de_usuario(user: object | None) -> str | None:
+    """El correo del usuario activo (B-036.3): el aplazado se le asocia."""
+    if user is None:
+        return None
+    correo = getattr(user, "email", None)
+    if correo is None and isinstance(user, dict):
+        correo = user.get("email")
+    valor = str(correo) if correo else None
+    return valor.strip().lower() if valor else None
+
+
+def _aplazador_de_turno(email: str | None):
+    """Callback de ChatService para encolar el turno saturado (B-036.3).
+
+    Guarda la fila en pending_llm_replies con los messages completos y el
+    correo del usuario si hay sesión (si no, NULL: B-036.4 lo pide por el
+    chat). Anti-abuso: máximo un pendiente sin entregar por correo — si ya
+    hay uno, este turno no se promete (el fallback respondió igualmente).
+    """
+
+    def aplazar(chat_id: str, messages: list[dict[str, str]], max_tokens: int | None) -> None:
+        from .database import count_pending_llm_replies, insert_pending_llm_reply, open_db
+
+        ahora = datetime.now(UTC)
+        with open_db() as conn:
+            if email and count_pending_llm_replies(conn, email) >= 1:
+                logger.info(
+                    "[chat] %s ya tiene un aplazado sin entregar; este turno no se encola",
+                    email,
+                )
+                return
+            insert_pending_llm_reply(
+                conn,
+                chat_id=chat_id,
+                messages=json.dumps(messages, ensure_ascii=False, default=str),
+                email=email,
+                max_tokens=max_tokens,
+                created_at=ahora.isoformat(timespec="seconds"),
+                # Primer reintento del worker: un minuto después del fallo.
+                next_attempt_at=(ahora + timedelta(seconds=60)).isoformat(timespec="seconds"),
+            )
+        logger.info(
+            "[chat] turno de %s aplazado por saturación%s",
+            chat_id,
+            f" (correo: {email})" if email else " (sin correo)",
+        )
+
+    return aplazar
 
 
 # --- Caos del LLM para verificar a mano (B-036.1, dev-only) -------------------
