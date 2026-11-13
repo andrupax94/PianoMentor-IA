@@ -1,66 +1,66 @@
-/* description: Estilos del hueco decorativo del panel (B-023): tarjeta navy translúcida con borde dorado suave, fila de teclas de piano dibujadas en CSS y frase corta en el tono del aula. */
-/* context: Mismo lenguaje que el resto del MentorPanel (fondo translúcido, acento var(--gold-soft)); sin interacción — aria-hidden en el componente. Las negras se posicionan a mano sobre las blancas (dos escalonadas y una en el hueco de si-mi). */
+/* description: Estilos del carrusel decorativo del panel (B-023, Cover Flow con Swiper): alto fijo de 150 px, carátulas con borde dorado suave y nombre del compositor, y la píldora estática que cae si ni la CDN ni el respaldo local cargan. */
+/* context: Mismo lenguaje que el resto del MentorPanel (navy translúcido, acento var(--gold-soft)). Las clases swiper-wrapper/swiper-slide son del DOM de Swiper (no del módulo): el layout base lo pone swiper-bundle.min.css (CDN → local) y el JS aplica las transformaciones del efecto coverflow en línea. Sin sesión el bloque se ve; en sesión el panel muestra «Rendimiento» y nunca se carga la librería. */
 
 .decor {
   display: flex;
-  min-height: 0;
-  flex: 1;
+  height: 150px;
+  padding: 0;
 }
 
-.card {
+.swiper {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.slide {
+  margin: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 2px;
+  padding: 6px 2px 2px;
+}
+
+.caratula {
+  width: 100%;
+  height: 118px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.nombre {
+  margin: 0;
+  font-size: 0.6rem;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--text-soft);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Caída honesta: ni CDN ni respaldo → píldora estática, mismo alto. */
+.estatica {
   flex: 1;
-  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
 }
 
-/* Fila de teclas: las blancas comparten el ancho y las negras flotan encima. */
-.keys {
-  position: relative;
-  display: flex;
-  width: 78%;
-  height: 84px;
-}
-
-.teclaBlanca {
-  flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0 0 5px 5px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
-}
-
-.teclaNegra {
-  position: absolute;
-  top: 0;
-  width: 9%;
-  height: 58%;
-  border-radius: 0 0 4px 4px;
-  background: linear-gradient(180deg, #101418, #05070a);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-}
-
-/* Colocación sobre la fila de 7 blancas: do-re escalonadas y el hueco si-mi. */
-.negra1 {
-  left: 13%;
-}
-
-.negra2 {
-  left: 32%;
-}
-
-.negra3 {
-  left: 70%;
-}
-
 .melodia {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   letter-spacing: 0.35em;
   color: var(--gold-soft);
   opacity: 0.75;
@@ -68,8 +68,9 @@
 
 .frase {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-align: center;
   color: var(--text-soft);
   font-style: italic;
+  padding: 0 10px;
 }
