@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # Worker de la cola de respuestas aplazadas (B-036.3): cada intervalo
     # recoge los pendientes vencidos, reintenta el turno con la cadena y
     # entrega la redacción (historial del chat + correo si hay dirección).
+    # En DESARROLLO el intervalo baja a 5 s automáticamente (model_post_init):
+    # ver el aplazado funcionar en ~un minuto no debe exigir tocar el .env.
+    # Un valor explícito (LLM_RETRY_WORKER_INTERVALO_S) siempre manda.
     llm_retry_worker: bool = True
     llm_retry_worker_intervalo_s: float = 60.0
     # El caos de verificación (429 de mentira para probar el reintento a mano)
@@ -88,6 +91,17 @@ class Settings(BaseSettings):
     r2_region: str = "auto"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def model_post_init(self, __context: object) -> None:
+        """B-036.3: en desarrollo el worker va rápido (5 s) por defecto.
+
+        Solo si el intervalo no viene explícito (ni .env ni constructor): en
+        producción y con valor ajustado a mano manda lo que se pidió."""
+        if (
+            "llm_retry_worker_intervalo_s" not in self.model_fields_set
+            and self.environment == "development"
+        ):
+            self.llm_retry_worker_intervalo_s = 5.0
 
 
 settings = Settings()

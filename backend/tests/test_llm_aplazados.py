@@ -363,3 +363,26 @@ class TestEndpointAplaza:
             assert vencidos[0]["email"] is None  # anónimo: B-036.4 pedirá el correo
         finally:
             llm.fijar_llm_chaos("")
+
+class TestIntervaloDelWorker:
+    """B-036.3: en desarrollo el worker va rápido por defecto (5 s).
+
+    Configuración fresca sin .env (_env_file=None): el default de producción
+    (60 s) solo vale fuera de desarrollo, y un valor explícito siempre manda.
+    """
+
+    def test_en_desarrollo_5s_por_defecto(self) -> None:
+        from piano_mentor.config import Settings
+
+        assert Settings(_env_file=None, environment="development").llm_retry_worker_intervalo_s == 5.0
+
+    def test_en_produccion_60s(self) -> None:
+        from piano_mentor.config import Settings
+
+        assert Settings(_env_file=None, environment="production").llm_retry_worker_intervalo_s == 60.0
+
+    def test_valor_explicito_manda(self) -> None:
+        from piano_mentor.config import Settings
+
+        explicito = Settings(_env_file=None, environment="development", llm_retry_worker_intervalo_s=30)
+        assert explicito.llm_retry_worker_intervalo_s == 30
