@@ -79,6 +79,24 @@ El script es reejecutable: localiza las Issues por el identificador estable `[B-
 
 La relación de padre/Sub-issue se crea con la opción oficial `gh issue create --parent`. La columna `Sub-issues progress` del Project mostrará el avance automáticamente cuando las Sub-issues estén vinculadas.
 
+## Etiqueta de título `[NoMVP]`
+
+Las Issues que **quedan fuera del alcance del MVP** (aparcadas o reclasificadas: B-029, B-034, P-002) llevan la etiqueta `[NoMVP]` **a continuación del identificador** en el título:
+
+```text
+[B-029][NoMVP] Control de MIDIs por usuario y subidas anónimas
+[B-034][NoMVP] Entrada acústica (micrófono) para practicar con piano real
+[P-002][NoMVP] Recomendaciones legales pendientes (fuera del MVP)
+```
+
+Reglas de la etiqueta:
+
+- **Siempre después del identificador** (`[B-xxx][NoMVP]`), nunca antes ni en medio del nombre: así el título se lee de un vistazo en el panel y el identificador queda primero.
+- El **identificador sigue siendo la primera clave** del título: los scripts localizan la Issue por el primer `[B-xxx]`/`[U-xxx]`/`[D-xxx]`/`[P-xxx]` del título (`Resolve-ProjectKey` en `sync-github-project.ps1` y `import-github-issues.ps1` usan el patrón `'\[((?:B|U|D|P)-\d+(?:\.\d+)?)\]'`), así que la etiqueta extra no rompe el emparejamiento CSV ↔ Project ni la reejecutabilidad de los importadores.
+- En el **CSV** (`project-backlog.csv`), la columna `Title` lleva la misma etiqueta y la columna `ID` se queda igual (es la clave): el emparejamiento es por ID, no por el texto completo del título.
+- La etiqueta convive con las demás convenciones de estado: `[NoMVP]` describe **alcance** (no es un estado como `Review`/`Done`); el `Status` del Project sigue fluyendo con normalidad.
+- Para devolver una issue al MVP basta con quitar la etiqueta del título (GitHub + `.md` + CSV).
+
 ## Crear Issues y añadirlos al Project `PianoMentor IA`
 
 El script usa por defecto el repositorio `andrupax94/PianoMentor-IA`, el propietario `andrupax94` y el Project `#1`. Por tanto, puedes ejecutar:
