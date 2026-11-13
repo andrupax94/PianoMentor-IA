@@ -2,10 +2,6 @@
 /* context: B-012.8 bloque C trajo el panel fijo; D-002.5 añade la FAB y la animación dockIn (200ms). Se oculta desde el componente y no desde el CSS, porque el pathname no está disponible al pintar el layout. */
 
 .fab {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,9 +35,6 @@
 }
 
 .dock {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
   width: 340px;
   max-width: calc(100vw - 40px);
   z-index: 40;
@@ -66,6 +59,21 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.distort {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
 }
 
 @media (max-width: 900px) {

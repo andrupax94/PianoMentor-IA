@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 
 import { MentorChat } from "../MentorPanel/MentorChat/MentorChat";
 import styles from "./AgentDock.module.css";
+import { useCornerBubbleDrag } from "../../lib/use-corner-bubble-drag";
 
 /** Ruta de la página principal, donde ya vive el chat dentro del panel del mentor. */
 const HOME_PATH = "/";
@@ -45,6 +46,12 @@ export function AgentDock() {
   /** Última ruta vista; si llega otra distinta, el usuario navegó de página. */
   const [lastPath, setLastPath] = useState<string | null>(null);
 
+  const drag = useCornerBubbleDrag({
+    open,
+    storageKey: "pm-bubble-corner-chat",
+    margin: 8,
+  });
+
   // El dock vive en el layout y no se desmonta al navegar, así que el cambio de
   // ruta se detecta aquí y el panel vuelve a cerrado (queda montado y oculto).
   useEffect(() => {
@@ -65,14 +72,24 @@ export function AgentDock() {
   if (!shouldShowDock(pathname)) return null;
 
   return (
-    <div>
+    <div
+      ref={drag.ref}
+      style={drag.style}
+      onPointerDown={drag.handlers.onPointerDown}
+      onPointerMove={drag.handlers.onPointerMove}
+      onPointerUp={drag.handlers.onPointerUp}
+      onPointerCancel={drag.handlers.onPointerCancel}
+    >
       <button
         className={styles.fab}
         type="button"
         aria-label="Abrir chat"
         aria-expanded={open}
         aria-controls="chat-flotante"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (drag.consumeClickIfJustDragged()) return;
+          setOpen(true);
+        }}
         hidden={open}
       >
         <span className={styles.fabIcon} aria-hidden="true" />
@@ -86,6 +103,7 @@ export function AgentDock() {
       >
         <MentorChat onClose={() => setOpen(false)} />
       </aside>
+      {open && drag.dragging && <div className={styles.distort} aria-hidden="true" />}
     </div>
   );
 }

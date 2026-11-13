@@ -3,7 +3,7 @@
 // description: Burbuja de estado de sesión (D-002.5): FAB «i» que despliega el panel flotante en la esquina inferior derecha con el estado vivo. B-033.2: solo en desarrollo añade pestañas Estado/Depurar; el panel crece a ~340px y 70vh en dev y el código del menú no existe en producción (el import lazy es condicional).
 // context: El estado es un almacén de módulo (session-store), no props del servidor, y el transporte se lee del contexto único de la portada. Con B-032.10 el mini cuadro se alimenta del store, no de este componente. Sesión en /{id}: nunca aparece sin práctica en la portada (el widget lo monta MentorPanel).
 
-import { useState, lazy, Suspense, useSyncExternalStore, useEffect } from "react";
+import { useState, lazy, Suspense, useSyncExternalStore, useEffect, useRef } from "react";
 
 import { getSessionSnapshot, subscribeSession } from "../lib/session-store";
 import { useTransport } from "../lib/transport-context";
@@ -16,6 +16,7 @@ import {
   DEBUG_BUBBLE_ALLOWED_EMAILS,
 } from "../lib/debug-bubble";
 import styles from "./SessionStatusLive.module.css";
+import { useCornerBubbleDrag } from "../lib/use-corner-bubble-drag";
 
 /**
  * El código del menú de depuración no existe en producción: al estar el import
@@ -113,6 +114,13 @@ export function SessionStatusLive({ userEmail: userEmailProp, debugMode: debugMo
   const effectiveUserEmail = hasUserEmailProp ? (userEmailProp ?? null) : userEmail;
   const effectiveDebugMode = hasDebugModeProp ? (debugModeProp as boolean) : debugMode;
 
+  const drag = useCornerBubbleDrag({
+    open,
+    storageKey: "pm-bubble-corner-debug",
+    userId: effectiveUserEmail ?? null,
+    margin: 8,
+  });
+
   const visible = isDebugBubbleVisible({
     isDev: IS_DEV,
     userEmail: IS_DEV ? null : effectiveUserEmail,
@@ -124,14 +132,26 @@ export function SessionStatusLive({ userEmail: userEmailProp, debugMode: debugMo
   if (!visible) return null;
 
   return (
-    <div className={styles.widget}>
+    <div
+      ref={drag.ref}
+      className={styles.widget}
+      style={drag.style}
+      onPointerDown={drag.handlers.onPointerDown}
+      onPointerMove={drag.handlers.onPointerMove}
+      onPointerUp={drag.handlers.onPointerUp}
+      onPointerCancel={drag.handlers.onPointerCancel}
+    >
+      {open && drag.dragging && <div className={styles.distort} aria-hidden="true" />}
       <button
         type="button"
         className={styles.fab}
         aria-label="Estado de sesión"
         aria-expanded={open}
         hidden={open}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (drag.consumeClickIfJustDragged()) return;
+          setOpen(true);
+        }}
       >
         i
       </button>

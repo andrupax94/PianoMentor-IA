@@ -10,6 +10,21 @@
   gap: 8px;
 }
 
+.distort {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .fab {
   width: 56px;
   height: 56px;
