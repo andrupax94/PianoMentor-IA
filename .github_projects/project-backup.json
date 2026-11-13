@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exportedAtUtc": "2026-11-13T16:50:50.3906949Z",
+  "exportedAtUtc": "2026-11-13T18:35:10.2285218Z",
   "project": {
     "owner": "andrupax94",
     "title": "@andrupax94 PianoMentor IA",
@@ -194,7 +194,7 @@
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Review",
+      "status": "Backlog",
       "target date": "2026-11-09",
       "title": "[B-031] Persistencia de la BD del backend: Litestream + R2"
     },
@@ -1904,7 +1904,7 @@
       ],
       "priority": "P2",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "In Progress",
       "target date": "2026-11-09",
       "title": "[P-001] Documentación legal: términos, privacidad y consentimiento"
     },
@@ -2258,7 +2258,7 @@
       ],
       "priority": "P1",
       "repository": "https://github.com/andrupax94/PianoMentor-IA",
-      "status": "Backlog",
+      "status": "Review",
       "target date": "2026-11-09",
       "title": "B-036.3: Cola de respuestas aplazadas + correo (backend)"
     },
