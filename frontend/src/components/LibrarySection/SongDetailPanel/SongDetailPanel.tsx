@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError, createSession } from "../../../lib/api-client";
+import { MIDI_UPLOAD_ENABLED } from "../../../lib/feature-flags";
 import { practiceOpeningText, playingText, inform } from "../../../lib/chat-feed";
 import { publishPianoPiece } from "../../../lib/piece-store";
 import { publishPracticePiece } from "../../../lib/session-piece";
@@ -129,18 +130,25 @@ export function SongDetailPanel({ song }: SongDetailPanelProps) {
         </p>
       )}
 
-      <button
-        type="button"
-        className={`${styles.secondary} ${styles.withIcon} ${styles.unavailable}`}
-        aria-expanded={showUploader}
-        disabled
-        onClick={() => setShowUploader((open) => !open)}
-      >
-        <img src="/assets/icons/midi.svg" alt="" aria-hidden="true" className={styles.buttonIcon} />
-        Subir archivo MIDI
-      </button>
+      {/* B-023: en el despliegue público la subida de MIDI está fuera de la
+          prueba — la entrada se oculta (la funcionalidad no se toca y en dev
+          sigue montándose como estaba). */}
+      {MIDI_UPLOAD_ENABLED && (
+        <>
+          <button
+            type="button"
+            className={`${styles.secondary} ${styles.withIcon} ${styles.unavailable}`}
+            aria-expanded={showUploader}
+            disabled
+            onClick={() => setShowUploader((open) => !open)}
+          >
+            <img src="/assets/icons/midi.svg" alt="" aria-hidden="true" className={styles.buttonIcon} />
+            Subir archivo MIDI
+          </button>
 
-      {showUploader && <MidiUploader />}
+          {showUploader && <MidiUploader />}
+        </>
+      )}
     </aside>
   );
 }

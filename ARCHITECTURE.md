@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-13 16:49 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-13 19:02 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1124,6 +1124,10 @@ piano-mentor-ai/
 ├── docs/issues/B-012/B-012.7.md
 ├── docs/issues/B-012/B-012.8.md
 ├── docs/issues/B-012/B-012.md
+├── docs/issues/B-020/
+├── docs/issues/B-020/B-020.md
+├── docs/issues/B-023/
+├── docs/issues/B-023/B-023.md
 ├── docs/issues/B-027/
 ├── docs/issues/B-027/B-027.1.md
 ├── docs/issues/B-027/B-027.2.md
@@ -1164,6 +1168,7 @@ piano-mentor-ai/
 ├── docs/issues/B-036/
 ├── docs/issues/B-036/B-036.1.md
 ├── docs/issues/B-036/B-036.2.md
+├── docs/issues/B-036/B-036.3.md
 ├── docs/issues/B-036/B-036.md
 ├── docs/issues/D-002/
 ├── docs/issues/D-002/D-002.1.md
@@ -1174,6 +1179,8 @@ piano-mentor-ai/
 ├── docs/issues/D-002/D-002.md
 ├── docs/issues/P-001/
 ├── docs/issues/P-001/P-001.md
+├── docs/issues/P-002/
+├── docs/issues/P-002/P-002.md
 ├── docs/issues/U-001/
 ├── docs/issues/U-001/U-001.md
 ├── docs/issues/U-004/
@@ -1395,6 +1402,10 @@ piano-mentor-ai/
 ├── frontend/src/components/MentorPanel/MentorChat/OfferActions/OfferActions.test.tsx
 ├── frontend/src/components/MentorPanel/MentorChat/OfferActions/OfferActions.tsx
 ├── frontend/src/components/MentorPanel/MentorChat/OfferActions/OfferActions.types.ts
+├── frontend/src/components/MentorPanel/MentorDecor/
+├── frontend/src/components/MentorPanel/MentorDecor/MentorDecor.module.css
+├── frontend/src/components/MentorPanel/MentorDecor/MentorDecor.tsx
+├── frontend/src/components/MentorPanel/MentorDecor/MentorDecor.types.ts
 ├── frontend/src/components/MentorPanel/MentorPanel.module.css
 ├── frontend/src/components/MentorPanel/MentorPanel.tsx
 ├── frontend/src/components/MentorPanel/MentorPanel.types.ts
@@ -1527,6 +1538,8 @@ piano-mentor-ai/
 ├── frontend/src/lib/docs-registry.ts
 ├── frontend/src/lib/falling-notes.test.ts
 ├── frontend/src/lib/falling-notes.ts
+├── frontend/src/lib/feature-flags.test.ts
+├── frontend/src/lib/feature-flags.ts
 ├── frontend/src/lib/gate-controller.test.ts
 ├── frontend/src/lib/gate-controller.ts
 ├── frontend/src/lib/gate-display.test.ts
@@ -1597,6 +1610,7 @@ piano-mentor-ai/
 ├── frontend/src/lib/synth.test.ts
 ├── frontend/src/lib/synth.ts
 ├── frontend/src/lib/transport-context.ts
+├── frontend/src/lib/use-corner-bubble-drag.ts
 ├── frontend/src/lib/useComputerKeyboard.ts
 ├── frontend/src/lib/usePlayback.ts
 ├── frontend/src/lib/useResponsiveRange.ts
@@ -1764,6 +1778,8 @@ piano-mentor-ai/
 | `frontend/src/lib/agent-hint.ts` | Traducción de la propuesta del agente a un mensaje para el alumno: AGENT_ACTION_LABELS con la etiqueta en español de cada acción de la lista blanca (incluidas offer_demo, offer_dismiss y repeat_demo de B-032.7) y hintMessage, que une la etiqueta con el motivo y omite la procedencia (provider/used_fallback); incluye providerLabel, la etiqueta de quién propuso (Groq, Gemini, reglas…) que solo se usa en la línea de diagnóstico del estado de sesión fuera de producción. | B-012.6; acompaña al chip «Pedir pista al agente» del chat. La procedencia es diagnóstico del desarrollador, no contenido del estudiante: no se enseña en la burbuja, solo en SessionStatus y fuera de producción. |
 | `frontend/src/lib/agent-hint.test.ts` | Tests del mensaje de pista (etiqueta en español para toda la lista blanca, acción cruda si aparece una nueva fuera del mapa, motivo vacío que deja solo la etiqueta y ausencia de la procedencia en el texto) y de providerLabel (Groq, Gemini, reglas, simulado y el sufijo «→ reglas deterministas» del fallback). | Criterio de B-012.6; se ejecutan con `npm run test` (Vitest). |
 | `frontend/src/lib/chat-espera.ts` | Frases musicales de espera del chat (B-036.2): la lista que la burbuja rota mientras el turno del agente está en vuelo y el selector puro fraseDeEspera, que reparte las frases en rondas (round-robin) cada INTERVALO_ESPERA_MS. | Puras y testeables sin DOM, al estilo de agent-hint.ts; las consume MentorChat. La rotación solo cambia el texto del mensaje de espera (sin re-render de la conversación) y se limpia al llegar la respuesta. Tono de la skill piano-mentor-chat-burbuja: mentor cercano, musical, sin prometer tiempos ni tecnicismos. Los reintentos del backend (B-036.1) alargan el turno unos segundos: estas frases visten esa espera. |
+| `frontend/src/lib/feature-flags.ts` | Feature flags de la casa (B-023): MIDI_UPLOAD_ENABLED controla si la interfaz enseña las entradas de «Subir MIDI». Es un flag de BUILD (NEXT_PUBLIC_ENABLE_MIDI_UPLOAD inlined por Next en cliente y servidor): false en el despliegue público de la prueba, true (o ausente) en desarrollo. | La decisión de la issue unida B-023: subir MIDI queda fuera de la prueba pública porque no hay tiempo de probarla como es — la entrada se deshabilita/oculta SIN quitar la funcionalidad (código, tests y rutas del backend intactos). Cuando se pruebe la subida con calma, se quita el flag o se reenciende. La lógica vive en midiUploadEnabled (pura y testeable); la constante es la que consumen los componentes. |
+| `frontend/src/lib/feature-flags.test.ts` | Tests del flag de subida de MIDI (B-023): la lógica pura midiUploadEnabled — enabled por defecto (valor ausente o "true"/"1"), disabled solo con "false" exacto — y el contrato de la constante de build. | Flag de BUILD: NEXT_PUBLIC_ENABLE_MIDI_UPLOAD viaja inline en el bundle, así que los tests no pueden retocarlo en caliente; lo que se fija es la función que lo interpreta y que la constante es booleana. |
 | `frontend/src/lib/chat-espera.test.ts` | Tests de las frases musicales de espera del chat (B-036.2): lista variada y no vacía, rotación en rondas que no repite frase hasta cerrar el ciclo, normalización de índices negativos y absurdos, y el intervalo de rotación fijo. | Puras sin DOM (criterio de la lib): MentorChat las consume con un intervalo que avanza el índice cada INTERVALO_ESPERA_MS y lo limpia al llegar la respuesta. |
 | `frontend/src/lib/session-interpretation.ts` | Interpretación del mentor para el modo maximizado del chat (B-033.4): buildInterpretation, función pura que traduce el resumen determinista del informe de práctica (PracticeSummary de B-033.3) a los bloques fijos que el alumno lee («Lo que salió bien», «A mejorar», «Lo que hice yo», «Recomendaciones»), más el prompt y el contexto del turno efímero del chat con el que el LLM redacta su versión amable. Revisión del 2026-11-09 (petición del usuario): la apertura se conecta en una frase (práctica + notas + acierto en % + valoración), se habla de notas/teclas en vez de «entradas», y el prompt pide redacción larga en TEXTO PLANO (nada de ** ni listas) con algún emoji de conversación. | B-033.4; la lógica de las frases vive en src/lib, no en el componente. Es además el fallback determinista de la casa: si el LLM no está (Mock en la cadena) o su turno falla, lo que se muestra son estos bloques tal cual, sin error visible. La voz es la de la skill piano-mentor-chat-burbuja: mentor en primera persona, alumno en segunda, sin códigos ni siglas (los outcomes se traducen: teclas equivocadas, notas que llegaron tarde; el gate del fallo dominante no se imprime — diagnóstico, no contenido del alumno). |
 | `frontend/src/lib/session-interpretation.test.ts` | Tests de la interpretación del mentor (B-033.4): buildInterpretation con práctica real (frases de los cuatro bloques, detalles por compás, intervenciones con sus motivos y recomendaciones coherentes con lo que ocurrió), práctica perfecta (sin bloque «A mejorar»), sesión sin señales (forma vacía) y determinismo estricto. | Todo sale de la lib pura `session-interpretation.ts` sin tocar la red ni el informe: el resumen llega como el objeto `PracticeSummary` que sirve B-033.3/B-033.4. La voz debe seguir la skill del chat: primera persona del mentor, segunda del alumno, sin códigos ni siglas en las frases (nada de `gate_` ni `wrong` crudo). |
@@ -1872,9 +1888,12 @@ piano-mentor-ai/
 | `frontend/src/components/PianoStage/Keyboard/Keyboard.tsx` | Teclado del escenario: recibe el transporte por props, entrega al SvgKeyboard las teclas sonando y las letras del teclado del PC, y emite por el puerto de entrada lo que se toca con el puntero (B-032.2). Desde B-032.9 las sombras del schedule las pinta solo el reproductor cuando suena de verdad, con el schedule audible del modo (key-shadows); la tecla del alumno se hunde solo por su entrada. | B-007.4 jubiló el PianoKeyboard temporal: sin vía de inyección, el teclado SVG es el único render. D-002.4 retiró el aviso de nota esperada. Desde B-032.2 el teclado no captura el PC (lo hace TransportProvider) ni suena por su cuenta: publica note_on/note_off en note-input, y de ahí salen el audio y el envío a la sesión. En práctica el rango visible se ensancha para que la cascada pinte la pieza entera. |
 | `frontend/src/components/PianoStage/Keyboard/Keyboard.module.css` | Estilos del envoltorio del teclado. | B-006.4; simplicidad primero. |
 | `frontend/src/components/PianoStage/Keyboard/Keyboard.types.ts` | Props del teclado del escenario: solo el transporte (el schedule de sombras lo compone el propio teclado según el modo, B-032.9). | B-007.4; el transporte lo reparte PianoStage porque el NoteFallGrid comparte la misma fuente de verdad temporal. Sin vía de inyección: el teclado real sustituyó al placeholder y pinta su propio SvgKeyboard. |
-| `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna derecha completa (chat, modos, pestañas y estado de sesión). | B-006.4; reutiliza MidiUploader y SessionStatus, enganchado a la sesión viva con SessionStatusLive. B-032.10: sin sesión se ocultan el selector de manos y la pestaña «Rendimiento»; con sesión se oculta «Carga pieza» (petición del usuario). B-033.3: con el modo interpretación del chat activo el resto de bloques se ocultan y el chat ocupa todo el alto del panel; desde B-033.5 (petición del usuario) la burbuja de estado con el menú de depuración NO se oculta: flota encima del chat maximizado (overlay) para poder mirar registro/informe mientras se lee la interpretación. |
+| `frontend/src/components/MentorPanel/MentorPanel.tsx` | Columna derecha completa (chat, modos, pestañas y estado de sesión). | B-006.4; reutiliza MidiUploader y SessionStatus, enganchado a la sesión viva con SessionStatusLive. B-032.10: sin sesión se ocultan el selector de manos y la pestaña «Rendimiento»; con sesión se oculta «Carga pieza» (petición del usuario). B-033.3: con el modo interpretación del chat activo el resto de bloques se ocultan y el chat ocupa todo el alto del panel; desde B-033.5 (petición del usuario) la burbuja de estado con el menú de depuración NO se oculta: flota encima del chat maximizado (overlay) para poder mirar registro/informe mientras se lee la interpretación. B-023: con la subida de MIDI deshabilitada para la prueba pública (flag de build), el hueco de la pestaña «Carga pieza» lo ocupa MentorDecor, puramente estético. |
 | `frontend/src/components/MentorPanel/MentorTabs/MentorTabs.tsx` | Pestañas del mentor con icono (Carga pieza y Rendimiento) que hospedan MidiUploader y PerformanceStats; escucha mentor:switch-tab en polling de eventos DOM y el hospedador filtra cuáles existen con visibleTabs. | B-012.8 / UI del mentor; el conmutador emite mentor:switch-tab y aquí se escucha el evento personalizado. B-032.10: solo «Carga pieza» sin sesión, solo «Rendimiento» con ella; una petición a una pestaña oculta se ignora y la activa siempre cae a la primera visible. |
 | `frontend/src/components/MentorPanel/MentorTabs/MentorTabs.types.ts` | Props de las pestañas del mentor: weakPoint (punto débil de rendimiento) y visibleTabs (qué pestañas existen hoy). | B-012.8 / UI del mentor. B-032.10 añade visibleTabs; por defecto todas, para retrocompatibilidad. |
+| `frontend/src/components/MentorPanel/MentorDecor/MentorDecor.tsx` | Hueco decorativo del panel del mentor (B-023): ocupa el sitio de la pestaña «Carga pieza» cuando la subida de MIDI está deshabilitada para la prueba pública (flag NEXT_PUBLIC_ENABLE_MIDI_UPLOAD=false). Puramente estético: un dibujo de teclas de piano en CSS con la identidad de la casa (navy profundo + acento dorado) y una frase corta; sin lógica, sin acciones, sin peticiones. | El espacio lo deja MentorPanel al quitar la pestaña de carga; este bloque lo rellena para que la columna no quede vacía sin inventar funcionalidad nueva. Cuando la subida vuelva a probarse (flag reencendido), MentorPanel vuelve a montar MentorTabs y este componente no se renderiza. CSS Modules con tokens de globals.css; nada de Bootstrap. |
+| `frontend/src/components/MentorPanel/MentorDecor/MentorDecor.module.css` | Estilos del hueco decorativo (B-023): tarjeta navy translúcida con borde dorado suave, fila de teclas de piano en CSS (siete blancas con tres negras posicionadas a mano) y frase corta en el tono del aula. | Mismo lenguaje que el resto del MentorPanel (fondo translúcido, acento var(--gold-soft)); sin interacción. |
+| `frontend/src/components/MentorPanel/MentorDecor/MentorDecor.types.ts` | Props del hueco decorativo del panel (B-023). | Sin props: puramente estético y no recibe ni emite nada. |
 | `frontend/src/components/MentorPanel/MentorPanel.module.css` | Estilos de la columna del mentor. | B-006.4; simplicidad primero. |
 | `frontend/src/components/MentorPanel/MentorPanel.types.ts` | Props del panel (weakPoint). | B-006.4. |
 | `frontend/src/components/MentorPanel/MentorChat/MentorChat.tsx` | Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, mensaje de espera musical rotatorio (B-036.2: frases de chat-espera cada ~2,5 s mientras el turno está en vuelo, también en la carga de la interpretación maximizada), error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover. B-033.4 da contenido al modo interpretación (maximizado, revisión del 2026-11-08: botón de producto): descarga el informe de la sesión una vez (getPracticeReport), renderiza los bloques deterministas del `summary` (session-interpretation.ts, lib pura) y pide la redacción amable del agente por un turno efímero del chat (ephemeral, sin historial) cuya procedencia va a session-store.lastStep; con el Mock o si falla, el fallback es el determinismo, sin error visible. | B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render. La interpretación (B-033.4) comparte chat_id con la conversación para que el agente redacte con memoria, pero su turno no se graba en la historia y su render va en la burbuja maximizada (no en la de la conversación). |
@@ -1913,7 +1932,7 @@ piano-mentor-ai/
 | `frontend/src/components/LibrarySection/SongTable/SongRow/SongRow.tsx` | Fila de la tabla: índice, portada y título (que selecciona), compositor, dificultad, duración, tempo, mejor puntaje, estado y el botón de play/pausa que hace sonar la pieza en la lista. | B-027.3; el botón alterna play/pausa (aria-pressed), avisa por aria-label del título y se deshabilita mientras se pide esa partitura. Las métricas de rendimiento siguen vacías hasta B-012/B-014. |
 | `frontend/src/components/LibrarySection/SongTable/SongRow/SongRow.module.css` | Estilos de la fila: selección, chips de dificultad, barra de puntaje, estado y botón de reproducción en dorado mientras suena. | B-027.3; simplicidad primero. |
 | `frontend/src/components/LibrarySection/SongTable/SongRow/SongRow.types.ts` | Props de la fila (song, index, selected, preview, onSelect, onPlay) y etiquetas de dificultad y estado. | B-027.3. |
-| `frontend/src/components/LibrarySection/SongDetailPanel/SongDetailPanel.tsx` | Panel de detalle de la pieza seleccionada, con acceso al piano, la práctica y carga de MIDI (B-027.3). | "Continuar en Learn" manda la pieza al piano por el almacén del navegador; "Practicar" abre una sesión real (B-012.1), publica la pieza en el almacén para que el piano la cargue al entrar (B-032.1) y lleva a su vista. |
+| `frontend/src/components/LibrarySection/SongDetailPanel/SongDetailPanel.tsx` | Panel de detalle de la pieza seleccionada, con acceso al piano, la práctica y carga de MIDI (B-027.3). B-023: con la subida deshabilitada para la prueba pública (flag de build), el botón y el uploader no se montan — la funcionalidad no se toca. | "Continuar en Learn" manda la pieza al piano por el almacén del navegador; "Practicar" abre una sesión real (B-012.1), publica la pieza en el almacén para que el piano la cargue al entrar (B-032.1) y lleva a su vista. |
 | `frontend/src/components/LibrarySection/SongDetailPanel/SongDetailPanel.module.css` | Estilos del panel de detalle. | B-027.3; simplicidad primero. |
 | `frontend/src/components/LibrarySection/SongDetailPanel/SongDetailPanel.types.ts` | Props del panel (song o null). | B-027.3. |
 | `frontend/src/components/LibrarySection/TablePagination/TablePagination.tsx` | Paginación de la tabla: Anterior/Siguiente y botones numerados, con el recuento de piezas mostradas. | B-027.3; recibe la página y los totales ya calculados por paginate(). |

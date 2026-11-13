@@ -1,0 +1,75 @@
+/* description: Estilos del hueco decorativo del panel (B-023): tarjeta navy translúcida con borde dorado suave, fila de teclas de piano dibujadas en CSS y frase corta en el tono del aula. */
+/* context: Mismo lenguaje que el resto del MentorPanel (fondo translúcido, acento var(--gold-soft)); sin interacción — aria-hidden en el componente. Las negras se posicionan a mano sobre las blancas (dos escalonadas y una en el hueco de si-mi). */
+
+.decor {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  padding: 18px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Fila de teclas: las blancas comparten el ancho y las negras flotan encima. */
+.keys {
+  position: relative;
+  display: flex;
+  width: 78%;
+  height: 84px;
+}
+
+.teclaBlanca {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+}
+
+.teclaNegra {
+  position: absolute;
+  top: 0;
+  width: 9%;
+  height: 58%;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, #101418, #05070a);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Colocación sobre la fila de 7 blancas: do-re escalonadas y el hueco si-mi. */
+.negra1 {
+  left: 13%;
+}
+
+.negra2 {
+  left: 32%;
+}
+
+.negra3 {
+  left: 70%;
+}
+
+.melodia {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.35em;
+  color: var(--gold-soft);
+  opacity: 0.75;
+}
+
+.frase {
+  margin: 0;
+  font-size: 0.78rem;
+  text-align: center;
+  color: var(--text-soft);
+  font-style: italic;
+}
