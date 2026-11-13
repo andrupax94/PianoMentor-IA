@@ -828,7 +828,7 @@ def _registration_fields(
         "password_hash": hash_password(password),
         "level": level,
         "genres": genres or [],
-        "terms_version": "1.0" if accepted else None,
+        "terms_version": "1.1" if accepted else None,
         "terms_accepted_at": now_iso if accepted else None,
         "verification_token": secrets.token_urlsafe(32),
         "verification_expires_at": (

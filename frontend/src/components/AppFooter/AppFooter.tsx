@@ -170,6 +170,12 @@ export default function AppFooter() {
                     </li>
                     <li>
                       <Link href="/legal/privacidad">Política de privacidad</Link>
+                     </li>
+                     <li>
+                       <Link href="/legal/cookies">Política de cookies</Link>
+                     </li>
+                     <li>
+                       <Link href="/legal/aviso-legal">Aviso legal</Link>
                     </li>
                   </>
                 )}

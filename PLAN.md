@@ -75,6 +75,7 @@ El backlog operativo completo está en [.github_projects/project-backlog.csv](.g
 | U-006 | P2 | Formulario de registro de usuarios | — |
 | U-007 | P2 | Recuperación de contraseña | — |
 | P-001 | P2 | Documentación legal: términos, privacidad y consentimiento | — |
+| P-002 | P2 | Recomendaciones legales pendientes (CMP, DPA, ROPA, DPIA, revisión jurídica) | — |
 
 Las prioridades significan: **P0**, imprescindible para el flujo principal; **P1**, necesario para la demo completa o el primer despliegue; **P2**, posterior y aplazable.
 

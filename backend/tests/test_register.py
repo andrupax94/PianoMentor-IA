@@ -243,5 +243,5 @@ def test_register_guarda_generos_y_terminos_si_llegan() -> None:
     assert row is not None
     assert json.loads(row["genres"]) == ["Clásica", "Jazz"]
     # P-001 (47eb05a): el backend ya guarda la versión real de los términos.
-    assert row["terms_version"] == "1.0"
+    assert row["terms_version"] == "1.1"
     assert row["terms_accepted_at"] is not None

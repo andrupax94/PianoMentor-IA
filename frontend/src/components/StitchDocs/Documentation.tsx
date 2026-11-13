@@ -9,6 +9,8 @@ import { markdownToHtml } from "../../lib/markdown";
 const DOC_ICONS: Record<string, string> = {
   terminos: "gavel",
   privacidad: "security",
+  cookies: "cookie",
+  "aviso-legal": "info",
   readme: "description",
   product: "inventory_2",
   glossary: "dictionary",

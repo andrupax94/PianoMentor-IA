@@ -11,6 +11,8 @@ export interface DocEntry {
 export const DOC_ENTRIES: DocEntry[] = [
   { slug: "terminos", title: "Términos y condiciones", group: "Legal", path: "/docs/legal/terminos.md" },
   { slug: "privacidad", title: "Política de privacidad", group: "Legal", path: "/docs/legal/privacidad.md" },
+  { slug: "cookies", title: "Política de cookies", group: "Legal", path: "/docs/legal/cookies.md" },
+  { slug: "aviso-legal", title: "Aviso legal", group: "Legal", path: "/docs/legal/aviso-legal.md" },
   { slug: "readme", title: "README", group: "Proyecto", path: "/docs/project/readme.md" },
   { slug: "product", title: "Producto (PRODUCT)", group: "Proyecto", path: "/docs/project/product.md" },
   { slug: "glossary", title: "Glosario", group: "Proyecto", path: "/docs/project/glossary.md" },
