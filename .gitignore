@@ -96,3 +96,14 @@ nota.txt
 .impeccable/critique/*.json
 .impeccable/critique/*.md
 !.impeccable/critique/ignore.md
+
+# Skills instaladas: solo el SKILL.md (y sus referencias citadas) se versionan.
+# El instalador trae el repo entero de la skill upstream (README, CHANGELOG,
+# LICENSE, workflows de .github, plantillas de issues...) y el skills-lock.json
+# raíz que gestiona sus versiones: todo eso es ruido para este proyecto.
+.agents/skills/rgpd/*
+!.agents/skills/rgpd/SKILL.md
+!.agents/skills/rgpd/references/
+.agents/skills/rgpd/references/*
+!.agents/skills/rgpd/references/rgpd-checklists.md
+skills-lock.json
