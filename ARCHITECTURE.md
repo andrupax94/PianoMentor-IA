@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-13 16:30 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-13 16:49 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -871,6 +871,25 @@ piano-mentor-ai/
 ├── .agents/skills/piano-mentor-dummy-vivecoder/SKILL.md
 ├── .agents/skills/piano-mentor-github-projects/
 ├── .agents/skills/piano-mentor-github-projects/SKILL.md
+├── .agents/skills/rgpd/
+├── .agents/skills/rgpd/.github/
+├── .agents/skills/rgpd/.github/ISSUE_TEMPLATE/
+├── .agents/skills/rgpd/.github/ISSUE_TEMPLATE/bug_report.md
+├── .agents/skills/rgpd/.github/ISSUE_TEMPLATE/improvement.md
+├── .agents/skills/rgpd/.github/workflows/
+├── .agents/skills/rgpd/.github/workflows/validate-skill.yml
+├── .agents/skills/rgpd/.gitignore
+├── .agents/skills/rgpd/CHANGELOG.md
+├── .agents/skills/rgpd/CONTRIBUTING.md
+├── .agents/skills/rgpd/LICENSE
+├── .agents/skills/rgpd/PUBLISHING.md
+├── .agents/skills/rgpd/README.md
+├── .agents/skills/rgpd/references/
+├── .agents/skills/rgpd/references/rgpd-checklists.md
+├── .agents/skills/rgpd/SECURITY.md
+├── .agents/skills/rgpd/SKILL.md
+├── .agents/skills/terms-of-service/
+├── .agents/skills/terms-of-service/SKILL.md
 ├── .dockerignore
 ├── .env.example
 ├── .gitattributes
@@ -915,6 +934,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/database.py
 ├── backend/src/piano_mentor/evaluation.py
 ├── backend/src/piano_mentor/llm.py
+├── backend/src/piano_mentor/llm_aplazados.py
 ├── backend/src/piano_mentor/mailer.py
 ├── backend/src/piano_mentor/main.py
 ├── backend/src/piano_mentor/midi.py
@@ -933,6 +953,7 @@ piano-mentor-ai/
 ├── backend/src/piano_mentor/migrations/0012_add_practice_signals.sql
 ├── backend/src/piano_mentor/migrations/0013_add_agent_decisions.sql
 ├── backend/src/piano_mentor/migrations/0014_add_user_piece_library.sql
+├── backend/src/piano_mentor/migrations/0015_add_pending_llm_replies.sql
 ├── backend/src/piano_mentor/passwords.py
 ├── backend/src/piano_mentor/practice.py
 ├── backend/src/piano_mentor/practice_report.py
@@ -976,6 +997,7 @@ piano-mentor-ai/
 ├── backend/tests/test_evaluation.py
 ├── backend/tests/test_hands.py
 ├── backend/tests/test_health.py
+├── backend/tests/test_llm_aplazados.py
 ├── backend/tests/test_llm_reintentos.py
 ├── backend/tests/test_mailer.py
 ├── backend/tests/test_measure_grid.py
@@ -1141,6 +1163,7 @@ piano-mentor-ai/
 ├── docs/issues/B-035/B-035.md
 ├── docs/issues/B-036/
 ├── docs/issues/B-036/B-036.1.md
+├── docs/issues/B-036/B-036.2.md
 ├── docs/issues/B-036/B-036.md
 ├── docs/issues/D-002/
 ├── docs/issues/D-002/D-002.1.md
@@ -1235,6 +1258,8 @@ piano-mentor-ai/
 ├── frontend/public/audio/piano/manifest.json
 ├── frontend/public/docs/
 ├── frontend/public/docs/legal/
+├── frontend/public/docs/legal/aviso-legal.md
+├── frontend/public/docs/legal/cookies.md
 ├── frontend/public/docs/legal/privacidad.md
 ├── frontend/public/docs/legal/terminos.md
 ├── frontend/public/docs/project/
@@ -1266,6 +1291,10 @@ piano-mentor-ai/
 ├── frontend/src/app/icon.svg
 ├── frontend/src/app/layout.tsx
 ├── frontend/src/app/legal/
+├── frontend/src/app/legal/aviso-legal/
+├── frontend/src/app/legal/aviso-legal/page.tsx
+├── frontend/src/app/legal/cookies/
+├── frontend/src/app/legal/cookies/page.tsx
 ├── frontend/src/app/legal/privacidad/
 ├── frontend/src/app/legal/privacidad/page.tsx
 ├── frontend/src/app/legal/terminos/
@@ -1598,6 +1627,7 @@ piano-mentor-ai/
 ├── shared/
 ├── shared/schemas/
 ├── shared/schemas/action.schema.json
+├── skills-lock.json
 ├── THIRD_PARTY_NOTICES.md
 ├── U-007_summary.md
 ```
@@ -1624,7 +1654,7 @@ piano-mentor-ai/
 | `backend/scripts/build_midi_fixtures.py` | Genera los fixtures MIDI deterministas de backend/tests/fixtures/midi/ (una pista, multi-track, cambio de tempo, sin tempo, corrupto, la escala de tres notas de los tests de /pieces y la frase de práctica de B-012.1 con dos manos y acordes). | Regenerar fixtures de B-005.1 con python backend/scripts/build_midi_fixtures.py; no editar los .mid a mano. La frase de práctica se copia además a data/midi/corpus/practice_phrase.mid, que es la pieza p16 del catálogo. |
 | `backend/scripts/describe_corpus_tracks.py` | Tabla regenerable de pistas y manos del corpus: notas, rango, mediana y mano por pista, y distancia entre medianas, solape de rangos y coincidencia con la mano izquierda de referencia por pieza. | Evidencia de B-009.2 que se regenera con python backend/scripts/describe_corpus_tracks.py; la referencia de mano izquierda está puesta a mano leyendo la partitura y el script avisa de las piezas sin referencia. |
 | `backend/src/piano_mentor/__init__.py` | Marca el paquete Python piano_mentor. | Raíz de importaciones del backend. |
-| `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. |
+| `backend/src/piano_mentor/main.py` | Entrada FastAPI: crea app, configura CORS y registra el router. | Arranque del backend y endpoint /health. Al levantar la app arranca |
 | `backend/src/piano_mentor/config.py` | Configuración tipada desde variables de entorno (Settings). | Centraliza puertos, CORS, rutas MIDI y base de datos. |
 | `backend/src/piano_mentor/api.py` | Rutas HTTP y WebSocket del MVP (/pieces, /sessions, /actions, /agent-step, /ws, /auth/*). Debe mantenerse delgado. POST /sessions/{id}/actions valida y ejecuta la acción del agente (B-012.4–B-012.7): demonstrate/return_control cambian el control y accompany difunde la mano de la IA y sus notas; el WS responde ping con pong para medir la latencia. Desde B-032.4-B-032.6 traduce también modos de práctica, posición y señales de práctica; tras cada señal decide en vivo y ejecuta las reglas de strikes (practice_rules), y una demostración de strikes programa su propia return control al acabar la ventana. Con B-032.7 (ADR 0008) el WS lleva además la respuesta del alumno a la oferta (`offer_accept`/`offer_dismiss`/`offer_repeat`), que ejecuta la demo con los parámetros ya guardados y mueve el motor solo cuando el alumno lo pide. | Traduce HTTP/WS a servicios; sin lógica musical compleja. La identidad (U-005) y el registro por pasos (U-006) también viven aquí. El acompañamiento no cambia el control (el estudiante sigue tocando) y sus notas viajan con tiempos relativos al inicio de la sección. |
 | `backend/src/piano_mentor/schemas.py` | Modelos Pydantic de peticiones y respuestas de la API. | Contrato tipado entre frontend y backend. |
@@ -1644,8 +1674,9 @@ piano-mentor-ai/
 | `backend/src/piano_mentor/migrations/0005_add_sessions.sql` | Migración 0005: crea sessions (id, piece_id, status, control, current_measure, position_s, created_at, updated_at) y session_events (log append-only con type, pitch, velocity, t_s y received_at), con índices por pieza y por sesión (B-012.1). | sessions guarda el estado vivo y session_events es el log de la interpretación que leerá la evaluación (B-012.2). Sin claves foráneas, como el resto del esquema; t_s es el reloj del estudiante y received_at solo diagnóstico. |
 | `backend/src/piano_mentor/catalog.py` | Carga idempotente de data/midi/catalog.json en pieces (upsert por id) con verificación previa de los MIDI referenciados; calcula content_hash y marca source='corpus' para que subir un MIDI idéntico reutilice el catálogo. ensure_catalog_loaded siembra el corpus cuando la tabla no tiene ninguna pieza suya (B-027.4). | CLI python -m piano_mentor.catalog para forzar la carga; GET /pieces llama a ensure_catalog_loaded, así que un arranque limpio ya sirve la Library. Un catálogo ausente o inválido se avisa por el log y no rompe el listado. B-003.3 no toca el formato del catálogo. |
 | `backend/src/piano_mentor/tools.py` | Registro de funciones del chat con lista blanca cerrada (B-012.8): define ToolDef (name, description en español, parameters como JSON Schema y side server/client) y REGISTRY con 12 funciones — listar_piezas, buscar_pieza, info_pieza y estado_sesion de servidor; reproducir_pieza, pausar, reanudar, parar y abrir_practica de navegador; y, desde B-032.7, aceptar_oferta, descartar_oferta y repetir_demo de navegador (la respuesta del alumno a la oferta del mentor, sin parámetros: los de la demo los guarda el backend). Expone list_tools(), tool_names(), execute_tool() y ToolError. buscar_pieza compara por palabras sueltas (sin acentos, con prefijo cuando el lado corto llega a 4 letras) y ordena los candidatos por número de coincidencias, conservando el orden del catálogo en los empates. | La lista blanca es el criterio de honestidad del agente: lo que no está aquí se rechaza antes de ejecutarse. El reparto side fija la frontera arquitectónica: el backend ejecuta las de servidor (tienen la BD) y solo devuelve la intención de las de navegador, porque el transporte y el audio viven en el navegador (B-012.8 decisión 3). La búsqueda por palabras en vez de la frase entera es lo que permite encadenar buscar -> reproducir en un turno: el proveedor reduce la orden a palabras clave y el servidor devuelve candidatos ordenados y deterministas (así «minueto bach» encuentra el Minueto antes que una Invention que solo encaja con «bach»). |
-| `backend/src/piano_mentor/llm.py` | Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log. | Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista. |
-| `backend/src/piano_mentor/chat.py` | Orquestación de un turno del chat del agente (B-012.8). | Historial + contexto -> proveedor -> validación contra lista blanca -> |
+| `backend/src/piano_mentor/llm.py` | Proveedores de LLM para el chat del agente (B-012.8). Desde B-036.1 la petición al proveedor lleva política de reintentos: transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo configurable; contexto desbordado se recorta del historial a la mitad por turnos completos; los permanentes (4xx sin marcas) se propagan y FallbackProvider salta de proveedor dejando el motivo en el log. Desde B-036.3, FallbackProvider anota `saturado`/`motivo_saturacion` (todos los reales cayeron con fallo transitorio) para que ChatService aplace el turno en la cola. | Interfaz intercambiable (OpenAI-compatible) y MockProvider determinista. |
+| `backend/src/piano_mentor/chat.py` | Orquestación de un turno del chat del agente (B-012.8). Desde B-036.3, si la cadena LLM se saturó (FallbackProvider.saturado) el caller puede pasar `aplazar` para encolar el trabajo: el turno responde igual con el fallback y la respuesta lleva `deferred`. | Historial + contexto -> proveedor -> validación contra lista blanca -> |
+| `backend/src/piano_mentor/llm_aplazados.py` | Worker de la cola de respuestas aplazadas del chat (B-036.3): `procesar_pendientes` recoge los pendientes vencidos (next_attempt_at pasado), reintenta el turno GUARDADO con la cadena LLM, guarda la redacción lograda como mensaje del mentor en el historial del chat y la manda por correo si hay dirección asociada (status enviada; sin correo queda lista para asociarse en B-036.4). El fallo reprograma con backoff exponencial (1 min → 5 → 15 → 1 h) y el tope de intentos cierra en fallida. `iniciar_worker` arranca el bucle en un hilo daemon (config llm_retry_worker/llm_retry_worker_intervalo_s). | La cola vive en pending_llm_replies (migración 0015); el encolado lo hace api.py vía el callback `aplazar` de ChatService cuando el FallbackProvider reporta saturación. Sin clave de Resend el envío queda en el log (patrón del mailer) y el estado queda 'lista', sin romper. Tests: llaman a procesar_pendientes con proveedor/envío/fecha inyectados (reloj falso); el hilo real no corre en la suite (conftest apaga llm_retry_worker). |
 | `backend/tests/test_health.py` | Verifica que la API arranca y /health responde. | Humo del backend. |
 | `backend/tests/test_midi.py` | MIDI válido, inválido, metadatos (tracks, tempo, notas, duración, canales), conversión ticks→segundos con TempoMap, nota normalizada (emparejamiento, acordes, orden estable y notas sin cerrar) y la especificación de la frase de práctica de B-012.1 (22 notas, 8 s, dos manos separadas por registro). | Confianza en el parsing, el mapa de tempo y el normalizador. |
 | `backend/tests/test_chords.py` | Agrupación en acordes (B-009.1): notas que empiezan juntas, detalle de cada nota (velocity, canal y pista), orden de grave a agudo, bordes de la tolerancia, arpegio que no se agrupa, determinismo e invariancia del corpus. | Confianza en el contrato de acorde que consumirán la evaluación y la UI; lee el catálogo para localizar las piezas reales. |
@@ -1928,12 +1959,13 @@ piano-mentor-ai/
 | `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.module.css` | Estilos del menú de usuario: botón «Iniciar sesión», fila de avatar con color más Salir y placeholder mientras carga. | U-005; usa el amarillo #e8a13e del avatar estático. |
 | `frontend/src/components/AppHeader/AuthUserMenu/AuthUserMenu.types.ts` | Tipos del menú de usuario: AuthUserMenuStatus y AuthUserMenuProps. | U-005; triada de convención con el resto de componentes. |
 | `backend/src/piano_mentor/passwords.py` | Hash unidireccional PBKDF2-SHA256 con sal embebida (formato tipo Django) y color aleatorio de burbuja (#rrggbb con HUE al azar y S/L fijas). | U-005 (login simple); solo biblioteca estándar; lo usan el endpoint /auth/login y el script create_user.py. |
-| `backend/src/piano_mentor/mailer.py` | Envío del email de comprobación del registro por pasos vía Resend: send_verification_email(to, link) con el SDK `resend` manda el correo cuando hay RESEND_API_KEY; sin clave, hermético, deja el enlace en el log. | U-006; punto único de salida por email: la firma se mantiene igual, un fallo del proveedor se registra sin romper el registro. Los tests capturan `resend.Emails.send` o revisan el log; nunca hay tráfico. |
+| `backend/src/piano_mentor/mailer.py` | Envío de emails de autenticación (U-006/U-007) vía Resend. | Si hay RESEND_API_KEY, envía con el SDK de Resend; si no, queda |
 | `backend/src/piano_mentor/migrations/0008_add_password_and_color.sql` | Columnas nuevas en users: password_hash (NULL para quien solo entra con Google) y bubble_color (fija desde el alta). | U-005; ALTER TABLE simple, sin tocar filas existentes. |
 | `backend/src/piano_mentor/migrations/0009_add_registration.sql` | Migración 0009 del registro por pasos: añade a users level, genres (JSON), terms_version, terms_accepted_at, email_verified (0 para los registros nuevos), verification_token y verification_expires_at; la UPDATE final marca email_verified=1 a todas las cuentas anteriores. | U-006: nivel, géneros, términos (versión de P-001) y el centinela de activación; Google ya entrega el correo verificado, así que las filas existentes nacen activas. |
 | `backend/scripts/create_user.py` | Alta manual de usuarios con contraseña: hash PBKDF2 de la contraseña y color de burbuja; idempotente (si existe el correo, solo fija la contraseña). | U-005; único camino hoy para cuentas sin Google (la cuenta admin); se ejecuta desde la raíz: python backend/scripts/create_user.py --email ... --password ... |
 | `backend/tests/test_passwords.py` | Tests del hash (formato, sal distinta por llamada, rechazo de contraseña errónea, sin hash o vacía) y del color (formato #rrggbb y variación). | U-005; suite hermética de biblioteca estándar. |
 | `backend/tests/test_mailer.py` | Tests del mailer vía Resend: sin clave solo log, con clave el correo se monta con from/to/subject/html correctos y un fallo del proveedor no rompe el registro. | U-006; suite hermética: `resend.Emails.send` se sustituye por un capturador; nunca hay tráfico. |
+| `backend/tests/test_llm_aplazados.py` | Tests de la cola de respuestas aplazadas del chat (B-036.3): detección de saturación en FallbackProvider (todos los reales caen con 429/timeout → sí; 401 o respuesta vacía → no), el aplazamiento de ChatService (callback con chat_id/messages/max_tokens, deferred solo en turnos de conversación), la persistencia en pending_llm_replies (encolado, vencidos, backoff, cierre) y el worker (reintento con éxito → historial del chat + correo + enviada/lista; fallo → backoff; tope → fallida; sin Resend queda en el log). | Reloj falso (datetime fijo) y proveedores/envío inyectados: nada duerme ni llama a la red. El hilo del worker no corre en la suite (conftest apaga llm_retry_worker). El endpoint real se prueba con el caos «siempre» de B-036.1: el 429 simulado satura la cadena sin red. |
 | `backend/tests/test_llm_reintentos.py` | Tests de la política de reintentos ante LLM saturado (B-036.1): transitorios (429/5xx/timeout) con espera corta respetando Retry-After y techo; 400/401 permanentes sin reintento; contexto desbordado (400 «too large») con recorte del historial a la mitad por turnos completos y un solo reintento; log del salto de proveedor en FallbackProvider. | El httpx real con Client parcheado (patrón de test_agent.py): las respuestas son httpx.Response de verdad para que raise_for_status levante HTTPStatusError con headers y cuerpo. La espera pasa por llm._dormir, parcheada: los tests nunca duermen. settings se parchea por test (llm_retry_intentos, llm_retry_espera_max_s). |
 | `backend/tests/test_register.py` | Tests del registro por pasos: alta inactiva con email capturado, duplicado ya verificado (409), reenvío sobre cuenta pendiente con datos nuevos, login pendiente (auth_email_unverified), verificación y login posterior, token inexistente/caducado y validaciones 422. | U-006; suite hermética: el mailer se sustituye por un capturador de enlaces y la BD es temporal por test (isolated_database). |
 | `frontend/src/components/AppHeader/AuthUserMenu/AuthSignInModal/AuthSignInModal.tsx` | Mini box de acceso sobre el fondo atenuado: usuario o correo, contraseña, Entrar (sign-in Credentials contra /auth/login) y Continuar con Google (flujo de U-005); mensaje de combinación errónea en los fallos. | U-005 (login simple); se abre desde «Iniciar sesión» de AuthUserMenu; Escap y clic fuera lo cierran. |
