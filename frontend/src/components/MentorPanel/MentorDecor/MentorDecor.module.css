@@ -15,6 +15,20 @@
   height: 100%;
 }
 
+/* Botón carátula: el Swiper ya evita el click tras un arrastre, así que el
+   clic limpio carga la pieza; en la caída estática (sin id) no hay botón. */
+.slideBtn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: center;
+}
+
 .slide {
   margin: 0;
   height: 100%;

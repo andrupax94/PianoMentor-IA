@@ -6,6 +6,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import { getPieceList } from "../../../lib/api-client";
+import { publishPianoPiece } from "../../../lib/piece-store";
+import { inform, playingText } from "../../../lib/chat-feed";
 import {
   cargarSwiper,
   prefiereMenosMovimiento,
@@ -24,6 +26,9 @@ const CARATULAS = [
 ];
 
 interface Caratula {
+  /** Id en el catálogo; solo las piezas reales lo llevan (con él, el clic carga
+   * y reproduce la pieza en el reproductor de la misma página). */
+  id?: string;
   src: string;
   /** Nombre de la pieza (o del compositor en la caída estática). */
   titulo: string;
@@ -61,6 +66,7 @@ export function MentorDecor() {
         const base = piezas
           .filter((p) => !!p.cover)
           .map((p) => ({
+            id: p.id,
             src: p.cover ?? "",
             titulo: p.title || p.id,
             autor: p.composer ?? "",
@@ -126,21 +132,55 @@ export function MentorDecor() {
     });
   }, [datosListos, constructorSwiper]);
 
+  /** Clic en una carátula: la pieza viaja al reproductor de la misma página y
+   * arranca sola (el mismo camino que «Continuar en Learn»). Las carátulas de
+   * la caída estática no llevan id y no hacen nada. */
+  function escuchar(caratula: Caratula): void {
+    if (!caratula.id) return;
+    publishPianoPiece({
+      kind: "catalog",
+      id: caratula.id,
+      title: caratula.titulo,
+      cover: caratula.src,
+      autoPlay: true,
+    });
+    // El mentor cuenta el clic como lo haría con el botón del reproductor.
+    inform(playingText(caratula.titulo));
+  }
+
   return (
-    <section className={styles.decor} aria-hidden="true">
+    <section className={styles.decor} aria-label="Piezas del catálogo: elige una para escucharla">
       {datosListos && constructorSwiper ? (
         <div ref={contenedor} className={styles.swiper}>
           <div className="swiper-wrapper">
             {slides.map((caratula, index) => (
               <div className="swiper-slide" key={`${caratula.titulo}-${index}`}>
-                <figure className={styles.slide}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={caratula.src} alt="" className={styles.caratula} loading="lazy" />
-                  <figcaption className={styles.epigrafes}>
-                    <span className={styles.titulo}>{caratula.titulo}</span>
-                    {caratula.autor && <span className={styles.autor}>{caratula.autor}</span>}
-                  </figcaption>
-                </figure>
+                {caratula.id ? (
+                  <button
+                    type="button"
+                    className={styles.slideBtn}
+                    title={`Escuchar ${caratula.titulo}`}
+                    onClick={() => escuchar(caratula)}
+                  >
+                    <figure className={styles.slide}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={caratula.src} alt="" className={styles.caratula} loading="lazy" />
+                      <figcaption className={styles.epigrafes}>
+                        <span className={styles.titulo}>{caratula.titulo}</span>
+                        {caratula.autor && <span className={styles.autor}>{caratula.autor}</span>}
+                      </figcaption>
+                    </figure>
+                  </button>
+                ) : (
+                  <figure className={styles.slide}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={caratula.src} alt="" className={styles.caratula} loading="lazy" />
+                    <figcaption className={styles.epigrafes}>
+                      <span className={styles.titulo}>{caratula.titulo}</span>
+                      {caratula.autor && <span className={styles.autor}>{caratula.autor}</span>}
+                    </figcaption>
+                  </figure>
+                )}
               </div>
             ))}
           </div>
