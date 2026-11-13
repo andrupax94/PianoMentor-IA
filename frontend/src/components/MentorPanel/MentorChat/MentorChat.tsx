@@ -1,4 +1,4 @@
-// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, estado «Pensando…», error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover. B-033.4 da contenido al modo interpretación (maximizado, revisión del 2026-11-08: botón de producto): descarga el informe de la sesión una vez (getPracticeReport), renderiza los bloques deterministas del `summary` (session-interpretation.ts, lib pura) y pide la redacción amable del agente por un turno efímero del chat (ephemeral, sin historial) cuya procedencia va a session-store.lastStep; con el Mock o si falla, el fallback es el determinismo, sin error visible.
+// description: Chat real del agente (B-012.8 bloque C): burbuja con la respuesta completa, escritura progresiva por bloques (rápida en largas), tamaño de letra dinámico según la longitud, mensaje de espera musical rotatorio (B-036.2: frases de chat-espera cada ~2,5 s mientras el turno está en vuelo, también en la carga de la interpretación maximizada), error visible y envío con Enter. Recupera y persiste el chat_id en localStorage para continuar la conversación y ejecuta la orden que el backend devuelve en client_action a través de executeClientAction (reproducir publica en piece-store y navega al piano, las órdenes de transporte viajan por agent-commands y abrir_practica crea sesión y navega a ella). Desde B-012.6, con sesión abierta, enseña el chip «Pedir pista al agente» (AgentHintButton), escribe la propuesta validada en la propia burbuja y guarda su procedencia en session-store para el diagnóstico del estado de sesión. Con B-032.7 la oferta del mentor se escribe EN la burbuja («¿Te muestro el compás 3?», «¿Repetimos la demostración?») y sus respuestas viven en la franja OfferActions con píldoras del estilo del chip, publicando la decisión en offer-choice; el mensaje de espera sale de chat-prompt (bienvenida con nombre o genérico). B-032.10 añade el feed informativo (chat-feed): las líneas «hito de la práctica» (reproducir, pausar, parar, cambio de modo, práctica abierta/cerrada) se pintan DENTRO de la burbuja con .informantLine, apiladas (máx 3, FIFO), con la misma máquina de escribir de la conversación sobre la línea nueva, sin borrar respuestas y sin entrar en el historial del LLM; el chip de pista se vuelve translúcido cuando el texto es muy largo y recupera la opacidad al hover. B-033.4 da contenido al modo interpretación (maximizado, revisión del 2026-11-08: botón de producto): descarga el informe de la sesión una vez (getPracticeReport), renderiza los bloques deterministas del `summary` (session-interpretation.ts, lib pura) y pide la redacción amable del agente por un turno efímero del chat (ephemeral, sin historial) cuya procedencia va a session-store.lastStep; con el Mock o si falla, el fallback es el determinismo, sin error visible.
 // context: B-012.8; el backend propone funciones y valida, el navegador ejecuta. La respuesta no se recorta: la burbuja es de altura fija y hace scroll cuando el texto no cabe, así que el usuario puede leerla entera. La animación de escritura usa typingStep para no alargarse ~25 s en respuestas de ~1400 caracteres. Usa useRouter de Next para navegar tras ejecutar la orden; un fallo de la orden se enseña sin borrar la respuesta. La pista del agente reutiliza ese mismo mecanismo de escritura y su traducción vive en lib/agent-hint.ts. La oferta del mentor vive del último agentAction del almacén y de un estado local mínimo (repeticiones), sin tocar el WS. El nombre del usuario es estado, no ref: el mensaje de espera lo lee en el render. La interpretación (B-033.4) comparte chat_id con la conversación para que el agente redacte con memoria, pero su turno no se graba en la historia y su render va en la burbuja maximizada (no en la de la conversación).
 
 "use client";
@@ -15,6 +15,7 @@ import {
   typingStep,
 } from "../../../lib/agent-chat";
 import { hintMessage } from "../../../lib/agent-hint";
+import { INTERVALO_ESPERA_MS, fraseDeEspera } from "../../../lib/chat-espera";
 import {
   executeClientAction,
   publishAgentCommand,
@@ -126,6 +127,13 @@ export function MentorChat({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /**
+   * B-036.2: índice de la frase musical de espera que rota mientras un turno
+   * está en vuelo (conversación o interpretación maximizada). El intervalo
+   * avanza el índice cada INTERVALO_ESPERA_MS y se limpia al llegar la
+   * respuesta; la frase la resuelve la lib pura `chat-espera`.
+   */
+  const [indiceEspera, setIndiceEspera] = useState(0);
+  /**
    * B-033.3: modo interpretación de la IA (el «maximizado»). El estado es de
    * la instancia; el panel del mentor se entera por `onReportModeChange` y
    * oculta al resto de sus bloques mientras el chat ocupa todo el alto.
@@ -189,6 +197,22 @@ export function MentorChat({
   const [feedVisibleChars, setFeedVisibleChars] = useState(0);
   const lastFeedLine = feed.length > 0 ? feed[feed.length - 1] : null;
   const lastFeedLineId = lastFeedLine?.id ?? 0;
+
+  // B-036.2: mientras un turno está en vuelo (conversación en la burbuja o
+  // interpretación maximizada cargando), el mensaje de espera rota frases
+  // musicales cada ~2,5 s. Al llegar la respuesta (o el error) el intervalo
+  // se limpia y el índice vuelve a cero para que el siguiente turno empiece
+  // por el principio del ciclo. La rotación solo cambia este texto: no toca
+  // la conversación ni dispara re-renders de las burbujas ya escritas.
+  const esperando = busy || interpPhase === "loading";
+  useEffect(() => {
+    if (!esperando) return;
+    setIndiceEspera(0);
+    const timer = window.setInterval(() => {
+      setIndiceEspera((actual) => actual + 1);
+    }, INTERVALO_ESPERA_MS);
+    return () => window.clearInterval(timer);
+  }, [esperando]);
 
   useEffect(() => {
     const last = lastFeedLine;
@@ -638,7 +662,11 @@ export function MentorChat({
   let interpBody: ReactNode;
   if (session.sessionId === null) {
     interpBody = INTERP_NOTE_NO_SESSION;
-  } else if (interpPhase === "loading" || interpPhase === "idle") {
+  } else if (interpPhase === "loading") {
+    // B-036.2: la redacción del agente (turno efímero con max_tokens 1200) es
+    // la espera más larga del chat — las frases musicales la visten.
+    interpBody = fraseDeEspera(indiceEspera);
+  } else if (interpPhase === "idle") {
     interpBody = "Revisando tu práctica…";
   } else if (interpPhase === "error") {
     interpBody = interpError ?? INTERP_NOTE_ERROR;
@@ -759,7 +787,7 @@ export function MentorChat({
         ) : offerQuestion !== null ? (
           offerQuestion
         ) : busy && reply === null ? (
-          "Pensando…"
+          fraseDeEspera(indiceEspera)
         ) : (
           visible
         )}
