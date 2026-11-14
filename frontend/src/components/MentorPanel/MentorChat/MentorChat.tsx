@@ -279,14 +279,22 @@ export function MentorChat({
    * B-033.3: alterna el modo interpretación. La cola de salida queda sin avisos
    * colgados si el chat se desmonta maximizado: el cleanup lo devuelve a
    * false (igual que el aplazamiento del aviso de cierre en PracticeBridge).
+   *
+   * Corrección: el updater de setReportMode debe ser puro — avisar al padre
+   * DENTRO del updater llamaba a su setState durante el render de MentorChat
+   * («Cannot update a component while rendering a different component») y
+   * React podía descartar ese aviso: el panel dejaba de enterarse (el width
+   * expandido no se veía). Ahora el toggle solo cambia el estado local y un
+   * efecto notifica al padre en fase de efectos, que es lo permitido.
    */
   const toggleReportMode = useCallback(() => {
-    setReportMode((current) => {
-      const next = !current;
-      onReportModeChange?.(next);
-      return next;
-    });
-  }, [onReportModeChange]);
+    setReportMode((current) => !current);
+  }, []);
+
+  // Sincroniza el modo con el panel (padre) fuera del render.
+  useEffect(() => {
+    onReportModeChange?.(reportMode);
+  }, [reportMode, onReportModeChange]);
 
   useEffect(
     () => () => {

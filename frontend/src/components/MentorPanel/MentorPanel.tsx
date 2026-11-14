@@ -27,13 +27,6 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
    * pestañas siguen escondiéndose (no aportan nada en la interpretación).
    */
   const [chatMaximized, setChatMaximized] = useState(false);
-  /** Cuando el informe está abierto, el panel se ensancha un 100 % más. */
-  const [reportExpanded, setReportExpanded] = useState(false);
-
-  // Sincroniza el ensanchado con el modo informe.
-  useEffect(() => {
-    setReportExpanded(chatMaximized);
-  }, [chatMaximized]);
 
   // Clic fuera del panel: cierra el informe y vuelve el width a lo que era.
   useEffect(() => {
@@ -51,7 +44,7 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
   return (
     <aside
       ref={panelRef}
-      className={`${styles.panel} ${reportExpanded ? styles.panelExpanded : ""}`}
+      className={`${styles.panel} ${chatMaximized ? styles.panelExpanded : ""}`}
       aria-label="Panel del mentor"
     >
       <MentorChat onReportModeChange={setChatMaximized} />
