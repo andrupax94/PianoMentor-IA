@@ -49,7 +49,8 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     throw new Error("un zip sin ficheros no tiene sentido (el pack sale con el nombrado mínimo)");
   }
   const { time, date } = dosDateTime(dateMs);
-  const blobs: number[] = []; // bytes planos: el tamaño no justifica segmentos de Uint8Array
+  const segmentos: Uint8Array[] = []; // el WAV es de megas: SIN spread (push(...megas) reventó la pila)
+  let totalLength = 0;
 
   const central: Array<{
     name: Uint8Array;
@@ -62,7 +63,7 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     const name = encoder.encode(entry.name.replace(/\\/g, "/"));
     const data = typeof entry.data === "string" ? encoder.encode(entry.data) : entry.data;
     const crc = crc32(data);
-    const offset = blobs.length;
+    const offset = totalLength;
     // Cabecera local: signature, versión 20, flags (bit 11 = UTF-8), STORE,
     // timestamps 0 (los legales van en el central), y campos por fichero.
     const local = new Uint8Array(30 + name.length);
@@ -80,11 +81,12 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     view.setUint16(28, 0, true); // extras
     local.set(name, 30);
 
-    blobs.push(...local, ...data);
+    segmentos.push(local, data);
+    totalLength += local.length + data.length;
     central.push({ name, crc, size: data.length, offset });
   }
 
-  const centralOffset = blobs.length;
+  const centralOffset = totalLength;
   for (const record of central) {
     const dir = new Uint8Array(46 + record.name.length);
     const view = new DataView(dir.buffer);
@@ -106,7 +108,8 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     view.setUint32(38, 0, true); // attrs externos
     view.setUint32(42, record.offset, true);
     dir.set(record.name, 46);
-    blobs.push(...dir);
+    segmentos.push(dir);
+    totalLength += dir.length;
   }
 
   // Registro central EOF (EOCD): entradas, tamaño/cuentas del central y la
@@ -116,12 +119,20 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
   view.setUint32(0, 0x06054b50, true);
   view.setUint16(8, entries.length, true); // en este disco
   view.setUint16(10, entries.length, true); // total
-  view.setUint32(12, blobs.length - centralOffset, true); // tamaño del central
+  view.setUint32(12, totalLength - centralOffset, true); // tamaño del central (aún sin el EOCD)
   view.setUint32(16, centralOffset, true);
   view.setUint16(20, 0, true); // sin comentario
 
-  blobs.push(...eocd);
-  return new Uint8Array(blobs);
+  segmentos.push(eocd);
+  totalLength += eocd.length;
+
+  const zip = new Uint8Array(totalLength);
+  let cursor = 0;
+  for (const segmento of segmentos) {
+    zip.set(segmento, cursor);
+    cursor += segmento.length;
+  }
+  return zip;
 }
 
 /**

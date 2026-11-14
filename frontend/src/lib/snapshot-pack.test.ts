@@ -8,6 +8,7 @@ import type { PackageParts } from "./snapshot-pack";
 import { clippedSample, downmixToMono, encodeWav16BitMono, WAV_HEADER_BYTES } from "./wav";
 import { crc32, readStoreZip } from "./zip";
 
+
 const ascii = (text: string) => new TextEncoder().encode(text);
 
 describe("crc32", () => {
@@ -97,6 +98,21 @@ describe("buildPackage", () => {
     const entries = readStoreZip(await buildPackage(parts, 1_700_000_000_000));
     expect(entries.map((e) => e.name)).toEqual(["informe.json", "registro.txt", "LÉEME.md", "grabacion.wav"]);
     expect(Array.from(entries[3].data)).toEqual([1, 2, 3]);
+  });
+
+  it("con grabación de megas el paquete se monta sin reventar la pila", async () => {
+    // Regresión: el WAV real (1 min ≈ 5 MB mono 16-bit) llegaba a push(...) por
+    // spread y reventaba con «Maximum call stack size exceeded» — el paquete
+    // solo fallaba cuando el usuario había grabado sonido.
+    const megas = new Uint8Array(3 * 1024 * 1024);
+    megas.set([82, 73, 70, 70]); // «RIFF» al principio, como el WAV de verdad
+    for (let i = 4; i < megas.length; i += 1) megas[i] = i & 0xff;
+    const parts = { ...PARTS, grabacion: new Blob([megas], { type: "audio/wav" }) };
+    const entries = readStoreZip(await buildPackage(parts, 1_700_000_000_000));
+    const grabacion = entries[3];
+    expect(grabacion.name).toBe("grabacion.wav");
+    expect(grabacion.data.length).toBe(megas.length);
+    expect(crc32(grabacion.data)).toBe(crc32(megas)); // el CRC del central cuadra
   });
 
   it("sin registro por abajo (vacío) el zip sale con el resto", async () => {
