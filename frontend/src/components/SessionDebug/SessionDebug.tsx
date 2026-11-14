@@ -14,6 +14,7 @@ import {
   subscribeDebugScenario,
 } from "../../lib/practice-debug";
 import { isTraceAudio, setTraceAudio } from "../../lib/audio-trace";
+import { defaultPreroll_s } from "../../lib/practice-gate";
 import { isNoteInputEnabled, subscribeNoteInputGate } from "../../lib/note-input";
 import { createSession, type SessionResponse } from "../../lib/api-client";
 import { SCENARIO_IDS, type ScenarioId } from "../../lib/practice-scenarios";
@@ -95,6 +96,14 @@ export function SessionDebug() {
     }
     if (waitMode.enabled) setWaitModeEnabled(false);
     transport.stop();
+    // B-033.9 (desincronización del bot tras «Reiniciar sesión»): el cambio de
+    // modo es ASÍNCRONO (almacén + PATCH) y el preroll lo rearma un efecto de
+    // PlaybackArea — que en la sesión recién reiniciada (nace sin modo de
+    // práctica, rama «observe») había dejado a 0. Si play() corría antes de
+    // que aterrizara, arrancaba sin cuenta atrás y el robot salía desincronizado.
+    // Fijar el preroll AQUÍ, síncrono, garantiza el delay en el primer
+    // lanzamiento tras el reinicio y en «Relanzar» por igual.
+    transport.setPreroll(defaultPreroll_s(transport.tempo_bpm ?? null));
     void transport.play();
     window.dispatchEvent(new CustomEvent("practice:scenario-start", { detail: { scenario } }));
   };
