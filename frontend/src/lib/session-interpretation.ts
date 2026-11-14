@@ -1,4 +1,4 @@
-// description: Interpretación del mentor para el modo maximizado del chat (B-033.4): buildInterpretation, función pura que traduce el resumen determinista del informe de práctica (PracticeSummary de B-033.3) a los bloques fijos que el alumno lee («Lo que salió bien», «A mejorar», «Lo que hice yo», «Recomendaciones»), más el prompt y el contexto del turno efímero del chat con el que el LLM redacta su versión amable. Revisión del 2026-11-09 (petición del usuario): la apertura se conecta en una frase (práctica + notas + acierto en % + valoración), se habla de notas/teclas en vez de «entradas», y el prompt pide redacción larga en TEXTO PLANO (nada de ** ni listas) con algún emoji de conversación.
+// description: Interpretación del mentor para el modo maximizado del chat (B-033.4): buildInterpretation, función pura que traduce el resumen determinista del informe de práctica (PracticeSummary de B-033.3) a los bloques fijos que el alumno lee («Lo que salió bien», «A mejorar», «Lo que hice yo», «Recomendaciones», «Métricas»), más el prompt y el contexto del turno efímero del chat con el que el LLM redacta su versión amable. Revisión del 2026-11-09 (petición del usuario): la apertura se conecta en una frase (práctica + notas + acierto + valoración), se habla de notas/teclas en vez de «entradas», y el prompt pide redacción larga en TEXTO PLANO (nada de ** ni listas) con algún emoji de conversación. Las métricas brutas (duración, notas, compases, valoración, acierto) viajan al final, debajo de las recomendaciones, para que el mensaje del LLM se concentre en evaluar. El tempo de la sesión se usa para el rango de tempo recomendado cuando conviene bajarlo.
 // context: B-033.4; la lógica de las frases vive en src/lib, no en el componente. Es además el fallback determinista de la casa: si el LLM no está (Mock en la cadena) o su turno falla, lo que se muestra son estos bloques tal cual, sin error visible. La voz es la de la skill piano-mentor-chat-burbuja: mentor en primera persona, alumno en segunda, sin códigos ni siglas (los outcomes se traducen: teclas equivocadas, notas que llegaron tarde; el gate del fallo dominante no se imprime — diagnóstico, no contenido del alumno).
 
 import type { PracticeSummary } from "./api-client";
@@ -51,6 +51,17 @@ const INTERVENTION_VERBS: Record<string, string> = {
   return_control: "te devolví el control",
 };
 
+/**
+ * Rango de tempo sugerido para practicar: «baja el tempo de 120 a entre 84 y 108».
+ * Devuelve null cuando no hay tempo de sesión disponible.
+ */
+function rangoTempo(tempo: number | null): string | null {
+  if (!tempo) return null;
+  const lento = Math.max(40, Math.round(tempo * 0.7));
+  const medio = Math.round(tempo * 0.9);
+  return `baja el tempo de ${tempo} a entre ${lento} y ${medio}`;
+}
+
 /** Segundos de práctica a texto del aula: «2 min 10 s», «45 s». */
 export function formatPracticed(seconds: number | null): string | null {
   if (seconds === null || seconds < 0 || !Number.isFinite(seconds)) return null;
@@ -91,8 +102,14 @@ function hasPractice(summary: PracticeSummary | null | undefined): summary is Pr
  * La misma sesión produce siempre las mismas frases (nada de azar ni del
  * LLM): los destacados son fríos y el turno efímero del chat los convierte
  * en un relato amable aparte que nunca sustituye a estos bloques.
+ *
+ * `tempo` es el tempo actual de la sesión (opcional): cuando se recomienda
+ * bajar el tempo se añade un rango sugerido.
  */
-export function buildInterpretation(summary: PracticeSummary | null | undefined): Interpretation {
+export function buildInterpretation(
+  summary: PracticeSummary | null | undefined,
+  tempo: number | null = null,
+): Interpretation {
   if (!hasPractice(summary)) {
     return {
       hasPractice: false,
@@ -104,6 +121,8 @@ export function buildInterpretation(summary: PracticeSummary | null | undefined)
   // UNA sola frase — práctica + notas + acierto + valoración — y lo demás son
   // datos sueltos que solo aparecen si merecen la pena (pasaje completo).
   // Los textos van en notas/teclas, no en «entradas» (voz del aula).
+  // Las métricas brutas viajan al final, debajo de «Recomendaciones», para
+  // que el mensaje del LLM se concentre en evaluar.
 
   const good: string[] = [];
   const improve: string[] = [];
@@ -126,9 +145,7 @@ export function buildInterpretation(summary: PracticeSummary | null | undefined)
       ? ` y una valoración de ${summary.evaluation.score_total} de 100`
       : "";
   good.push(
-    `Practicaste ${formatPracticed(summary.practiced_s) ?? "un rato"} tocando ${attempts} ${unidades} sobre ${
-      summary.active_measures
-    } ${compases}: ${acierto}${valoraciónLine}.`,
+    `Practicaste ${formatPracticed(summary.practiced_s) ?? "un rato"} tocando ${attempts} ${unidades}: ${acierto}${valoraciónLine}.`,
   );
   if (hits === attempts && summary.evaluation && summary.evaluation.received_ratio === 1) {
     good.push("Se oyó el pasaje completo, nota a nota.");
@@ -169,35 +186,48 @@ export function buildInterpretation(summary: PracticeSummary | null | undefined)
   }
 
   // -- Recomendaciones -----------------------------------------------------
+  const tempoPhrase = tempo ? ` ${rangoTempo(tempo)}.` : ".";
   if (summary.dominant_failure) {
     const worst = summary.worst_measures[0] ?? null;
     const worstLabel = worst ? measureLabel(worst.measure) : "las notas";
     const consejos: Record<string, string> = {
-      wrong: `Repasa ${worstLabel} nota a nota, bien lento, antes de tocarlo a tempo.`,
+      wrong: `Repasa ${worstLabel} nota a nota, bien lento, antes de tocarlo a tempo${tempoPhrase}`,
       timeout: `Cuenta en voz alta la entrada de ${worstLabel} antes de tocarla: más de un intento se perdió esperando la nota.`,
-      miss: `Vuelve a ${worstLabel} con calma, buscando cada nota antes de meter el metrónomo.`,
+      miss: `Vuelve a ${worstLabel} con calma, buscando cada nota antes de tocarlo a tempo.`,
     };
     recommend.push(
-      consejos[summary.dominant_failure.outcome] ?? `Toca ${worstLabel} a tempo lento antes de subir el paso.`,
+      consejos[summary.dominant_failure.outcome] ?? `Toca ${worstLabel} a tempo lento antes de subir el paso${tempoPhrase}`,
     );
     // Coherente con las intervenciones que ocurrieron: si bajé el tempo, recalco.
     if ((summary.interventions.by_action.slow_down ?? 0) > 0) {
       recommend.push(
-        "Practica todavía un rato a ese tempo bajo y sube al 100% cuando la nota salga limpia.",
+        `Practica todavía un rato a ese tempo bajo y sube al 100% cuando la nota salga limpia${tempoPhrase}`,
       );
     }
     if ((summary.interventions.by_action.offer_demo ?? 0) > 0) {
       recommend.push("Si dudas, vuelve a pedirme la demostración del compás que traba.");
     }
   } else {
-    recommend.push("Sin fallos que corregir: el siguiente paso es apretar el metrónomo.");
+    recommend.push("Sin fallos que corregir: practica otro pasaje o repasa la pieza completa para afianzar lo aprendido.");
   }
+
+  // -- Métricas ------------------------------------------------------------
+  const practicado = formatPracticed(summary.practiced_s);
+  const metricas: string[] = [];
+  if (practicado) metricas.push(`Duración: ${practicado}`);
+  metricas.push(`Notas tocadas: ${attempts}`);
+  metricas.push(`Compases: ${summary.active_measures} ${compases}`);
+  if (summary.evaluation && typeof summary.evaluation.score_total === "number") {
+    metricas.push(`Valoración: ${summary.evaluation.score_total} de 100`);
+  }
+  metricas.push(`Acierto: ${porcentaje}%`);
 
   const blocks: InterpretationBlock[] = [
     { heading: "Lo que salió bien", lines: good },
     { heading: "A mejorar", lines: improve },
     { heading: "Lo que hice yo", lines: mine },
     { heading: "Recomendaciones", lines: recommend },
+    { heading: "Métricas", lines: metricas },
   ].filter((block) => block.lines.length > 0);
 
   const lines = blocks.flatMap((block) => block.lines);
@@ -209,15 +239,18 @@ export function buildInterpretation(summary: PracticeSummary | null | undefined)
  * Revisión del 2026-11-09 (petición del usuario): la redacción puede ser más
  * larga (la ventana maximizada es grande), en texto plano (los `**` no se
  * renderizan en la burbuja y llenan de astreira la lectura) y con el tono
- * cercano de las IA de chat populares, con algún emoji si ayuda. */
+ * cercano de las IA de chat populares, con algún emoji si ayuda. El LLM debe
+ * concentrarse en evaluar qué significan los datos, no solo en repetirlos.
+ */
 export function interpretationPrompt(): string {
   return (
-    "Cuéntame cómo va mi práctica con detalle, como profesor hablándome: lo que " +
-    "va bien, lo que hay que corregir y el paso siguiente, conectado en párrafos " +
-    "cortos y tangibles (no lo dejes en dos líneas: la ventana es grande y hay " +
-    "sitio). Escríbelo en texto plano, sin **asteriscos** ni títulos ni listas " +
-    "con guiones: aquí el texto es plano y el markdown se leería tal cual y " +
-    "afea. Si te ayuda, mete algún emoji (piano 🎹, dedo 👍, reloj ⏱) " +
+    "Cuéntame cómo va mi práctica con detalle, como profesor hablándome: evalúa " +
+    "qué va bien, qué hay que corregir y cuál es el paso siguiente, conectado en " +
+    "párrafos cortos y tangibles (no lo dejes en dos líneas: la ventana es grande " +
+    "y hay sitio). No te limites a repetir las métricas: interpreta qué significan " +
+    "para el alumno. Escríbelo en texto plano, sin **asteriscos** ni títulos ni " +
+    "listas con guiones: aquí el texto es plano y el markdown se leería tal cual " +
+    "y afea. Si te ayuda, mete algún emoji (piano 🎹, dedo 👍, reloj ⏱) " +
     "sin pasarte. No inventes datos: todo lo que necesites está en los destacados."
   );
 }

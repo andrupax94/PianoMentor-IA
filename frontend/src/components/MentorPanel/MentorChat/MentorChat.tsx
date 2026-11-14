@@ -355,7 +355,10 @@ export function MentorChat({
   useEffect(() => {
     if (!reportMode || interpReport === null || interpRef.current.redacted) return;
     interpRef.current.redacted = true; // una sola petición por informe cargado
-    const interpretation = buildInterpretation(interpReport.summary);
+    const interpretation = buildInterpretation(
+      interpReport.summary,
+      interpReport.session.tempo ?? null,
+    );
     if (!interpretation.hasPractice) return;
 
     let alive = true;

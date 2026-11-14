@@ -54,11 +54,12 @@ describe("buildInterpretation", () => {
       "A mejorar",
       "Lo que hice yo",
       "Recomendaciones",
+      "Métricas",
     ]);
 
     const [good, improve, mine, recommend] = interpretation.blocks.map((block) => block.lines);
     expect(good).toContain(
-      "Practicaste 2 min 10 s tocando 9 notas sobre 4 compases: acertaste el 44% de las notas (4 de 9) y una valoración de 61.5 de 100.",
+      "Practicaste 2 min 10 s tocando 9 notas: acertaste el 44% de las notas (4 de 9) y una valoración de 61.5 de 100.",
     );
 
     expect(improve).toContain("el compás 1: 2 fallos de 2 notas — 1 nota sin resolver y 1 nota que llegó tarde.");
@@ -74,6 +75,13 @@ describe("buildInterpretation", () => {
     expect(
       recommend.some((line) => line.includes("tempo bajo")),
     ).toBe(true);
+
+    const metricas = interpretation.blocks.find((b) => b.heading === "Métricas")?.lines ?? [];
+    expect(metricas).toContain("Duración: 2 min 10 s");
+    expect(metricas).toContain("Notas tocadas: 9");
+    expect(metricas).toContain("Compases: 4 compases");
+    expect(metricas).toContain("Valoración: 61.5 de 100");
+    expect(metricas).toContain("Acierto: 44%");
   });
 
   it("la práctica perfecta se queda sin «A mejorar» y recomienda apretar", () => {
@@ -91,15 +99,21 @@ describe("buildInterpretation", () => {
     });
 
     const headings = interpretation.blocks.map((block) => block.heading);
-    expect(headings).toEqual(["Lo que salió bien", "Lo que hice yo", "Recomendaciones"]);
+    expect(headings).toEqual(["Lo que salió bien", "Lo que hice yo", "Recomendaciones", "Métricas"]);
     expect(interpretation.blocks[0].lines).toContain(
-      "Practicaste 45 s tocando 6 notas sobre 3 compases: nada falló y una valoración de 96.2 de 100.",
+      "Practicaste 45 s tocando 6 notas: nada falló y una valoración de 96.2 de 100.",
     );
     expect(interpretation.blocks[0].lines).toContain("Se oyó el pasaje completo, nota a nota.");
     expect(interpretation.blocks[1].lines).toEqual(["No intervine: seguiste solo en todo momento."]);
     expect(interpretation.blocks[2].lines).toEqual([
-      "Sin fallos que corregir: el siguiente paso es apretar el metrónomo.",
+      "Sin fallos que corregir: practica otro pasaje o repasa la pieza completa para afianzar lo aprendido.",
     ]);
+    const metricas = interpretation.blocks.find((b) => b.heading === "Métricas")?.lines ?? [];
+    expect(metricas).toContain("Duración: 45 s");
+    expect(metricas).toContain("Notas tocadas: 6");
+    expect(metricas).toContain("Compases: 3 compases");
+    expect(metricas).toContain("Valoración: 96.2 de 100");
+    expect(metricas).toContain("Acierto: 100%");
   });
 
   it("sin dominante fuera de la lista, la recomendación cae al genérico con el compás peor", () => {
@@ -108,8 +122,34 @@ describe("buildInterpretation", () => {
       dominant_failure: { outcome: "relámpago", count: 1, gate: null },
     });
 
-    const recommend = interpretation.blocks.at(-1)?.lines ?? [];
+    const recommend = interpretation.blocks
+      .find((b) => b.heading === "Recomendaciones")?.lines ?? [];
     expect(recommend[0]).toBe("Toca el compás 1 a tempo lento antes de subir el paso.");
+  });
+
+  it("con tempo y fallos de pitch, la recomendación incluye el rango de tempo", () => {
+    const interpretation = buildInterpretation(
+      {
+        ...summaryWithFailures(),
+        dominant_failure: { outcome: "wrong", count: 3, gate: "g1" },
+      },
+      120,
+    );
+    const recommend = interpretation.blocks
+      .find((b) => b.heading === "Recomendaciones")?.lines ?? [];
+    expect(recommend.some((line) => line.includes("baja el tempo de 120 a entre"))).toBe(true);
+  });
+
+  it("sin tempo no se añade el rango de tempo", () => {
+    const interpretation = buildInterpretation(
+      {
+        ...summaryWithFailures(),
+        dominant_failure: { outcome: "wrong", count: 3, gate: "g1" },
+      },
+    );
+    const recommend = interpretation.blocks
+      .find((b) => b.heading === "Recomendaciones")?.lines ?? [];
+    expect(recommend.some((line) => line.includes("baja el tempo"))).toBe(false);
   });
 
   it("la misma sesión da las mismas frases (determinismo)", () => {
