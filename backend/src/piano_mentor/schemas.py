@@ -83,7 +83,12 @@ class SessionPracticeModeRequest(BaseModel):
 
 
 class PracticeSignalItem(BaseModel):
-    """Una señal cruda del modo espera, tal y como se persistió (B-033.3)."""
+    """Una señal cruda del modo espera, tal y como se persistió (B-033.3).
+
+    `anticipated` (B-033.9): el gate se consumió SIN congelar — el bot toca
+    con el modo espera auto-apagado, o el paso por anticipado fuera de la
+    ventana. Es un hit igualmente; solo cambia cómo se resolvió.
+    """
 
     id: int
     gate: str
@@ -92,6 +97,7 @@ class PracticeSignalItem(BaseModel):
     wait_ms: float = 0.0
     hand: str = "both"
     created_at: str | None = None
+    anticipated: bool = False
 
 
 class PracticeMeasureReport(BaseModel):

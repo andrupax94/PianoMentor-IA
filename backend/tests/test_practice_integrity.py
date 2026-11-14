@@ -290,6 +290,59 @@ def test_sesiones_viejas_sin_run_id_son_pasada_1(session_id: str) -> None:
     assert [entrada["run"] for entrada in informe["runs"]] == [1]
 
 
+# -- Señales anticipadas (B-033.9) --------------------------------------------
+
+
+def test_senal_anticipada_se_persiste_y_llega_al_informe(session_id: str) -> None:
+    service.receive_practice_event(
+        session_id,
+        {
+            "type": "practice",
+            "gate": "g-ant",
+            "measure": 0,
+            "outcome": "hit",
+            "wait_ms": 0,
+            "anticipated": True,
+        },
+    )
+    with connect(settings.database_url) as conn:
+        init_db(conn)
+        row = conn.execute(
+            "SELECT anticipated FROM practice_signals WHERE session_id = ?", (session_id,)
+        ).fetchone()
+    assert row["anticipated"] == 1
+
+    informe = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()
+    assert informe["signals"]["items"][0]["anticipated"] is True
+
+
+def test_senal_sin_bandera_es_una_resolucion_normal(session_id: str) -> None:
+    service.receive_practice_event(
+        session_id,
+        {"type": "practice", "gate": "g-normal", "measure": 0, "outcome": "hit", "wait_ms": 0},
+    )
+    informe = client.get(f"/api/v1/sessions/{session_id}/practice-report").json()
+    assert informe["signals"]["items"][0]["anticipated"] is False
+
+
+def test_anticipated_no_booleano_se_rechaza(session_id: str) -> None:
+    from piano_mentor.validators import ValidationError
+
+    with pytest.raises(ValidationError) as fallo:
+        service.receive_practice_event(
+            session_id,
+            {
+                "type": "practice",
+                "gate": "g-malo",
+                "measure": 0,
+                "outcome": "hit",
+                "wait_ms": 0,
+                "anticipated": "sí",
+            },
+        )
+    assert fallo.value.code == "invalid_event_payload"
+
+
 def test_el_informe_sigue_determinista_con_runs(session_id: str) -> None:
     _insert_signal(session_id, "g1", "miss", 0, run_id=1)
     _insert_signal(session_id, "g2", "hit", 1, run_id=2)

@@ -147,6 +147,13 @@ def _validate_practice_event(event: object) -> dict[str, object]:
     if outcome not in ("hit", "miss", "wrong", "timeout"):
         raise ValidationError("invalid_event_payload", "`outcome` debe ser hit, miss, wrong o timeout")
 
+    # B-033.9: los gates consumidos SIN congelar (el bot toca con el modo
+    # espera auto-apagado, o paso por anticipado) marcan su señal con esta
+    # bandera para que el informe sepa cómo se resolvió cada gate.
+    anticipated = event.get("anticipated", False)
+    if not isinstance(anticipated, bool):
+        raise ValidationError("invalid_event_payload", "`anticipated` debe ser un booleano")
+
     wait_ms = event.get("wait_ms", 0)
     if isinstance(wait_ms, bool) or not isinstance(wait_ms, (int, float)) or not math.isfinite(wait_ms):
         raise ValidationError("invalid_event_payload", "`wait_ms` debe ser un número finito")
@@ -164,6 +171,7 @@ def _validate_practice_event(event: object) -> dict[str, object]:
         "outcome": outcome,
         "wait_ms": float(wait_ms),
         "hand": hand,
+        "anticipated": anticipated,
     }
 
 

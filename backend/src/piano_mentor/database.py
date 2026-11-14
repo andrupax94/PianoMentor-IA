@@ -560,7 +560,16 @@ def list_session_events(conn: sqlite3.Connection, session_id: str) -> list[sqlit
     ).fetchall()
 
 
-PRACTICE_SIGNAL_COLUMNS = ("session_id", "gate", "measure", "outcome", "wait_ms", "hand", "run_id")
+PRACTICE_SIGNAL_COLUMNS = (
+    "session_id",
+    "gate",
+    "measure",
+    "outcome",
+    "wait_ms",
+    "hand",
+    "run_id",
+    "anticipated",
+)
 
 
 def insert_practice_signal(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
@@ -606,7 +615,7 @@ def list_practice_signals(
     las anteriores a la migración).
     """
     return conn.execute(
-        "SELECT id, gate, measure, outcome, wait_ms, hand, created_at, run_id"
+        "SELECT id, gate, measure, outcome, wait_ms, hand, created_at, run_id, anticipated"
         " FROM practice_signals WHERE session_id = ? ORDER BY id",
         (session_id,),
     ).fetchall()

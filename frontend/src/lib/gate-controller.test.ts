@@ -1,4 +1,4 @@
-// description: Tests del gate-controller: hit, wrong, timeout y deduplicación de señales.
+// description: Tests del gate-controller: hit, wrong, timeout y deduplicación de señales; desde B-033.9, los gates que el transporte deja atrás sin congelarse (el bot toca con el modo espera auto-apagado) también emiten su señal — hit anticipated si sus teclas fueron pulsadas en la ventana razonable, miss si nadie las pulsó — sin duplicar con el ANTICIPADO ni interferir con la vía de espera.
 // context: B-032.5; puro y sin DOM.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -280,5 +280,225 @@ describe("gate-controller", () => {
     expect(events[0].outcome).toBe("wrong");
 
     controller.stop();
+  });
+
+  // -- B-033.9: gates que pasan SIN congelación (el bot toca con el modo
+  //    espera auto-apagado). Cada gate que el transporte deja atrás emite su
+  //    señal: la captura deja de depender de la carrera de la ventana.
+
+  describe("gate pasado sin congelación (B-033.9)", () => {
+    let nowMs: number;
+    let current: PlaybackSnapshot;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      nowMs = 1_000;
+      current = snapshot({ status: "playing", currentGate: null });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function gateEn(time_s: number, pitches: number[]) {
+      return {
+        id: `gate-${time_s.toFixed(4)}`,
+        time_s,
+        duration_s: 0.5,
+        pitches,
+        hands: ["unknown" as const],
+        measure: 0,
+      };
+    }
+
+    function makeRig() {
+      return createGateController({
+        getSnapshot: () => current,
+        subscribeNoteInput,
+        sendPracticeEvent: (event) => events.push(event),
+        clockMs: () => nowMs,
+        onHit: () => undefined,
+        options: { enabled: true, hand: "both" },
+      });
+    }
+
+    /** Un paso del sondeo (100 ms, el intervalo real del controlador). */
+    const sondeo = () => vi.advanceTimersByTime(100);
+
+    it("el gate que pasa con sus teclas pulsadas emite hit anticipated", () => {
+      const controller = makeRig();
+      controller.start();
+
+      // El gate 1.0 viene de camino; el bot pulsa su nota a tiempo.
+      current = snapshot({
+        status: "playing",
+        position_s: 0.9,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      sondeo(); // cola el gate pendiente
+      emitNoteOn({ pitch: 60, velocity: 80, source: "debug" });
+
+      // El transporte avanza 0,5 s (score) y el gate queda atrás sin congelarse.
+      nowMs += 500;
+      current = snapshot({
+        status: "playing",
+        position_s: 1.4,
+        currentGate: null,
+        upcomingGate: gateEn(2.0, [62]),
+      });
+      sondeo(); // drena: gate-1.0 pasó → hit anticipated
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        gate: "gate-1.0000",
+        outcome: "hit",
+        anticipated: true,
+        wait_ms: 0,
+      });
+      // El gate siguiente queda en cola, no emitido antes de tiempo.
+      expect(events.some((event) => event.gate === "gate-2.0000")).toBe(false);
+
+      controller.stop();
+    });
+
+    it("el gate que pasa sin que nadie pulse sus teclas emite miss", () => {
+      const controller = makeRig();
+      controller.start();
+
+      current = snapshot({
+        status: "playing",
+        position_s: 0.9,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      sondeo(); // en cola, sin pulsaciones
+
+      nowMs += 500;
+      current = snapshot({
+        status: "playing",
+        position_s: 1.4,
+        currentGate: null,
+        upcomingGate: null,
+      });
+      sondeo(); // pasó vacío → miss
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ gate: "gate-1.0000", outcome: "miss" });
+      expect(events[0].anticipated).toBeUndefined(); // un miss no lleva flag
+
+      controller.stop();
+    });
+
+    it("el ANTICIPADO no duplica señal cuando el gate pasa después", () => {
+      const controller = makeRig();
+      controller.start();
+
+      // El gate 1.0 a 0,2 s (dentro de la ventana): la pulsación lo consume.
+      current = snapshot({
+        status: "playing",
+        position_s: 0.8,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      emitNoteOn({ pitch: 60, velocity: 80, source: "debug" });
+      expect(events).toHaveLength(1); // hit anticipado
+
+      // El gate pasa: la cola no vuelve a emitirlo.
+      nowMs += 500;
+      current = snapshot({
+        status: "playing",
+        position_s: 1.4,
+        currentGate: null,
+        upcomingGate: null,
+      });
+      sondeo();
+
+      expect(events).toHaveLength(1);
+      expect(events[0].anticipated).toBe(true);
+
+      controller.stop();
+    });
+
+    it("al congelarse el transporte la cola de paso se descarta (vía de espera manda)", () => {
+      const controller = makeRig();
+      controller.start();
+
+      current = snapshot({
+        status: "playing",
+        position_s: 0.9,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      sondeo(); // en cola
+
+      // El motor congela en el gate: la resolución va por la vía de espera.
+      current = snapshot(); // waiting en gate-1.0
+      sondeo();
+      emitNoteOn({ pitch: 60, velocity: 80, source: "pc" });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ gate: "gate-1.0000", outcome: "hit" });
+      expect(events[0].anticipated).toBeUndefined(); // resuelto en espera
+
+      controller.stop();
+    });
+
+    it("al parar la pieza, los gates alcanzados y sin señal cierran la suya", () => {
+      const controller = makeRig();
+      controller.start();
+
+      current = snapshot({
+        status: "playing",
+        position_s: 0.9,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      sondeo(); // en cola, sin pulsar
+
+      // La pieza termina con el gate alcanzado (la posición lo cubrió).
+      current = snapshot({
+        status: "stopped",
+        position_s: 1.2,
+        currentGate: null,
+        upcomingGate: null,
+      });
+      sondeo();
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ gate: "gate-1.0000", outcome: "miss" });
+
+      controller.stop();
+    });
+
+    it("una pulsación muy anterior a su gate no la resuelve al pasar", () => {
+      const controller = makeRig();
+      controller.start();
+
+      // La nota se pulsó 1 s antes del gate (fuera de la ventana de 0,4 s):
+      // al pasar, la captura honesta es miss, no hit inventado.
+      current = snapshot({
+        status: "playing",
+        position_s: 0.0,
+        currentGate: null,
+        upcomingGate: gateEn(1.0, [60]),
+      });
+      sondeo(); // el gate entra en cola
+      emitNoteOn({ pitch: 60, velocity: 80, source: "debug" });
+
+      nowMs += 1_500; // la pulsación queda a 1.5 s de score del gate
+      current = snapshot({
+        status: "playing",
+        position_s: 1.5,
+        currentGate: null,
+        upcomingGate: null,
+      });
+      sondeo();
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({ gate: "gate-1.0000", outcome: "miss" });
+
+      controller.stop();
+    });
   });
 });
