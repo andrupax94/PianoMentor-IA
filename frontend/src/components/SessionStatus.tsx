@@ -16,6 +16,7 @@ const STATUS_LABELS: Record<SessionState["status"], string> = {
   idle: "ESPERANDO",
   playing: "TOCANDO",
   paused: "EN PAUSA",
+  finished: "TERMINADA",
 };
 
 const CONTROL_LABELS: Record<SessionState["control"], string> = {

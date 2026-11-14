@@ -34,4 +34,16 @@ describe("AgentHintButton", () => {
     expect(html).toMatch(/aria-busy="true"/);
     expect(html).toMatch(/disabled/);
   });
+
+  it("B-033.8: modo informe cambia etiqueta e icono y lleva la clase destacada", () => {
+    const html = renderToStaticMarkup(
+      <AgentHintButton modo="informe" onAsk={vi.fn()} />,
+    );
+
+    expect(html).toContain("Ver informe de la práctica");
+    expect(html).not.toContain("Pedir pista al agente");
+    expect(html).toMatch(/<span[^>]*informIcon/); // inform.svg con mask-image
+    expect(html).not.toMatch(/<span[^>]*stars/);
+    expect(html).toMatch(/chipInforme/); // más grande y oro desde el inicio
+  });
 });

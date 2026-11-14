@@ -138,7 +138,7 @@ export interface HealthResponse {
 }
 
 /** Estados por los que pasa una sesión de práctica (B-012.1). */
-export type SessionStatus = "idle" | "playing" | "paused";
+export type SessionStatus = "idle" | "playing" | "paused" | "finished";
 
 /** Quién tiene el piano: el estudiante o el agente (B-012.1). */
 export type SessionControl = "student" | "agent";
@@ -513,6 +513,22 @@ export async function createSession(pieceId: string): Promise<SessionResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ piece_id: pieceId }),
+  });
+}
+
+// --- Ciclo de vida de la ronda (B-033.8) --------------------------------------
+
+/** Cierra la sesión: estado terminal finished (POST /sessions/{id}/finish). */
+export async function finishSession(sessionId: string): Promise<SessionState> {
+  return request<SessionState>(`/api/v1/sessions/${sessionId}/finish`, {
+    method: "POST",
+  });
+}
+
+/** Abre la siguiente pasada de la sesión (POST /sessions/{id}/runs, B-033.7). */
+export async function startSessionRun(sessionId: string): Promise<{ run: number }> {
+  return request<{ run: number }>(`/api/v1/sessions/${sessionId}/runs`, {
+    method: "POST",
   });
 }
 

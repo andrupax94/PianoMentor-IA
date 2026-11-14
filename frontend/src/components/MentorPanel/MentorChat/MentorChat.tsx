@@ -24,9 +24,11 @@ import {
 import {
   ApiError,
   createSession,
+  finishSession,
   getPracticeReport,
   runAgentStep,
   sendAgentMessage,
+  startSessionRun,
 } from "../../../lib/api-client";
 import type { PracticeReport } from "../../../lib/api-client";
 import {
@@ -43,7 +45,16 @@ import {
 } from "../../../lib/chat-feed";
 import { chatPrompt } from "../../../lib/chat-prompt";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
+import { useTransport } from "../../../lib/transport-context";
+import {
+  getRondaFinalSnapshot,
+  getSenalesRonda,
+  resetRondaFinal,
+  setRondaAlFinal,
+  subscribeRondaFinal,
+} from "../../../lib/ronda-final-store";
 import { AgentHintButton } from "./AgentHintButton/AgentHintButton";
+import type { AgentHintButtonModo } from "./AgentHintButton/AgentHintButton.types";
 import { OfferActions } from "./OfferActions/OfferActions";
 import styles from "./MentorChat.module.css";
 import type { MentorChatProps } from "./MentorChat.types";
@@ -119,6 +130,34 @@ export function MentorChat({
   const router = useRouter();
   /** Sesión abierta en la portada: el chip de pista solo existe con práctica. */
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
+  const transport = useTransport();
+  const rondaAlFinal = useSyncExternalStore(subscribeRondaFinal, getRondaFinalSnapshot, getRondaFinalSnapshot);
+  /** Señales de práctica de la ronda en curso (event-driven desde PracticeBridge). */
+  const senalesRonda = useSyncExternalStore(subscribeRondaFinal, getSenalesRonda, getSenalesRonda);
+  /**
+   * Modo del chip (B-033.8): «informe» solo con ronda TERMINADA (latch del
+   * final) Y con práctica registrada (señales de la ronda); en cualquier otro
+   * momento —inicio, en plena práctica o stop a mitad— es «pista».
+   */
+  const modoChip: AgentHintButtonModo =
+    rondaAlFinal && senalesRonda > 0 ? "informe" : "pista";
+  // B-033.8: latch de fin de pieza. Se fija al llegar al final y se resetea al
+  // iniciar una nueva ronda. Sobrevive al stop manual (que rebobina a 0).
+  useEffect(() => {
+    const status = transport.status;
+    const position = transport.position_s ?? 0;
+    const duration = transport.duration_s ?? 0;
+    if (status === "stopped" && duration > 0 && position >= duration - 0.05) {
+      setRondaAlFinal(true);
+    } else if (status === "playing" || status === "preroll") {
+      setRondaAlFinal(false);
+    }
+  }, [transport.status, transport.position_s, transport.duration_s]);
+  // Cambio de sesión (reinicio incluido): latch y contador a cero — al inicio
+  // de una sesión el chip siempre nace en «pista».
+  useEffect(() => {
+    resetRondaFinal();
+  }, [session.sessionId]);
   const [input, setInput] = useState("");
   /** Respuesta completa del agente, sin recortar: la altura la fija el CSS. */
   const [reply, setReply] = useState<string | null>(null);
@@ -545,6 +584,26 @@ export function MentorChat({
   );
 
   /**
+   * B-033.8: camino «informe» del chip multimodo. Abre la interpretación
+   * (el otro camino es el botón de producto de la cabecera) y SELLA la ronda
+   * on-demand: POST /finish cierra la sesión (estado terminal finished,
+   * sin la carrera entre últimas señales e informe) y POST /runs abre la
+   * pasada siguiente para que la próxima ronda no se mezcle con esta. El
+   * informe on-demand sin ?final sigue sirviendo si el sellado falla.
+   */
+  const abrirInforme = useCallback(async () => {
+    const sessionId = session.sessionId;
+    if (sessionId === null) return;
+    try {
+      await finishSession(sessionId);
+      await startSessionRun(sessionId);
+    } catch {
+      // Sin sellado el informe on-demand sigue legible (compatibilidad B-033.3).
+    }
+    setReportMode(true);
+  }, [session.sessionId]);
+
+  /**
    * Pide un paso al agente (B-012.6) y lo escribe en la propia burbuja como
    * mensaje para el alumno. El texto anterior se limpia antes de pedirlo para
    * que la burbuja muestre «Pensando…» mientras el backend decide.
@@ -819,7 +878,11 @@ export function MentorChat({
             />
           ) : (
             <span className={`${styles.hintSlot} ${ghostHint ? styles.hintGhost : ""}`}>
-              <AgentHintButton onAsk={() => void askHint()} disabled={busy} />
+              <AgentHintButton
+                onAsk={() => (modoChip === "informe" ? void abrirInforme() : void askHint())}
+                disabled={modoChip === "pista" ? busy : false}
+                modo={modoChip}
+              />
             </span>
           ))}
       </div>

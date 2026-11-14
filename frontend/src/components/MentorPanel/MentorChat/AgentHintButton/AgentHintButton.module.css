@@ -1,5 +1,5 @@
-/* description: Estilos del chip píldora del chat (por defecto «Pedir pista al agente»; reutilizado por la oferta del mentor, B-032.7). */
-/* context: B-012.6/B-032.7; píldora sin posicionarse a sí misma: el hospedador decide dónde va (hueco absoluto en MentorChat, franja inferior en OfferActions). */
+/* description: Estilos del chip píldora del chat (por defecto «Pedir pista al agente»; reutilizado por la oferta del mentor, B-032.7). Con B-033.8 el chip es multimodo: en «informe» cambia a inform.svg y se destaca — más grande y ORO desde el primer momento (sin depender del hover). */
+/* context: B-012.6/B-032.7/B-033.8; píldora sin posicionarse a sí misma: el hospedador decide dónde va (hueco absoluto en MentorChat, franja inferior en OfferActions). */
 
 .chip {
   display: flex;
@@ -25,6 +25,22 @@
   cursor: default;
 }
 
+/* Modo informe (B-033.8): el camino llamativo al informe de la práctica —
+   más grande que la píldora de pista y ORO desde el primer momento. */
+.chipInforme {
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.chipInforme:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(212, 175, 55, 0.2);
+}
+
 .stars {
   position: relative;
   display: flex;
@@ -36,6 +52,22 @@
   mask-position: center;
   mask-size: contain;
   background-color: white;
+  margin-right: 10px;
+  margin-left: 5px;
+}
+
+/* Icono del modo informe: inform.svg con mask-image para teñirlo de oro. */
+.informIcon {
+  position: relative;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  mask-image: url("/assets/icons/inform.svg");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  background-color: var(--gold);
   margin-right: 10px;
   margin-left: 5px;
 }

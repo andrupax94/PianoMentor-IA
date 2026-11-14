@@ -1,6 +1,8 @@
 // description: Props del chip píldora de acciones del chat: etiqueta e icono configurables para reutilizarlo en la pista del agente (B-012.6) y en las respuestas a la oferta del mentor (B-032.7).
 // context: B-012.6/B-032.7; la posición la fija el hospedador, no el chip.
 
+export type AgentHintButtonModo = "pista" | "informe";
+
 export interface AgentHintButtonProps {
   /**
    * Texto de la píldora; por defecto, «Pedir pista al agente». En la oferta
@@ -13,4 +15,11 @@ export interface AgentHintButtonProps {
   onAsk: () => void;
   /** Deshabilita el chip mientras el chat está ocupado o la respuesta viajó. */
   disabled?: boolean;
+  /**
+   * Modo del chip (B-033.8): «pista» (por defecto) pide ayuda al agente sobre
+   * el pasaje actual; «informe» abre la interpretación de la práctica recién
+   * terminada. El hospedador calcula el modo a partir del latch de fin de
+   * pieza y de si hay ronda practicada.
+   */
+  modo?: AgentHintButtonModo;
 }

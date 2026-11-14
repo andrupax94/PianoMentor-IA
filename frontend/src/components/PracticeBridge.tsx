@@ -14,6 +14,7 @@ import { inform, sessionClosedText } from "../lib/chat-feed";
 import { createGateController, type GateController } from "../lib/gate-controller";
 import { measureIndexAt } from "../lib/measures";
 import { publishDebugScenario, publishDebugLog, agentActionText, practiceEventText } from "../lib/practice-debug";
+import { bumpSenalesRonda, resetRondaFinal } from "../lib/ronda-final-store";
 import { emitNoteOff, emitNoteOn, isNoteInputEnabled, setNoteInputEnabled, subscribeNoteInput } from "../lib/note-input";
 import { evaluatedHand } from "../lib/practice-mode";
 import { musicalPosition } from "../lib/playback-schedule";
@@ -318,6 +319,9 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       subscribeNoteInput,
       sendPracticeEvent: (event) => {
         socket.sendPracticeEvent(event);
+        // B-033.8/B-033.9: cada señal enviada cuenta para la ronda en curso —
+        // es lo que habilita el chip «informe» al llegar al final.
+        bumpSenalesRonda();
         // B-033.2: cada señal del modo espera deja línea en el registro dev.
         if (process.env.NODE_ENV !== "production") publishDebugLog("practice", practiceEventText(event));
       },
@@ -405,6 +409,13 @@ export function PracticeBridge({ sessionId }: PracticeBridgeProps) {
       });
     }, POSITION_PUSH_MS);
     return () => window.clearInterval(timer);
+  }, [sessionId]);
+
+  // B-033.8: sesión nueva (o reinicio a otra sesión) — el latch de fin de
+  // pieza y el contador de señales de la ronda parten de cero. Con la MISMA
+  // pieza tras «Reiniciar sesión» esto es lo que devuelve el chip a «pista».
+  useEffect(() => {
+    resetRondaFinal();
   }, [sessionId]);
 
   /**
