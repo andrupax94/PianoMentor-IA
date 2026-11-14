@@ -76,7 +76,9 @@ from .midi import (
 )
 from .passwords import hash_password
 from .passwords import verify_password as verify_user_password
-from .practice import PracticeService
+from .practice import TERMINAL_STATUSES, PracticeService
+from .practice_channel import counters as practice_channel_counters
+from .practice_channel import record_persisted, record_received, reset as reset_practice_channel
 from .practice_report import normalize_limit, session_report
 from .schemas import (
     AUTH_LEVELS,
@@ -111,6 +113,7 @@ from .schemas import (
     SessionCreate,
     SessionPracticeModeRequest,
     SessionResponse,
+    SessionRunResponse,
     SessionStateResponse,
     ToolCallResult,
     TrackSummary,
@@ -1480,6 +1483,7 @@ def get_session_state(session_id: str) -> SessionStateResponse:
 def get_session_practice_report(
     session_id: str,
     limit: int | None = Query(default=None, ge=1),
+    final: bool = Query(default=False),
 ) -> PracticeReportResponse:
     """Informe consolidado de la sesión (B-033.3).
 
@@ -1488,8 +1492,21 @@ def get_session_practice_report(
     que consume el agente. `limit` trunca `signals.items` (default acotado;
     el agregado por compás y las decisiones nunca se truncan) y la respuesta
     es determinista: el mismo id devuelve siempre el mismo orden.
+
+    B-033.8: con `?final=true` exige la sesión CERRADA (`finished`) y responde
+    409 `session_not_finished` si sigue viva — es el informe sellado, sin la
+    carrera de datos parciales del on-demand. Sin `final`, el comportamiento
+    de siempre: on-demand, compatible con las tests y los paquetes de B-033.5.
     """
     session_state = _session_state_or_404(session_id)
+    if final and session_state.get("status") not in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "session_not_finished",
+                "message": "La sesión sigue abierta: ciérrala (POST /sessions/{id}/finish) para pedir el informe final.",
+            },
+        )
     try:
         # La evaluación se resuelve ANTES del informe: el `summary` de
         # B-033.4 la cita en su nacimiento (no se parchea después).
@@ -1497,6 +1514,9 @@ def get_session_practice_report(
             session_id,
             normalize_limit(limit),
             evaluation=_evaluation_or_none(session_id, session_state),
+            # B-033.8: los contadores del canal vivo citan cuántas señales
+            # entraron por el WebSocket y cuántas quedaron persistidas.
+            execution={"signals_emitted_vs_persisted": practice_channel_counters(session_id)},
         )
     except ValidationError as exc:
         raise HTTPException(
@@ -1504,6 +1524,43 @@ def get_session_practice_report(
             detail={"code": exc.code, "message": exc.message},
         ) from exc
     return PracticeReportResponse(**report)
+
+
+@router.post("/sessions/{session_id}/finish", response_model=SessionStateResponse)
+async def finish_session_practice(session_id: str) -> SessionStateResponse:
+    """Cierra la sesión: estado terminal `finished` (B-033.8).
+
+    Es la puerta del informe final (`?final=true` exige sesión cerrada).
+    Idempotente (cerrar dos veces deja la sesión igual) y difunde el estado
+    nuevo por el WebSocket como cualquier cambio de estado.
+    """
+    try:
+        state = practice_service.finish_session(session_id)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    await _broadcast_state(session_id, state)
+    return SessionStateResponse(**state)
+
+
+@router.post("/sessions/{session_id}/runs", response_model=SessionRunResponse)
+def start_session_run(session_id: str) -> SessionRunResponse:
+    """Abre la siguiente pasada de la sesión (B-033.8, diseño de B-033.7).
+
+    Solo un reinicio EXPLÍCITO incrementa la pasada: las señales que lleguen
+    a partir de ahora llevan el `run_id` nuevo y el informe se separa de las
+    pasadas anteriores. El avance normal del transporte no llega aquí.
+    """
+    try:
+        run = practice_service.start_new_run(session_id)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code in NOT_FOUND_CODES else 400,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return SessionRunResponse(run=run)
 
 
 @router.patch("/sessions/{session_id}", response_model=SessionStateResponse)
@@ -1935,9 +1992,14 @@ async def session_socket(websocket: WebSocket, session_id: str) -> None:
             # Evento de práctica del modo espera (B-032.5): se valida y se
             # guarda. Después las reglas de strikes (B-032.6) deciden en vivo:
             # bajar el tempo, dar una pista o ofrecer la demostración.
+            # B-033.8: los contadores del canal miden la pérdida — cada evento
+            # `practice` que entra cuenta como recibido, y como persistido
+            # solo si pasó la validación y quedó en `practice_signals`.
             if isinstance(event, Mapping) and event.get("type") == "practice":
+                record_received(session_id)
                 try:
                     state = practice_service.receive_practice_event(session_id, event)
+                    record_persisted(session_id)
                 except ValidationError as exc:
                     await websocket.send_json(
                         {"type": "error", "code": exc.code, "message": exc.message}

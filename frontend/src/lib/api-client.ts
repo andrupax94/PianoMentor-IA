@@ -690,6 +690,27 @@ export interface PracticeReport {
   by_measure: PracticeReportMeasure[];
   agent_decisions: PracticeReportDecision[];
   summary: PracticeSummary;
+  /** B-033.8: la cola de la ejecución de la pasada informada. */
+  execution: {
+    run: number;
+    last_gate_reached: string | null;
+    last_measure_reached: number | null;
+    duration_audio_s: number | null;
+    signals_emitted_vs_persisted: {
+      received: number;
+      persisted: number;
+      lost: number;
+    } | null;
+  };
+  /** B-033.8: resumen comprimido de cada pasada de la sesión (una entrada por run). */
+  runs: Array<{
+    run: number;
+    signal_count: number;
+    outcomes: Record<string, number>;
+    hit_ratio: number | null;
+    first_signal_at: string | null;
+    last_signal_at: string | null;
+  }>;
   signals: {
     total: number;
     returned: number;

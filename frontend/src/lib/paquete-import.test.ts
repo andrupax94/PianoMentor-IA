@@ -39,6 +39,14 @@ const INFORME: PracticeReport = {
   },
   signals: { total: 27, returned: 27, truncated: false, items: [] },
   evaluation: null,
+  execution: {
+    run: 1,
+    last_gate_reached: null,
+    last_measure_reached: null,
+    duration_audio_s: null,
+    signals_emitted_vs_persisted: null,
+  },
+  runs: [],
   generated_at: "2026-11-14T10:03:05Z",
 };
 

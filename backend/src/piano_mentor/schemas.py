@@ -159,6 +159,37 @@ class PracticeSessionBlock(BaseModel):
     signal_count: int = 0
 
 
+class PracticeExecutionBlock(BaseModel):
+    """Cola de la ejecución de la pasada informada (B-033.8).
+
+    Dónde quedó la práctica: el último gate y compás alcanzados (de las
+    señales persistidas), la duración del audio si se conoce (WAV del front;
+    `None` mientras no se pase) y los contadores del canal WebSocket
+    (recibidas vs persistidas, `None` sin instrumentación).
+    """
+
+    run: int = 1
+    last_gate_reached: str | None = None
+    last_measure_reached: int | None = None
+    duration_audio_s: float | None = None
+    signals_emitted_vs_persisted: dict[str, int] | None = None
+
+
+class PracticeRunSummary(BaseModel):
+    """Resumen comprimido de una pasada (B-033.8; base del histórico de B-033.7).
+
+    Sin señales crudas ni arrivals: conteos por outcome (con ceros), ratio de
+    aciertos y ventana temporal de la pasada.
+    """
+
+    run: int
+    signal_count: int = 0
+    outcomes: dict[str, int] = {}
+    hit_ratio: float | None = None
+    first_signal_at: str | None = None
+    last_signal_at: str | None = None
+
+
 class PracticeWorstMeasure(BaseModel):
     """Un compás a mejorar del `summary` del informe (B-033.4).
 
@@ -233,9 +264,23 @@ class PracticeReportResponse(BaseModel):
     by_measure: list[PracticeMeasureReport] = []
     agent_decisions: list[PracticeDecisionItem] = []
     summary: PracticeSummary = PracticeSummary()
+    # B-033.8: la cola de la ejecución de la pasada informada y el resumen
+    # comprimido de cada pasada de la sesión (vacía en las de una sola).
+    execution: PracticeExecutionBlock = PracticeExecutionBlock()
+    runs: list[PracticeRunSummary] = []
     signals: PracticeSignalsSection = PracticeSignalsSection()
     evaluation: dict[str, object] | None = None
     generated_at: str
+
+
+class SessionRunResponse(BaseModel):
+    """La pasada nueva abierta en la sesión (B-033.8, diseño de B-033.7).
+
+    `run` es el número de la pasada vigente tras el reinicio explícito; las
+    señales que lleguen a partir de ahora llevan ese `run_id`.
+    """
+
+    run: int
 
 
 class ActionRequest(BaseModel):

@@ -17,7 +17,14 @@ from .validators import ValidationError
 
 # Estados permitidos de una sesión (B-012.1). `paused` lo alcanzará el
 # transporte de reproducción; hoy `note_on` lleva la sesión a `playing`.
-SESSION_STATUSES = ("idle", "playing", "paused")
+# `finished` es el estado TERMINAL de B-033.8: la sesión cerró (el robot o la
+# práctica acabaron, o el alumno la cerró a mano) y el informe ?final=true la
+# exige. Un note_on no resucita una sesión terminada.
+SESSION_STATUSES = ("idle", "playing", "paused", "finished")
+
+# El único estado terminal por ahora (B-033.8): es el que exige el informe
+# final y el que el cierre de sesión fija.
+TERMINAL_STATUSES = ("finished",)
 
 # Modos de práctica (B-032.4): observar (solo escuchar), una mano (el alumno
 # toca una y suena la otra) y dos manos (el alumno toca las dos y el
@@ -306,7 +313,14 @@ class PracticeService:
                 raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
 
             database.insert_session_event(conn, {"session_id": session_id, **payload})
-            if payload["type"] == "note_on" and row["status"] != "playing":
+            # B-033.8: `finished` es terminal — un note_on de una sesión ya
+            # cerrada no la resucita (la práctica acabó, el informe ?final la
+            # selló). El resto de estados vivos siguen despertando a `playing`.
+            if (
+                payload["type"] == "note_on"
+                and row["status"] != "playing"
+                and row["status"] != "finished"
+            ):
                 database.update_session_state(conn, session_id, status="playing")
                 row = database.get_session(conn, session_id)
 
@@ -318,7 +332,8 @@ class PracticeService:
 
         Guarda la señal en `practice_signals` para que B-032.6 aplique reglas
         deterministas por compás sin mezclarla con `session_events`, que solo
-        contiene eventos MIDI.
+        contiene eventos MIDI. Con B-033.8 la señal lleva el `run_id` vigente
+        de la sesión: la pasada a la que pertenece (1 en las sesiones viejas).
         """
         payload = _validate_practice_event(event)
 
@@ -327,11 +342,50 @@ class PracticeService:
             if row is None:
                 raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
 
-            insert_practice_signal(conn, {"session_id": session_id, **payload})
+            insert_practice_signal(
+                conn,
+                {
+                    "session_id": session_id,
+                    "run_id": database.get_current_run(conn, session_id),
+                    **payload,
+                },
+            )
             row = database.get_session(conn, session_id)
 
         assert row is not None
         return _session_state(row)
+
+    def finish_session(self, session_id: str) -> dict[str, object]:
+        """Cierra la sesión: estado terminal `finished` (B-033.8).
+
+        El informe final (`?final=true`) solo se sirve con la sesión cerrada,
+        así que alguien tiene que cerrarla: hoy este método (llamado por
+        POST /sessions/{id}/finish), mañana el frontend al acabar la práctica
+        o el robot. Idempotente: cerrar una sesión ya cerrada la deja igual.
+        """
+        with database.open_db() as conn:
+            row = database.get_session(conn, session_id)
+            if row is None:
+                raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
+            if row["status"] != "finished":
+                database.update_session_state(conn, session_id, status="finished")
+                row = database.get_session(conn, session_id)
+
+        assert row is not None
+        return _session_state(row)
+
+    def start_new_run(self, session_id: str) -> int:
+        """Abre la siguiente pasada de la sesión (B-033.8, diseño de B-033.7).
+
+        Solo un reinicio EXPLÍCITO llega aquí: el avance normal del transporte
+        no incrementa la pasada. Devuelve el número de la pasada nueva; las
+        señales que lleguen a partir de ahora llevan ese `run_id`.
+        """
+        with database.open_db() as conn:
+            row = database.get_session(conn, session_id)
+            if row is None:
+                raise ValidationError("session_not_found", f"No existe la sesión: {session_id}")
+            return database.increment_current_run(conn, session_id)
 
     def build_strike_context(
         self, session_id: str, measure: int | None

@@ -19,6 +19,7 @@ persistida —es lo honesto y barato, y `null` si no hay señales.
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections.abc import Mapping
 
 from datetime import datetime, timezone
@@ -235,19 +236,35 @@ def build_report(
     decisions: list[Mapping[str, object]],
     limit: int,
     evaluation: dict[str, object] | None = None,
+    run: int = 1,
+    signal_count_total: int | None = None,
+    execution: Mapping[str, object] | None = None,
+    runs: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     """Informe completo a partir de los datos ya leídos (función pura).
 
     `session` es la fila de `sessions`, `piece` la fila de `pieces`,
-    `signals` la lista completa de señales de la sesión y `decisions` la de
+    `signals` la lista de señales de la PASADA que informa (B-033.8: filtradas
+    por `run_id`; la pasada vigente por defecto) y `decisions` la de
     `agent_decisions`, ambas ordenadas por `id`. Devuelve el dict que sirve
     `GET /sessions/{id}/practice-report`; `evaluation` llega ya resuelta por
     la API (versión compacta, `None` si no hay nada que evaluar).
+
+    B-033.8 añade:
+    - `signal_count_total`: el conteo GLOBAL de la sesión (todas las pasadas);
+      por compatibilidad con B-033.3 el `session.signal_count` sigue siendo
+      global y el de la pasada va en `session.run_signal_count`. `None` usa
+      `len(signals)` (sesiones de una sola pasada, las de siempre).
+    - `execution`: el último gate/compás alcanzados en esta pasada, la duración
+      del audio si se pasa (WAV del front, `None` por defecto) y los contadores
+      del canal (`signals_emitted_vs_persisted`, `None` sin instrumentación).
+    - `runs`: el resumen comprimido de CADA pasada (`[]` en las de una sola).
     """
     first_ts = _parse_ts(signals[0].get("created_at") if signals else None)
     last_ts = _parse_ts(signals[-1].get("created_at") if signals else None)
 
     returned = signals[:limit]
+    extra = dict(execution) if execution else {}
     return {
         "session": {
             "session_id": session.get("id"),
@@ -264,11 +281,26 @@ def build_report(
             "first_signal_at": signals[0].get("created_at") if signals else None,
             "last_signal_at": signals[-1].get("created_at") if signals else None,
             "practiced_s": _seconds_between(first_ts, last_ts),
-            "signal_count": len(signals),
+            # B-033.8: el total GLOBAL de la sesión (todas las pasadas) para no
+            # romper el contrato de B-033.3; el de la pasada informada ya está
+            # en `signals.total` y el número de pasada en `execution.run`.
+            "signal_count": int(signal_count_total)
+            if signal_count_total is not None
+            else len(signals),
         },
         "by_measure": aggregate_by_measure(signals),
         "agent_decisions": [decision_block(row) for row in decisions],
         "summary": build_summary(signals, decisions, evaluation, _seconds_between(first_ts, last_ts)),
+        # B-033.8: la cola de la ejecución — dónde quedó la práctica de esta
+        # pasada y qué se perdió por el camino del WebSocket (si se midió).
+        "execution": {
+            "run": run,
+            "last_gate_reached": signals[-1].get("gate") if signals else None,
+            "last_measure_reached": signals[-1].get("measure") if signals else None,
+            "duration_audio_s": extra.get("duration_audio_s"),
+            "signals_emitted_vs_persisted": extra.get("signals_emitted_vs_persisted"),
+        },
+        "runs": runs if runs is not None else [],
         "signals": {
             "total": len(signals),
             "returned": len(returned),
@@ -280,10 +312,41 @@ def build_report(
     }
 
 
+def runs_block(rows: list[sqlite3.Row]) -> list[dict[str, object]]:
+    """Resumen comprimido de cada pasada (B-033.8, base del histórico de B-033.7).
+
+    Una entrada por `run_id` presente en `practice_signals`, ordenada por
+    pasada: conteos por outcome (con ceros, como el agregado por compás),
+    ratio de aciertos y ventana temporal. Sin señales crudas ni arrivals.
+    """
+    resumen: list[dict[str, object]] = []
+    for row in rows:
+        hits = int(row["hits"])
+        total = int(row["signal_count"])
+        resumen.append(
+            {
+                "run": int(row["run"]),
+                "signal_count": total,
+                "outcomes": {
+                    "hit": hits,
+                    "miss": int(row["misses"]),
+                    "wrong": int(row["wrongs"]),
+                    "timeout": int(row["timeouts"]),
+                },
+                "hit_ratio": round(hits / total, 3) if total else None,
+                "first_signal_at": row["first_signal_at"],
+                "last_signal_at": row["last_signal_at"],
+            }
+        )
+    return resumen
+
+
 def session_report(
     session_id: str,
     limit: int = REPORT_SIGNAL_LIMIT_DEFAULT,
     evaluation: dict[str, object] | None = None,
+    run: int | None = None,
+    execution: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     """Reúne lo persistido de la sesión y monta el informe (B-033.3).
 
@@ -291,6 +354,13 @@ def session_report(
     404 con código estable, igual que los demás endpoints de sesión). La
     evaluación compacta (B-032.3) le llega ya resuelta por la API para que el
     `summary` de B-033.4 la cite en su nacimiento.
+
+    Con B-033.8 informa UNA pasada: `run` elige cuál (la última que tenga
+    señales por defecto; 1 en las sesiones anteriores a la migración), el
+    agregado y el `summary` solo miran sus señales, `session.signal_count`
+    conserva el total global (compatibilidad con B-033.3) y el bloque `runs`
+    trae el resumen de todas. `execution` lleva lo que la API ya midió
+    (duración del audio, contadores del canal) para citarlo tal cual.
     """
     capped = normalize_limit(limit)
     with database.open_db() as conn:
@@ -300,9 +370,30 @@ def session_report(
         piece_row = database.get_piece(conn, str(row["piece_id"]))
         signal_rows = database.list_practice_signals(conn, session_id)
         decision_rows = database.list_agent_decisions(conn, session_id)
+        run_rows = database.summarize_runs(conn, session_id)
 
     session = {name: row[name] for name in database.SESSION_COLUMNS}
     piece = dict(piece_row) if piece_row is not None else None
     signals = [dict(signal) for signal in signal_rows]
-    decisions = [dict(decision) for decision in decision_rows]
-    return build_report(session, piece, signals, decisions, capped, evaluation)
+
+    # La pasada a informar: la pedida, o la última con señales (1 sin datos:
+    # sesiones viejas sin `run_id` y sesiones que aún no empezaron).
+    if run is not None:
+        run_actual = run
+    else:
+        runs_con_senales = [int(r["run"]) for r in run_rows]
+        run_actual = runs_con_senales[-1] if runs_con_senales else 1
+    de_pasada = [signal for signal in signals if int(signal.get("run_id") or 1) == run_actual]
+
+    return build_report(
+        session,
+        piece,
+        de_pasada,
+        [dict(decision) for decision in decision_rows],
+        capped,
+        evaluation,
+        run=run_actual,
+        signal_count_total=len(signals),
+        execution=execution,
+        runs=runs_block(run_rows),
+    )

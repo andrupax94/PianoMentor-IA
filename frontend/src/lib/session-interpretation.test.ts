@@ -59,7 +59,7 @@ describe("buildInterpretation", () => {
 
     const [good, improve, mine, recommend] = interpretation.blocks.map((block) => block.lines);
     expect(good).toContain(
-      "Practicaste 2 min 10 s tocando 9 notas: acertaste el 44% de las notas (4 de 9) y una valoración de 61.5 de 100.",
+      "Practicaste 2 min 10 s con 9 paradas de espera resueltas: acertaste el 44% de las notas esperadas (4 de 9) y una valoración de 61.5 de 100.",
     );
 
     expect(improve).toContain("el compás 1: 2 fallos de 2 notas — 1 nota sin resolver y 1 nota que llegó tarde.");
@@ -78,7 +78,8 @@ describe("buildInterpretation", () => {
 
     const metricas = interpretation.blocks.find((b) => b.heading === "Métricas")?.lines ?? [];
     expect(metricas).toContain("Duración: 2 min 10 s");
-    expect(metricas).toContain("Notas tocadas: 9");
+    // B-033.8: las paradas del modo espera ya no van de «notas tocadas».
+    expect(metricas).toContain("Paradas del modo espera: 9");
     expect(metricas).toContain("Compases: 4 compases");
     expect(metricas).toContain("Valoración: 61.5 de 100");
     expect(metricas).toContain("Acierto: 44%");
@@ -101,7 +102,7 @@ describe("buildInterpretation", () => {
     const headings = interpretation.blocks.map((block) => block.heading);
     expect(headings).toEqual(["Lo que salió bien", "Lo que hice yo", "Recomendaciones", "Métricas"]);
     expect(interpretation.blocks[0].lines).toContain(
-      "Practicaste 45 s tocando 6 notas: nada falló y una valoración de 96.2 de 100.",
+      "Practicaste 45 s con 6 paradas de espera resueltas: nada falló y una valoración de 96.2 de 100.",
     );
     expect(interpretation.blocks[0].lines).toContain("Se oyó el pasaje completo, nota a nota.");
     expect(interpretation.blocks[1].lines).toEqual(["No intervine: seguiste solo en todo momento."]);
@@ -110,7 +111,7 @@ describe("buildInterpretation", () => {
     ]);
     const metricas = interpretation.blocks.find((b) => b.heading === "Métricas")?.lines ?? [];
     expect(metricas).toContain("Duración: 45 s");
-    expect(metricas).toContain("Notas tocadas: 6");
+    expect(metricas).toContain("Paradas del modo espera: 6");
     expect(metricas).toContain("Compases: 3 compases");
     expect(metricas).toContain("Valoración: 96.2 de 100");
     expect(metricas).toContain("Acierto: 100%");
@@ -204,6 +205,20 @@ describe("turno efímero de la redacción", () => {
     expect(prompt).toContain("**asteriscos**"); // lo prohibe con nombre, para que no salga literal
     expect(prompt).toContain("emoji");
     expect(prompt).toContain("la ventana es grande");
+  });
+
+  it("B-033.8: el prompt aclara las unidades — paradas ≠ notas totales ni compases, y los ratios comparan unidades distintas", () => {
+    const prompt = interpretationPrompt();
+    // signals = paradas del modo espera, no notas totales ni compases.
+    expect(prompt).toContain("paradas de espera");
+    expect(prompt).toContain("NO son todas las notas de la pieza");
+    // expected/received miden unidades distintas: received_ratio > 1 es normal.
+    expect(prompt).toContain("unidades DISTINTAS");
+    expect(prompt).toContain("no es un porcentaje de acierto");
+    // hit_ratio ≠ timing: el acierto de paradas no es puntería temporal.
+    expect(prompt).toContain("no la puntería temporal");
+    // Solo agregados por compás: nada de cifras inventadas.
+    expect(prompt).toContain("agregados por compás");
   });
 
   it("el contexto lleva los destacados unidos y conserva lo que ya viajaba", () => {

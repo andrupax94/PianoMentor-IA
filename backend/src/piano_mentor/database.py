@@ -560,7 +560,7 @@ def list_session_events(conn: sqlite3.Connection, session_id: str) -> list[sqlit
     ).fetchall()
 
 
-PRACTICE_SIGNAL_COLUMNS = ("session_id", "gate", "measure", "outcome", "wait_ms", "hand")
+PRACTICE_SIGNAL_COLUMNS = ("session_id", "gate", "measure", "outcome", "wait_ms", "hand", "run_id")
 
 
 def insert_practice_signal(conn: sqlite3.Connection, record: Mapping[str, object]) -> None:
@@ -601,11 +601,62 @@ def list_practice_signals(
 
     A diferencia de `list_practice_signals_since` (que recorta al baseline del
     bucle de strikes), el informe mira la sesión completa: por `id` está el
-    orden de llegada y por `created_at` la ventana de la práctica.
+    orden de llegada y por `created_at` la ventana de la práctica. Con la
+    migración de B-033.8 también trae `run_id` (la pasada de cada señal; 1 en
+    las anteriores a la migración).
     """
     return conn.execute(
-        "SELECT id, gate, measure, outcome, wait_ms, hand, created_at"
+        "SELECT id, gate, measure, outcome, wait_ms, hand, created_at, run_id"
         " FROM practice_signals WHERE session_id = ? ORDER BY id",
+        (session_id,),
+    ).fetchall()
+
+
+def get_current_run(conn: sqlite3.Connection, session_id: str) -> int:
+    """La pasada vigente de la sesión (B-033.8); 1 si no hay dato (sesiones viejas)."""
+    row = conn.execute(
+        "SELECT current_run FROM sessions WHERE id = ?", (session_id,)
+    ).fetchone()
+    if row is None or row["current_run"] is None:
+        return 1
+    return int(row["current_run"])
+
+
+def increment_current_run(conn: sqlite3.Connection, session_id: str) -> int:
+    """Abre la siguiente pasada de la sesión (B-033.8) y devuelve su número.
+
+    Solo un reinicio explícito llega aquí (POST /sessions/{id}/runs): el
+    avance normal del transporte no incrementa pasadas. Requiere que la
+    sesión exista (el servicio valida antes).
+    """
+    conn.execute(
+        "UPDATE sessions SET current_run = current_run + 1, updated_at = datetime('now')"
+        " WHERE id = ?",
+        (session_id,),
+    )
+    conn.commit()
+    return get_current_run(conn, session_id)
+
+
+def summarize_runs(
+    conn: sqlite3.Connection,
+    session_id: str,
+) -> list[sqlite3.Row]:
+    """Resumen por pasada de una sesión (B-033.8): conteos y ventana de cada run.
+
+    Una fila por `run_id` presente en `practice_signals`, en orden de pasada:
+    señales de cada una, sus conteos por outcome y su ventana temporal. Es lo
+    que alimenta el bloque `runs` del informe (las pasadas previas comprimidas
+    de B-033.7) y no incluye señales crudas ni arrivals.
+    """
+    return conn.execute(
+        "SELECT run_id AS run, COUNT(*) AS signal_count,"
+        " MIN(created_at) AS first_signal_at, MAX(created_at) AS last_signal_at,"
+        " SUM(CASE WHEN outcome = 'hit' THEN 1 ELSE 0 END) AS hits,"
+        " SUM(CASE WHEN outcome = 'miss' THEN 1 ELSE 0 END) AS misses,"
+        " SUM(CASE WHEN outcome = 'wrong' THEN 1 ELSE 0 END) AS wrongs,"
+        " SUM(CASE WHEN outcome = 'timeout' THEN 1 ELSE 0 END) AS timeouts"
+        " FROM practice_signals WHERE session_id = ? GROUP BY run_id ORDER BY run_id",
         (session_id,),
     ).fetchall()
 

@@ -123,6 +123,11 @@ export function buildInterpretation(
   // Los textos van en notas/teclas, no en «entradas» (voz del aula).
   // Las métricas brutas viajan al final, debajo de «Recomendaciones», para
   // que el mensaje del LLM se concentre en evaluar.
+  //
+  // Revisión B-033.8 (diagnóstico de integridad): `signals` cuenta PARADAS del
+  // modo espera (una nota por parada), NO notas totales ni compases — llamarlas
+  // «notas» a secas hacía que el LLM las confundiera con la ejecución entera.
+  // Por eso la apertura dice «paradas resueltas» y las métricas lo aclaran.
 
   const good: string[] = [];
   const improve: string[] = [];
@@ -132,20 +137,20 @@ export function buildInterpretation(
   // -- Lo que salió bien ---------------------------------------------------
   const attempts = summary.signals;
   const hits = summary.outcomes.hit ?? 0;
-  const unidades = attempts === 1 ? "nota" : "notas";
+  const unidades = attempts === 1 ? "parada" : "paradas";
   const compases = summary.active_measures === 1 ? "compás" : "compases";
   const ratio = summary.hit_ratio ?? 0;
   const porcentaje = Math.round(ratio * 100);
   const acierto =
     hits === attempts
       ? "nada falló"
-      : `acertaste el ${porcentaje}% de las notas (${hits} de ${attempts})`;
+      : `acertaste el ${porcentaje}% de las notas esperadas (${hits} de ${attempts})`;
   const valoraciónLine =
     summary.evaluation && typeof summary.evaluation.score_total === "number"
       ? ` y una valoración de ${summary.evaluation.score_total} de 100`
       : "";
   good.push(
-    `Practicaste ${formatPracticed(summary.practiced_s) ?? "un rato"} tocando ${attempts} ${unidades}: ${acierto}${valoraciónLine}.`,
+    `Practicaste ${formatPracticed(summary.practiced_s) ?? "un rato"} con ${attempts} ${unidades} de espera resueltas: ${acierto}${valoraciónLine}.`,
   );
   if (hits === attempts && summary.evaluation && summary.evaluation.received_ratio === 1) {
     good.push("Se oyó el pasaje completo, nota a nota.");
@@ -215,7 +220,9 @@ export function buildInterpretation(
   const practicado = formatPracticed(summary.practiced_s);
   const metricas: string[] = [];
   if (practicado) metricas.push(`Duración: ${practicado}`);
-  metricas.push(`Notas tocadas: ${attempts}`);
+  // B-033.8: aquí NO van «notas tocadas» — `signals` son paradas del modo
+  // espera (una nota por parada), no la ejecución entera ni compases.
+  metricas.push(`Paradas del modo espera: ${attempts}`);
   metricas.push(`Compases: ${summary.active_measures} ${compases}`);
   if (summary.evaluation && typeof summary.evaluation.score_total === "number") {
     metricas.push(`Valoración: ${summary.evaluation.score_total} de 100`);
@@ -251,7 +258,17 @@ export function interpretationPrompt(): string {
     "para el alumno. Escríbelo en texto plano, sin **asteriscos** ni títulos ni " +
     "listas con guiones: aquí el texto es plano y el markdown se leería tal cual " +
     "y afea. Si te ayuda, mete algún emoji (piano 🎹, dedo 👍, reloj ⏱) " +
-    "sin pasarte. No inventes datos: todo lo que necesites está en los destacados."
+    "sin pasarte. No inventes datos: todo lo que necesites está en los destacados, " +
+    "y usa solo los agregados por compás (nada de cifras que no estén ahí).\n\n" +
+    "Vocabulario, para no mezclar unidades (importante): las «paradas de espera» " +
+    "de los destacados son los puntos donde la práctica se congeló esperando una " +
+    "nota del alumno (una nota por parada) — NO son todas las notas de la pieza ni " +
+    "compases. Si ves una valoración con `received_ratio`, ojo: compara notas " +
+    "MIDI individuales recibidas contra unidades esperadas de partitura (acordes " +
+    "y notas agrupadas por tiempo), que miden unidades DISTINTAS — un ratio mayor " +
+    "de 1 es normal y no es un porcentaje de acierto. Y el acierto de las paradas " +
+    "(`hit_ratio`) mide si la nota se resolvió, no la puntería temporal: llegar " +
+    "antes o después de tiempo lo mide la valoración de timing, no este ratio."
   );
 }
 
