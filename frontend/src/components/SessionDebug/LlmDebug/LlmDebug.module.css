@@ -1,4 +1,4 @@
-/* description: Estilos de la sub-pestaña «LLM» del menú Depurar (B-036.1, dev-only): fila de modos como píldoras de la casa (oscuras translúcidas, acento dorado en la activa), descripción apagada y error honesto. */
+/* description: Estilos de la sub-pestaña «LLM» del menú Depurar (B-036.1, dev-only): fila de modos como píldoras de la casa (oscuras translúcidas, acento dorado en la activa), descripción apagada y error honesto; desde B-033.6, la sección de opinión sobre un paquete importado (fichero a píldora, ficha dorada y bloques de interpretación). */
 /* context: Dev-only; convive con la estética del MentorPanel (fondo translúcido, acento dorado var(--gold-soft)), misma familia de píldora que PracticeReport/SessionDebug sin inventar una nueva. */
 
 .root {
@@ -61,4 +61,98 @@
   margin: 0;
   font-size: 0.75rem;
   color: var(--danger, #e07a6a);
+}
+
+/* -- Opinión del evaluador sobre un paquete importado (B-033.6) ------------- */
+
+/* Separador entre la sección de caos (B-036.1) y la de importación. */
+.separador {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 4px 0;
+  width: 100%;
+}
+
+/* El input file queda escondido: la etiqueta es la píldora clicable de la casa. */
+.fichero input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.fichero {
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+}
+
+.fichero:hover {
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
+}
+
+.paquete {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* Ficha del paquete: rotulada para que nunca se confunda con la sesión activa. */
+.ficha {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--gold-soft);
+  font-weight: 600;
+}
+
+.opinion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bloqueHead {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bloqueLines {
+  margin: 0;
+  padding-left: 14px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* La redacción amable del evaluador: prosa, no lista. */
+.redaccion {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.45;
 }
