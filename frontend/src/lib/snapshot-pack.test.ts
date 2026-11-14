@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { buildPackage, leemeText, packageName } from "./snapshot-pack";
 import type { PackageParts } from "./snapshot-pack";
 import { clippedSample, downmixToMono, encodeWav16BitMono, WAV_HEADER_BYTES } from "./wav";
-import { crc32, readStoreZip } from "./zip";
+import { buildStoreZip, crc32, readStoreZip } from "./zip";
 
 
 const ascii = (text: string) => new TextEncoder().encode(text);
@@ -113,6 +113,34 @@ describe("buildPackage", () => {
     expect(grabacion.name).toBe("grabacion.wav");
     expect(grabacion.data.length).toBe(megas.length);
     expect(crc32(grabacion.data)).toBe(crc32(megas)); // el CRC del central cuadra
+  });
+
+  it("las cabeceras LOCALES llevan los offsets del formato local (no los del central)", () => {
+    // Regresión WinRAR: el CRC iba en +16 y los tamaños en +20/+24 (offsets del
+    // DIRECTORIO central); en la cabecera local van +14/+18/+22. Nuestro lector
+    // y Python leen por el central y no lo notaban; WinRAR valida las locales
+    // y tachaba el zip entero de dañado. Valida cada cabecera local como él.
+    const zip = buildStoreZip([
+      { name: "informe.json", data: '{"session":{}}' },
+      { name: "registro.txt", data: "gate g1 → acierto" },
+      { name: "LÉEME.md", data: "# Paquete" },
+      { name: "grabacion.wav", data: new Uint8Array([1, 2, 3, 4, 5]) },
+    ], 1_700_000_000_000);
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+    let cursor = 0;
+    for (let i = 0; i < 4; i += 1) {
+      expect(view.getUint32(cursor, true)).toBe(0x04034b50); // firma local
+      const crc = view.getUint32(cursor + 14, true);
+      const csize = view.getUint32(cursor + 18, true);
+      const usize = view.getUint32(cursor + 22, true);
+      const nlen = view.getUint16(cursor + 26, true);
+      const elen = view.getUint16(cursor + 28, true);
+      const datos = zip.subarray(cursor + 30 + nlen + elen, cursor + 30 + nlen + elen + usize);
+      expect(csize).toBe(usize); // STORE: idénticos
+      expect(datos.length).toBe(usize); // el tamaño declara el hueco de verdad
+      expect(crc32(datos)).toBe(crc); // el CRC LOCAL cuadra con los datos
+      cursor = cursor + 30 + nlen + elen + usize; // siguiente cabecera local
+    }
   });
 
   it("sin registro por abajo (vacío) el zip sale con el resto", async () => {

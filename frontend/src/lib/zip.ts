@@ -65,7 +65,10 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     const crc = crc32(data);
     const offset = totalLength;
     // Cabecera local: signature, versión 20, flags (bit 11 = UTF-8), STORE,
-    // timestamps 0 (los legales van en el central), y campos por fichero.
+    // timestamps y campos por fichero. OJO: los offsets de LOCAL no son los
+    // del central — CRC en +14 y tamaños en +18/+22 (en el central van +16/+20/+24;
+    // copiarlos aquí desplazaba 2 bytes las cabeceras y WinRAR las tachaba de
+    // «cabecera dañada» / «suma de control» con el fichero entero sano).
     const local = new Uint8Array(30 + name.length);
     const view = new DataView(local.buffer);
     view.setUint32(0, 0x04034b50, true);
@@ -74,9 +77,9 @@ export function buildStoreZip(entries: readonly ZipEntry[], dateMs = Date.now())
     view.setUint16(8, 0, true); // STORE
     view.setUint16(10, time, true);
     view.setUint16(12, date, true);
-    view.setUint32(16, crc, true);
-    view.setUint32(20, data.length, true); // comprimido
-    view.setUint32(24, data.length, true); // sin comprimir
+    view.setUint32(14, crc, true);
+    view.setUint32(18, data.length, true); // comprimido
+    view.setUint32(22, data.length, true); // sin comprimir
     view.setUint16(26, name.length, true); // longitud del nombre
     view.setUint16(28, 0, true); // extras
     local.set(name, 30);
