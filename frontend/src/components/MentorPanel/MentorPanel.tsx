@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { getSessionSnapshot, subscribeSession } from "../../lib/session-store";
 import { MIDI_UPLOAD_ENABLED } from "../../lib/feature-flags";
@@ -18,6 +18,7 @@ import type { MentorPanelProps } from "./MentorPanel.types";
 export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: MentorPanelProps) {
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
   const inSession = session.sessionId !== null;
+  const panelRef = useRef<HTMLDivElement>(null);
   /**
    * B-033.3 (lo dispara MentorChat con el botón de producto): maximizado, el
    * chat ocupa todo el alto del panel. B-033.5 (petición del usuario): el
@@ -26,9 +27,33 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
    * pestañas siguen escondiéndose (no aportan nada en la interpretación).
    */
   const [chatMaximized, setChatMaximized] = useState(false);
+  /** Cuando el informe está abierto, el panel se ensancha un 100 % más. */
+  const [reportExpanded, setReportExpanded] = useState(false);
+
+  // Sincroniza el ensanchado con el modo informe.
+  useEffect(() => {
+    setReportExpanded(chatMaximized);
+  }, [chatMaximized]);
+
+  // Clic fuera del panel: cierra el informe y vuelve el width a lo que era.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        if (chatMaximized) {
+          setChatMaximized(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [chatMaximized]);
 
   return (
-    <aside className={styles.panel} aria-label="Panel del mentor">
+    <aside
+      ref={panelRef}
+      className={`${styles.panel} ${reportExpanded ? styles.panelExpanded : ""}`}
+      aria-label="Panel del mentor"
+    >
       <MentorChat onReportModeChange={setChatMaximized} />
       {!chatMaximized ? (
         <>
@@ -37,8 +62,8 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
           {inSession && <ModeSelector />}
           {/* Carga pieza y rendimiento viven en pestañas y se alternan con la
               sesión: sin práctica solo «Carga pieza», con práctica solo
-              «Rendimiento». B-023: con la subida de MIDI deshabilitada para la
-              prueba pública, el hueco lo ocupa un bloque puramente decorativo
+              «Rendimiento». B-023: con la subida de MIDI deshabilitada para
+              la prueba pública, el hueco lo ocupa un bloque puramente decorativo
               (la funcionalidad sigue en el código; dev sigue con su pestaña).
               El estado de sesión queda siempre visible debajo. */}
           {inSession ? (
@@ -54,6 +79,15 @@ export function MentorPanel({ weakPoint = "Transición de mano izquierda" }: Men
         </>
       ) : (
         <div className={styles.statusOverlay}>
+          <button
+            type="button"
+            className={styles.reportBack}
+            aria-label="Volver al panel del mentor"
+            title="Volver al panel del mentor"
+            onClick={() => setChatMaximized(false)}
+          >
+            <span className={styles.backIcon} aria-hidden="true" />
+          </button>
           <SessionStatusLive />
         </div>
       )}

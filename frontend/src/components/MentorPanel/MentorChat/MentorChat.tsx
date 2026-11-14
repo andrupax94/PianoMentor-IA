@@ -705,16 +705,18 @@ export function MentorChat({
           )}
         </div>
         {redaction !== null && <p className={styles.reportNarration}>{redaction}</p>}
-        {interpretation.blocks.map((block) => (
-          <section key={block.heading} className={styles.reportBlock}>
-            <h4 className={styles.reportHeading}>{block.heading}</h4>
-            <ul className={styles.reportList}>
-              {block.lines.map((line, lineIndex) => (
-                <li key={lineIndex}>{line}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {interpretation.blocks
+          .filter((block) => block.heading !== "Lo que hice yo")
+          .map((block) => (
+            <section key={block.heading} className={styles.reportBlock}>
+              <h4 className={styles.reportHeading}>{block.heading}</h4>
+              <ul className={styles.reportList}>
+                {block.lines.map((line, lineIndex) => (
+                  <li key={lineIndex}>{line}</li>
+                ))}
+              </ul>
+            </section>
+          ))}
       </div>
     );
   }

@@ -653,15 +653,21 @@
 
   content: "";
 
-  width: 13px;
+  width: 14px;
 
-  height: 13px;
+  height: 14px;
 
-  border: 2px solid currentColor;
+  mask-image: url("/assets/icons/inform.svg");
 
-  border-radius: 3px;
+  mask-size: contain;
 
-  background: none;
+  mask-repeat: no-repeat;
+
+  mask-position: center;
+
+  background: currentColor;
+
+  display: block;
 
 }
 
@@ -669,13 +675,10 @@
 
 .reportToggle[aria-expanded="true"]::before {
 
-  background: currentColor;
+  mask-image: url("/assets/icons/back.svg");
 
-  border-radius: 2px;
+  background: var(--gold);
 
-  /* Punto relleno: el informe está abierto y el botón lo cierra. */
-
-  box-shadow: inset 0 0 0 3px transparent;
 
 }
 
