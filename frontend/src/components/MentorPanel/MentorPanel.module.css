@@ -9,15 +9,18 @@
   padding: 8px;
   border-radius: 10px;
   background-color: var(--bg2);
-  flex: 1;
+  /* Columna fija del layout flex (antes la daba grid-template-columns):
+     base 340px que no crece ni encoge, como la 340px de grid. */
+  flex: 0 0 340px;
   min-height: 0;
-  transition: flex 0.3s ease;
+  transition: flex-basis 0.3s ease;
 
 }
 
-/* Cuando el informe está abierto, el panel se ensancha un 100 % más. */
+/* Cuando el informe está abierto, el panel se ensancha un 100 % más
+   (340px → 680px). La transición anima flex-basis. */
 .panelExpanded {
-  flex: 2;
+  flex-basis: 680px;
 }
 
 /* Contenedor del estado de sesión, fuera de las pestañas. Hereda la estética

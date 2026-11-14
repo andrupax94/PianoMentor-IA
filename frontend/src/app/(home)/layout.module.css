@@ -8,11 +8,15 @@
   position: relative;
 }
 
+/* La portada reparte en flex (antes grid 1fr/340px): grid anulaba los flex
+   de las columnas (PlaybackArea flex:1 no aplicaba) y bloqueaba el ensanche
+   del panel del mentor en el modo informe. flex:1 del .area ocupa lo mismo
+   que 1fr, y el panel fija su base con flex-basis. */
+
 .layout {
   flex: 1;
   min-height: 84vh;
-  display: grid;
-  grid-template-columns: 1fr 340px;
+  display: flex;
   gap: 24px;
   padding: 10px 0px;
   align-items: stretch;
