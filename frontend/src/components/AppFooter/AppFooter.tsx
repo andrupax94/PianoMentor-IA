@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Feedback } from "../Feedback/Feedback";
 import styles from "./AppFooter.module.css";
 
 const APP_NAME = "PianoMentor AI";
@@ -16,6 +17,7 @@ const SHOW_LEGAL =
 
 export default function AppFooter() {
   const [expanded, setExpanded] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const footerRef = useRef<HTMLElement | null>(null);
   const contactNameRef = useRef<HTMLInputElement | null>(null);
 
@@ -106,6 +108,16 @@ export default function AppFooter() {
           >
             Contacto
           </button>
+          <button
+            type="button"
+            className={styles.feedbackTrigger}
+            onClick={(event) => {
+              event.stopPropagation();
+              setFeedbackOpen(true);
+            }}
+          >
+            Feedback
+          </button>
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -188,6 +200,8 @@ export default function AppFooter() {
             </section>
           </div>
         </div>
+
+        <Feedback open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       </div>
     </footer>
   );

@@ -12,6 +12,7 @@
   /* Columna fija del layout flex (antes la daba grid-template-columns):
      base 340px que no crece ni encoge, como la 340px de grid. */
   flex: 0 0 340px;
+  max-width: 340px;
   min-height: 0;
   transition: flex-basis 0.3s ease;
 

@@ -181,6 +181,20 @@
   color: var(--footer-accent);
 }
 
+.feedbackTrigger {
+  font-size: 0.8rem;
+  color: var(--footer-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.feedbackTrigger:hover {
+  color: var(--footer-accent);
+}
+
 .github {
   display: inline-flex;
   align-items: center;
