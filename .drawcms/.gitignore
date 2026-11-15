@@ -1,0 +1,3 @@
+# Local-only DrawCMS artifacts — do not commit.
+# Recovery snapshots written by `drawcms push --force`.
+*.stash.json

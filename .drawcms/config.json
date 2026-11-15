@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "origin": "https://drawcms.com",
+  "teamId": "99caf6ce-429a-4e73-913a-6b6ff5c0f6a7",
+  "teamName": "Personal Workspace",
+  "projectId": "f4af3425-6b2d-45d6-a844-d99ee7d38621",
+  "projectName": "PianoMentor AI",
+  "diagrams": {
+    "arquitectura": {
+      "id": "b3732a38-6bee-4f55-8bc8-533d27233f52",
+      "type": "architecture",
+      "baseVersion": null
+    },
+    "relojes": {
+      "id": "c8dc1cba-cad0-42a9-a773-8f9a8ce6c575",
+      "type": "flowchart",
+      "baseVersion": null
+    },
+    "decision": {
+      "id": "7a07b3a6-eb57-43ec-a2d7-9dd251d89478",
+      "type": "flowchart",
+      "baseVersion": null
+    }
+  },
+  "lastSyncedCommit": null
+}

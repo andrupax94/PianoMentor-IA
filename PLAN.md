@@ -321,17 +321,19 @@ agente vertical
 
 **Vídeo demo**
 
-Preparar un vídeo de aproximadamente **2 a 4 minutos** que muestre:
+Preparar un vídeo de **4:00–4:15** en formato **caso técnico** para LinkedIn y portfolio: voz en off y dos planos de cara (intro y cierre). Regla editorial: **si no se ve en pantalla, no se dice**. Debe mostrar:
 
 1. El problema y la propuesta.
-2. La carga de una pieza MIDI.
+2. La carga de una pieza MIDI — inserto local rotulado como entorno de desarrollo; en la prueba pública la subida está deshabilitada (B-023).
 3. Sus metadatos y la reproducción de una sección.
 4. La práctica con el teclado.
 5. Errores y evaluación de notas y timing.
 6. Detección de una debilidad.
 7. Intervención de la IA.
 8. Devolución del control.
-9. Tecnologías y próximos pasos.
+9. Tecnologías, obstáculos y próximos pasos.
+
+El guion, la shot list y la tabla `claim → evidencia` viven en `docs/DEMO_VIDEO.md` (B-024.1).
 
 **Publicación en LinkedIn**
 
