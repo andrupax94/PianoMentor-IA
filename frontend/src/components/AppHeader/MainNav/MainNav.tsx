@@ -27,7 +27,22 @@ export function MainNav({ active = "learn" }: MainNavProps) {
         const content = (
           <>
             <p style={{ color: pending ? `gray` : `white` }}>{label}</p>
-            <span style={{ backgroundImage: `url(/assets/icons/${icon}.svg)` }}></span>
+            {/* B-006.4 + ajuste del usuario: los iconos van con mask-image para
+                teñirlos todos al mismo tono (#ddd, el blanco grisáceo de los
+                demás) — info.svg traía relleno dorado propio y desentonaba. */}
+            <span
+              style={{
+                maskImage: `url(/assets/icons/${icon}.svg)`,
+                WebkitMaskImage: `url(/assets/icons/${icon}.svg)`,
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskPosition: "center",
+                maskSize: "contain",
+                WebkitMaskSize: "contain",
+                backgroundColor: pending ? `gray` : `#ddd`,
+              }}
+            ></span>
           </>
         );
 
