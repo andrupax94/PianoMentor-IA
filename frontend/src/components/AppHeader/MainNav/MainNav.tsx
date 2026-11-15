@@ -1,5 +1,5 @@
-// description: Navegación principal (Learn, Library, Progress, Settings).
-// context: B-006.4; Learn y Library llevan a su página con <Link>; Progress y
+// description: Navegación principal (Learn, Library, Docs, Progress, Settings).
+// context: B-006.4; Learn, Library y Docs llevan a su página con <Link>; Progress y
 // Settings siguen sin ruta y no navegan.
 
 "use client";
@@ -13,6 +13,7 @@ import type { MainNavProps } from "./MainNav.types";
 const ITEMS = [
   { id: "learn", label: "Aprender", icon: "Learn", href: "/" },
   { id: "library", label: "Biblioteca", icon: "Library", href: "/library" },
+  { id: "docs", label: "Docs", icon: "Info", href: "/documentacion" },
   { id: "progress", label: "Progreso", icon: "Lock", href: null },
   { id: "settings", label: "Opciones", icon: "Lock", href: null },
 ] as const;

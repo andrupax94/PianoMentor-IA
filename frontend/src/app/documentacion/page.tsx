@@ -9,7 +9,7 @@ export const metadata = {
 export default function DocumentacionPage() {
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface antialiased">
-      <AppHeader />
+      <AppHeader active="docs" />
       <Documentation />
       <AppFooter />
     </div>
