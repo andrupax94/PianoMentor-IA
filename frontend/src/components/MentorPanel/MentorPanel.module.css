@@ -10,9 +10,12 @@
   border-radius: 10px;
   background-color: var(--bg2);
   /* Columna fija del layout flex (antes la daba grid-template-columns):
-     base 340px que no crece ni encoge, como la 340px de grid. */
+     base 340px que no crece ni encoge, como la 340px de grid.
+     Sin max-width: el modo maximizado (.panelExpanded, B-033.3) ensancha la
+     columna a flex-basis 680px y un max-width de 340px la lo dejaría a 340.
+     Con flex: 0 0 340px la columna ya no puede ocupar más pantalla por sí
+     sola: solo crece cuando el maximizado pide su 680px. */
   flex: 0 0 340px;
-  max-width: 340px;
   min-height: 0;
   transition: flex-basis 0.3s ease;
 
