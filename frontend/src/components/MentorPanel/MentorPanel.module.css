@@ -13,9 +13,13 @@
      base 340px que no crece ni encoge, como la 340px de grid.
      Sin max-width: el modo maximizado (.panelExpanded, B-033.3) ensancha la
      columna a flex-basis 680px y un max-width de 340px la lo dejaría a 340.
-     Con flex: 0 0 340px la columna ya no puede ocupar más pantalla por sí
-     sola: solo crece cuando el maximizado pide su 680px. */
+     min-width: 0 es la otra mitad del contrato: sin él el tamaño mínimo
+     automático del flex item es el min-content del contenido, y el carrusel
+     decorativo (wrapper de Swiper en fila + imágenes de ancho intrínseco)
+     empuja el panel por encima de la base — se estira al 100 % sin sesión.
+     Con 0 la base manda siempre y el .decor (overflow: hidden) recorta dentro. */
   flex: 0 0 340px;
+  min-width: 0;
   min-height: 0;
   transition: flex-basis 0.3s ease;
 
