@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { demoSubScore } from "../../lib/agent-demo";
 import { subscribeAgentPlayback } from "../../lib/agent-playback";
 import { getPieceNotes } from "../../lib/api-client";
-import type { PieceNotesResponse } from "../../lib/api-client";
+import type { PieceNotesResponse, PlayableNote } from "../../lib/api-client";
 import { subscribeAgentCommand } from "../../lib/agent-commands";
 import type { AgentHand } from "../../lib/hand-color";
 import { getPianoPiece, subscribePianoPiece } from "../../lib/piece-store";
@@ -140,9 +140,11 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
 
   // El chat manda pausar/reanudar/parar por su propio canal: solo el transporte
   // puede tocar el reloj, así que el agente no llega al motor de otra forma.
-  // B-033.8: `mostrar_compas` demuestra localmente UN compás de la pieza
-  // cargada, dentro o fuera de sesión — fuera de sesión es la única vía, y en
-  // sesión solo se usa si el POST del agente no está disponible.
+  // B-033.8: `mostrar_compas` demuestra UN compás pedido por el alumno SIN
+  // sustituir la partitura: seek al inicio del compás sobre la pieza completa —
+  // la rejilla de arriba (compás "x de 36") no cambia nunca y al terminar no
+  // hay nada que restaurar por recarga. Al acabar queda pausado EN el compás
+  // pedido, listo para que el alumno siga la canción desde ahí.
   useEffect(() => {
     const clearLocalDemo = () => {
       if (localDemoTimerRef.current !== null) {
@@ -151,28 +153,35 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       }
     };
 
-    // Fin de la demo local: vuelve la pieza con el modo del alumno, igual que
-    // al terminar una intervención del agente (sin destino de reanudación).
-    // B-033.8: la pieza vuelve PARADA — se suprime su autoPlay para que la
-    // recarga de restauración no reinicie la canción sola.
-    const restoreFromLocalDemo = () => {
-      clearLocalDemo();
-      agentActiveRef.current = false;
-      if (piece !== null) suppressAutoPlayRef.current = piece;
-      stop();
+    /** El modo del alumno vuelve (gates y qué suena), como al terminar una
+     *  intervención del agente. `notes` es la partitura que estaba cargada. */
+    const restoreStudentMode = (notes: PlayableNote[] | null) => {
       setGateOptions({
         enabled:
           waitMode.enabled && (practiceMode === "one_hand" || practiceMode === "both_hands"),
         hand: evaluatedHand(practiceMode ?? "observe", studentHand) ?? "both",
       });
+      if (notes !== null) {
+        setAudible(audibleNotes(notes, practiceMode ?? "observe", studentHand));
+      }
+    };
+
+    // Fin de la demo SIN rejilla (no se puede acotar el compás): recarga la
+    // pieza parada, con el autoPlay de la publicación suprimido (B-033.8).
+    const restoreFromLocalDemo = (notes: PlayableNote[] | null) => {
+      clearLocalDemo();
+      agentActiveRef.current = false;
+      if (piece !== null) suppressAutoPlayRef.current = piece;
+      stop();
+      restoreStudentMode(notes);
       setReloadKey((key) => key + 1);
     };
 
     /** Demuestra el compás `measure` (1-based, como lo cuenta el alumno). */
     const showMeasureLocal = (measure: number) => {
       clearLocalDemo();
-      agentActiveRef.current = true;
       stop();
+      // La demo no es del alumno: sin espera congelada mientras suena el tramo.
       setGateOptions({ enabled: false });
       const loaded = scoreRef.current;
       const pieceId = piece?.kind === "catalog" ? piece.id : DEMO_PIECE_ID;
@@ -181,33 +190,61 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         : getPieceNotes(pieceId, undefined, { withHands: true });
       pending
         .then((score) => {
-          if (!agentActiveRef.current) return;
           scoreRef.current = score;
-          const sub = demoSubScore(score, {
-            fromMeasure: measure - 1,
-            toMeasure: measure - 1,
-            tempoFactor: null,
-          });
-          if (sub.notes.length === 0) {
-            restoreFromLocalDemo();
+          const grid = score.measures;
+          if (grid === null || grid.starts_s.length === 0) {
+            // Sin rejilla no hay compases que acotar: demo de la pieza entera
+            // (demoSubScore) con la restauración por recarga de siempre.
+            agentActiveRef.current = true;
+            const sub = demoSubScore(score, {
+              fromMeasure: measure - 1,
+              toMeasure: measure - 1,
+              tempoFactor: null,
+            });
+            if (sub.notes.length === 0) {
+              restoreFromLocalDemo(score.notes);
+              return;
+            }
+            load(sub.notes, {
+              tempo_bpm: score.tempo ?? undefined,
+              duration_s: sub.duration_s,
+              measures: sub.measures,
+            });
+            loadedRef.current = true;
+            void play().catch(() => undefined);
+            localDemoTimerRef.current = window.setTimeout(
+              () => restoreFromLocalDemo(score.notes),
+              sub.duration_s * 1000 + 250,
+            );
             return;
           }
-          load(sub.notes, {
-            tempo_bpm: score.tempo ?? undefined,
-            duration_s: sub.duration_s,
-            measures: sub.measures,
-          });
-          loadedRef.current = true;
+
+          // Con rejilla: la pieza COMPLETA sigue cargada — la demo es un seek,
+          // no una carga recortada. El mentor muestra la pieza entera (la parte
+          // audible del alumno vuelve al acabar; en «dos manos» el transporte
+          // calla, así que sin esto la demo sería muda).
+          const factor = player.tempoFactor ?? 1;
+          const index = clampMeasure(measure - 1, grid.starts_s.length - 1);
+          const start = grid.starts_s[index];
+          const end =
+            index === grid.starts_s.length - 1 ? grid.end_s : grid.starts_s[index + 1];
+          setAudible(score.notes);
+          // Los segundos de la rejilla son de partitura; el motor los pide
+          // escalados por el factor de tempo vigente (igual que resumeReturn).
+          seek(start / factor);
           void play().catch(() => undefined);
-          // Al acabar el compás vuelve la pieza normal (como la sección demo).
-          localDemoTimerRef.current = window.setTimeout(
-            restoreFromLocalDemo,
-            sub.duration_s * 1000 + 250,
-          );
+          // Al acabar el compás: pausa y queda EN el compás pedido — el alumno
+          // le da a play y la canción sigue desde ahí, sin reiniciarse.
+          localDemoTimerRef.current = window.setTimeout(() => {
+            clearLocalDemo();
+            pause();
+            seek(start / factor);
+            restoreStudentMode(score.notes);
+          }, ((end - start) / factor) * 1000 + 250);
         })
         .catch(() => {
-          // Sin partitura no hay compás que demostrar; se recupera el estado.
-          restoreFromLocalDemo();
+          // Sin partitura no hay compás que demostrar; el modo vuelve igual.
+          restoreStudentMode(null);
         });
     };
 
@@ -221,10 +258,13 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
     });
   }, [
     piece,
+    player.tempoFactor,
     load,
     play,
     pause,
+    seek,
     stop,
+    setAudible,
     setGateOptions,
     setReloadKey,
     practiceMode,
