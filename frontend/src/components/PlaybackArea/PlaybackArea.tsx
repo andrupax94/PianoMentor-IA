@@ -96,6 +96,13 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
   const accompanyTimerRef = useRef<number | null>(null);
   /** Temporizador del final de la demo local de un compás pedido por chat (B-033.8). */
   const localDemoTimerRef = useRef<number | null>(null);
+  /**
+   * B-033.8: pieza cuyo autoPlay está suprimido. Tras la demo de un compás
+   * pedido por chat la pieza se recarga parada: el `autoPlay` con que se
+   * publicó no vuelve a arrancar la canción por su cuenta. El autoPlay de una
+   * publicación NUEVA (otra referencia de pieza) sigue mandando.
+   */
+  const suppressAutoPlayRef = useRef<PianoPiece | null>(null);
   /** Mano que toca la IA en el acompañamiento; tiñe la cascada (B-012.7). */
   const [agentHand, setAgentHand] = useState<AgentHand | null>(null);
   /** Contador para recargar la pieza normal cuando la intervención termina. */
@@ -146,9 +153,12 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
 
     // Fin de la demo local: vuelve la pieza con el modo del alumno, igual que
     // al terminar una intervención del agente (sin destino de reanudación).
+    // B-033.8: la pieza vuelve PARADA — se suprime su autoPlay para que la
+    // recarga de restauración no reinicie la canción sola.
     const restoreFromLocalDemo = () => {
       clearLocalDemo();
       agentActiveRef.current = false;
+      if (piece !== null) suppressAutoPlayRef.current = piece;
       stop();
       setGateOptions({
         enabled:
@@ -244,7 +254,11 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
       });
       loadedRef.current = true;
       if (resumeReturn(piece.measures)) return;
-      if (piece.autoPlay) void play().catch(() => undefined);
+      // B-033.8: el autoPlay suprimido (demo de compás ya restaurada) no
+      // reinicia la canción; una publicación nueva (otra referencia) sí.
+      if (piece.autoPlay && suppressAutoPlayRef.current !== piece) {
+        void play().catch(() => undefined);
+      }
       return;
     }
 
@@ -267,7 +281,11 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         });
         loadedRef.current = true;
         if (resumeReturn(score.measures)) return;
-        if (autoPlay) void play().catch(() => undefined);
+        // B-033.8: el autoPlay suprimido (demo de compás ya restaurada) no
+        // reinicia la canción; una publicación nueva (otra referencia) sí.
+        if (autoPlay && suppressAutoPlayRef.current !== piece) {
+          void play().catch(() => undefined);
+        }
       })
       .catch(() => {
         // Sin partitura no hay resaltado ni cascada; la página sigue funcionando.
