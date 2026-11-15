@@ -6,6 +6,6 @@ export interface SongInfoProps {
   title: string;
   /** Portada pública de esa pieza; null u omitida → glifo de reserva. */
   cover?: string | null;
-  /** Subtítulo (arreglo). */
-  subtitle?: string;
+  /** Subtítulo: el AUTOR de la pieza; null u omitido → no se pinta la línea. */
+  subtitle?: string | null;
 }

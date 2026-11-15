@@ -28,6 +28,8 @@ export interface CatalogScore {
   title: string;
   /** Ruta pública de la portada para esa misma barra; null si la pieza no la tiene. */
   cover: string | null;
+  /** Autor de la pieza, subtítulo de la barra; null si no se sabe. */
+  composer?: string | null;
 }
 
 /** Pieza que el piano debe cargar. Las interfaces completas van en el catálogo. */

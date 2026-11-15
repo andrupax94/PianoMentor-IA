@@ -8,7 +8,7 @@ import type { SongInfoProps } from "./SongInfo.types";
 export function SongInfo({
   title,
   cover = null,
-  subtitle = "Piano Arrangement",
+  subtitle = null,
 }: SongInfoProps) {
   return (
     <div className={styles.info}>
@@ -17,7 +17,9 @@ export function SongInfo({
       </span>
       <div>
         <strong>{title}</strong>
-        <p>{subtitle}</p>
+        {/* El subtítulo es el autor de la pieza (PlaybackArea lo resuelve);
+            sin autor la línea no se pinta, en vez de mostrar un marcador. */}
+        {subtitle !== null && <p>{subtitle}</p>}
       </div>
     </div>
   );

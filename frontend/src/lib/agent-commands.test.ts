@@ -28,6 +28,7 @@ function makeDeps(overrides: Partial<AgentActionDeps> = {}): AgentActionDeps {
     resolvePiece: vi.fn(async () => ({
       title: "Minueto en Sol",
       cover: "/assets/covers/bach.jpg",
+      composer: "Johann Sebastian Bach",
     })),
     chooseOffer: vi.fn(),
     ...overrides,
@@ -122,6 +123,7 @@ describe("executeClientAction", () => {
       id: "p01",
       title: "Minueto en Sol",
       cover: "/assets/covers/bach.jpg",
+      composer: "Johann Sebastian Bach",
       autoPlay: true,
     });
     expect(deps.navigate).toHaveBeenCalledWith("/");
@@ -224,45 +226,43 @@ describe("executeClientAction", () => {
 });
 
 describe("fetchPieceInfo", () => {
-  const catalog = [
-    { id: "p01", title: "Minueto en Sol", cover: "/assets/covers/bach.jpg" },
-    { id: "p02", title: null, cover: null },
-  ];
+  const ficha = { id: "p18", title: "Für Elise", composer: "Ludwig van Beethoven", cover: "/assets/covers/beethoven.jpg" };
 
-  it("lee el título y la portada del catálogo", async () => {
+  it("lee título, autor y portada de la ficha de la pieza", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
-        new Response(JSON.stringify(catalog), {
+        new Response(JSON.stringify(ficha), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       ),
     );
 
-    await expect(fetchPieceInfo("p01")).resolves.toEqual({
-      title: "Minueto en Sol",
-      cover: "/assets/covers/bach.jpg",
+    await expect(fetchPieceInfo("p18")).resolves.toEqual({
+      title: "Für Elise",
+      cover: "/assets/covers/beethoven.jpg",
+      composer: "Ludwig van Beethoven",
     });
   });
 
-  it("si el catálogo no trae título ni portada, devuelve el id y null", async () => {
+  it("si la ficha no trae título ni autor ni portada, devuelve el id y null", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
-        new Response(JSON.stringify(catalog), {
+        new Response(JSON.stringify({ id: "p02", title: null, composer: null, cover: null }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       ),
     );
 
-    await expect(fetchPieceInfo("p02")).resolves.toEqual({ title: "p02", cover: null });
+    await expect(fetchPieceInfo("p02")).resolves.toEqual({ title: "p02", cover: null, composer: null });
   });
 
   it("si la petición falla, devuelve el id sin portada y no rompe la reproducción", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
 
-    await expect(fetchPieceInfo("p01")).resolves.toEqual({ title: "p01", cover: null });
+    await expect(fetchPieceInfo("p18")).resolves.toEqual({ title: "p18", cover: null, composer: null });
   });
 });

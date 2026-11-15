@@ -12,8 +12,8 @@ export interface PlayerBarProps {
   songTitle: string;
   /** Portada pública de esa misma pieza; null → SongInfo dibuja su glifo. */
   songCover: string | null;
-  /** Subtítulo (arreglo). */
-  arrangement?: string;
+  /** Subtítulo: el AUTOR de la pieza; null → SongInfo no pinta la línea. */
+  arrangement?: string | null;
   /**
    * Modo de práctica vigente (B-032.4); null = sin sesión, y entonces el
    * selector no se pinta.

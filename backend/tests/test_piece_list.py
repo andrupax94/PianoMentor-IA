@@ -154,3 +154,30 @@ class TestCatalogSeeding:
         # Sin sesión: 2 principiante + 1 subida (las subidas siempre se muestran).
         assert len(pieces) == 3
         assert pieces[0]["source"] == "corpus"
+
+
+class TestPieceDetail:
+    def test_ficha_de_una_pieza_concreta_sin_pasar_por_el_filtro_del_selector(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # El listado del selector filtra (principiante + biblioteca del usuario):
+        # p18 es intermedia y no aparece, pero el chat al colocar una pieza y la
+        # sesión al reconciliar necesitan su ficha por id (título, autor, portada).
+        _load_corpus(monkeypatch)
+
+        response = client.get("/api/v1/pieces/p18")
+
+        assert response.status_code == 200
+        ficha = response.json()
+        assert ficha["id"] == "p18"
+        assert ficha["title"] == "Für Elise"
+        assert ficha["composer"] == "Ludwig van Beethoven"
+        assert ficha["cover"] == "/assets/covers/beethoven.jpg"
+
+    def test_pieza_inexistente_da_404_estable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _load_corpus(monkeypatch)
+
+        response = client.get("/api/v1/pieces/no-existe")
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["code"] == "piece_not_found"

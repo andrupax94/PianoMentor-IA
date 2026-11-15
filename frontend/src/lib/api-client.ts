@@ -505,6 +505,15 @@ export async function getHealth(): Promise<HealthResponse> {
 }
 
 /**
+ * Ficha de UNA pieza del catálogo en GET /api/v1/pieces/{id} (B-027.3):
+ * título, autor y portada sin pasar por el listado del selector, que viene
+ * filtrado y no sirve para resolver una pieza concreta.
+ */
+export async function getPieceDetail(pieceId: string): Promise<PieceCatalogItem> {
+  return request<PieceCatalogItem>(`/api/v1/pieces/${pieceId}`);
+}
+
+/**
  * Abre una sesión de práctica sobre una pieza en POST /api/v1/sessions (B-012.1).
  * El backend rechaza con `piece_not_found` si la pieza no existe.
  */

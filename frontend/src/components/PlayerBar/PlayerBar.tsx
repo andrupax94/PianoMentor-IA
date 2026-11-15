@@ -25,7 +25,7 @@ export function PlayerBar({
   player,
   songTitle,
   songCover,
-  arrangement = "Piano Arrangement",
+  arrangement = null,
   practiceMode = null,
   studentHand = "right",
   practiceSuspended = false,

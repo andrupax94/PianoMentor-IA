@@ -1,7 +1,7 @@
 // description: Acciones que el agente manda al navegador: canal al transporte, ejecución de client_action y, desde B-032.7, las respuestas del alumno a la oferta del mentor conversadas con el chat.
 // context: B-012.8 bloque C; el backend solo devuelve la intención y valida contra la lista blanca, aquí se convierte en efectos reales con las dependencias inyectadas (piece-store, agent-commands, createSession, navegación, offer-choice), igual que piece-store: publicar/suscribirse, en memoria y sin persistencia. El LLM nunca toca el reloj de reproducción: solo elige el nombre de la función.
 
-import { getPieceList } from "./api-client";
+import { getPieceDetail } from "./api-client";
 import type { AgentClientAction } from "./api-client";
 import { publishOfferChoice, type OfferChoice } from "./offer-choice";
 import type { PianoPiece } from "./piece-store";
@@ -49,6 +49,8 @@ export interface ResolvedPiece {
   title: string;
   /** Ruta pública de la portada; null cuando no la hay. */
   cover: string | null;
+  /** Autor de la pieza, para el subtítulo de la barra; null si no se sabe. */
+  composer: string | null;
 }
 
 /** Efectos reales que necesita ejecutar una orden; en los tests se sustituyen por fakes. */
@@ -61,8 +63,7 @@ export interface AgentActionDeps {
   createPracticeSession: (pieceId: string) => Promise<{ id: string }>;
   /** Navega a una ruta de la aplicación. */
   navigate: (path: string) => void;
-  /** Título y portada de una pieza del catálogo para la barra del reproductor. */
-  resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
+  /** Título y portada de una pieza del catálogo para la barra del reproductor. */  resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
   /** B-032.7: publica la respuesta del alumno a la oferta del mentor (bus offer-choice). */
   chooseOffer: (choice: OfferChoice) => void;
 }
@@ -91,6 +92,7 @@ export async function executeClientAction(
       id: pieceId,
       title: info.title,
       cover: info.cover,
+      composer: info.composer,
       autoPlay: args.auto_play !== false,
     });
     // Si ya se está en /, la publicación basta: PlaybackArea está suscrito.
@@ -147,12 +149,20 @@ export async function executeClientAction(
  * título es el id y no hay portada, para que la reproducción no dependa
  * de esta consulta.
  */
+/**
+ * Título, autor y portada de una pieza del catálogo para la barra del
+ * reproductor. `client_action` solo trae el id: la ficha va por
+ * `GET /pieces/{id}` — el listado del selector viene filtrado
+ * (principiante + biblioteca del usuario) y las piezas intermedias como
+ * Für Elise no están, por lo que resolver por ahí daba «p18» sin portada.
+ * Si la ficha no existe (o no responde), el título es el id y no hay portada,
+ * para que la reproducción no dependa de esta consulta.
+ */
 export async function fetchPieceInfo(pieceId: string): Promise<ResolvedPiece> {
   try {
-    const catalog = await getPieceList();
-    const item = catalog.find((entry) => entry.id === pieceId);
-    return { title: item?.title ?? pieceId, cover: item?.cover ?? null };
+    const item = await getPieceDetail(pieceId);
+    return { title: item.title ?? pieceId, cover: item.cover ?? null, composer: item.composer ?? null };
   } catch {
-    return { title: pieceId, cover: null };
+    return { title: pieceId, cover: null, composer: null };
   }
 }

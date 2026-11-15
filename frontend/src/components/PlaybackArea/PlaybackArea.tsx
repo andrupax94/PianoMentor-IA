@@ -32,6 +32,9 @@ const DEMO_PIECE_ID = "p01";
  *  lo que se anuncia y lo que suena no puedan desentonar. */
 const DEMO_SONG_TITLE = "Bach – Minuet in G major";
 
+/** Autor de la demo (p01, Minuet de Bach): el subtítulo de la barra. */
+const DEMO_SONG_COMPOSER = "Johann Sebastian Bach";
+
 /** Portada de la demo: la misma de su ficha en el catálogo (p01). */
 const DEMO_COVER = "/assets/covers/bach.jpg";
 
@@ -356,6 +359,15 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         : piece.title;
   // Y la portada sigue la misma historia (null → SongInfo dibuja su glifo).
   const songCover = coverForPiece(piece);
+  // El subtítulo de la barra es el AUTOR de la pieza: el de la ficha elegida
+  // (Library, chat o sesión), nada en las subidas y el de la demo en la
+  // portada sin pieza. Nada de "Piano Arrangement" inventado.
+  const songComposer =
+    piece === null
+      ? DEMO_SONG_COMPOSER
+      : piece.kind === "catalog"
+        ? piece.composer ?? null
+        : null;
 
   return (
     <div className={styles.area}>
@@ -363,6 +375,7 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
         player={player}
         songTitle={songTitle}
         songCover={songCover}
+        arrangement={songComposer}
         practiceMode={practiceMode}
         studentHand={studentHand}
         practiceSuspended={agentHand !== null}

@@ -8,6 +8,8 @@ import type { PianoPiece } from "./piece-store";
 export interface SessionPieceInfo {
   title: string;
   cover: string | null;
+  /** Autor de la pieza, para el subtítulo de la barra; null si no se sabe. */
+  composer: string | null;
 }
 
 /** Resuelve título y portada de una pieza; en la app es `fetchPieceInfo`. */
@@ -20,6 +22,7 @@ export function pieceForSession(pieceId: string, info: SessionPieceInfo): PianoP
     id: pieceId,
     title: info.title,
     cover: info.cover,
+    composer: info.composer,
     autoPlay: false,
   };
 }
@@ -38,12 +41,14 @@ export function publishPracticePiece(song: {
   id: string;
   title: string;
   cover: string | null;
+  composer?: string | null;
 }): void {
   publishPianoPiece({
     kind: "catalog",
     id: song.id,
     title: song.title,
     cover: song.cover,
+    composer: song.composer ?? null,
     autoPlay: false,
   });
 }

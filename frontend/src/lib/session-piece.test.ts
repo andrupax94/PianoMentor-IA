@@ -20,10 +20,10 @@ afterEach(() => {
 /** Resolvedor controlado a mano: la promesa se resuelve cuando el test quiere. */
 function deferredResolver(): {
   resolve: SessionPieceResolver;
-  settle: (info: { title: string; cover: string | null }) => void;
+  settle: (info: { title: string; cover: string | null; composer: string | null }) => void;
 } {
-  let settle!: (info: { title: string; cover: string | null }) => void;
-  const promise = new Promise<{ title: string; cover: string | null }>((done) => {
+  let settle!: (info: { title: string; cover: string | null; composer: string | null }) => void;
+  const promise = new Promise<{ title: string; cover: string | null; composer: string | null }>((done) => {
     settle = done;
   });
   return { resolve: () => promise, settle };
@@ -31,11 +31,14 @@ function deferredResolver(): {
 
 describe("pieceForSession", () => {
   it("publica la pieza del catálogo cargada y parada", () => {
-    expect(pieceForSession("p16", { title: "Pieza de práctica", cover: "/c.jpg" })).toEqual({
+    expect(
+      pieceForSession("p16", { title: "Pieza de práctica", cover: "/c.jpg", composer: "La Autora" }),
+    ).toEqual({
       kind: "catalog",
       id: "p16",
       title: "Pieza de práctica",
       cover: "/c.jpg",
+      composer: "La Autora",
       autoPlay: false,
     });
   });
@@ -43,7 +46,7 @@ describe("pieceForSession", () => {
 
 describe("isPieceOfSession", () => {
   it("compara por id y tipo, no por referencia", () => {
-    const piece = pieceForSession("p16", { title: "Pieza de práctica", cover: null });
+    const piece = pieceForSession("p16", { title: "Pieza de práctica", cover: null, composer: null });
 
     expect(isPieceOfSession(piece, "p16")).toBe(true);
     expect(isPieceOfSession({ ...piece }, "p16")).toBe(true);
@@ -73,13 +76,14 @@ describe("publishPracticePiece", () => {
     const listener = vi.fn();
     const unsubscribe = subscribePianoPiece(listener);
 
-    publishPracticePiece({ id: "p16", title: "Pieza de práctica", cover: "/c.jpg" });
+    publishPracticePiece({ id: "p16", title: "Pieza de práctica", cover: "/c.jpg", composer: "La Autora" });
 
     expect(getPianoPiece()).toEqual({
       kind: "catalog",
       id: "p16",
       title: "Pieza de práctica",
       cover: "/c.jpg",
+      composer: "La Autora",
       autoPlay: false,
     });
     expect(listener).toHaveBeenCalledTimes(1);
@@ -89,7 +93,7 @@ describe("publishPracticePiece", () => {
 
 describe("syncSessionPiece", () => {
   it("publica la pieza de la sesión con el título y la portada resueltos", async () => {
-    const resolve = vi.fn(async () => ({ title: "Pieza de práctica", cover: "/c.jpg" }));
+    const resolve = vi.fn(async () => ({ title: "Pieza de práctica", cover: "/c.jpg", composer: "La Autora" }));
 
     const published = await syncSessionPiece("p16", resolve);
 
@@ -100,14 +104,15 @@ describe("syncSessionPiece", () => {
       id: "p16",
       title: "Pieza de práctica",
       cover: "/c.jpg",
+      composer: "La Autora",
       autoPlay: false,
     });
   });
 
   it("no consulta ni republica si el almacén ya tiene la pieza de la sesión", async () => {
-    const already = pieceForSession("p16", { title: "Pieza de práctica", cover: null });
+    const already = pieceForSession("p16", { title: "Pieza de práctica", cover: null, composer: null });
     publishPianoPiece(already);
-    const resolve = vi.fn(async () => ({ title: "Otro título", cover: null }));
+    const resolve = vi.fn(async () => ({ title: "Otro título", cover: null, composer: null }));
 
     const published = await syncSessionPiece("p16", resolve);
 
@@ -118,11 +123,12 @@ describe("syncSessionPiece", () => {
   });
 
   it("reemplaza otra pieza (la demo o la última elegida) por la de la sesión", async () => {
-    publishPianoPiece(pieceForSession("p17", { title: "Sinfonía n.º 5", cover: null }));
+    publishPianoPiece(pieceForSession("p17", { title: "Sinfonía n.º 5", cover: null, composer: null }));
 
     const published = await syncSessionPiece("p16", async () => ({
       title: "Pieza de práctica",
       cover: null,
+      composer: null,
     }));
 
     expect(published).toBe(true);
@@ -136,9 +142,9 @@ describe("syncSessionPiece", () => {
 
     const pending = syncSessionPiece("p16", resolve);
     // Llega otro mensaje de estado y resuelve antes: la pieza ya está puesta.
-    const winner = pieceForSession("p16", { title: "Pieza de práctica", cover: null });
+    const winner = pieceForSession("p16", { title: "Pieza de práctica", cover: null, composer: null });
     publishPianoPiece(winner);
-    settle({ title: "Pieza de práctica", cover: null });
+    settle({ title: "Pieza de práctica", cover: null, composer: null });
 
     await expect(pending).resolves.toBe(false);
     expect(getPianoPiece()).toBe(winner);

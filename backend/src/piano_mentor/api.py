@@ -39,6 +39,7 @@ from .catalog import ensure_catalog_loaded
 from .chat import ChatService, get_fallback_provider
 from .llm import fijar_llm_chaos, llm_chaos_modo
 from .config import settings
+from . import database
 from .database import (
     consume_auth_token,
     count_agent_action_total,
@@ -1181,6 +1182,25 @@ def list_pieces(source: str | None = Query(default=None), authorization: str | N
             or r["id"] in allowed
         ]
     return [_piece_summary_from_row(row) for row in rows]
+
+
+@router.get("/pieces/{piece_id}", response_model=PieceSummary)
+def get_piece_detail(piece_id: str) -> PieceSummary:
+    """Ficha de UNA pieza del catálogo (B-027.3): título, autor y portada.
+
+    El listado del selector viene filtrado (principiante + biblioteca del
+    usuario) y no sirve para resolver una pieza concreta: el chat al colocar
+    una pieza por `client_action` y la sesión al reconciliar necesitan la
+    ficha completa por id. Público como las notas de la pieza.
+    """
+    ensure_catalog_loaded()
+    row = database.find_piece_by_id(piece_id)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "piece_not_found", "message": f"No existe la pieza: {piece_id}"},
+        )
+    return _piece_summary_from_row(row)
 
 
 @router.post("/pieces", response_model=PieceResponse)

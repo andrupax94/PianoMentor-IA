@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-14 18:15 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-15 17:10 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 
@@ -1132,6 +1132,11 @@ piano-mentor-ai/
 ├── docs/issues/B-020/B-020.md
 ├── docs/issues/B-023/
 ├── docs/issues/B-023/B-023.md
+├── docs/issues/B-024/
+├── docs/issues/B-024/B-024.1.md
+├── docs/issues/B-024/B-024.2.md
+├── docs/issues/B-024/B-024.3.md
+├── docs/issues/B-024/B-024.md
 ├── docs/issues/B-027/
 ├── docs/issues/B-027/B-027.1.md
 ├── docs/issues/B-027/B-027.2.md
@@ -1376,6 +1381,10 @@ piano-mentor-ai/
 ├── frontend/src/components/AppHeader/UserAvatar/UserAvatar.types.ts
 ├── frontend/src/components/AudioLoadingBridge.tsx
 ├── frontend/src/components/component-tree.test.ts
+├── frontend/src/components/Feedback/
+├── frontend/src/components/Feedback/Feedback.module.css
+├── frontend/src/components/Feedback/Feedback.tsx
+├── frontend/src/components/Feedback/Feedback.types.ts
 ├── frontend/src/components/LibrarySection/
 ├── frontend/src/components/LibrarySection/LibraryPage/
 ├── frontend/src/components/LibrarySection/LibraryPage/LibraryPage.module.css
