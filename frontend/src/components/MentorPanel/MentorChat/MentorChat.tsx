@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useContext, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
@@ -45,7 +45,7 @@ import {
 } from "../../../lib/chat-feed";
 import { chatPrompt } from "../../../lib/chat-prompt";
 import { getSessionSnapshot, subscribeSession, updateSession } from "../../../lib/session-store";
-import { useTransport } from "../../../lib/transport-context";
+import { TransportContext } from "../../../lib/transport-context";
 import {
   getRondaFinalSnapshot,
   getSenalesRonda,
@@ -130,7 +130,13 @@ export function MentorChat({
   const router = useRouter();
   /** Sesión abierta en la portada: el chip de pista solo existe con práctica. */
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
-  const transport = useTransport();
+  /**
+   * El transporte puede NO estar (MentorChat vive también en AgentDock, fuera
+   * del layout de la portada que monta TransportProvider): se lee el contexto
+   * a pelo y el latch no corre sin él — el chip vive en «pista» en las páginas
+   * sin práctica. useTransport() lanzaría aquí y /library se caía entera.
+   */
+  const transport = useContext(TransportContext);
   const rondaAlFinal = useSyncExternalStore(subscribeRondaFinal, getRondaFinalSnapshot, getRondaFinalSnapshot);
   /** Señales de práctica de la ronda en curso (event-driven desde PracticeBridge). */
   const senalesRonda = useSyncExternalStore(subscribeRondaFinal, getSenalesRonda, getSenalesRonda);
@@ -144,6 +150,7 @@ export function MentorChat({
   // B-033.8: latch de fin de pieza. Se fija al llegar al final y se resetea al
   // iniciar una nueva ronda. Sobrevive al stop manual (que rebobina a 0).
   useEffect(() => {
+    if (transport === null) return; // sin transporte (AgentDock fuera de portada): nada que vigilar
     const status = transport.status;
     const position = transport.position_s ?? 0;
     const duration = transport.duration_s ?? 0;
@@ -152,7 +159,7 @@ export function MentorChat({
     } else if (status === "playing" || status === "preroll") {
       setRondaAlFinal(false);
     }
-  }, [transport.status, transport.position_s, transport.duration_s]);
+  }, [transport, transport?.status, transport?.position_s, transport?.duration_s]);
   // Cambio de sesión (reinicio incluido): latch y contador a cero — al inicio
   // de una sesión el chip siempre nace en «pista».
   useEffect(() => {
