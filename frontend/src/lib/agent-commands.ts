@@ -6,14 +6,18 @@ import type { AgentClientAction } from "./api-client";
 import { publishOfferChoice, type OfferChoice } from "./offer-choice";
 import type { PianoPiece } from "./piece-store";
 
-/** Órdenes de transporte que viajan por este canal; las aplica PlaybackArea. */
-export type AgentTransportCommand = "pausar" | "reanudar" | "parar";
+/** Órdenes de transporte que viajan por este canal; las aplica PlaybackArea.
+ *  `mostrar_compas` demuestra localmente UN compás de la pieza cargada
+ *  (fuera de sesión o cuando la vía del backend no está disponible). */
+export type AgentTransportCommand = "pausar" | "reanudar" | "parar" | "mostrar_compas";
 
 /** Orden enviada a los suscriptores; `seq` la hace única aunque se repita la orden. */
 export interface AgentCommand {
   command: AgentTransportCommand;
   /** Contador monotónico: dos «pausa» seguidas son dos avisos, no uno. */
   seq: number;
+  /** Para «mostrar_compas»: el número del compás contando desde el primero. */
+  measure?: number;
 }
 
 type CommandListener = (command: AgentCommand) => void;
@@ -34,9 +38,9 @@ export function subscribeAgentCommand(listener: CommandListener): () => void {
  * última orden, así que quien no esté escuchando en ese momento la pierde. Es
  * lo deseable, porque pausar un transporte que aún no existe no significa nada.
  */
-export function publishAgentCommand(command: AgentTransportCommand): void {
+export function publishAgentCommand(command: AgentTransportCommand, measure?: number): void {
   seq += 1;
-  const payload: AgentCommand = { command, seq };
+  const payload: AgentCommand = { command, seq, ...(measure !== undefined ? { measure } : {}) };
   // Copia: un listener puede darse de baja a sí mismo durante la iteración.
   for (const listener of [...listeners]) {
     listener(payload);
@@ -58,14 +62,17 @@ export interface AgentActionDeps {
   /** Manda la pieza al piano (piece-store). */
   publishPiece: (piece: PianoPiece) => void;
   /** Manda una orden al transporte (agent-commands). */
-  publishCommand: (command: AgentTransportCommand) => void;
+  publishCommand: (command: AgentTransportCommand, measure?: number) => void;
   /** Crea la sesión de práctica y devuelve su id. */
   createPracticeSession: (pieceId: string) => Promise<{ id: string }>;
   /** Navega a una ruta de la aplicación. */
   navigate: (path: string) => void;
-  /** Título y portada de una pieza del catálogo para la barra del reproductor. */  resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
+  /** Título y portada de una pieza del catálogo para la barra del reproductor. */
+  resolvePiece: (pieceId: string) => Promise<ResolvedPiece>;
   /** B-032.7: publica la respuesta del alumno a la oferta del mentor (bus offer-choice). */
   chooseOffer: (choice: OfferChoice) => void;
+  /** B-033.8: demuestra UN compás pedido por el alumno («muéstrame el segundo compás»). */
+  showMeasure: (measure: number) => void;
 }
 
 /**
@@ -103,6 +110,17 @@ export async function executeClientAction(
 
   if (action.name === "pausar" || action.name === "reanudar" || action.name === "parar") {
     deps.publishCommand(action.name);
+    return true;
+  }
+
+  // B-033.8: el alumno pidió ver un compás concreto («muéstrame el segundo
+  // compás»). El número que el LLM pone ya es humano (contando desde el
+  // primero); la ejecución la hace el hospedador (en sesión por las vías del
+  // agente, fuera de ella sobre la pieza cargada).
+  if (action.name === "mostrar_compas") {
+    const measure = typeof args.measure === "number" ? args.measure : null;
+    if (measure === null || measure < 1) return false;
+    deps.showMeasure(measure);
     return true;
   }
 

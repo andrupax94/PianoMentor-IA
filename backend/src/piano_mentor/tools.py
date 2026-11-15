@@ -1,8 +1,10 @@
-# description: Registro de funciones del chat con lista blanca cerrada (B-012.8): ToolDef y REGISTRY con 12 funciones (4 de servidor, 5 de navegador y, desde B-032.7, aceptar_oferta/descartar_oferta/repetir_demo de navegador).
+# description: Registro de funciones del chat con lista blanca cerrada (B-012.8): ToolDef y REGISTRY con 13 funciones (4 de servidor, 9 de navegador —incluidas las 3 de la oferta del mentor B-032.7— y, desde B-033.8, mostrar_compas de navegador).
 # context: Lista blanca de órdenes que el modelo puede elegir. Cada función
 # declara nombre, descripción (en español, es lo que lee el modelo), parámetros
 # (JSON Schema) y si su ejecución es del servidor (lectura de catálogo/estado) o
-# del navegador (reproducción, pausa, abrir práctica, responder la oferta del mentor B-032.7). Solo el servidor ejecuta; las de navegador viajan como client_action.
+# del navegador (reproducción, pausa, abrir práctica, responder la oferta del
+# mentor B-032.7, mostrar un compás B-033.8). Solo el servidor ejecuta; las de
+# navegador viajan como client_action.
 
 from __future__ import annotations
 
@@ -241,6 +243,30 @@ class ToolRegistry:
                         }
                     },
                     "required": ["piece_id"],
+                    "additionalProperties": False,
+                },
+                side="client",
+            )
+        )
+        self.register(
+            FunctionTool(
+                name="mostrar_compas",
+                description=(
+                    "Muestra (demuestra) UN compás concreto de la pieza en el piano, "
+                    "cuando el alumno lo pide: «muéstrame el segundo compás», "
+                    "«muéstrame el compás 5». El número cuenta desde el primero "
+                    "(el segundo compás es 2). Funciona dentro y fuera de una sesión."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "measure": {
+                            "type": "integer",
+                            "description": "Número del compás contando desde el primero (el segundo compás es 2)",
+                            "minimum": 1,
+                        }
+                    },
+                    "required": ["measure"],
                     "additionalProperties": False,
                 },
                 side="client",

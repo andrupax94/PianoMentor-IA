@@ -31,6 +31,7 @@ function makeDeps(overrides: Partial<AgentActionDeps> = {}): AgentActionDeps {
       composer: "Johann Sebastian Bach",
     })),
     chooseOffer: vi.fn(),
+    showMeasure: vi.fn(),
     ...overrides,
   };
 }
@@ -49,6 +50,16 @@ describe("canal de comandos", () => {
 
     expect(received).toHaveLength(1);
     expect(received[0].command).toBe("pausar");
+  });
+
+  it("mostrar_compas viaja con el número del compás (B-033.8)", () => {
+    const received: AgentCommand[] = [];
+    subscribeAgentCommand((command) => received.push(command));
+
+    publishAgentCommand("mostrar_compas", 3);
+
+    expect(received[0].command).toBe("mostrar_compas");
+    expect(received[0].measure).toBe(3);
   });
 
   it("numera las órdenes para que dos iguales no se confundan", () => {
@@ -127,6 +138,23 @@ describe("executeClientAction", () => {
       autoPlay: true,
     });
     expect(deps.navigate).toHaveBeenCalledWith("/");
+  });
+
+  it("mostrar_compas demuestra el compás pedido por el alumno (B-033.8)", async () => {
+    const deps = makeDeps();
+
+    expect(await executeClientAction(action("mostrar_compas", { measure: 2 }), deps)).toBe(true);
+    expect(deps.showMeasure).toHaveBeenCalledWith(2);
+    // Ni pausa ni parada: la ejecución es toda del showMeasure del hospedador.
+    expect(deps.publishCommand).not.toHaveBeenCalled();
+  });
+
+  it("mostrar_compas sin número válido se ignora sin tocar nada", async () => {
+    const deps = makeDeps();
+
+    expect(await executeClientAction(action("mostrar_compas", {}), deps)).toBe(false);
+    expect(await executeClientAction(action("mostrar_compas", { measure: 0 }), deps)).toBe(false);
+    expect(deps.showMeasure).not.toHaveBeenCalled();
   });
 
   it("las respuestas a la oferta del mentor van al bus offer-choice (B-032.7)", async () => {

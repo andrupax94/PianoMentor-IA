@@ -781,7 +781,7 @@ El script nunca modifica `architecture_base.md` ni `files.csv`; solo lee y escri
 
 ---
 
-> Anexo generado automáticamente el 2026-11-15 17:10 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
+> Anexo generado automáticamente el 2026-11-15 17:24 UTC por `docs/architecture/generate_architecture.py`. No editar a mano.
 
 ## Anexo A — Filetree real del repositorio
 

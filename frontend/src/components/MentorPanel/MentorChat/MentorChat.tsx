@@ -24,6 +24,7 @@ import {
 import {
   ApiError,
   createSession,
+  executeAgentAction,
   finishSession,
   getPracticeReport,
   runAgentStep,
@@ -567,6 +568,25 @@ export function MentorChat({
             // B-032.7: «otra vez», «muéstralo» y «sigo yo» conversados viajan
             // por el bus de la oferta, igual que las píldoras de la burbuja.
             chooseOffer: publishOfferChoice,
+            // B-033.8: «muéstrame el segundo compás». En sesión la demostración
+            // va por las vías del agente (control, suspensión y vuelta al
+            // alumno); fuera de ella —o si el POST no está disponible— la
+            // demuestra localmente el transporte sobre la pieza cargada.
+            showMeasure: async (measure) => {
+              const sessionIdNow = session.sessionId;
+              if (sessionIdNow !== null) {
+                try {
+                  await executeAgentAction(sessionIdNow, "demonstrate", {
+                    from_measure: measure - 1,
+                    to_measure: measure,
+                  });
+                  return;
+                } catch {
+                  // Sin la vía del agente, el compás se demuestra igual.
+                }
+              }
+              publishAgentCommand("mostrar_compas", measure);
+            },
           }),
       },
     );

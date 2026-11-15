@@ -96,6 +96,17 @@ def _registro_pieza(
 # Registro de funciones (lista blanca)
 # ---------------------------------------------------------------------------
 
+def test_mostrar_compas_viaja_como_accion_de_navegador() -> None:
+    """B-033.8: de navegador significa que viaja como `client_action` y que el
+    piano (front) la ejecuta — el chat solo elige; no hay ejecución de servidor
+    que toque el transporte."""
+    tool = REGISTRY.get("mostrar_compas")
+
+    assert tool.side == "client"
+    # El único parámetro es el número del compás, contando desde el primero.
+    assert tool.parameters["required"] == ["measure"]
+
+
 def test_registro_solo_funciones_conocidas() -> None:
     nombres = set(tool_names())
     esperadas = {
@@ -108,6 +119,9 @@ def test_registro_solo_funciones_conocidas() -> None:
         "reanudar",
         "parar",
         "abrir_practica",
+        # B-033.8: «muéstrame el segundo compás», de navegador como su primo
+        # reproducir_pieza — el piano es el que demuestra, el chat solo elige.
+        "mostrar_compas",
     }
     assert esperadas <= nombres
 

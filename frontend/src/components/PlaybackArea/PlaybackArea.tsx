@@ -94,6 +94,8 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
   const agentActiveRef = useRef(false);
   /** Temporizador del final de la sección acompañada (B-012.7). */
   const accompanyTimerRef = useRef<number | null>(null);
+  /** Temporizador del final de la demo local de un compás pedido por chat (B-033.8). */
+  const localDemoTimerRef = useRef<number | null>(null);
   /** Mano que toca la IA en el acompañamiento; tiñe la cascada (B-012.7). */
   const [agentHand, setAgentHand] = useState<AgentHand | null>(null);
   /** Contador para recargar la pieza normal cuando la intervención termina. */
@@ -131,15 +133,94 @@ export function PlaybackArea({ octaves = ["C1", "C2", "C3"] }: PlaybackAreaProps
 
   // El chat manda pausar/reanudar/parar por su propio canal: solo el transporte
   // puede tocar el reloj, así que el agente no llega al motor de otra forma.
-  useEffect(
-    () =>
-      subscribeAgentCommand(({ command }) => {
-        if (command === "pausar") pause();
-        else if (command === "reanudar") play();
-        else if (command === "parar") stop();
-      }),
-    [pause, play, stop],
-  );
+  // B-033.8: `mostrar_compas` demuestra localmente UN compás de la pieza
+  // cargada, dentro o fuera de sesión — fuera de sesión es la única vía, y en
+  // sesión solo se usa si el POST del agente no está disponible.
+  useEffect(() => {
+    const clearLocalDemo = () => {
+      if (localDemoTimerRef.current !== null) {
+        window.clearTimeout(localDemoTimerRef.current);
+        localDemoTimerRef.current = null;
+      }
+    };
+
+    // Fin de la demo local: vuelve la pieza con el modo del alumno, igual que
+    // al terminar una intervención del agente (sin destino de reanudación).
+    const restoreFromLocalDemo = () => {
+      clearLocalDemo();
+      agentActiveRef.current = false;
+      stop();
+      setGateOptions({
+        enabled:
+          waitMode.enabled && (practiceMode === "one_hand" || practiceMode === "both_hands"),
+        hand: evaluatedHand(practiceMode ?? "observe", studentHand) ?? "both",
+      });
+      setReloadKey((key) => key + 1);
+    };
+
+    /** Demuestra el compás `measure` (1-based, como lo cuenta el alumno). */
+    const showMeasureLocal = (measure: number) => {
+      clearLocalDemo();
+      agentActiveRef.current = true;
+      stop();
+      setGateOptions({ enabled: false });
+      const loaded = scoreRef.current;
+      const pieceId = piece?.kind === "catalog" ? piece.id : DEMO_PIECE_ID;
+      const pending = loaded
+        ? Promise.resolve(loaded)
+        : getPieceNotes(pieceId, undefined, { withHands: true });
+      pending
+        .then((score) => {
+          if (!agentActiveRef.current) return;
+          scoreRef.current = score;
+          const sub = demoSubScore(score, {
+            fromMeasure: measure - 1,
+            toMeasure: measure - 1,
+            tempoFactor: null,
+          });
+          if (sub.notes.length === 0) {
+            restoreFromLocalDemo();
+            return;
+          }
+          load(sub.notes, {
+            tempo_bpm: score.tempo ?? undefined,
+            duration_s: sub.duration_s,
+            measures: sub.measures,
+          });
+          loadedRef.current = true;
+          void play().catch(() => undefined);
+          // Al acabar el compás vuelve la pieza normal (como la sección demo).
+          localDemoTimerRef.current = window.setTimeout(
+            restoreFromLocalDemo,
+            sub.duration_s * 1000 + 250,
+          );
+        })
+        .catch(() => {
+          // Sin partitura no hay compás que demostrar; se recupera el estado.
+          restoreFromLocalDemo();
+        });
+    };
+
+    return subscribeAgentCommand(({ command, measure }) => {
+      if (command === "pausar") pause();
+      else if (command === "reanudar") play();
+      else if (command === "parar") stop();
+      else if (command === "mostrar_compas" && typeof measure === "number") {
+        showMeasureLocal(measure);
+      }
+    });
+  }, [
+    piece,
+    load,
+    play,
+    pause,
+    stop,
+    setGateOptions,
+    setReloadKey,
+    practiceMode,
+    studentHand,
+    waitMode.enabled,
+  ]);
 
   useEffect(() => {
     // Con una intervención del agente en marcha el transporte toca lo que

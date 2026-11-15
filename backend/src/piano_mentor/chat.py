@@ -352,6 +352,8 @@ class ChatService:
             return "Deteniendo la reproducción."
         if nombre == "abrir_practica":
             return f"Abriendo la sesión de práctica para '{argumentos.get('piece_id')}'."
+        if nombre == "mostrar_compas":
+            return f"Mostrando el compás {argumentos.get('measure')} en el piano."
         return f"Acción '{nombre}' lista para ejecutar."
 
     @staticmethod
