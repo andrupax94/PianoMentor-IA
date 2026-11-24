@@ -255,6 +255,42 @@ Durante esa ventana la web no responde y el actualizador de IP no se ejecuta.
 El cierre de tapa ya está ignorado en `/etc/systemd/logind.conf`
 (`HandleLidSwitch=ignore`).
 
+## Optimización de energía (servidor 24/7)
+
+El portátil va a estar encendido todo el día con tráfico bajo. El script
+`host/power-optimize.sh` aplica ajustes seguros (ejecutar con `sudo`):
+
+```bash
+cd ~/proyectos/"PianoMentor IA"/deploy/host
+sudo bash power-optimize.sh
+```
+
+Qué hace:
+
+| Ajuste | Detalle |
+|---|---|
+| Servicios innecesarios | Desactiva `cups` (impresión), `avahi-daemon` (mDNS) y `ModemManager` (celular) |
+| CPU governor | Fija `powersave` de forma persistente (servicio systemd) |
+| Frecuencia máxima | Limita a 1.0 GHz (base, sin turbo boost de 3.6 GHz) |
+| Wi-Fi power save | Activo y persistente vía NetworkManager |
+| Swappiness | 10 (menos escrituras a disco en SSD) |
+| Pantalla | Se apaga tras 60 s de inactividad, sin bloqueo |
+| Animaciones GNOME | Desactivadas (menos CPU en segundo plano) |
+
+Lo que **no** hace (y por qué):
+
+- **Undervolting**: reduce voltaje para ahorrar energía, pero es específico de cada chip y puede causar inestabilidad o corrupción de datos. No lo recomiendo en un servidor.
+- **Bajar la frecuencia por debajo de la base (1.0 GHz)**: ahorra poco y puede hacer que la web responda lenta.
+- **Desactivar el Wi-Fi**: obviamente no, es la conexión del servidor.
+
+Para revertir la frecuencia máxima:
+
+```bash
+echo 3600000 | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq
+```
+
+**Recomendación adicional:** si la BIOS del HP lo permite, configura el umbral de carga de la batería al 80% (en HP se llama "Adaptive Battery Optimizer" o similar en la BIOS). Así la batería no se degrada por estar siempre al 100%.
+
 ## Seguridad mínima antes de publicar
 
 - `AUTOLOGIN=false` (ya forzado en el compose).
