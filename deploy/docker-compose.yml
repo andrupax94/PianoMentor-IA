@@ -62,8 +62,9 @@ services:
       DATABASE_URL: sqlite:////data/piano_mentor.db
       DATABASE_PATH: /data/piano_mentor.db
       # CORS debe permitir el origen del FRONTEND (el navegador llama a la API
-      # desde www...), no el de la API.
-      CORS_ORIGINS: ${PM_PUBLIC_WEB_URL}
+      # desde www...), no el de la API. Se incluyen apex y www porque ambos
+      # sirven el frontend.
+      CORS_ORIGINS: "${PM_PUBLIC_WEB_URL},https://pianomentoria.com"
       APP_PUBLIC_URL: ${PM_PUBLIC_WEB_URL}
       API_PUBLIC_URL: ${PM_PUBLIC_API_URL}
       AUTOLOGIN: "false"
