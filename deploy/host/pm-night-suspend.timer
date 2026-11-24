@@ -1,0 +1,14 @@
+# description: Suspende el portatil todos los dias a las 00:00.
+# context: Apunta directamente a systemd-suspend.service, sin servicio propio.
+
+[Unit]
+Description=Suspende el portatil a las 00:00
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+AccuracySec=1s
+Persistent=false
+Unit=systemd-suspend.service
+
+[Install]
+WantedBy=timers.target

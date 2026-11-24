@@ -1,0 +1,39 @@
+# description: Plantilla para añadir un proyecto nuevo a Nginx.
+# context: Copiar a <proyecto>.conf (sin .example) y ajustar nombres.
+
+# Pasos:
+#   1. Copia este archivo:  cp _plantilla.conf.example mivia.conf
+#   2. Cambia server_name y proxy_pass.
+#   3. Añade el servicio en deploy/docker-compose.yml con el mismo nombre
+#      que uses en proxy_pass (aquí: "mivia").
+#   4. Comprueba y recarga:
+#        docker compose exec nginx nginx -t
+#        docker compose exec nginx nginx -s reload
+
+server {
+    listen 80;
+    server_name mivia.ddns.net;          # <-- tu dominio de No-IP
+
+    location / {
+        proxy_pass http://mivia:8080;    # <-- servicio:puerto interno del contenedor
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Descomenta si el proyecto usa WebSocket.
+        # proxy_set_header Upgrade    $http_upgrade;
+        # proxy_set_header Connection $connection_upgrade;
+    }
+}
+
+# Si el proyecto es HTML estático (sin contenedor), sirve la carpeta directamente:
+#
+# server {
+#     listen 80;
+#     server_name mivia.ddns.net;
+#     root /usr/share/nginx/html/mivia;
+#     index index.html;
+#     location / { try_files $uri $uri/ /index.html; }
+# }

@@ -1,0 +1,13 @@
+# description: Temporizador que ejecuta pm-ddns.service cada 5 minutos.
+# context: Instalar en /etc/systemd/system/ y activar con systemctl enable --now.
+
+[Unit]
+Description=Comprueba la IP publica cada 5 minutos
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

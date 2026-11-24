@@ -1,0 +1,30 @@
+# description: Despliega el portátil en cada push a main, con el runner propio.
+# context: El runner vive en el portátil y ejecuta un script local; aquí no se
+#          construye nada. Solo push a main o lanzamiento manual: una PR desde
+#          un fork no puede ejecutar código en la máquina.
+
+name: Desplegar en el portátil
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# El runner está en casa: este flujo no necesita tocar el repositorio.
+permissions:
+  contents: read
+
+# Un despliegue a la vez y sin cancelar el que esté en marcha: cortar un
+# `docker compose up` a medias deja contenedores en un estado raro.
+concurrency:
+  group: deploy-portatil
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # La etiqueta `pianomentor` la pone config.sh al registrar el runner.
+    runs-on: [self-hosted, pianomentor]
+    timeout-minutes: 30
+    steps:
+      - name: Desplegar
+        run: bash "$HOME/srv/pianomentor/deploy/scripts/deploy.sh"

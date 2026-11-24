@@ -15,8 +15,15 @@ build
 # Caché local del script de muestras (el banco de 78 MB); los MP3 ya generados sí viajan en public/
 .cache
 
+# Secretos locales: sin esto, `COPY . .` metía .env.local (Google + AUTH_SECRET)
+# dentro de la imagen. Nunca deben viajar al builder ni al contenedor.
+.env
+.env.*
+!.env.example
+
 # Docker y metadatos
 Dockerfile
+Dockerfile.prod
 .dockerignore
 .git
 .gitignore

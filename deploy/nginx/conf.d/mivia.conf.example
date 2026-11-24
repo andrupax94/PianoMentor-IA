@@ -1,0 +1,54 @@
+# description: Ruta preparada para el proyecto "mivia" (Node + FastAPI). NO activa.
+# context: Se activa renombrando a mivia.conf cuando exista el servicio en el compose.
+
+# ¿Por qué no está activa todavía?
+# Nginx resuelve los nombres de `proxy_pass` AL ARRANCAR. Si `mivia-web` o
+# `mivia-api` no existen en la red de Docker, nginx no arranca y se lleva por
+# delante también a PianoMentor. Por eso este archivo termina en .example:
+# nginx solo carga los *.conf.
+
+# Pasos para activarla:
+#   1. cp mivia.conf.example mivia.conf
+#   2. Sustituye mivia.ddns.net por tu hostname real de No-IP.
+#   3. Ajusta los puertos internos (3000 para Node, 8000 para FastAPI).
+#   4. Añade los servicios en deploy/docker-compose.yml (bloque comentado al final).
+#   5. docker compose up -d mivia-web mivia-api
+#   6. docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload
+
+# --- Web (Node) -------------------------------------------------------------
+server {
+    listen 80;
+    server_name mivia.ddns.net;          # TODO: hostname real de No-IP
+
+    location / {
+        proxy_pass http://mivia-web:3000; # TODO: puerto interno del Node
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+
+        # Si el Node usa WebSocket:
+        # proxy_set_header Upgrade    $http_upgrade;
+        # proxy_set_header Connection $connection_upgrade;
+    }
+}
+
+# --- API (FastAPI) ----------------------------------------------------------
+# Descomenta cuando decidas el subdominio de la API (p. ej. api-mivia.ddns.net
+# no existe en No-IP gratuito: normalmente se usa una ruta /api en el mismo host).
+#
+# server {
+#     listen 80;
+#     server_name api.mivia.ddns.net;
+#
+#     location / {
+#         proxy_pass http://mivia-api:8000;
+#         proxy_http_version 1.1;
+#         proxy_set_header Host              $host;
+#         proxy_set_header X-Real-IP         $remote_addr;
+#         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#     }
+# }

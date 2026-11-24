@@ -1,0 +1,12 @@
+# description: Servicio oneshot que sincroniza el DNS de Vercel con la IP pública.
+# context: Lo dispara pm-ddns.timer. Instalar en /etc/systemd/system/.
+
+[Unit]
+Description=Actualiza los registros A de Vercel con la IP publica
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/pm-ddns.env
+ExecStart=/usr/local/bin/pm-ddns.py

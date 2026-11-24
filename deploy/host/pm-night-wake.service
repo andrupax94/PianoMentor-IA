@@ -1,0 +1,10 @@
+# description: Servicio vacio que solo existe para que el temporizador de las 07:00
+#              tenga a quien disparar. Lo importante es el WakeSystem del timer.
+# context: No hace nada al ejecutarse; su unico efecto es programar el despertador RTC.
+
+[Unit]
+Description=Despierta el portatil a las 07:00 (disparador)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true

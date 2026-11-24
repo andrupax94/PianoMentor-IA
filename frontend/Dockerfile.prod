@@ -1,0 +1,34 @@
+# description: Imagen de producción del frontend Next.js (build + next start).
+# context: Servidor casero. El docker-compose.yml de desarrollo sigue usando Dockerfile.
+
+FROM node:24-alpine AS build
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Dependencias primero: la capa se reutiliza si no cambia package-lock.json.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# NEXT_PUBLIC_* se "hornean" en el bundle: hay que pasarlas al construir.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_URL
+ARG NEXT_PUBLIC_AUTOLOGIN=false
+ARG NEXT_PUBLIC_ENABLE_MIDI_UPLOAD=false
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL \
+    NEXT_PUBLIC_AUTOLOGIN=$NEXT_PUBLIC_AUTOLOGIN \
+    NEXT_PUBLIC_ENABLE_MIDI_UPLOAD=$NEXT_PUBLIC_ENABLE_MIDI_UPLOAD
+
+RUN npm run build
+
+FROM node:24-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+
+# El .dockerignore excluye .env.local, así que aquí no viaja ningún secreto.
+COPY --from=build /app ./
+
+EXPOSE 3000
+CMD ["npm", "run", "start"]

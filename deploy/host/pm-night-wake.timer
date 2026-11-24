@@ -1,0 +1,15 @@
+# description: Despierta el portatil a las 07:00 usando el despertador del RTC.
+# context: WakeSystem=true arma el RTC; systemd lo programa antes de suspender.
+
+[Unit]
+Description=Despierta el portatil a las 07:00
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+AccuracySec=1s
+Persistent=false
+WakeSystem=true
+Unit=pm-night-wake.service
+
+[Install]
+WantedBy=timers.target
