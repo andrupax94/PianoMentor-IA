@@ -18,7 +18,7 @@ $plainKey = Join-Path $sshDir 'id_ed25519'
 $encKey = Join-Path $sshDir 'id_ed25519.enc'
 $hostName = 'pianomentoria.com'
 $user = 'chimuelo'
-$remoteRdp = '192.168.1.134:3389'
+$remoteRdp = '192.168.1.129:3389'
 $localPort = 3390
 
 function Show-Error($msg) {
