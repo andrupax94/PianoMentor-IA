@@ -58,7 +58,7 @@ services:
       # El .env de desarrollo dice APP_ENV, que el backend ignora; la variable
       # que manda es ENVIRONMENT. En producción desactiva /api/v1/dev/*.
       ENVIRONMENT: production
-      MIDI_STORAGE_PATH: /data/midi
+      MIDI_STORAGE_PATH: /corpus
       DATABASE_URL: sqlite:////data/piano_mentor.db
       DATABASE_PATH: /data/piano_mentor.db
       # CORS debe permitir el origen del FRONTEND (el navegador llama a la API
@@ -81,8 +81,11 @@ services:
       # La ruta se define en deploy/.env (PM_DATA_DIR).
       - ${PM_DATA_DIR:?define PM_DATA_DIR en deploy/.env}:/data
       # Corpus MIDI versionado: viaja con el repo, asi que un despliegue lo
-      # actualiza. Solo lectura porque las subidas estan desactivadas.
-      - ../data/midi:/data/midi:ro
+      # actualiza. Vive en /corpus y no en /data/midi a proposito: montar una
+      # ruta dentro de otra hacia que Docker creara un /data/midi fantasma en
+      # el host en cada arranque. Solo lectura porque las subidas estan
+      # desactivadas.
+      - ../data/midi:/corpus:ro
     expose:
       - "8000"
     networks:

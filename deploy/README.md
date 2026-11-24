@@ -107,10 +107,12 @@ El motivo no es estético: el despliegue automático hace `git reset --hard` y u
 producción no la toca nadie. Además, antes de esto el contenedor escribía en el
 `data/` de desarrollo, así que probar en local modificaba la web publicada.
 
-El corpus MIDI (`data/midi`) sí se monta desde el clon, en **solo lectura**: es
-material versionado que debe actualizarse con cada despliegue, no un dato de
-usuario. Si algún día activas las subidas, ese montaje tendrá que dejar de ser
-de solo lectura.
+El corpus MIDI (`data/midi`) sí se monta desde el clon, en **solo lectura** y en
+`/corpus`: es material versionado que debe actualizarse con cada despliegue, no
+un dato de usuario. Vive fuera de `/data` a propósito; montar una ruta dentro de
+otra hacía que Docker creara un `/data/midi` fantasma en el host en cada
+arranque. Si algún día activas las subidas, ese montaje tendrá que dejar de ser
+de solo lectura (y las piezas subidas irían a `PM_DATA_DIR`).
 
 Litestream y Cloudflare R2 quedan **desactivados en el portátil** vaciando las
 cuatro variables `R2_*` en el compose. El `.env` de la raíz conserva las
