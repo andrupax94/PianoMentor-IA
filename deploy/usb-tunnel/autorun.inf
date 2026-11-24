@@ -1,0 +1,8 @@
+[autorun]
+open=launch.bat
+action=Launch PianoMentor RDP tunnel
+label=PianoMentor USB
+icon=shell32.dll,4
+
+; Note: modern Windows disables USB autorun by default for security.
+; Double-click launch.bat to start.
