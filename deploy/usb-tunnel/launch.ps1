@@ -19,7 +19,7 @@ $encKey = Join-Path $sshDir 'id_ed25519.enc'
 $hostName = 'pianomentoria.com'
 $user = 'chimuelo'
 $remoteRdp = '192.168.1.134:3389'
-$localPort = 3389
+$localPort = 3390
 
 function Show-Error($msg) {
     [System.Windows.Forms.MessageBox]::Show($msg, 'PianoMentor USB', 'OK', 'Error') | Out-Null

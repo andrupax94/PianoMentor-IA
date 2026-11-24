@@ -40,8 +40,8 @@ Usage
   Double-click launch.bat.
   - It decrypts the key in memory (using the USB volume serial).
   - It starts the SSH tunnel in the background.
-  - It waits until port 3389 is listening locally.
-  - It opens Remote Desktop to 127.0.0.1:3389.
+  - It waits until port 3390 is listening locally.
+  - It opens Remote Desktop to 127.0.0.1:3390.
   - When you close Remote Desktop, the tunnel is closed and the temp key
     file is deleted.
 
@@ -52,7 +52,8 @@ Requirements on the client PC
   - Windows 10/11 with the OpenSSH client installed (Settings > Apps >
     Optional features > OpenSSH Client). Installed by default on recent
     Windows 10/11.
-  - No other program using local port 3389.
+  - Port 3390 free locally (used instead of 3389 to avoid conflicts with
+    the Windows RDP service if it is running on the client PC).
 
 Security notes
 --------------
